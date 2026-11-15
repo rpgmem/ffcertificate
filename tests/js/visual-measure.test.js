@@ -180,6 +180,71 @@ describe('FFCVisualMeasure.read', () => {
 	});
 });
 
+describe('FFCVisualMeasure.read with its own readers', () => {
+	it('measures runs and lines through ranges when no reader is given', () => {
+		const content = page('<p data-r="0,700,600,60">Issued <em>here</em> · <span data-ffc-qr="{{qr_code:size=50}}" data-r="275,720,50,50"></span> · Verify <strong data-s=\'{"fontWeight":"700"}\'>{{auth_code}}</strong></p>');
+		const realRange = document.createRange;
+		document.createRange = () => ({
+			selectNodeContents() {},
+			setStartBefore() {},
+			setEndAfter() {},
+			getClientRects: () => [{ left: 10, top: 702, right: 90, bottom: 718, width: 80, height: 16 }, { left: 0, top: 650, right: 0, bottom: 666, width: 0, height: 16 }, { left: 90, top: 702, right: 130, bottom: 718, width: 40, height: 16 }],
+		});
+		const e = env();
+		try {
+			const { layout, report } = window.FFCVisualMeasure.read(content, 'landscape', { rect: e.rect, style: e.style });
+			expect(layout.elements.map((x) => x.type)).toEqual(['text', 'qr', 'text']);
+			expect(layout.elements[0]).toMatchObject({ text: 'Issued here ·', y: 700, h: 20 });
+			expect(layout.elements[2].text).toBe('· Verify {{auth_code}}');
+			expect(report.filter((r) => r.status === 'dropped').map((r) => r.label)).toEqual(['Styles inside one line merged: · Verify {{auth_code}}']);
+		} finally {
+			document.createRange = realRange;
+		}
+	});
+
+	it('fills a box whose borders differ, and keeps text beside boxes whole', () => {
+		const content = page(
+			'<div data-r="0,0,100,50" data-s=\'{"backgroundColor":"rgb(1, 2, 3)","borderTopWidth":"1px","borderTopStyle":"solid","borderTopColor":"rgb(9, 9, 9)"}\'></div>'
+			+ '<div data-r="0,100,300,80">loose words<div data-r="0,140,300,40">inner</div></div>'
+			+ '<img src="x.png" data-r="5000,0,10,10">'
+		);
+		const { layout, report } = window.FFCVisualMeasure.read(content, 'landscape', env());
+		expect(layout.elements[0]).toMatchObject({ type: 'frame', fill: '#010203', border_width: 0 });
+		expect(layout.elements[1]).toMatchObject({ type: 'frame', h: 1, fill: '#090909' });
+		expect(layout.elements[2].type).toBe('html');
+		expect(report[2].status).toBe('kept');
+		expect(layout.elements).toHaveLength(3);
+	});
+
+	it('tells a data tag from text', () => {
+		const read = (text) => window.FFCVisualMeasure.read(page('<p data-r="0,0,100,20">' + text + '</p>'), 'landscape', env()).layout.elements[0].type;
+		expect(read('{{issue_date:format=d/m/Y H:i}}')).toBe('field');
+		expect(read('{{a:b}}')).toBe('field');
+		expect(read('{{Not A Tag}}')).toBe('text');
+		expect(read('{{name}} and more')).toBe('text');
+		expect(read('{{' + 'a:size='.repeat(40) + '}}')).toBe('text');
+	});
+});
+
+describe('FFCVisualMeasure.measure', () => {
+	it('turns to portrait when the page box is taller than a landscape page', async () => {
+		const real = window.HTMLElement.prototype.getBoundingClientRect;
+		window.HTMLElement.prototype.getBoundingClientRect = function () {
+			if (this.hasAttribute('data-tall')) {
+				return { left: 0, top: 0, width: 794, height: 1123 };
+			}
+			return real.call(this);
+		};
+		try {
+			const result = await window.FFCVisualMeasure.measure('<div data-tall="1"><p>{{name}}</p></div>');
+			expect(result.layout.page.orientation).toBe('portrait');
+			expect(document.querySelector('.ffc-pdf-wrapper')).toBeNull();
+		} finally {
+			window.HTMLElement.prototype.getBoundingClientRect = real;
+		}
+	});
+});
+
 describe('FFCVisualMeasure helpers', () => {
 	it('holds and releases QR tags', () => {
 		const held = window.FFCVisualMeasure.holdQr('a {{qr_code}} b');
@@ -225,9 +290,15 @@ describe('the click', () => {
 			return Promise.resolve({ json: () => Promise.resolve({ success: true, data }) });
 		};
 		document.body.innerHTML = '<a href="http://localhost/wp-admin/admin.php?action=ffc_visual_copy_cert_template&post=5&_wpnonce=abc" data-ffc-visual-measure="5">Create</a>';
+		const said = [];
+		window.FFC = { say: (m) => said.push(m) };
 
 		document.querySelector('a').click();
+		// A second click while the first runs does nothing.
+		document.querySelector('a').click();
 		await new Promise((r) => setTimeout(r, 50));
+		delete window.FFC;
+		expect(said).toEqual(['Reading the template…']);
 
 		expect(posts.map((p) => p.action)).toEqual(['ffc_visual_copy_source', 'ffc_visual_copy_save']);
 		expect(posts[1]).toMatchObject({ post: '5', _wpnonce: 'abc' });

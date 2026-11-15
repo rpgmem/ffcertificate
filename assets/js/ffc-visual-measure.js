@@ -17,7 +17,8 @@
 
 	var PAGE = { landscape: { w: 1123, h: 794 }, portrait: { w: 794, h: 1123 } };
 	var QR_TOKEN = /\{\{qr_code(?::[^}]*)?\}\}/g;
-	var FIELD_TOKEN = /^\{\{[a-z0-9_]+(?::[a-z0-9_]+)*(?::(?:format|size|margin)=[^{}<>"]{0,60})*\}\}$/;
+	var TOKEN_NAME = /^[a-z0-9_]+(?::[a-z0-9_]+)*$/;
+	var TOKEN_OPTION = /:(?=(?:format|size|margin)=)/;
 	var SIGNATURE = '{{signer:signature}}';
 	// Inline tags a text block may hold and stay one block.
 	var INLINE = { B: 1, STRONG: 1, I: 1, EM: 1, SPAN: 1, A: 1, BR: 1, SMALL: 1, U: 1, SUB: 1, SUP: 1, FONT: 1, MARK: 1, ABBR: 1, CODE: 1 };
@@ -61,6 +62,22 @@
 			var h = Math.max(0, Math.min(255, Math.round(parseFloat(c)))).toString(16);
 			return h.length === 1 ? '0' + h : h;
 		}).join('');
+	}
+
+	/**
+	 * Whether a text is one data tag: a name, then options such as
+	 * `:format=d/m/Y`. Read in two passes, so no pattern can backtrack.
+	 *
+	 * @param {string} text Text of a block.
+	 * @return {boolean}
+	 */
+	function isFieldToken(text) {
+		var m = /^\{\{([^{}<>"]{1,200})\}\}$/.exec(text);
+		if (!m) {
+			return false;
+		}
+		var parts = m[1].split(TOKEN_OPTION);
+		return TOKEN_NAME.test(parts[0]) && parts.slice(1).every(function (o) { return o.length <= 70; });
 	}
 
 	/**
@@ -363,7 +380,7 @@
 	/** One text or field element, from its text, style and box. */
 	Measurer.prototype.addText = function (text, props, box) {
 		var element = { x: box.x, y: box.y, w: box.w, h: box.h };
-		if (FIELD_TOKEN.test(text)) {
+		if (isFieldToken(text)) {
 			element.type = 'field';
 			element.token = text;
 			this.add(Object.assign(element, props), STATUS.converted, t('field', 'Data field') + ': ' + text);
