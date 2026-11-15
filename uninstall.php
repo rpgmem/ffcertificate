@@ -313,6 +313,7 @@ $ffcertificate_options = array(
 	// The birth-date backfill cursor (#1538), written only when that card runs.
 	'ffc_birth_date_backfill_state',
 	'ffc_event_date_migration_state',
+	'ffc_shared_template_migration_state',
 	'ffc_certificate_signers',
 	// The reregistration draft-encryption cursor (#2242), written only when that card runs.
 	'ffc_rereg_draft_encryption_state',

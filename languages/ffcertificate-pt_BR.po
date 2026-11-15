@@ -34149,3 +34149,70 @@ msgstr "Nome e RF são lidos do perfil a cada certificado gerado, então uma cor
 
 msgid "The form's signer, chosen on the Layout tab from Certificates → Signers: name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews."
 msgstr "O assinante do formulário, escolhido na aba Layout entre os de Certificados → Assinantes: nome e RF do perfil no WordPress no momento de gerar, o cargo ou setor e a URL da imagem da assinatura. O RF sai completo no certificado e mascarado nas prévias."
+
+msgid "Certificates: Move Copied Layouts onto a Shared Template"
+msgstr "Certificados: mover layouts copiados para um modelo compartilhado"
+
+msgid "For each form that prints its own copy of a layout, look for a certificate template using {{model:…}} or {{signer:…}} tokens whose text the copy follows, fill the form's fields with what it typed in place of each token, pick the signer whose name and RF it typed, and switch the form to the template, but only when its certificate then prints exactly what it printed before, background included. The form keeps its own copy. Every other form is left alone and listed with the reason; adding a signer or a template brings those forms back. Run the event date card first."
+msgstr "Para cada formulário que imprime a sua própria cópia de um layout, procura um modelo de certificado com tokens {{model:…}} ou {{signer:…}} cujo texto a cópia segue, preenche os campos do formulário com o que ele digitou no lugar de cada token, escolhe o assinante cujo nome e RF ele digitou e troca o formulário para o modelo, mas só quando o certificado passa a imprimir exatamente o que imprimia antes, fundo incluído. O formulário mantém a sua própria cópia. Os demais formulários ficam como estão e aparecem na lista com o motivo; adicionar um assinante ou um modelo traz esses formulários de volta. Execute antes o card da data do evento."
+
+msgid "No certificate template uses {{model:…}} or {{signer:…}} tokens yet. Write the shared template first: copy one form's layout into a new template, put a token where the forms differ, declare the fields and add the signers; then this card lists what it would switch."
+msgstr "Nenhum modelo de certificado usa tokens {{model:…}} ou {{signer:…}} ainda. Escreva primeiro o modelo compartilhado: copie o layout de um formulário para um novo modelo, coloque um token onde os formulários diferem, declare os campos e adicione os assinantes; então este card lista o que trocaria."
+
+#. translators: 1: forms examined, 2: forms switched to a shared template
+msgid "Examined %1$d forms and switched %2$d to a shared template; the rest are listed with the reason."
+msgstr "%1$d formulários examinados; %2$d trocados para um modelo compartilhado; os demais aparecem na lista com o motivo."
+
+#. translators: %s: signer name
+msgid "signer %s"
+msgstr "assinante %s"
+
+#. translators: 1: form title and id, 2: template title, 3: extracted values and signer
+msgid "%1$s — switches to “%2$s”: %3$s"
+msgstr "%1$s — passa para “%2$s”: %3$s"
+
+#. translators: 1: template title, 2: the template text where the layout differs
+msgid "the layout differs from “%1$s” at “%2$s”"
+msgstr "o layout difere de “%1$s” em “%2$s”"
+
+#. translators: %s: the signer name typed in the layout
+msgid "no signer on the list matches “%s”; add them under Certificates → Signers"
+msgstr "nenhum assinante da lista corresponde a “%s”; adicione-o em Certificados → Assinantes"
+
+#. translators: %s: the image address the layout shows
+msgid "the signer's signature image is not the one the layout shows (%s); choose that image for the signer"
+msgstr "a imagem da assinatura do assinante não é a que o layout mostra (%s); escolha essa imagem para o assinante"
+
+#. translators: %s: the role typed in the layout
+msgid "the signer's role is not the one the layout types (“%s”)"
+msgstr "o cargo do assinante não é o que o layout digita (“%s”)"
+
+msgid "the form already names a different signer"
+msgstr "o formulário já indica outro assinante"
+
+msgid "the form has no event date; run the event date card first"
+msgstr "o formulário não tem data do evento; execute antes o card da data do evento"
+
+msgid "the text in place of a token holds markup a field would print as text"
+msgstr "o texto no lugar de um token contém marcação que um campo imprimiria como texto"
+
+#. translators: %s: template title
+msgid "the certificate would print differently with “%s”; left as it is"
+msgstr "o certificado sairia diferente com “%s”; mantido como está"
+
+#. translators: %s: template title
+msgid "the background differs from “%s”"
+msgstr "o fundo difere de “%s”"
+
+msgid "the form has no layout of its own"
+msgstr "o formulário não tem layout próprio"
+
+msgid "no certificate template uses {{model:…}} or {{signer:…}} tokens"
+msgstr "nenhum modelo de certificado usa tokens {{model:…}} ou {{signer:…}}"
+
+
+msgid "A second card moves forms carrying copies of one layout onto a shared template you wrote with {{model:…}} and {{signer:…}} tokens, filling each form's fields from what it typed, only when the certificate prints the same; adding a signer or a template brings the forms it left alone back."
+msgstr "Um segundo card passa os formulários com cópias de um mesmo layout para um modelo compartilhado que você escreveu com tokens {{model:…}} e {{signer:…}}, preenchendo os campos de cada formulário com o que ele digitou, só quando o certificado sai igual; adicionar um assinante ou um modelo traz de volta os formulários que ele deixou como estavam."
+
+msgid "Many forms carrying copies of one layout can be moved onto a shared template at once. Copy one form's layout into a new certificate template, put a {{model:key}} token where the forms differ (the place, the action) and the {{signer:…}} tokens where the signer is typed, declare the fields and add the signers under Certificates → Signers. The \"Move Copied Layouts onto a Shared Template\" card under Settings → Data Migrations then fills each form's fields with what it typed in place of each token and switches it, but only when its certificate prints exactly what it printed before; it previews each form first and lists the rest with the reason. Several families of copies take one template each."
+msgstr "Muitos formulários com cópias de um mesmo layout podem passar de uma vez para um modelo compartilhado. Copie o layout de um formulário para um novo modelo de certificado, coloque um token {{model:chave}} onde os formulários diferem (o local, a ação) e os tokens {{signer:…}} onde o assinante está digitado, declare os campos e adicione os assinantes em Certificados → Assinantes. O card \"Mover layouts copiados para um modelo compartilhado\" em Configurações → Migrações de Dados preenche então os campos de cada formulário com o que ele digitou no lugar de cada token e o troca, mas só quando o certificado imprime exatamente o que imprimia antes; ele mostra cada formulário antes de executar e lista os demais com o motivo. Cada família de cópias usa um modelo próprio."
