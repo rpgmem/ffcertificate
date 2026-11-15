@@ -315,6 +315,21 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['event_date_from_layout'] );
 					break;
 
+				case 'shared_template_from_layout':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\SharedTemplateMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-shared-template-migration-strategy.php';
+					}
+
+					$this->strategies['shared_template_from_layout'] = new \FreeFormCertificate\Migrations\Strategies\SharedTemplateMigrationStrategy();
+					unset( $this->strategy_errors['shared_template_from_layout'] );
+					break;
+
 				case 'birth_date_backfill':
 					$strategy_dir = __DIR__ . '/strategies/';
 

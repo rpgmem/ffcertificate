@@ -165,6 +165,16 @@ class MigrationRegistry {
 			'order'       => 14,
 		);
 
+		// #2583: forms carrying near-identical copies of one layout move onto
+		// the shared template an administrator wrote.
+		$this->migrations['shared_template_from_layout'] = array(
+			'name'        => __( 'Certificates: Move Copied Layouts onto a Shared Template', 'ffcertificate' ),
+			'description' => __( 'For each form that prints its own copy of a layout, look for a certificate template using {{model:…}} or {{signer:…}} tokens whose text the copy follows, fill the form\'s fields with what it typed in place of each token, pick the signer whose name and RF it typed, and switch the form to the template, but only when its certificate then prints exactly what it printed before, background included. The form keeps its own copy. Every other form is left alone and listed with the reason; adding a signer or a template brings those forms back. Run the event date card first.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-copy',
+			'batch_size'  => 25,
+			'order'       => 15,
+		);
+
 		// #2245: PCD moved from the candidate to each notice classification.
 		$this->migrations['recruitment_pcd_per_notice'] = array(
 			'name'        => __( 'Recruitment: PCD per Notice', 'ffcertificate' ),
