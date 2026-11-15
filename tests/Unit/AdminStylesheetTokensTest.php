@@ -71,6 +71,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// entries below are decisions, each with its reason INLINE in the CSS,
 		// not silent debt.
 		'ffc-admin-move-submissions.css' => 0,
+		'ffc-visual-editor.css'         => 0,
 		'ffc-admin-submission-edit.css' => 0,
 		'ffc-admin-submissions.css'     => 0,
 		'ffc-admin-utilities.css'       => 0,

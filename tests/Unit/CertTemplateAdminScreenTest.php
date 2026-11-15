@@ -1478,6 +1478,9 @@ class CertTemplateAdminScreenTest extends TestCase {
 
 	public function test_a_visual_template_shows_its_layout_instead_of_the_html_editor(): void {
 		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_attr_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'wp_nonce_url' )->alias( static fn( $url ) => $url );
 		Functions\when( 'esc_textarea' )->alias( static fn( $v ) => htmlspecialchars( (string) $v ) );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
@@ -1494,6 +1497,16 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertStringContainsString( '{&quot;version&quot;:1,&quot;elements&quot;:[]}', $html );
 		$this->assertStringNotContainsString( 'name="ffc_template_html"', $html );
 		$this->assertStringContainsString( 'name="ffc_template_bg_image"', $html );
+		// The page canvas (#2585) edits the same field, hidden until its script boots.
+		$this->assertStringContainsString( 'data-ffc-visual-editor="ffc_template_layout" hidden', $html );
+		foreach ( array( 'text', 'field', 'image', 'qr', 'frame', 'html' ) as $type ) {
+			$this->assertStringContainsString( 'data-ffc-ve-insert="' . $type . '"', $html );
+		}
+		foreach ( array( 'left', 'center', 'right', 'top', 'middle', 'bottom' ) as $mode ) {
+			$this->assertStringContainsString( 'data-ffc-ve-align="' . $mode . '"', $html );
+		}
+		$this->assertStringContainsString( 'class="ffc-ve-gate', $html, 'a narrow window is told why' );
+		$this->assertStringContainsString( 'action=ffc_preview_cert_template&post=5', $html, 'and still reaches the test PDF' );
 	}
 
 	private function capture( callable $fn ): string {

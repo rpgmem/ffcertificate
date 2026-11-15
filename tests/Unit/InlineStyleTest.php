@@ -96,6 +96,22 @@ final class InlineStyleTest extends TestCase {
 		'assets/js/ffc-admin-migrations.js' => array(
 			'.css(): .css("width", percent + "%"' => array( 1, self::RUNTIME_VALUE ),
 		),
+		// The page canvas positions, scales and stacks each element from its layout (#2585).
+		'assets/js/ffc-visual-editor.js' => array(
+			'.style.x =: .style.left = box.x + "px"'                                             => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.top = box.y + "px"'                                              => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.width = box.w + "px"'                                            => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.height = box.h + "px"'                                           => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.width = page.width + "px"'                                       => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.height = page.height + "px"'                                     => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.transform = "scale(" + zoom + ")"'                               => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.width = Math.round(page.width * zoom) + "px"'                    => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.height = Math.round(page.height * zoom) + "px"'                  => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.zIndex = String(index + 1)'                                      => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.transform = el.rotation ? "rotate(" + el.rotation + "deg)" : "'  => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.border = (el.border_width || 0) + "px " + (el.border_style'      => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.borderRadius = (el.radius || 0) + "px"'                          => array( 1, self::RUNTIME_VALUE ),
+		),
 		'assets/js/ffc-certificate-render.js' => array(
 			'.style.x =: .style.fontSize = low + "px"'    => array( 2, self::RUNTIME_VALUE ),
 			'.style.x =: .style.fontSize = middle + "px"' => array( 1, self::RUNTIME_VALUE ),
