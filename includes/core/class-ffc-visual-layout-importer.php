@@ -625,7 +625,11 @@ class VisualLayoutImporter {
 				$node->setAttribute( 'style', $kept );
 			}
 		}
-		return (string) $node->ownerDocument?->saveHTML( $node );
+		// libxml escapes a URI attribute on the way out, so a token where an
+		// address goes (`<img src="{{signer2:signature}}">`) came back as
+		// `%7B%7Bsigner2:signature%7D%7D`, which the layout allow-list then
+		// cut down to `signature%7D%7D` (#2624). The token is put back.
+		return (string) preg_replace( '/%7B%7B([a-z0-9_:=]+)%7D%7D/i', '{{$1}}', (string) $node->ownerDocument?->saveHTML( $node ) );
 	}
 
 	/**

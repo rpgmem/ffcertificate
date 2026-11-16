@@ -132,9 +132,10 @@ class CertTemplateSeederTest extends TestCase {
 		CertTemplateSeeder::maybe_seed();
 
 		$this->assertCount( 15, $refreshed, 'all fifteen default bodies refreshed on the bump' );
-		// The three certificate defaults still resolve their background under assets/.
+		// The certificate defaults print their signatures from signers 1 and 2 (#2624).
 		foreach ( array( 11, 12, 13 ) as $cert_id ) {
-			$this->assertStringContainsString( 'assets/img/certificate-defaults/', (string) $refreshed[ $cert_id ] );
+			$this->assertStringContainsString( '{{signer1:signature}}', (string) $refreshed[ $cert_id ] );
+			$this->assertStringContainsString( '{{signer2:signature}}', (string) $refreshed[ $cert_id ] );
 		}
 		$this->assertSame( self::current_seed_version(), $bumped[1], 'flag bumped to the new seed version' );
 	}
@@ -230,6 +231,23 @@ class CertTemplateSeederTest extends TestCase {
 				$this->assertSame( '', $kv[ CertTemplateCpt::META_BG_IMAGE ] );
 			}
 			$this->assertStringNotContainsString( 'default_background_certificate', $kv[ CertTemplateCpt::META_HTML ] );
+		}
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', (string) $v ) ) );
+		foreach ( $certificates as $kv ) {
+			// Each certificate model declares the place and the workload (#2624),
+			// and every {{model:…}} its body prints is one of them.
+			$fields = $kv[ \FreeFormCertificate\Core\CertificateTemplateLink::META_FIELDS ] ?? null;
+			$this->assertIsArray( $fields, $kv[ CertTemplateCpt::META_DEFAULT_SLUG ] . ' declares its fields' );
+			$declared = array_column( $fields, 'key' );
+			$this->assertSame( array( 'place', 'workload' ), $declared );
+			$this->assertSame( $fields, \FreeFormCertificate\Core\TemplateFields::sanitize( $fields ), 'the declaration is already clean' );
+			$used = \FreeFormCertificate\Core\TemplateFields::used_keys( (string) $kv[ CertTemplateCpt::META_HTML ] );
+			$this->assertNotEmpty( $used, $kv[ CertTemplateCpt::META_DEFAULT_SLUG ] . ' prints its fields' );
+			$this->assertSame( array(), array_diff( $used, $declared ), $kv[ CertTemplateCpt::META_DEFAULT_SLUG ] . ' prints only declared fields' );
+		}
+		foreach ( array_merge( $receipts, $records ) as $kv ) {
+			$this->assertArrayNotHasKey( \FreeFormCertificate\Core\CertificateTemplateLink::META_FIELDS, $kv, 'only the certificate models declare fields' );
 		}
 		foreach ( $receipts as $kv ) {
 			// Receipt defaults have no background image.
@@ -464,10 +482,16 @@ class CertTemplateSeederTest extends TestCase {
 				$html,
 				basename( (string) $file ) . ' must not reference the update-fragile html/ folder'
 			);
-			if ( false !== strpos( $html, '<img' ) ) {
+			// A signature prints from its signer's token (#2624); every other
+			// image is a file the plugin ships.
+			preg_match_all( '/<img\b[^>]*\ssrc="([^"]*)"/i', $html, $sources );
+			foreach ( $sources[1] as $src ) {
+				if ( 1 === preg_match( '/^\{\{signer[1-3]?:signature\}\}$/', $src ) ) {
+					continue;
+				}
 				$this->assertStringContainsString(
 					'assets/img/certificate-defaults/',
-					$html,
+					$src,
 					basename( (string) $file ) . ' images must resolve under the shipped assets/ dir'
 				);
 			}

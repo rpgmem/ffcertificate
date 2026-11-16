@@ -12,25 +12,25 @@
         <p style="margin: 22px 0 0;font-size: 14pt;color: #3a3248">has successfully completed the course</p>
         <p style="margin: 10px 0 0;font-family: 'EB Garamond', Georgia, 'Times New Roman', serif;font-size: 21pt;font-weight: bold;color: #803063">{{form_title}}</p>
         <p style="margin: 6px 0 0;font-size: 12pt;color: #803063">{{schedule}}</p>
-        <p style="margin: 14px 0 0;font-size: 12pt;color: #4a4358">Workload of 4 hours &middot; Completed on 25/12/2025</p>
+        <p style="margin: 14px 0 0;font-size: 12pt;color: #4a4358">Workload of {{model:workload}} &middot; Completed on {{schedule:dates}}</p>
     </div>
 
     <div style="position: absolute;top: 585px;left: 330px;width: 700px;box-sizing: border-box">
         <table style="width: 100%;border-collapse: collapse">
             <tr>
                 <td style="width: 45%;text-align: center;vertical-align: bottom">
-                    <img src="/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/default_assinagture_1.png" style="width: 150px;height: auto">
+                    <img src="{{signer2:signature}}" style="width: 150px;height: auto">
                     <div style="border-top: 1px solid #2a2236;margin: 0 20px;padding-top: 6px">
-                        <strong style="font-size: 11pt">Speaker</strong><br>
-                        <span style="font-size: 10pt;color: #5b5170">Joe Doe</span>
+                        <strong style="font-size: 11pt">{{signer2:role}}</strong><br>
+                        <span style="font-size: 10pt;color: #5b5170">{{signer2:name}}</span>
                     </div>
                 </td>
                 <td style="width: 10%"></td>
                 <td style="width: 45%;text-align: center;vertical-align: bottom">
-                    <img src="/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/default_assinagture_2.png" style="width: 150px;height: auto">
+                    <img src="{{signer1:signature}}" style="width: 150px;height: auto">
                     <div style="border-top: 1px solid #2a2236;margin: 0 20px;padding-top: 6px">
-                        <strong style="font-size: 11pt">Director</strong><br>
-                        <span style="font-size: 10pt;color: #5b5170">Jane Doe</span>
+                        <strong style="font-size: 11pt">{{signer1:role}}</strong><br>
+                        <span style="font-size: 10pt;color: #5b5170">{{signer1:name}}</span>
                     </div>
                 </td>
             </tr>
@@ -38,6 +38,6 @@
     </div>
 
     <div style="position: absolute;top: 715px;left: 300px;width: 760px;text-align: center;font-size: 8.5pt;color: #5b5170;box-sizing: border-box">
-        Issued San Diego, 26/12/2025 &middot; {{qr_code:size=50:margin=0}} &middot; Verify at {{validation_url}} with code <strong>{{auth_code}}</strong>
+        Issued {{model:place}}, {{submission_date}} &middot; {{qr_code:size=50:margin=0}} &middot; Verify at {{validation_url}} with code <strong>{{auth_code}}</strong>
     </div>
 </div>

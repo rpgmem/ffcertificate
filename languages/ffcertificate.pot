@@ -33944,7 +33944,7 @@ msgstr ""
 msgid "A template can declare fields that each referencing form fills — a place, the description of the activity, a date. Declare them in the template's Template fields box (key, label, short text, long text or date, required, default) and print them as {{model:key}}. On the form they appear under the chosen template; an empty field prints the default, and a required field left empty saves with a warning. Removing a field leaves the values forms filled stored and unused."
 msgstr ""
 
-msgid "Where it is stored: the form keeps the template's id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too; they declare no fields."
+msgid "Where it is stored: the form keeps the template's id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too. The certificate models declare two fields, place and workload, whose defaults are the examples they print, and print the form's event date as the completion date, the submission date as the issue date, and signers 1 and 2 in their right and left signature columns; loading one into the form's own layout fills its fields with their defaults."
 msgstr ""
 
 msgid "The certificate template asks this form for values it has not filled: %s. Fill them on the Layout tab, or certificates print them blank."
@@ -34771,4 +34771,10 @@ msgid "Select what the rectangle touches; with Shift, add it"
 msgstr ""
 
 msgid "Transparent"
+msgstr ""
+
+msgid "Place"
+msgstr ""
+
+msgid "Workload"
 msgstr ""

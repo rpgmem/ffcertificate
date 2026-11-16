@@ -512,6 +512,49 @@ class FormEditorTest extends TestCase {
 		$this->assertSame( '#f3e9d2', $this->json_responses[0]['data']['bg_color'], 'The page colour comes back with the model.' );
 	}
 
+	public function test_a_loaded_template_prints_its_field_defaults_instead_of_tokens(): void {
+		// The form's own copy has no template fields, so a {{model:…}} token
+		// would print as written; Load fills each with its default (#2624).
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) $v ) );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'esc_html' )->alias( static fn( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES ) );
+		$post            = new \WP_Post();
+		$post->ID        = 5;
+		$post->post_type = \FreeFormCertificate\Admin\CertTemplateCpt::POST_TYPE;
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				if ( \FreeFormCertificate\Core\CertificateTemplateLink::META_FIELDS === $key ) {
+					return array(
+						array( 'key' => 'place', 'label' => 'Place', 'type' => 'text', 'default' => 'San Diego' ),
+						array( 'key' => 'workload', 'label' => 'Workload', 'type' => 'text', 'default' => '' ),
+					);
+				}
+				if ( \FreeFormCertificate\Admin\CertTemplateCpt::META_HTML === $key ) {
+					return '<p>Issued {{model:place}}, {{submission_date}} · {{model:workload}} · {{model:typo}} · {{signer1:name}}</p>';
+				}
+				return '';
+			}
+		);
+		$_POST['template_id'] = 5;
+
+		try {
+			( new FormEditor() )->ajax_load_template();
+		} catch ( \RuntimeException $e ) {
+			unset( $e );
+		}
+
+		$this->assertSame( 'success', $this->json_responses[0]['type'] );
+		$this->assertSame(
+			'<p>Issued San Diego, {{submission_date}} ·  · {{model:typo}} · {{signer1:name}}</p>',
+			$this->json_responses[0]['data']['html'],
+			'declared fields take their default, an empty default prints empty, an undeclared key and the other tokens stay'
+		);
+	}
+
 	public function test_ajax_load_template_by_id_errors_when_not_in_pool(): void {
 		// A positive id that is not a pool post → reader returns '' → error,
 		// without ever falling through to the legacy filename path.

@@ -34026,8 +34026,8 @@ msgstr "A aba Layout de um formulário escolhe a Origem do layout. Layout própr
 msgid "A template can declare fields that each referencing form fills — a place, the description of the activity, a date. Declare them in the template's Template fields box (key, label, short text, long text or date, required, default) and print them as {{model:key}}. On the form they appear under the chosen template; an empty field prints the default, and a required field left empty saves with a warning. Removing a field leaves the values forms filled stored and unused."
 msgstr "Um modelo pode declarar campos que cada formulário que o usa preenche — um local, a descrição da atividade, uma data. Declare-os na caixa Campos do modelo (chave, rótulo, texto curto, texto longo ou data, obrigatório, padrão) e imprima-os como {{model:chave}}. No formulário eles aparecem abaixo do modelo escolhido; um campo vazio imprime o padrão, e um campo obrigatório vazio salva com um aviso. Remover um campo mantém guardados, sem uso, os valores que os formulários preencheram."
 
-msgid "Where it is stored: the form keeps the template's id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too; they declare no fields."
-msgstr "Onde fica guardado: o formulário guarda o id do modelo e os valores que preencheu nos próprios metadados, e mantém intacta sua cópia, de modo que voltar para Layout próprio, ou um modelo enviado para a lixeira, imprime essa cópia. Os modelos padrão também podem ser usados; eles não declaram campos."
+msgid "Where it is stored: the form keeps the template's id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too. The certificate models declare two fields, place and workload, whose defaults are the examples they print, and print the form's event date as the completion date, the submission date as the issue date, and signers 1 and 2 in their right and left signature columns; loading one into the form's own layout fills its fields with their defaults."
+msgstr "Onde fica guardado: o formulário guarda o id do modelo e os valores que preencheu nos próprios metadados, e mantém intacta sua cópia, de modo que voltar para Layout próprio, ou um modelo enviado para a lixeira, imprime essa cópia. Os modelos padrão também podem ser referenciados. Os modelos de certificado declaram dois campos, place (local) e workload (carga horária), cujos padrões são os exemplos que imprimem, e imprimem a data do evento do formulário como data de conclusão, a data do envio como data de emissão e os assinantes 1 e 2 nas colunas de assinatura da direita e da esquerda; carregar um deles no layout próprio do formulário preenche os campos com os padrões."
 
 msgid "The certificate template asks this form for values it has not filled: %s. Fill them on the Layout tab, or certificates print them blank."
 msgstr "O modelo de certificado pede a este formulário valores que ele não preencheu: %s. Preencha-os na aba Layout, ou os certificados os imprimem em branco."
@@ -34854,3 +34854,9 @@ msgstr "Selecionar o que o retângulo toca; com Shift, acrescentar"
 
 msgid "Transparent"
 msgstr "Transparente"
+
+msgid "Place"
+msgstr "Local"
+
+msgid "Workload"
+msgstr "Carga horária"

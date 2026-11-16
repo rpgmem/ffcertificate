@@ -28,6 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The visual editor selects several elements by dragging a rectangle** (#2613). A drag on empty page, or from a locked element such as a full-page frame, selects every unlocked element it touches; Shift adds them to the selection, and a plain click still clears it.
 - **A form can name up to three signers** (#2620). The Layout tab has a select per position, printed as `{{signer1:…}}`, `{{signer2:…}}` and `{{signer3:…}}`; `{{signer:…}}` stays the alias of the first, and an empty position prints blank. Previews sample a different person per position, and the visual editor's image takes any position's signature.
 - **Add signer finds the account by search** (#2622). The list of up to 500 accounts gave way to a combobox that searches name, login and e-mail, or matches a full RF through the profile hash, and offers only accounts with an RF that are not signers yet, so any of a site's thousands of accounts can be chosen.
+- **The default certificate models print their place, workload, dates and signers from the form** (#2624). Place and workload are template fields defaulting to the old examples, the completion date is the event date, the issue date the submission's, and the columns print signers 1 and 2; an empty signature is not drawn.
 
 ### Changed
 
@@ -56,6 +57,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
+- **A `{{signer2:signature}}` or `{{signer3:signature}}` image address survives the layout allow-list and the visual conversion** (#2624): the allow-list held only `{{signer:`, and the conversion's markup escaped the braces, so both cut the token down to `signature}}`.
 
 ### Fixed
 

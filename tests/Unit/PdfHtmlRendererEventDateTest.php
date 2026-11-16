@@ -56,4 +56,21 @@ class PdfHtmlRendererEventDateTest extends TestCase {
 	public function test_without_an_event_date_the_tokens_print_nothing(): void {
 		$this->assertStringContainsString( '<p>no dia .</p>', $this->render( '<p>no dia {{schedule:date}}.</p>', array() ) );
 	}
+
+	public function test_an_image_a_token_left_without_an_address_is_not_printed(): void {
+		// A signer position with no signer prints an empty signature (#2624).
+		$html = $this->render(
+			'<td><img src="{{signer1:signature}}" style="width:150px"><img src=" " alt=""><IMG alt="x" SRC=\'\'><img src="/logo.png" alt=""><strong>{{signer1:name}}</strong></td>',
+			array(
+				'signer1:signature' => '',
+				'signer1:name'      => '',
+			)
+		);
+		$this->assertSame( 1, substr_count( strtolower( $html ), '<img' ), 'only the image with an address is left' );
+		$this->assertStringContainsString( '<img src="https://example.test/logo.png" alt="">', $html );
+		$this->assertStringContainsString( '<td><img src="https://example.test/logo.png" alt=""><strong></strong></td>', $html );
+
+		$kept = $this->render( '<img src="{{signer1:signature}}">', array( 'signer1:signature' => 'https://example.test/sig.png' ) );
+		$this->assertStringContainsString( '<img src="https://example.test/sig.png">', $kept );
+	}
 }

@@ -24,12 +24,12 @@ class DefaultLayoutVersionsTest extends TestCase {
 	 * the replaced body is still offered the new one.
 	 */
 	private const CURRENT = array(
-		'default_certificate_1' => 'd1631dd91a505a188814c12b37b1f3afcb6b931b',
-		'default_certificate_2' => 'd3e3336c741cb988093b8d61ee1d0ed5d5c9ea51',
-		'default_certificate_3' => '88c39ef290e5f41d464c765f065c04f1acd7f2d7',
-		'default_certificate_4' => '32404bb51d1765ceb459924fc6873093a59ce015',
-		'default_certificate_5' => '9c1096f7a009ade70b4452b11a2e8c66fbab6214',
-		'default_certificate_6' => 'b4c8b687ce745f0b5f8ad81fa1baaa54aac2d1b4',
+		'default_certificate_1' => '10373da68d067d35302bd6b70e7deef703cb6e72',
+		'default_certificate_2' => '67a108177a6ede3a5c3138658aef58ef89d39dfc',
+		'default_certificate_3' => '6017caa783037e13c7dd7d7e9454b15383ed69d3',
+		'default_certificate_4' => 'd1a7434215dfd23420658583d13e9c16d5bab346',
+		'default_certificate_5' => '0488042b752ca132c64a8122ff56cd71c9759d23',
+		'default_certificate_6' => '34ecc238fb6a21f08342858c1c58ec74de0d1c6d',
 	);
 
 	/** @var int Pool id the default lookup answers; 0 means the pool lacks it. */
