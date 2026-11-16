@@ -71,128 +71,138 @@ final class ActivityLogItems {
 	 * @var array<string, array{group: string, section: string, legacy?: string}>
 	 */
 	public const ITEMS = array(
-		'pii_reveal'           => array(
+		'pii_reveal'            => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'pii',
 		),
-		'pii_export'           => array(
+		'pii_export'            => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'pii',
 		),
-		'identity_tools'       => array(
+		'identity_tools'        => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'pii',
 		),
-		'data_deletion'        => array(
+		'data_deletion'         => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'dangerzone',
 		),
-		'cleanups'             => array(
+		'cleanups'              => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'dangerzone',
 		),
-		'migrations'           => array(
+		'migrations'            => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'dangerzone',
 		),
-		'destructive_settings' => array(
+		'destructive_settings'  => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'dangerzone',
 		),
-		'role_changes'         => array(
+		'role_changes'          => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'permissions',
 		),
-		'user_permissions'     => array(
+		'user_permissions'      => array(
 			'group'   => self::GROUP_AUDIT,
 			'section' => 'permissions',
 		),
-		'users_accounts'       => array(
+		'users_accounts'        => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'users',
 			'legacy'  => 'users',
 		),
-		'users_privacy'        => array(
+		'users_privacy'         => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'users',
 			'legacy'  => 'users',
 		),
-		'cert_submissions'     => array(
+		'cert_submissions'      => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'certificates',
 			'legacy'  => 'submissions',
 		),
-		'cert_changes'         => array(
+		'cert_changes'          => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'certificates',
 			'legacy'  => 'submissions',
 		),
-		'cert_grades'          => array(
+		'cert_grades'           => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'certificates',
 			'legacy'  => 'submissions',
 		),
-		'cert_bulk_issue'      => array(
+		'cert_bulk_issue'       => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'certificates',
 			'legacy'  => 'submissions',
 		),
-		'sched_appointments'   => array(
+		'sched_appointments'    => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'scheduling',
 			'legacy'  => 'scheduling',
 		),
-		'sched_bookings'       => array(
+		'sched_bookings'        => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'scheduling',
 			'legacy'  => 'scheduling',
 		),
-		'sched_attendance'     => array(
+		'sched_attendance'      => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'scheduling',
 			'legacy'  => 'scheduling',
 		),
-		'rereg_reviews'        => array(
+		'rereg_reviews'         => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'rereg_recruitment',
 			'legacy'  => 'submissions',
 		),
-		'recruit_imports'      => array(
-			'group'   => self::GROUP_SECONDARY,
-			'section' => 'rereg_recruitment',
-			'legacy'  => 'recruitment',
-		),
-		'recruit_calls'        => array(
+		'recruit_imports'       => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'rereg_recruitment',
 			'legacy'  => 'recruitment',
 		),
-		'public_overrides'     => array(
+		'recruit_calls'         => array(
+			'group'   => self::GROUP_SECONDARY,
+			'section' => 'rereg_recruitment',
+			'legacy'  => 'recruitment',
+		),
+		'public_overrides'      => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'public_access',
 			'legacy'  => 'public_access',
 		),
-		'public_preflight'     => array(
+		'public_preflight'      => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'public_access',
 			'legacy'  => 'public_access',
 		),
-		'public_blocks'        => array(
+		'public_blocks'         => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'public_access',
 			'legacy'  => 'public_access',
 		),
-		'system_settings'      => array(
+		'public_panel_access'   => array(
+			'group'   => self::GROUP_SECONDARY,
+			'section' => 'public_access',
+			'legacy'  => 'public_access',
+		),
+		'public_panel_failures' => array(
+			'group'   => self::GROUP_SECONDARY,
+			'section' => 'public_access',
+			'legacy'  => 'public_access',
+		),
+		'system_settings'       => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'system',
 			'legacy'  => 'system',
 		),
-		'system_tasks'         => array(
+		'system_tasks'          => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'system',
 			'legacy'  => 'system',
 		),
-		'system_errors'        => array(
+		'system_errors'         => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'system',
 			'legacy'  => 'system',
@@ -294,6 +304,9 @@ final class ActivityLogItems {
 		'captcha_failed'                          => 'public_blocks',
 		'captcha_fallback_used'                   => 'public_blocks',
 
+		'public_panel_opened'                     => 'public_panel_access',
+		'public_panel_access_failed'              => 'public_panel_failures',
+
 		'attendance_recorded'                     => 'sched_attendance',
 		'attendance_removed'                      => 'sched_attendance',
 		'checkin_window_opened'                   => 'sched_attendance',
@@ -349,33 +362,35 @@ final class ActivityLogItems {
 				'system'            => __( 'System', 'ffcertificate' ),
 			),
 			'items'    => array(
-				'pii_reveal'           => __( 'Reveal of CPF, RF, e-mail or address (one value or a page)', 'ffcertificate' ),
-				'pii_export'           => __( 'CSV exports with unmasked data', 'ffcertificate' ),
-				'identity_tools'       => __( 'Identity tools (merge, split, relink, repair)', 'ffcertificate' ),
-				'data_deletion'        => __( 'Data deleted (one submission, by form or everything)', 'ffcertificate' ),
-				'cleanups'             => __( 'Cleanups (short URLs, shortcodes, public access, expired tickets, calendar cleanups)', 'ffcertificate' ),
-				'migrations'           => __( 'Migrations run and key rotation', 'ffcertificate' ),
-				'destructive_settings' => __( 'Settings that delete or suppress data (auto-delete, uninstall wipe, retention, switching the log or an audit item off)', 'ffcertificate' ),
-				'role_changes'         => __( 'A role\'s capabilities changed (role editor, Restore role default)', 'ffcertificate' ),
-				'user_permissions'     => __( 'A user\'s roles, capabilities or audiences changed (profile, "Grant all")', 'ffcertificate' ),
-				'users_accounts'       => __( 'Accounts linked, profiles and passwords changed', 'ffcertificate' ),
-				'users_privacy'        => __( 'Privacy requests (export, erasure, anonymization)', 'ffcertificate' ),
-				'cert_submissions'     => __( 'Submissions received, PDFs generated and e-mailed', 'ffcertificate' ),
-				'cert_changes'         => __( 'Submissions edited, corrected, moved, trashed or restored', 'ffcertificate' ),
-				'cert_grades'          => __( 'Quiz grading', 'ffcertificate' ),
-				'cert_bulk_issue'      => __( 'Bulk issue and certificates issued by an operator', 'ffcertificate' ),
-				'sched_appointments'   => __( 'Appointments booked, cancelled and closed', 'ffcertificate' ),
-				'sched_bookings'       => __( 'Audience bookings confirmed over the calendar\'s rules', 'ffcertificate' ),
-				'sched_attendance'     => __( 'Attendance marked or removed, check-in windows opened and closed', 'ffcertificate' ),
-				'rereg_reviews'        => __( 'Reregistration submissions, reviews and invitations', 'ffcertificate' ),
-				'recruit_imports'      => __( 'Candidate imports', 'ffcertificate' ),
-				'recruit_calls'        => __( 'Calls, promotions and candidate changes', 'ffcertificate' ),
-				'public_overrides'     => __( 'Schedule exceptions, operator bypass and public downloads', 'ffcertificate' ),
-				'public_preflight'     => __( 'Preflight and browser blocks', 'ffcertificate' ),
-				'public_blocks'        => __( 'Rate-limit blocks and failed captchas', 'ffcertificate' ),
-				'system_settings'      => __( 'Settings changed outside the Danger Zone (which settings, never their values)', 'ffcertificate' ),
-				'system_tasks'         => __( 'Scheduled tasks that ended in an error', 'ffcertificate' ),
-				'system_errors'        => __( 'Errors and refusals (decryption failures, access denied, refused field changes)', 'ffcertificate' ),
+				'pii_reveal'            => __( 'Reveal of CPF, RF, e-mail or address (one value or a page)', 'ffcertificate' ),
+				'pii_export'            => __( 'CSV exports with unmasked data', 'ffcertificate' ),
+				'identity_tools'        => __( 'Identity tools (merge, split, relink, repair)', 'ffcertificate' ),
+				'data_deletion'         => __( 'Data deleted (one submission, by form or everything)', 'ffcertificate' ),
+				'cleanups'              => __( 'Cleanups (short URLs, shortcodes, public access, expired tickets, calendar cleanups)', 'ffcertificate' ),
+				'migrations'            => __( 'Migrations run and key rotation', 'ffcertificate' ),
+				'destructive_settings'  => __( 'Settings that delete or suppress data (auto-delete, uninstall wipe, retention, switching the log or an audit item off)', 'ffcertificate' ),
+				'role_changes'          => __( 'A role\'s capabilities changed (role editor, Restore role default)', 'ffcertificate' ),
+				'user_permissions'      => __( 'A user\'s roles, capabilities or audiences changed (profile, "Grant all")', 'ffcertificate' ),
+				'users_accounts'        => __( 'Accounts linked, profiles and passwords changed', 'ffcertificate' ),
+				'users_privacy'         => __( 'Privacy requests (export, erasure, anonymization)', 'ffcertificate' ),
+				'cert_submissions'      => __( 'Submissions received, PDFs generated and e-mailed', 'ffcertificate' ),
+				'cert_changes'          => __( 'Submissions edited, corrected, moved, trashed or restored', 'ffcertificate' ),
+				'cert_grades'           => __( 'Quiz grading', 'ffcertificate' ),
+				'cert_bulk_issue'       => __( 'Bulk issue and certificates issued by an operator', 'ffcertificate' ),
+				'sched_appointments'    => __( 'Appointments booked, cancelled and closed', 'ffcertificate' ),
+				'sched_bookings'        => __( 'Audience bookings confirmed over the calendar\'s rules', 'ffcertificate' ),
+				'sched_attendance'      => __( 'Attendance marked or removed, check-in windows opened and closed', 'ffcertificate' ),
+				'rereg_reviews'         => __( 'Reregistration submissions, reviews and invitations', 'ffcertificate' ),
+				'recruit_imports'       => __( 'Candidate imports', 'ffcertificate' ),
+				'recruit_calls'         => __( 'Calls, promotions and candidate changes', 'ffcertificate' ),
+				'public_overrides'      => __( 'Schedule exceptions, operator bypass and public downloads', 'ffcertificate' ),
+				'public_preflight'      => __( 'Preflight and browser blocks', 'ffcertificate' ),
+				'public_blocks'         => __( 'Rate-limit blocks and failed captchas', 'ffcertificate' ),
+				'public_panel_access'   => __( 'Public CSV panel opened (hash and CPF accepted)', 'ffcertificate' ),
+				'public_panel_failures' => __( 'Public CSV panel refused (hash, CPF, captcha or other)', 'ffcertificate' ),
+				'system_settings'       => __( 'Settings changed outside the Danger Zone (which settings, never their values)', 'ffcertificate' ),
+				'system_tasks'          => __( 'Scheduled tasks that ended in an error', 'ffcertificate' ),
+				'system_errors'         => __( 'Errors and refusals (decryption failures, access denied, refused field changes)', 'ffcertificate' ),
 			),
 		);
 	}

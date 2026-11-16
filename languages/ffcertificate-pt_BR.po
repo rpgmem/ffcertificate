@@ -34864,3 +34864,18 @@ msgstr "Carga horária"
 #: includes/admin/class-ffc-cert-template-admin-screen.php
 msgid "The model with sample data"
 msgstr "O modelo com dados de exemplo"
+
+msgid "Public CSV panel opened (hash and CPF accepted)"
+msgstr "Painel de CSV público acessado (hash e CPF aceitos)"
+
+msgid "Public CSV panel refused (hash, CPF, captcha or other)"
+msgstr "Painel de CSV público recusado (hash, CPF, captcha ou outro)"
+
+msgid "Public CSV Panel Opened"
+msgstr "Painel de CSV público acessado"
+
+msgid "Public CSV Panel Refused"
+msgstr "Painel de CSV público recusado"
+
+msgid "Two items cover the public CSV download panel: one records who opens it (the form, and the CPF masked), the other every refused attempt and why (access hash, CPF, captcha, missing fields, an expired page or too many attempts). The access hash itself is never recorded."
+msgstr "Dois itens cobrem o painel de download público de CSV: um registra quem o acessa (o formulário e o CPF mascarado), o outro cada tentativa recusada e o motivo (hash de acesso, CPF, captcha, campos em branco, página expirada ou tentativas demais). O hash de acesso nunca é registrado."

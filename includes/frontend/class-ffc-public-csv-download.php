@@ -505,16 +505,19 @@ class PublicCsvDownload {
 			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 			$rate_check = RateLimiter::check_ip_limit( $ip );
 			if ( empty( $rate_check['allowed'] ) ) {
+				self::log_panel_refusal( 'rate_limit' );
 				wp_send_json_error( array( 'message' => $rate_check['message'] ) );
 			}
 		}
 		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT );
 		if ( null !== $rate_error ) {
+			self::log_panel_refusal( 'rate_limit' );
 			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
 		}
 
 		// 2. Nonce.
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
+			self::log_panel_refusal( 'nonce' );
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'ffcertificate' ) ) );
 		}
 
@@ -541,11 +544,13 @@ class PublicCsvDownload {
 			if ( $form_id > 0 ) {
 				$this->validator->record_download_log_entry( $form_id, 'captcha', '', 'fail_captcha' );
 			}
+			self::log_panel_refusal( 'captcha', $form_id );
 			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 5. Form-id / hash presence.
 		if ( $form_id <= 0 || '' === $posted_hash ) {
+			self::log_panel_refusal( 'missing_fields', $form_id );
 			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
@@ -553,6 +558,7 @@ class PublicCsvDownload {
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
 			$this->validator->record_download_log_entry( $form_id, 'access', '', 'fail_other' );
+			self::log_panel_refusal( 'hash', $form_id );
 			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
@@ -560,8 +566,16 @@ class PublicCsvDownload {
 		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
+			self::log_panel_refusal( 'cpf', $form_id, $cpf_input );
 			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
+
+		// The panel is open (#2632): who reached it, under its own item.
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'public_panel_opened',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			self::panel_log_context( $form_id, $cpf_input )
+		);
 
 		$info = $this->form_info_builder->build_form_info( $form_id );
 		// The operator actions' own challenge (#2341): each dialog shows it
@@ -864,6 +878,45 @@ class PublicCsvDownload {
 				\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 			)
 		);
+	}
+
+	/**
+	 * Record a refused panel request in the activity log (#2632), under the
+	 * "public CSV panel refused" item, which is off by default.
+	 *
+	 * The posted hash is never recorded; a typed CPF only masked.
+	 *
+	 * @param string $reason    Reason code: rate_limit, nonce, captcha, missing_fields, hash or cpf.
+	 * @param int    $form_id   Form the request named, 0 when unknown.
+	 * @param string $cpf_input CPF as typed, '' when none.
+	 * @return void
+	 */
+	private static function log_panel_refusal( string $reason, int $form_id = 0, string $cpf_input = '' ): void {
+		if ( 0 === $form_id ) {
+			$form_id = max( 0, RequestInput::get_post_int( 'form_id', 0 ) );
+		}
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'public_panel_access_failed',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+			array( 'reason' => $reason ) + self::panel_log_context( $form_id, $cpf_input )
+		);
+	}
+
+	/**
+	 * The details of a panel entry: the form and, when one was typed, the
+	 * CPF masked.
+	 *
+	 * @param int    $form_id   Form post ID, 0 when unknown.
+	 * @param string $cpf_input CPF as typed.
+	 * @return array<string, int|string>
+	 */
+	private static function panel_log_context( int $form_id, string $cpf_input ): array {
+		$context = array( 'form_id' => $form_id );
+		$digits  = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf_input );
+		if ( '' !== $digits ) {
+			$context['operator_cpf_masked'] = \FreeFormCertificate\Core\DocumentFormatter::mask( \FreeFormCertificate\Core\DocumentFormatter::MASK_CPF, $digits );
+		}
+		return $context;
 	}
 
 	/**
