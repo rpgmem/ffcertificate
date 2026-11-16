@@ -43,3 +43,13 @@ html/atestado_jair.html
 
 # Claude Code local state (settings.local.json, agent worktrees, etc.)
 /.claude/
+
+# Credentials and secrets: never versioned (keys, tokens, environment files)
+.env
+.env.*
+auth.json
+.npmrc
+*.pem
+*.key
+*.p12
+wp-config.php
