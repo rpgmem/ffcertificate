@@ -361,6 +361,8 @@ class AdminActivityLogPage {
 			'dangerzone_setting_changed'                   => __( 'Danger Zone Setting Changed', 'ffcertificate' ),
 			'rate_limit_blocked'                           => __( 'Rate Limit Block', 'ffcertificate' ),
 			'captcha_failed'                               => __( 'Captcha Failed', 'ffcertificate' ),
+			'public_panel_opened'                          => __( 'Public CSV Panel Opened', 'ffcertificate' ),
+			'public_panel_access_failed'                   => __( 'Public CSV Panel Refused', 'ffcertificate' ),
 			'attendance_recorded'                          => __( 'Attendance Recorded', 'ffcertificate' ),
 			'attendance_removed'                           => __( 'Attendance Removed', 'ffcertificate' ),
 			'checkin_window_opened'                        => __( 'Check-in Opened', 'ffcertificate' ),

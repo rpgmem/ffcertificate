@@ -34782,3 +34782,18 @@ msgstr ""
 #: includes/admin/class-ffc-cert-template-admin-screen.php
 msgid "The model with sample data"
 msgstr ""
+
+msgid "Public CSV panel opened (hash and CPF accepted)"
+msgstr ""
+
+msgid "Public CSV panel refused (hash, CPF, captcha or other)"
+msgstr ""
+
+msgid "Public CSV Panel Opened"
+msgstr ""
+
+msgid "Public CSV Panel Refused"
+msgstr ""
+
+msgid "Two items cover the public CSV download panel: one records who opens it (the form, and the CPF masked), the other every refused attempt and why (access hash, CPF, captcha, missing fields, an expired page or too many attempts). The access hash itself is never recorded."
+msgstr ""

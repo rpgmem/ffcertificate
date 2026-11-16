@@ -29,6 +29,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A form can name up to three signers** (#2620). The Layout tab has a select per position, printed as `{{signer1:…}}`, `{{signer2:…}}` and `{{signer3:…}}`; `{{signer:…}}` stays the alias of the first, and an empty position prints blank. Previews sample a different person per position, and the visual editor's image takes any position's signature.
 - **Add signer finds the account by search** (#2622). The list of up to 500 accounts gave way to a combobox that searches name, login and e-mail, or matches a full RF through the profile hash, and offers only accounts with an RF that are not signers yet, so any of a site's thousands of accounts can be chosen.
 - **The default certificate models print their place, workload, dates and signers from the form** (#2624). Place and workload are template fields defaulting to the old examples, the completion date is the event date, the issue date the submission's, and the columns print signers 1 and 2; an empty signature is not drawn.
+- **The activity log can record the public CSV panel** (#2632). Two items under Public access and security: who opens the panel (form, masked CPF, address) and every refused attempt with its reason (hash, CPF, captcha, missing fields, expired page, rate limit). The hash is never recorded.
 
 ### Changed
 
