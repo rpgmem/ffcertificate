@@ -261,8 +261,14 @@ class FormEditorLayoutMetabox {
 		?>
 		<div class="ffc-signer-selects">
 			<?php
+			// One field per position, named as the save handler reads them.
+			$fields = array(
+				1 => array( 'id' => 'ffc_signer_id' ),
+				2 => array( 'id' => 'ffc_signer_id_2' ),
+				3 => array( 'id' => 'ffc_signer_id_3' ),
+			);
 			foreach ( $positions as $position => $current ) {
-				$field = 1 === $position ? 'ffc_signer_id' : 'ffc_signer_id_' . $position;
+				$field = $fields[ $position ]['id'];
 				?>
 				<p>
 					<label for="<?php echo esc_attr( $field ); ?>">
