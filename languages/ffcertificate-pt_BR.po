@@ -34095,11 +34095,28 @@ msgstr "Adicionar assinante"
 msgid "WordPress user"
 msgstr "Usuário do WordPress"
 
-msgid "— Choose a user —"
-msgstr "— Escolha um usuário —"
+msgid "Name, login, e-mail or RF"
+msgstr "Nome, login, e-mail ou RF"
 
-msgid "Only users with an RF on their profile are listed. Their RF prints in full on the certificates they sign."
-msgstr "Só aparecem usuários com RF no perfil. O RF deles sai completo nos certificados que assinarem."
+msgid "Matching accounts"
+msgstr "Contas encontradas"
+
+msgid "Type at least two letters of the name, login or e-mail, or the full RF. Only users with an RF on their profile who are not signers yet are found. Their RF prints in full on the certificates they sign."
+msgstr "Digite ao menos duas letras do nome, do login ou do e-mail, ou o RF completo. Só aparecem usuários com RF no perfil que ainda não são assinantes. O RF deles sai completo nos certificados que assinam."
+
+msgid "No account with an RF matches."
+msgstr "Nenhuma conta com RF corresponde."
+
+#. translators: %d: number of accounts found
+#, php-format
+msgid "%d accounts found."
+msgstr "%d contas encontradas."
+
+msgid "The search failed. Try again."
+msgstr "A busca falhou. Tente de novo."
+
+msgid "Type at least two characters."
+msgstr "Digite ao menos dois caracteres."
 
 msgid "Signature image"
 msgstr "Imagem da assinatura"
@@ -34143,6 +34160,9 @@ msgstr "Assinantes do Free Form Certificate"
 
 msgid "Certificates → Signers lists the people a form can name as its signer. Each is a WordPress user who has an RF on their profile, with a role or sector, an optional signature image and an active flag; adding one needs ffc_manage_forms and is recorded in the activity log, because it lets that RF print on other people's certificates. The form chooses its signer on the Layout tab, and the layout prints {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}} (the image URL, for an img tag)."
 msgstr "Certificados → Assinantes lista as pessoas que um formulário pode escolher como assinante. Cada uma é um usuário do WordPress com RF no perfil, com cargo ou setor, imagem de assinatura opcional e indicação de ativo; incluir uma exige ffc_manage_forms e fica registrado no log de atividades, porque permite que esse RF saia nos certificados de outras pessoas. O formulário escolhe o assinante na aba Layout, e o layout imprime {{signer:name}}, {{signer:rf}}, {{signer:role}} e {{signer:signature}} (a URL da imagem, para uma tag img)."
+
+msgid "Add signer finds the person by search rather than a list, so it works on a site with thousands of accounts: type at least two letters of the name, login or e-mail, or the full RF, and pick the account from the results with the mouse or the arrow keys and Enter. Only accounts with an RF on their profile that are not signers yet are found, and the results name each one by display name and login."
+msgstr "Adicionar assinante encontra a pessoa por busca em vez de lista, então funciona em um site com milhares de contas: digite ao menos duas letras do nome, do login ou do e-mail, ou o RF completo, e escolha a conta nos resultados com o mouse ou com as setas e Enter. Só aparecem contas com RF no perfil que ainda não são assinantes, e os resultados mostram cada uma pelo nome de exibição e pelo login."
 
 msgid "Name and RF are read from the profile each time a certificate is generated, so a profile correction reaches every certificate; the role is read the same way. The RF prints in full on the certificate only: previews and the signer list show it masked, and the list reveals it, audited, to holders of ffc_view_certificates_pii. An inactive signer leaves the choice for new forms while the forms that use them keep them. When the user is deleted the signer keeps an encrypted copy of name and RF and becomes inactive, so issued certificates do not change; a personal data erasure request for that e-mail removes the copy, and certificates then print the RF masked."
 msgstr "Nome e RF são lidos do perfil a cada certificado gerado, então uma correção no perfil chega a todos os certificados; o cargo é lido do mesmo jeito. O RF sai completo só no certificado: as prévias e a lista de assinantes o mostram mascarado, e a lista o revela, com registro, a quem tem ffc_view_certificates_pii. Um assinante inativo sai da escolha em formulários novos, e os formulários que o usam continuam com ele. Quando o usuário é excluído, o assinante guarda uma cópia cifrada de nome e RF e fica inativo, para que os certificados emitidos não mudem; um pedido de apagamento de dados pessoais desse e-mail remove a cópia, e os certificados passam a imprimir o RF mascarado."

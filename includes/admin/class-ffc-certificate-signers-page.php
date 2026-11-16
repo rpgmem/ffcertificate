@@ -41,8 +41,14 @@ final class CertificateSignersPage {
 	/** The save action, on `admin-post.php`. */
 	public const SAVE_ACTION = 'ffc_save_certificate_signer';
 
-	/** How many accounts with an RF the Add list offers. */
-	private const CANDIDATE_LIMIT = 500;
+	/** The account search behind Add signer (#2622), on `admin-ajax.php`. */
+	public const SEARCH_ACTION = 'ffc_search_signer_candidates';
+
+	/** How many accounts one search returns. */
+	private const SEARCH_LIMIT = 20;
+
+	/** The shortest term a search runs on. */
+	private const SEARCH_MIN_LENGTH = 2;
 
 	/**
 	 * Hook the menu and the save handler.
@@ -51,6 +57,7 @@ final class CertificateSignersPage {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_post_' . self::SAVE_ACTION, array( $this, 'handle_save' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		add_action( 'wp_ajax_' . self::SEARCH_ACTION, array( $this, 'ajax_search_candidates' ) );
 	}
 
 	/**
@@ -80,6 +87,28 @@ final class CertificateSignersPage {
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-branding-media' );
 		wp_localize_script( 'ffc-branding-media', 'ffcBrandingMedia', array( 'chooseImage' => __( 'Select image', 'ffcertificate' ) ) );
 		\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
+		if ( self::can_manage() ) {
+			$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
+			wp_enqueue_script( 'ffc-signer-user-search', FFC_PLUGIN_URL . "assets/js/ffc-signer-user-search{$s}.js", array( 'ffc-core' ), FFC_VERSION, true );
+			wp_localize_script(
+				'ffc-signer-user-search',
+				'ffcSignerUserSearch',
+				array(
+					'action'   => self::SEARCH_ACTION,
+					'nonce'    => wp_create_nonce( self::SEARCH_ACTION ),
+					'minChars' => self::SEARCH_MIN_LENGTH,
+					'strings'  => array(
+						'searching' => __( 'Searching…', 'ffcertificate' ),
+						'none'      => __( 'No account with an RF matches.', 'ffcertificate' ),
+						/* translators: %d: number of accounts found */
+						'found'     => __( '%d accounts found.', 'ffcertificate' ),
+						'failed'    => __( 'The search failed. Try again.', 'ffcertificate' ),
+						'choose'    => __( 'Choose a WordPress user.', 'ffcertificate' ),
+					),
+				)
+			);
+		}
 	}
 
 	/**
@@ -136,7 +165,7 @@ final class CertificateSignersPage {
 
 			<?php
 			if ( self::can_manage() ) {
-				$this->render_form( $editing, $signers );
+				$this->render_form( $editing );
 			}
 			?>
 		</div>
@@ -228,11 +257,9 @@ final class CertificateSignersPage {
 	/**
 	 * The Add or Edit form.
 	 *
-	 * @param array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null        $editing The signer being edited, or null to add one.
-	 * @param array<int, array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}> $signers Every signer.
+	 * @param array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null $editing The signer being edited, or null to add one.
 	 */
-	private function render_form( ?array $editing, array $signers ): void {
-		$listed = array_column( $signers, 'user_id' );
+	private function render_form( ?array $editing ): void {
 		$sig_id = null !== $editing ? $editing['signature_id'] : 0;
 		?>
 		<div class="card">
@@ -247,17 +274,13 @@ final class CertificateSignersPage {
 						<tr>
 							<th scope="row"><label for="ffc_signer_user"><?php esc_html_e( 'WordPress user', 'ffcertificate' ); ?></label></th>
 							<td>
-								<select name="ffc_signer_user" id="ffc_signer_user" required aria-describedby="ffc_signer_user_help">
-									<option value=""><?php esc_html_e( '— Choose a user —', 'ffcertificate' ); ?></option>
-									<?php foreach ( self::candidates() as $user ) : ?>
-										<?php
-										if ( in_array( (int) $user->ID, $listed, true ) ) {
-											continue; }
-										?>
-										<option value="<?php echo esc_attr( (string) $user->ID ); ?>"><?php echo esc_html( $user->display_name . ' (' . $user->user_login . ')' ); ?></option>
-									<?php endforeach; ?>
-								</select>
-								<p class="description" id="ffc_signer_user_help"><?php esc_html_e( 'Only users with an RF on their profile are listed. Their RF prints in full on the certificates they sign.', 'ffcertificate' ); ?></p>
+								<div class="ffc-signer-user-search" data-ffc-signer-user-search>
+									<input type="hidden" name="ffc_signer_user" value="">
+									<input type="text" class="regular-text" id="ffc_signer_user" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ffc_signer_user_results" aria-describedby="ffc_signer_user_help ffc_signer_user_status" placeholder="<?php esc_attr_e( 'Name, login, e-mail or RF', 'ffcertificate' ); ?>">
+									<ul class="ffc-signer-user-results" id="ffc_signer_user_results" role="listbox" aria-label="<?php esc_attr_e( 'Matching accounts', 'ffcertificate' ); ?>" hidden></ul>
+									<p class="ffc-signer-user-status" id="ffc_signer_user_status" role="status" aria-live="polite"></p>
+								</div>
+								<p class="description" id="ffc_signer_user_help"><?php esc_html_e( 'Type at least two letters of the name, login or e-mail, or the full RF. Only users with an RF on their profile who are not signers yet are found. Their RF prints in full on the certificates they sign.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 					<?php else : ?>
@@ -321,20 +344,80 @@ final class CertificateSignersPage {
 	}
 
 	/**
-	 * Accounts with an RF on their profile.
-	 *
-	 * @return array<int, \WP_User>
+	 * AJAX: the accounts Add signer can choose (#2622). Searches name, login
+	 * and e-mail, or matches a full RF through the profile hash, and returns
+	 * only accounts with an RF on the profile that are not signers yet. The
+	 * answer names each account by display name and login: no e-mail, no RF.
 	 */
-	private static function candidates(): array {
-		$users = get_users(
-			array(
-				'meta_key'     => CertificateSigners::RF_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- the signer screen only, bounded by CANDIDATE_LIMIT.
-				'meta_compare' => 'EXISTS',
-				'number'       => self::CANDIDATE_LIMIT,
-				'orderby'      => 'display_name',
-			)
+	public function ajax_search_candidates(): void {
+		check_ajax_referer( self::SEARCH_ACTION, 'nonce' );
+		if ( ! self::can_manage() ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage signers.', 'ffcertificate' ) ), 403 );
+		}
+		$term = trim( RequestInput::get_post_string( 'term' ) );
+		if ( mb_strlen( $term ) < self::SEARCH_MIN_LENGTH ) {
+			wp_send_json_error( array( 'message' => __( 'Type at least two characters.', 'ffcertificate' ) ), 400 );
+		}
+		wp_send_json_success( array( 'users' => self::search_candidates( $term ) ) );
+	}
+
+	/**
+	 * The accounts a term finds, signers excluded.
+	 *
+	 * @param string $term Search term, at least {@see self::SEARCH_MIN_LENGTH} characters.
+	 * @return array<int, array{id: int, label: string}>
+	 */
+	private static function search_candidates( string $term ): array {
+		$listed = array_map( static fn( array $signer ): int => $signer['user_id'], CertificateSigners::all() );
+		$listed = array_values( array_filter( $listed ) );
+
+		$args   = array(
+			'meta_key'     => CertificateSigners::RF_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- the signer screen only, bounded by SEARCH_LIMIT.
+			'meta_compare' => 'EXISTS',
+			'number'       => self::SEARCH_LIMIT,
+			'orderby'      => 'display_name',
+			'exclude'      => $listed,
 		);
-		return array_values( array_filter( $users, static fn( $user ): bool => $user instanceof \WP_User ) );
+		$rf_ids = self::accounts_with_rf( $term );
+		if ( null !== $rf_ids ) {
+			if ( array() === $rf_ids ) {
+				return array();
+			}
+			$args['include'] = $rf_ids;
+		} else {
+			$args['search']         = '*' . $term . '*';
+			$args['search_columns'] = array( 'user_login', 'user_email', 'display_name', 'user_nicename' );
+		}
+
+		$found = array();
+		foreach ( get_users( $args ) as $user ) {
+			if ( $user instanceof \WP_User ) {
+				$found[] = array(
+					'id'    => (int) $user->ID,
+					'label' => $user->display_name . ' (' . $user->user_login . ')',
+				);
+			}
+		}
+		return $found;
+	}
+
+	/**
+	 * When the term is a full RF, the accounts whose profile carries it;
+	 * null when it is not an RF, so the text search runs instead.
+	 *
+	 * @param string $term Search term.
+	 * @return array<int, int>|null
+	 */
+	private static function accounts_with_rf( string $term ): ?array {
+		$digits = (string) preg_replace( '/\D/', '', $term );
+		if ( 1 !== preg_match( '/^[\d.\-\s]+$/', $term ) || 'rf' !== \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $digits ) ) {
+			return null;
+		}
+		$hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'rf', $digits );
+		if ( null === $hash ) {
+			return array();
+		}
+		return ( new \FreeFormCertificate\Repositories\UserProfileRepository() )->findUserIdsByHash( 'rf_hash', $hash );
 	}
 
 	/**

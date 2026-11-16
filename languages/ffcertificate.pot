@@ -34013,10 +34013,27 @@ msgstr ""
 msgid "WordPress user"
 msgstr ""
 
-msgid "— Choose a user —"
+msgid "Name, login, e-mail or RF"
 msgstr ""
 
-msgid "Only users with an RF on their profile are listed. Their RF prints in full on the certificates they sign."
+msgid "Matching accounts"
+msgstr ""
+
+msgid "Type at least two letters of the name, login or e-mail, or the full RF. Only users with an RF on their profile who are not signers yet are found. Their RF prints in full on the certificates they sign."
+msgstr ""
+
+msgid "No account with an RF matches."
+msgstr ""
+
+#. translators: %d: number of accounts found
+#, php-format
+msgid "%d accounts found."
+msgstr ""
+
+msgid "The search failed. Try again."
+msgstr ""
+
+msgid "Type at least two characters."
 msgstr ""
 
 msgid "Signature image"
@@ -34060,6 +34077,9 @@ msgid "Free Form Certificate signers"
 msgstr ""
 
 msgid "Certificates → Signers lists the people a form can name as its signer. Each is a WordPress user who has an RF on their profile, with a role or sector, an optional signature image and an active flag; adding one needs ffc_manage_forms and is recorded in the activity log, because it lets that RF print on other people's certificates. The form chooses its signer on the Layout tab, and the layout prints {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}} (the image URL, for an img tag)."
+msgstr ""
+
+msgid "Add signer finds the person by search rather than a list, so it works on a site with thousands of accounts: type at least two letters of the name, login or e-mail, or the full RF, and pick the account from the results with the mouse or the arrow keys and Enter. Only accounts with an RF on their profile that are not signers yet are found, and the results name each one by display name and login."
 msgstr ""
 
 msgid "Name and RF are read from the profile each time a certificate is generated, so a profile correction reaches every certificate; the role is read the same way. The RF prints in full on the certificate only: previews and the signer list show it masked, and the list reveals it, audited, to holders of ffc_view_certificates_pii. An inactive signer leaves the choice for new forms while the forms that use them keep them. When the user is deleted the signer keeps an encrypted copy of name and RF and becomes inactive, so issued certificates do not change; a personal data erasure request for that e-mail removes the copy, and certificates then print the RF masked."
