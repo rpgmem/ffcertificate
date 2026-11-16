@@ -178,8 +178,8 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="position:relative;z-index:1;'                                           => array( 1, self::SELF_CONTAINED ),
 			'<style>: <style id="ffc-spinner-animation"'                                            => array( 1, self::SELF_CONTAINED ),
 			'.css(): .css({'                                                                        => array( 16, self::SELF_CONTAINED ),
-			'.css(): .css("opacity", "1"'                                                           => array( 1, self::SELF_CONTAINED ),
 			'.style.x =: .style.cssText = "font-family:-apple-system,BlinkMacSystemFont,sans'       => array( 1, self::SELF_CONTAINED ),
+			'.style.x =: .style.opacity = "1"'                                                      => array( 1, self::SELF_CONTAINED ),
 		),
 		'assets/js/ffc-qr-generator.js' => array(
 			'<style>: <style'                       => array( 1, self::PRINT_DOCUMENT ),

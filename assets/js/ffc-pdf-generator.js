@@ -241,6 +241,23 @@
     var pendingBlobUrls = [];
 
     /**
+     * Make the certificate visible in the copy html2canvas renders (#2634).
+     *
+     * The temporary container is built at opacity 0 and stays so on the
+     * page; html2canvas clones the document before drawing and reads the
+     * opacity from the clone, so the capture shows it while the screen
+     * never does.
+     *
+     * @param {Document} clonedDocument The document html2canvas renders.
+     */
+    function revealCaptureClone(clonedDocument) {
+        var containers = clonedDocument.querySelectorAll('.ffc-pdf-temp-container');
+        for (var i = 0; i < containers.length; i++) {
+            containers[i].style.opacity = '1';
+        }
+    }
+
+    /**
      * Keep a blob URL until the overlay that offers it goes.
      *
      * @param {string} url A URL from `pdf.output('bloburl')`.
@@ -557,9 +574,11 @@
                 });
 
                 setTimeout(function() {
-                    // Make container visible for html2canvas (it respects computed opacity)
-                    // Container is safely behind the overlay (z-index 999998 vs 999999)
-                    $tempContainer.css('opacity', '1');
+                    // The container stays at opacity 0 on the page: the
+                    // overlay lets a fifth of what is under it through, so
+                    // revealing it here made the certificate flash (#2634).
+                    // It is made visible in the copy html2canvas renders
+                    // instead (onclone below), which reads the opacity there.
 
                     // Restore img src that may have been hijacked by lazy-loading plugins
                     $tempContainer.find('img').each(function() {
@@ -600,7 +619,8 @@
                             useCORS: true,
                             allowTaint: false,
                             logging: false,
-                            backgroundColor: '#ffffff'
+                            backgroundColor: '#ffffff',
+                            onclone: revealCaptureClone
                         });
                     }).then(function(canvas) {
                         try {

@@ -226,6 +226,38 @@ describe('ffc-pdf-generator.js — desktop fallback link (Sprint 2)', () => {
 		expect(window.__ffcPdfXss).toBeUndefined();
 	});
 
+	it('keeps the certificate hidden on the page and reveals it only in the capture copy (#2634)', async () => {
+		Object.defineProperty(navigator, 'userAgent', { configurable: true, value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' });
+		Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+		window.ffc_ajax = { strings: {} };
+		installLibraries();
+		const real = window.html2canvas;
+		let pageOpacity = null;
+		let options = null;
+		window.html2canvas = function (el, opts) {
+			if (null === options) {
+				pageOpacity = el.closest('.ffc-pdf-temp-container').style.opacity;
+				options = opts;
+			}
+			return real.apply(this, arguments);
+		};
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		vi.useFakeTimers();
+		window.ffcGeneratePDF({ html: '<p>cert</p>', orientation: 'landscape' }, 'cert.pdf');
+		await vi.advanceTimersByTimeAsync(2000);
+		vi.useRealTimers();
+
+		expect(pageOpacity).toBe('0');
+		expect(typeof options.onclone).toBe('function');
+
+		// The copy html2canvas renders: the same container, still hidden.
+		const clone = document.implementation.createHTMLDocument('');
+		clone.body.innerHTML = '<div class="ffc-pdf-temp-container" style="opacity:0"><div class="ffc-pdf-wrapper"></div></div>';
+		options.onclone(clone, clone.querySelector('.ffc-pdf-wrapper'));
+		expect(clone.querySelector('.ffc-pdf-temp-container').style.opacity).toBe('1');
+	});
+
 	it('does NOT inject the desktop fallback link on iOS UA (uses placeholder-tab path)', async () => {
 		Object.defineProperty(navigator, 'userAgent', {
 			configurable: true,
