@@ -69,6 +69,22 @@ class CertTemplateSeederTest extends TestCase {
 		}
 	}
 
+	/**
+	 * A shipped visual model is made of elements a user edits on the page
+	 * (#2629): an HTML block there is a box of markup the editor can only
+	 * move, which is what a visual template exists to avoid.
+	 */
+	public function test_no_visual_default_carries_an_html_block(): void {
+		$files = glob( FFC_PLUGIN_DIR . 'templates/certificate-defaults/visual/*.json' );
+		$this->assertCount( 6, $files );
+		foreach ( $files as $file ) {
+			$layout = \FreeFormCertificate\Core\VisualLayout::validate( (string) file_get_contents( $file ) );
+			$this->assertIsArray( $layout, basename( $file ) . ' validates' );
+			$types = array_column( $layout['elements'], 'type' );
+			$this->assertNotContains( 'html', $types, basename( $file ) . ' carries no HTML block' );
+		}
+	}
+
 	public function test_maybe_seed_skips_when_already_seeded(): void {
 		Functions\when( 'get_option' )->justReturn( self::current_seed_version() ); // >= SEED_VERSION
 		Functions\expect( 'wp_insert_post' )->never();
@@ -499,11 +515,12 @@ class CertTemplateSeederTest extends TestCase {
 	}
 
 	/**
-	 * A visual default that puts a QR code inside a box must give the box the
-	 * code's height and a line under it: the box clips what overflows, and the
-	 * verification URL and the authentication code follow the code (#2603).
+	 * Every visual default prints its QR code whole, on the page (#2603): a
+	 * QR element, or a field holding the tag, at least as tall as the code.
+	 * The verification URL and the authentication code beside it are their
+	 * own text elements since #2629, so nothing shares the code's box.
 	 */
-	public function test_visual_defaults_leave_room_for_their_qr_code(): void {
+	public function test_visual_defaults_print_their_qr_code_whole(): void {
 		$files = glob( dirname( __DIR__, 2 ) . '/templates/certificate-defaults/visual/*.json' );
 		$this->assertSame( 6, count( (array) $files ), 'the six visual models are read' );
 
@@ -511,22 +528,19 @@ class CertTemplateSeederTest extends TestCase {
 		foreach ( (array) $files as $file ) {
 			$layout = json_decode( (string) file_get_contents( $file ), true );
 			foreach ( $layout['elements'] as $element ) {
-				$body = (string) ( $element['html'] ?? $element['text'] ?? $element['token'] ?? '' );
-				if ( ! preg_match( '/\{\{qr_code:size=(\d+)/', $body, $m ) ) {
+				if ( 'qr' === $element['type'] ) {
+					$size = min( $element['w'], $element['h'] );
+				} elseif ( preg_match( '/\{\{qr_code:size=(\d+)/', (string) ( $element['token'] ?? '' ), $m ) ) {
+					$size = (int) $m[1];
+					$this->assertGreaterThanOrEqual( $size, $element['h'], basename( $file ) . ' clips its QR code.' );
+				} else {
 					continue;
 				}
 				++$checked;
-				// When text shares the box, the code breaks the line and the text
-				// after it needs a line of its own.
-				$alone = '' === trim( strip_tags( (string) preg_replace( '/\{\{qr_code[^}]*\}\}/', '', $body ) ) );
-				$this->assertGreaterThanOrEqual(
-					(int) $m[1] + ( $alone ? 0 : 20 ),
-					$element['h'],
-					basename( $file ) . ' clips its QR code or the line under it: a box ' . $element['h'] . ' px tall holds a ' . $m[1] . ' px code.'
-				);
-				$this->assertLessThanOrEqual( 794, $element['y'] + $element['h'], basename( $file ) . ' places the line off the page.' );
+				$this->assertGreaterThanOrEqual( 40, $size, basename( $file ) . ' prints a QR code too small to scan.' );
+				$this->assertLessThanOrEqual( 794, $element['y'] + $element['h'], basename( $file ) . ' places the QR code off the page.' );
 			}
 		}
-		$this->assertSame( 6, $checked, 'every visual model carries one inline QR code' );
+		$this->assertSame( 6, $checked, 'every visual model carries one QR code element' );
 	}
 }
