@@ -57,6 +57,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Create visual version keeps model 6's corner triangles** (#2618). A CSS triangle (an empty box with two adjacent borders, one clear) became a square; it now becomes a frame whose gradient fills half of it, since a gradient colour may be transparent.
 - **A shipped visual certificate model's edit screen shows the page** (#2628). It drew only its JSON; it now shows the model with sample data, the JSON folded away below it.
 - **The shipped visual certificate models are made of elements the editor can edit** (#2629). Signer columns, the verification line and its QR code, model 5's band and model 6's triangles and paragraph were HTML blocks; they are now fields, text, QR and gradient frames, and the verification line no longer breaks around the code.
+- **The certificate no longer flashes through the overlay while its PDF is generated** (#2634). It stays hidden on the page and is made visible only in the copy the capture draws, so the PDF is unchanged.
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
