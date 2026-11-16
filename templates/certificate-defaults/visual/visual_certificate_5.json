@@ -20,15 +20,36 @@
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "frame",
 			"x": 0,
 			"y": 0,
 			"w": 34,
 			"h": 794,
-			"html": "<div style=\"width: 34px;height: 794px;background: linear-gradient(180deg, #0b2545 0%, #13315c 45%, #2f80ed 100%)\"></div>",
-			"id": "el-2",
+			"border_width": 0,
+			"border_style": "solid",
+			"border_color": "#000000",
+			"radius": 0,
+			"fill": "#0b2545",
+			"gradient": {
+				"angle": 180,
+				"stops": [
+					{
+						"color": "#0b2545",
+						"at": 0
+					},
+					{
+						"color": "#13315c",
+						"at": 45
+					},
+					{
+						"color": "#2f80ed",
+						"at": 100
+					}
+				]
+			},
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"id": "el-2"
 		},
 		{
 			"type": "frame",
@@ -278,15 +299,46 @@
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "field",
 			"x": 107,
 			"y": 611,
 			"w": 246,
-			"h": 43,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #1b2a41;text-align: center;line-height: 1.2\"><strong style=\"font-size: 10.5pt\">{{signer2:role}}</strong><br> <span style=\"font-size: 9.5pt;color: #52606d\">{{signer2:name}}</span></div>",
-			"id": "el-16",
+			"h": 19,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 14.0,
+			"font_weight": 700,
+			"font_style": "normal",
+			"color": "#1b2a41",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"token": "{{signer2:role}}",
+			"id": "el-16"
+		},
+		{
+			"type": "field",
+			"x": 107,
+			"y": 631,
+			"w": 246,
+			"h": 19,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 12.67,
+			"font_weight": 400,
+			"font_style": "normal",
+			"color": "#52606d",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
+			"rotation": 0,
+			"locked": false,
+			"token": "{{signer2:name}}",
+			"id": "el-17"
 		},
 		{
 			"type": "image",
@@ -297,20 +349,51 @@
 			"attachment_id": 0,
 			"token": "{{signer1:signature}}",
 			"fit": "contain",
-			"id": "el-17",
+			"id": "el-18",
 			"rotation": 0,
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "field",
 			"x": 387,
 			"y": 611,
 			"w": 246,
-			"h": 43,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #1b2a41;text-align: center;line-height: 1.2\"><strong style=\"font-size: 10.5pt\">{{signer1:role}}</strong><br> <span style=\"font-size: 9.5pt;color: #52606d\">{{signer1:name}}</span></div>",
-			"id": "el-18",
+			"h": 19,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 14.0,
+			"font_weight": 700,
+			"font_style": "normal",
+			"color": "#1b2a41",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"token": "{{signer1:role}}",
+			"id": "el-19"
+		},
+		{
+			"type": "field",
+			"x": 387,
+			"y": 631,
+			"w": 246,
+			"h": 19,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 12.67,
+			"font_weight": 400,
+			"font_style": "normal",
+			"color": "#52606d",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
+			"rotation": 0,
+			"locked": false,
+			"token": "{{signer1:name}}",
+			"id": "el-20"
 		},
 		{
 			"x": 768,
@@ -329,30 +412,20 @@
 			"fit": "none",
 			"type": "text",
 			"text": "Verification",
-			"id": "el-19",
+			"id": "el-21",
 			"rotation": 0,
 			"locked": false
 		},
 		{
+			"type": "qr",
 			"x": 820,
 			"y": 141,
 			"w": 170,
 			"h": 170,
-			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
-			"font_size": 16.0,
-			"font_weight": 400,
-			"font_style": "normal",
-			"color": "#1b2a41",
-			"align": "center",
-			"letter_spacing": 0.0,
-			"line_height": 1.2,
-			"text_transform": "none",
-			"fit": "none",
-			"type": "text",
-			"text": "{{qr_code:size=170:margin=0}}",
-			"id": "el-20",
+			"margin": 0,
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"id": "el-22"
 		},
 		{
 			"x": 768,
@@ -371,7 +444,7 @@
 			"fit": "none",
 			"type": "text",
 			"text": "Scan the QR code or open",
-			"id": "el-21",
+			"id": "el-23",
 			"rotation": 0,
 			"locked": false
 		},
@@ -392,7 +465,7 @@
 			"fit": "none",
 			"type": "field",
 			"token": "{{validation_url}}",
-			"id": "el-22",
+			"id": "el-24",
 			"rotation": 0,
 			"locked": false
 		},
@@ -413,7 +486,7 @@
 			"fit": "none",
 			"type": "text",
 			"text": "Validation code",
-			"id": "el-23",
+			"id": "el-25",
 			"rotation": 0,
 			"locked": false
 		},
@@ -434,7 +507,7 @@
 			"fit": "none",
 			"type": "field",
 			"token": "{{auth_code}}",
-			"id": "el-24",
+			"id": "el-26",
 			"rotation": 0,
 			"locked": false
 		},
@@ -455,7 +528,7 @@
 			"fit": "none",
 			"type": "text",
 			"text": "Issued in {{model:place}}, {{submission_date}}",
-			"id": "el-25",
+			"id": "el-27",
 			"rotation": 0,
 			"locked": false
 		}

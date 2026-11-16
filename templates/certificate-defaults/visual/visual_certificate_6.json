@@ -35,48 +35,148 @@
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "frame",
 			"x": 0,
 			"y": 0,
 			"w": 190,
 			"h": 190,
-			"html": "<div style=\"width: 0;height: 0;border-top: 190px solid #0b2545;border-right: 190px solid transparent\"></div>",
-			"id": "el-3",
+			"border_width": 0,
+			"border_style": "solid",
+			"border_color": "#000000",
+			"radius": 0,
+			"fill": "",
+			"gradient": {
+				"angle": 135,
+				"stops": [
+					{
+						"color": "#0b2545",
+						"at": 0
+					},
+					{
+						"color": "#0b2545",
+						"at": 50
+					},
+					{
+						"color": "transparent",
+						"at": 50
+					},
+					{
+						"color": "transparent",
+						"at": 100
+					}
+				]
+			},
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"id": "el-3"
 		},
 		{
-			"type": "html",
+			"type": "frame",
 			"x": 0,
 			"y": 0,
 			"w": 120,
 			"h": 120,
-			"html": "<div style=\"width: 0;height: 0;border-top: 120px solid #d4a72c;border-right: 120px solid transparent\"></div>",
-			"id": "el-4",
+			"border_width": 0,
+			"border_style": "solid",
+			"border_color": "#000000",
+			"radius": 0,
+			"fill": "",
+			"gradient": {
+				"angle": 135,
+				"stops": [
+					{
+						"color": "#d4a72c",
+						"at": 0
+					},
+					{
+						"color": "#d4a72c",
+						"at": 50
+					},
+					{
+						"color": "transparent",
+						"at": 50
+					},
+					{
+						"color": "transparent",
+						"at": 100
+					}
+				]
+			},
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"id": "el-4"
 		},
 		{
-			"type": "html",
+			"type": "frame",
 			"x": 933,
 			"y": 604,
 			"w": 190,
 			"h": 190,
-			"html": "<div style=\"width: 0;height: 0;border-bottom: 190px solid #0b2545;border-left: 190px solid transparent\"></div>",
-			"id": "el-5",
+			"border_width": 0,
+			"border_style": "solid",
+			"border_color": "#000000",
+			"radius": 0,
+			"fill": "",
+			"gradient": {
+				"angle": 315,
+				"stops": [
+					{
+						"color": "#0b2545",
+						"at": 0
+					},
+					{
+						"color": "#0b2545",
+						"at": 50
+					},
+					{
+						"color": "transparent",
+						"at": 50
+					},
+					{
+						"color": "transparent",
+						"at": 100
+					}
+				]
+			},
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"id": "el-5"
 		},
 		{
-			"type": "html",
+			"type": "frame",
 			"x": 1003,
 			"y": 674,
 			"w": 120,
 			"h": 120,
-			"html": "<div style=\"width: 0;height: 0;border-bottom: 120px solid #d4a72c;border-left: 120px solid transparent\"></div>",
-			"id": "el-6",
+			"border_width": 0,
+			"border_style": "solid",
+			"border_color": "#000000",
+			"radius": 0,
+			"fill": "",
+			"gradient": {
+				"angle": 315,
+				"stops": [
+					{
+						"color": "#d4a72c",
+						"at": 0
+					},
+					{
+						"color": "#d4a72c",
+						"at": 50
+					},
+					{
+						"color": "transparent",
+						"at": 50
+					},
+					{
+						"color": "transparent",
+						"at": 100
+					}
+				]
+			},
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"id": "el-6"
 		},
 		{
 			"type": "frame",
@@ -208,15 +308,67 @@
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "text",
 			"x": 150,
 			"y": 312,
 			"w": 823,
-			"h": 63,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #3e4c59;text-align: center;line-height: 1.25\">has completed with commitment and excellence the course<br><strong style=\"font-size: 18pt;color: #1b2a41\">{{form_title}}</strong><br>with a workload of {{model:workload}}, completed on {{schedule:dates}}.</div>",
-			"id": "el-14",
+			"h": 20,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 16.0,
+			"font_weight": 400,
+			"font_style": "normal",
+			"color": "#3e4c59",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.25,
+			"text_transform": "none",
+			"fit": "none",
+			"text": "has completed with commitment and excellence the course",
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"id": "el-14"
+		},
+		{
+			"type": "field",
+			"x": 150,
+			"y": 333,
+			"w": 823,
+			"h": 26,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 20,
+			"font_weight": 700,
+			"font_style": "normal",
+			"color": "#1b2a41",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.25,
+			"text_transform": "none",
+			"fit": "line",
+			"rotation": 0,
+			"locked": false,
+			"token": "{{form_title}}",
+			"id": "el-15"
+		},
+		{
+			"type": "text",
+			"x": 150,
+			"y": 361,
+			"w": 823,
+			"h": 20,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 16.0,
+			"font_weight": 400,
+			"font_style": "normal",
+			"color": "#3e4c59",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.25,
+			"text_transform": "none",
+			"fit": "none",
+			"text": "with a workload of {{model:workload}}, completed on {{schedule:dates}}.",
+			"rotation": 0,
+			"locked": false,
+			"id": "el-16"
 		},
 		{
 			"x": 150,
@@ -235,7 +387,7 @@
 			"fit": "none",
 			"type": "field",
 			"token": "{{schedule}}",
-			"id": "el-15",
+			"id": "el-17",
 			"rotation": 0,
 			"locked": false
 		},
@@ -248,20 +400,51 @@
 			"attachment_id": 0,
 			"token": "{{signer2:signature}}",
 			"fit": "contain",
-			"id": "el-16",
+			"id": "el-18",
 			"rotation": 0,
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "field",
 			"x": 247,
 			"y": 566,
 			"w": 264,
-			"h": 43,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #1b2a41;text-align: center;line-height: 1.2\"><strong style=\"font-size: 10.5pt\">{{signer2:name}}</strong><br> <span style=\"font-size: 9.5pt;color: #52606d\">{{signer2:role}}</span></div>",
-			"id": "el-17",
+			"h": 19,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 14.0,
+			"font_weight": 700,
+			"font_style": "normal",
+			"color": "#1b2a41",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"token": "{{signer2:name}}",
+			"id": "el-19"
+		},
+		{
+			"type": "field",
+			"x": 247,
+			"y": 586,
+			"w": 264,
+			"h": 19,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 12.67,
+			"font_weight": 400,
+			"font_style": "normal",
+			"color": "#52606d",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
+			"rotation": 0,
+			"locked": false,
+			"token": "{{signer2:role}}",
+			"id": "el-20"
 		},
 		{
 			"type": "image",
@@ -272,31 +455,125 @@
 			"attachment_id": 0,
 			"token": "{{signer1:signature}}",
 			"fit": "contain",
-			"id": "el-18",
+			"id": "el-21",
 			"rotation": 0,
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "field",
 			"x": 612,
 			"y": 566,
 			"w": 264,
-			"h": 43,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #1b2a41;text-align: center;line-height: 1.2\"><strong style=\"font-size: 10.5pt\">{{signer1:name}}</strong><br> <span style=\"font-size: 9.5pt;color: #52606d\">{{signer1:role}}</span></div>",
-			"id": "el-19",
+			"h": 19,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 14.0,
+			"font_weight": 700,
+			"font_style": "normal",
+			"color": "#1b2a41",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"token": "{{signer1:name}}",
+			"id": "el-22"
 		},
 		{
-			"type": "html",
-			"x": 150,
-			"y": 652,
-			"w": 823,
-			"h": 142,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 11.33px;color: #52606d;text-align: center;line-height: 1.2\">Issued {{model:place}}, {{submission_date}} · {{qr_code:size=50:margin=0}} · Verify at {{validation_url}} with code <strong>{{auth_code}}</strong></div>",
-			"id": "el-20",
+			"type": "field",
+			"x": 612,
+			"y": 586,
+			"w": 264,
+			"h": 19,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 12.67,
+			"font_weight": 400,
+			"font_style": "normal",
+			"color": "#52606d",
+			"align": "center",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
 			"rotation": 0,
-			"locked": false
+			"locked": false,
+			"token": "{{signer1:role}}",
+			"id": "el-23"
+		},
+		{
+			"type": "qr",
+			"x": 536,
+			"y": 652,
+			"w": 50,
+			"h": 50,
+			"margin": 0,
+			"rotation": 0,
+			"locked": false,
+			"id": "el-24"
+		},
+		{
+			"type": "text",
+			"x": 150,
+			"y": 670,
+			"w": 374,
+			"h": 14,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 11.33,
+			"font_weight": 400,
+			"font_style": "normal",
+			"color": "#52606d",
+			"align": "right",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
+			"text": "Issued {{model:place}}, {{submission_date}}",
+			"rotation": 0,
+			"locked": false,
+			"id": "el-25"
+		},
+		{
+			"type": "text",
+			"x": 598,
+			"y": 663,
+			"w": 375,
+			"h": 14,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 11.33,
+			"font_weight": 400,
+			"font_style": "normal",
+			"color": "#52606d",
+			"align": "left",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
+			"text": "Verify at {{validation_url}}",
+			"rotation": 0,
+			"locked": false,
+			"id": "el-26"
+		},
+		{
+			"type": "text",
+			"x": 598,
+			"y": 678,
+			"w": 375,
+			"h": 14,
+			"font_family": "Montserrat, Arial, Helvetica, sans-serif",
+			"font_size": 11.33,
+			"font_weight": 700,
+			"font_style": "normal",
+			"color": "#52606d",
+			"align": "left",
+			"letter_spacing": 0,
+			"line_height": 1.2,
+			"text_transform": "none",
+			"fit": "line",
+			"text": "Code {{auth_code}}",
+			"rotation": 0,
+			"locked": false,
+			"id": "el-27"
 		}
 	]
 }

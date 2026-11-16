@@ -104,8 +104,13 @@ class CertTemplateSeeder {
 	 * the fields. A form that loaded one of these bodies keeps its copy with
 	 * the defaults filled in, which is what the archive under `previous/`
 	 * must hold once this version is released.
+	 *
+	 * Version 15 draws the six visual models with elements only (#2629): the
+	 * signer columns, the verification line around the QR code, model 5's
+	 * gradient band, model 6's corner triangles and its course paragraph were
+	 * HTML blocks, which the editor can move but not edit.
 	 */
-	private const SEED_VERSION = 14;
+	private const SEED_VERSION = 15;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
