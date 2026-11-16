@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * pixels, with a size, becomes a box:
  *
  * - nothing but a border or a fill: a frame;
- * - one image: an image (a Media Library file, or the signer's signature);
+ * - one image: an image (a Media Library file, or a signer's signature);
  * - one `{{qr_code}}` tag: a QR code;
  * - text alone, through a single chain of elements: a data field when the
  *   text is one tag, otherwise a text.
@@ -219,7 +219,7 @@ class VisualLayoutImporter {
 		$image = 'img' === strtolower( $node->tagName ) ? $node : self::only_image( $node );
 		if ( null !== $image && '' === $text ) {
 			$src = trim( $image->getAttribute( 'src' ) );
-			if ( '{{signer:signature}}' === $src ) {
+			if ( CertificateSigners::is_signature_token( $src ) ) {
 				return array(
 					'type'  => 'image',
 					'token' => $src,

@@ -196,6 +196,18 @@ class VisualLayoutTest extends TestCase {
 		$this->assertStringNotContainsString( 'javascript:', $html );
 	}
 
+	public function test_an_image_takes_the_signature_of_any_signer_position(): void {
+		$layout = VisualLayout::validate( '{"version":1,"elements":[{"type":"image","token":"{{signer2:signature}}","x":0,"y":0,"w":200,"h":80},{"type":"image","token":"{{signer3:signature}}","x":0,"y":100,"w":200,"h":80},{"type":"image","token":"{{signer4:signature}}","x":0,"y":200,"w":200,"h":80}]}' );
+		$this->assertIsArray( $layout );
+		$this->assertSame( '{{signer2:signature}}', $layout['elements'][0]['token'] );
+		$this->assertSame( '{{signer3:signature}}', $layout['elements'][1]['token'] );
+		$this->assertSame( '', $layout['elements'][2]['token'], 'a position past the limit is not a signature' );
+
+		$html = VisualLayout::render( $layout );
+		$this->assertStringContainsString( '<img src="{{signer2:signature}}" alt="" style="max-width:200px;max-height:80px">', $html );
+		$this->assertStringContainsString( '<img src="{{signer3:signature}}"', $html );
+	}
+
 	public function test_an_image_shipped_with_the_plugin_is_drawn_from_the_plugin(): void {
 		$file   = 'assets/img/certificate-defaults/default_assinagture_1.png';
 		$layout = VisualLayout::validate(

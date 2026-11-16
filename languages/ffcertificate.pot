@@ -33977,7 +33977,7 @@ msgstr ""
 msgid "Who can sign certificates"
 msgstr ""
 
-msgid "A form names one of these people as its signer. Listing someone here lets their RF print in full on the certificates they sign, so adding a signer is recorded in the activity log. An inactive signer leaves the choice for new forms; forms that already use them keep them."
+msgid "A form names up to three of these people as its signers. Listing someone here lets their RF print in full on the certificates they sign, so adding a signer is recorded in the activity log. An inactive signer leaves the choice for new forms; forms that already use them keep them."
 msgstr ""
 
 msgid "No signer yet."
@@ -34054,7 +34054,9 @@ msgstr ""
 msgid "You do not have permission to manage signers."
 msgstr ""
 
-msgid "Signer"
+#. translators: %d: signer position, 1 to 3
+#, php-format
+msgid "Signer %d"
 msgstr ""
 
 msgid "— No signer —"
@@ -34064,7 +34066,7 @@ msgstr ""
 msgid "%s (no RF on the profile)"
 msgstr ""
 
-msgid "Prints as {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}}. Name and RF come from the person's WordPress profile when the certificate is generated; the RF prints in full on the certificate only."
+msgid "Signer 1 prints as {{signer1:name}}, {{signer1:rf}}, {{signer1:role}} and {{signer1:signature}}, and signers 2 and 3 as {{signer2:…}} and {{signer3:…}}. {{signer:…}} is the same as {{signer1:…}}. Name and RF come from the person's WordPress profile when the certificate is generated; the RF prints in full on the certificate only."
 msgstr ""
 
 msgid "Certificate Signer Added"
@@ -34076,7 +34078,7 @@ msgstr ""
 msgid "Free Form Certificate signers"
 msgstr ""
 
-msgid "Certificates → Signers lists the people a form can name as its signer. Each is a WordPress user who has an RF on their profile, with a role or sector, an optional signature image and an active flag; adding one needs ffc_manage_forms and is recorded in the activity log, because it lets that RF print on other people's certificates. The form chooses its signer on the Layout tab, and the layout prints {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}} (the image URL, for an img tag)."
+msgid "Certificates → Signers lists the people a form can name as its signer. Each is a WordPress user who has an RF on their profile, with a role or sector, an optional signature image and an active flag; adding one needs ffc_manage_forms and is recorded in the activity log, because it lets that RF print on other people's certificates. The form chooses up to three signers on the Layout tab, and the layout prints each as {{signer1:name}}, {{signer1:rf}}, {{signer1:role}} and {{signer1:signature}} (the image URL, for an img tag), then {{signer2:…}} and {{signer3:…}}; {{signer:…}} is the same as {{signer1:…}}."
 msgstr ""
 
 msgid "Add signer finds the person by search rather than a list, so it works on a site with thousands of accounts: type at least two letters of the name, login or e-mail, or the full RF, and pick the account from the results with the mouse or the arrow keys and Enter. Only accounts with an RF on their profile that are not signers yet are found, and the results name each one by display name and login."
@@ -34085,7 +34087,7 @@ msgstr ""
 msgid "Name and RF are read from the profile each time a certificate is generated, so a profile correction reaches every certificate; the role is read the same way. The RF prints in full on the certificate only: previews and the signer list show it masked, and the list reveals it, audited, to holders of ffc_view_certificates_pii. An inactive signer leaves the choice for new forms while the forms that use them keep them. When the user is deleted the signer keeps an encrypted copy of name and RF and becomes inactive, so issued certificates do not change; a personal data erasure request for that e-mail removes the copy, and certificates then print the RF masked."
 msgstr ""
 
-msgid "The form's signer, chosen on the Layout tab from Certificates → Signers: name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews."
+msgid "The form's signers, up to three, chosen on the Layout tab from Certificates → Signers: {{signer1:…}}, {{signer2:…}} and {{signer3:…}}, with {{signer:…}} the same as {{signer1:…}}. Name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews; a position with no signer prints blank."
 msgstr ""
 
 msgid "The layout is too large."
@@ -34142,7 +34144,7 @@ msgstr ""
 msgid "field — one token, as {{name}} or {{model:place}}, with the same text properties."
 msgstr ""
 
-msgid "image — attachment_id, a Media Library image, or token {{signer:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit."
+msgid "image — attachment_id, a Media Library image, or token {{signer:signature}}, {{signer2:signature}} or {{signer3:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit."
 msgstr ""
 
 msgid "qr — the validation QR code, sized to the shorter side of its box; margin."
@@ -34512,7 +34514,13 @@ msgstr ""
 msgid "The code links to the validation page; its size is the box."
 msgstr ""
 
-msgid "The signer’s signature"
+msgid "Signer 1’s signature"
+msgstr ""
+
+msgid "Signer 2’s signature"
+msgstr ""
+
+msgid "Signer 3’s signature"
 msgstr ""
 
 msgid "The template is now an HTML template. Its HTML is what the visual layout generated, so the forms that use it print the same document."

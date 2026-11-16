@@ -61,7 +61,7 @@ function markup(json) {
 						<select data-ffc-ve-prop="fit"><option value="none">N</option><option value="line">L</option><option value="box">B</option></select>
 					</fieldset>
 					<fieldset data-ffc-ve-for="image">
-						<select data-ffc-ve-image-source><option value="media">M</option><option value="signature">S</option></select>
+						<select data-ffc-ve-image-source><option value="media">M</option><option value="signature">S</option><option value="signature2">S2</option><option value="signature3">S3</option></select>
 						<p data-ffc-ve-image-media><button type="button" data-ffc-ve-choose-image="1">Choose</button><span data-ffc-ve-image-name></span></p>
 						<select data-ffc-ve-prop="fit"><option value="contain">C</option><option value="cover">V</option></select>
 					</fieldset>
@@ -432,6 +432,24 @@ describe('ffc-visual-editor.js', () => {
 			source.dispatchEvent(new window.Event('change'));
 			expect(layout().elements.find((e) => e.id === 'img').token).toBe('{{signer:signature}}');
 			expect(panel().querySelector('[data-ffc-ve-image-media]').hidden).toBe(true);
+			source.value = 'signature3';
+			source.dispatchEvent(new window.Event('change'));
+			expect(layout().elements.find((e) => e.id === 'img').token).toBe('{{signer3:signature}}');
+			select(ed, 'back');
+			select(ed, 'img');
+			expect(source.value).toBe('signature3', 'the select reads the position back from the token');
+			ed.layout.elements.find((e) => e.id === 'img').token = '{{signer2:signature}}';
+			select(ed, 'back');
+			select(ed, 'img');
+			expect(source.value).toBe('signature2');
+			source.value = 'media';
+			source.dispatchEvent(new window.Event('change'));
+			expect(layout().elements.find((e) => e.id === 'img').token).toBe('');
+			select(ed, 'back');
+			select(ed, 'img');
+			expect(source.value).toBe('media');
+			source.value = 'signature';
+			source.dispatchEvent(new window.Event('change'));
 			type(prop('fit', 'image'), 'cover');
 			expect(layout().elements.find((e) => e.id === 'img').fit).toBe('cover');
 

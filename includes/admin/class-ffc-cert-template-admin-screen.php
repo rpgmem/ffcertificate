@@ -1141,6 +1141,12 @@ class CertTemplateAdminScreen {
 			'{{signer:name}}',
 			'{{signer:role}}',
 			'{{signer:rf}}',
+			'{{signer2:name}}',
+			'{{signer2:role}}',
+			'{{signer2:rf}}',
+			'{{signer3:name}}',
+			'{{signer3:role}}',
+			'{{signer3:rf}}',
 		);
 		return array_values( array_unique( array_merge( \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags(), $common ) ) );
 	}
@@ -1289,7 +1295,9 @@ class CertTemplateAdminScreen {
 					<label for="ffc_ve_prop_image_source"><?php esc_html_e( 'Source', 'ffcertificate' ); ?></label>
 					<select id="ffc_ve_prop_image_source" class="ffc-w100" data-ffc-ve-image-source>
 						<option value="media"><?php esc_html_e( 'An image from the Media Library', 'ffcertificate' ); ?></option>
-						<option value="signature"><?php esc_html_e( 'The signer’s signature', 'ffcertificate' ); ?></option>
+						<option value="signature"><?php esc_html_e( 'Signer 1’s signature', 'ffcertificate' ); ?></option>
+						<option value="signature2"><?php esc_html_e( 'Signer 2’s signature', 'ffcertificate' ); ?></option>
+						<option value="signature3"><?php esc_html_e( 'Signer 3’s signature', 'ffcertificate' ); ?></option>
 					</select>
 					<p data-ffc-ve-image-media>
 						<?php

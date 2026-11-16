@@ -137,8 +137,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><em>Sala 2</em></td>
 			</tr>
 			<tr>
-				<td><code>{{signer:name}}</code> <code>{{signer:rf}}</code> <code>{{signer:role}}</code> <code>{{signer:signature}}</code></td>
-				<td><?php esc_html_e( 'The form\'s signer, chosen on the Layout tab from Certificates → Signers: name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews.', 'ffcertificate' ); ?></td>
+				<td><code>{{signer1:name}}</code> <code>{{signer1:rf}}</code> <code>{{signer1:role}}</code> <code>{{signer1:signature}}</code></td>
+				<td><?php esc_html_e( 'The form\'s signers, up to three, chosen on the Layout tab from Certificates → Signers: {{signer1:…}}, {{signer2:…}} and {{signer3:…}}, with {{signer:…}} the same as {{signer1:…}}. Name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews; a position with no signer prints blank.', 'ffcertificate' ); ?></td>
 				<td><em>Maria Souza</em></td>
 			</tr>
 			<tr>

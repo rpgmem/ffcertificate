@@ -138,7 +138,7 @@ final class CertificateSignersPage {
 
 			<div class="card">
 				<h2 class="ffc-icon-users"><?php esc_html_e( 'Who can sign certificates', 'ffcertificate' ); ?></h2>
-				<p class="description"><?php esc_html_e( 'A form names one of these people as its signer. Listing someone here lets their RF print in full on the certificates they sign, so adding a signer is recorded in the activity log. An inactive signer leaves the choice for new forms; forms that already use them keep them.', 'ffcertificate' ); ?></p>
+				<p class="description"><?php esc_html_e( 'A form names up to three of these people as its signers. Listing someone here lets their RF print in full on the certificates they sign, so adding a signer is recorded in the activity log. An inactive signer leaves the choice for new forms; forms that already use them keep them.', 'ffcertificate' ); ?></p>
 				<?php if ( array() === $signers ) : ?>
 					<p><?php esc_html_e( 'No signer yet.', 'ffcertificate' ); ?></p>
 				<?php else : ?>
@@ -409,7 +409,7 @@ final class CertificateSignersPage {
 	 * @return array<int, int>|null
 	 */
 	private static function accounts_with_rf( string $term ): ?array {
-		$digits = (string) preg_replace( '/\D/', '', $term );
+		$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $term );
 		if ( 1 !== preg_match( '/^[\d.\-\s]+$/', $term ) || 'rf' !== \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $digits ) ) {
 			return null;
 		}

@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   The template's background image and page colour sit beneath every
  *   element, as they do for an HTML template.
  * - Types: `text` (literal text, tokens allowed), `field` (one token), `image`
- *   (a media library id, or the `{{signer:signature}}` token), `qr`, `frame`
+ *   (a media library id, or a `{{signer:signature}}` / `{{signerN:signature}}` token), `qr`, `frame`
  *   and `html`. Only the properties #1951 measured identical between the
  *   browser and the capture exist: no `object-fit` (contain is drawn with a
  *   maximum size, cover with an explicit size and position), no vertical
@@ -106,8 +106,6 @@ final class VisualLayout {
 	/** A field token: one `{{…}}` with no markup inside. */
 	private const FIELD_TOKEN = '/^\{\{[a-z0-9_]+(?::[a-z0-9_]+)*(?::(?:format|size|margin)=[^{}<>"]{0,60})*\}\}$/';
 
-	/** The image token a signer prints as. */
-	private const SIGNATURE_TOKEN = '{{signer:signature}}';
 
 	/**
 	 * The page size for an orientation, in CSS pixels.
@@ -363,15 +361,15 @@ final class VisualLayout {
 	}
 
 	/**
-	 * The image of an image element: a library file, or the signer's signature.
+	 * The image of an image element: a library file, or a signer's signature.
 	 *
 	 * @param array<string, mixed> $element A validated image element.
 	 */
 	private static function image_inner( array $element ): string {
-		if ( self::SIGNATURE_TOKEN === $element['token'] ) {
+		if ( CertificateSigners::is_signature_token( (string) $element['token'] ) ) {
 			return sprintf(
 				'<img src="%s" alt="" style="max-width:%s;max-height:%s">',
-				self::SIGNATURE_TOKEN,
+				$element['token'],
 				self::px( $element['w'] ),
 				self::px( $element['h'] )
 			);
@@ -464,7 +462,7 @@ final class VisualLayout {
 			case 'image':
 				return array(
 					'attachment_id' => max( 0, (int) ( is_numeric( $element['attachment_id'] ?? null ) ? $element['attachment_id'] : 0 ) ),
-					'token'         => self::SIGNATURE_TOKEN === ( $element['token'] ?? '' ) ? self::SIGNATURE_TOKEN : '',
+					'token'         => is_string( $element['token'] ?? null ) && CertificateSigners::is_signature_token( $element['token'] ) ? $element['token'] : '',
 					'asset'         => self::asset( $element['asset'] ?? '' ),
 					'fit'           => self::enum( 'image_fit', $element['fit'] ?? null ),
 				);

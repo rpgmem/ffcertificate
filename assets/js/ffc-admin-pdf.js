@@ -532,7 +532,9 @@
             fields: fields,
             template_id: templateId,
             template_values: templateValues,
-            signer_id: $('#ffc_signer_id').val() || ''
+            signer_id: $('#ffc_signer_id').val() || '',
+            signer_id_2: $('#ffc_signer_id_2').val() || '',
+            signer_id_3: $('#ffc_signer_id_3').val() || ''
         })
             .done(function(response) {
                 if (!response || !response.success || !response.data || !window.FFCLayoutPreview) {
