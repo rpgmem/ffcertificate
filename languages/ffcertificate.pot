@@ -34778,3 +34778,7 @@ msgstr ""
 
 msgid "Workload"
 msgstr ""
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php
+msgid "The model with sample data"
+msgstr ""

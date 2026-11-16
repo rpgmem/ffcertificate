@@ -54,6 +54,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **An image element in the visual editor can be selected, dragged and aligned again** (#2608). The picture inside it shared the element's type class, whose rule lets the pointer through, so clicks reached the page; the picture now has its own class and is not natively draggable.
 - **The visual editor's canvas draws the template's page colour and background image** (#2612). Without them a default model's content, placed beside the artwork, looked off-centre; the canvas follows the Background Image URL field as it changes, with the grid on top.
 - **Create visual version keeps model 6's corner triangles** (#2618). A CSS triangle (an empty box with two adjacent borders, one clear) became a square; it now becomes a frame whose gradient fills half of it, since a gradient colour may be transparent.
+- **A shipped visual certificate model's edit screen shows the page** (#2628). It drew only its JSON; it now shows the model with sample data, the JSON folded away below it.
 - **The shipped visual certificate models are made of elements the editor can edit** (#2629). Signer columns, the verification line and its QR code, model 5's band and model 6's triangles and paragraph were HTML blocks; they are now fields, text, QR and gradient frames, and the verification line no longer breaks around the code.
 
 

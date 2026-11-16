@@ -745,6 +745,29 @@ class CertTemplateAdminScreen {
 	}
 
 	/**
+	 * A shipped visual model, drawn read-only (#2628): the sample-data
+	 * preview in a frame of the page's proportions, since a default has no
+	 * canvas and its JSON alone shows nothing.
+	 *
+	 * @param int $post_id Template post id.
+	 * @return void
+	 */
+	private static function render_default_page( int $post_id ): void {
+		$layout   = \FreeFormCertificate\Core\VisualLayout::stored( $post_id );
+		$portrait = null !== $layout && 'portrait' === $layout['page']['orientation'];
+		$preview  = wp_nonce_url(
+			admin_url( 'admin.php?action=' . self::PREVIEW_ACTION . '&post=' . $post_id ),
+			self::PREVIEW_ACTION . '_' . $post_id
+		);
+		printf(
+			'<iframe class="%1$s" src="%2$s" title="%3$s" loading="lazy"></iframe>',
+			$portrait ? 'ffc-ve-default-page ffc-ve-default-page-portrait' : 'ffc-ve-default-page',
+			esc_url( $preview ),
+			esc_attr__( 'The model with sample data', 'ffcertificate' )
+		);
+	}
+
+	/**
 	 * The page canvas of a visual template (#2585), with its labels.
 	 *
 	 * @param int $post_id Template post id, for the preview (#2586).
@@ -752,12 +775,7 @@ class CertTemplateAdminScreen {
 	 */
 	private static function enqueue_visual_editor( int $post_id ): void {
 		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_style(
-			'ffc-visual-editor',
-			FFC_PLUGIN_URL . "assets/css/ffc-visual-editor{$suffix}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
+		self::enqueue_visual_editor_style();
 		wp_enqueue_script(
 			'ffc-visual-editor',
 			FFC_PLUGIN_URL . "assets/js/ffc-visual-editor{$suffix}.js",
@@ -844,6 +862,22 @@ class CertTemplateAdminScreen {
 	}
 
 	/**
+	 * The visual editor's stylesheet, which also styles a default's read-only
+	 * page (#2628).
+	 *
+	 * @return void
+	 */
+	private static function enqueue_visual_editor_style(): void {
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_style(
+			'ffc-visual-editor',
+			FFC_PLUGIN_URL . "assets/css/ffc-visual-editor{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+	}
+
+	/**
 	 * Enqueue the shared CodeMirror HTML editor on the template edit screen.
 	 *
 	 * Mirrors what the form editor does for its layout box, so the two HTML
@@ -865,7 +899,10 @@ class CertTemplateAdminScreen {
 
 		// A visual template edits its layout on the page canvas (#2585), not HTML (#2584).
 		if ( \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id ) ) {
-			if ( ! $is_default ) {
+			if ( $is_default ) {
+				// The read-only page frame (#2628).
+				self::enqueue_visual_editor_style();
+			} else {
 				// The preview is captured the way the form editor's is (#2586).
 				\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-layout-preview' );
 				self::enqueue_visual_editor( $post_id );
@@ -1602,9 +1639,11 @@ class CertTemplateAdminScreen {
 
 		if ( ! $is_default ) {
 			$this->render_visual_canvas( (int) $post->ID );
+		} else {
+			self::render_default_page( (int) $post->ID );
 		}
 		?>
-		<details class="ffc-ve-json"<?php echo $is_default ? ' open' : ''; ?>>
+		<details class="ffc-ve-json">
 			<summary><?php esc_html_e( 'Visual layout (JSON)', 'ffcertificate' ); ?></summary>
 			<label class="screen-reader-text" for="ffc_template_layout"><?php esc_html_e( 'Visual layout (JSON)', 'ffcertificate' ); ?></label>
 			<textarea name="ffc_template_layout" id="ffc_template_layout" class="ffc-w100 code" rows="20" spellcheck="false" <?php wp_readonly( $is_default, true ); ?>><?php echo esc_textarea( $json ); ?></textarea>
