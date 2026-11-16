@@ -531,6 +531,19 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		post.mockRestore();
 	});
 
+	it('sends the event date typed on the Time tab and the form id (#2626)', () => {
+		document.body.insertAdjacentHTML('beforeend', '<input type="hidden" id="post_ID" value="440"><input type="date" id="ffc_event_date_start" value="2026-03-10"><input type="date" id="ffc_event_date_end" value="2026-03-12">');
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>{{schedule:dates}}</p>';
+		window.$('#ffc_btn_preview').trigger('click');
+		const data = post.mock.calls[0][1];
+		expect(data.post_id).toBe('440');
+		expect(data.event_date_start).toBe('2026-03-10');
+		expect(data.event_date_end).toBe('2026-03-12');
+		post.mockRestore();
+		['post_ID', 'ffc_event_date_start', 'ffc_event_date_end'].forEach((id) => document.getElementById(id).remove());
+	});
+
 	it('sends the form builder fields with their labels, so custom variables preview', () => {
 		document.querySelector('#ffc-fields-container').innerHTML =
 			'<div class="ffc-field-row"><input name="ffc_fields[0][name]" value="course"><input name="ffc_fields[0][label]" value="Curso"></div>' +

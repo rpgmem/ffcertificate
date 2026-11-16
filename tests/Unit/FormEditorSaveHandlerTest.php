@@ -2258,4 +2258,31 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( array(), $bag['deleted'] );
 		$_POST = array();
 	}
+
+	public function test_the_event_date_is_saved_when_another_geofence_setting_fails(): void {
+		// GPS on with no area fails validation; the event date typed on the
+		// same save has no part in it and is kept (#2626).
+		$bag   = $this->stub_template_link();
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		$_POST = array(
+			'ffc_geofence' => array(
+				'_save'            => '1',
+				'geo_enabled'      => '1',
+				'geo_gps_enabled'  => '1',
+				'geo_area_source'  => 'custom',
+				'geo_areas'        => '',
+				'class_date_start' => '2026-03-10',
+				'class_date_end'   => '2026-03-12',
+			),
+		);
+		$this->invoke( 'save_geofence_meta', array( 11 ) );
+
+		$this->assertArrayHasKey( 'ffc_geofence_error_3', $bag['transients'], 'the error is still reported' );
+		$saved = $bag['meta']['_ffc_geofence_config'] ?? null;
+		$this->assertIsArray( $saved, 'the event date is written' );
+		$this->assertSame( '2026-03-10', $saved['class_date_start'] );
+		$this->assertSame( '2026-03-12', $saved['class_date_end'] );
+		$this->assertArrayNotHasKey( 'geo_enabled', $saved, 'what failed is not written' );
+		$_POST = array();
+	}
 }

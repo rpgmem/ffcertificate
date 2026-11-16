@@ -657,6 +657,16 @@ class FormEditorSaveHandler {
 
 			$validation_errors = $this->validator()->validate_geofence_config( $merged_geofence );
 			if ( ! empty( $validation_errors ) ) {
+				// The event's date has its own sanitising and no part in what
+				// failed, so an error in the opening window or the areas no
+				// longer throws it away with the rest (#2626).
+				$event_date = array(
+					'class_date_start' => $clean_geofence['class_date_start'],
+					'class_date_end'   => $clean_geofence['class_date_end'],
+				);
+				if ( array_intersect_key( $current_geofence + array_fill_keys( array_keys( $event_date ), '' ), $event_date ) !== $event_date ) {
+					update_post_meta( $post_id, '_ffc_geofence_config', array_merge( $current_geofence, $event_date ) );
+				}
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
 				// Route each error category to its tab so the tab script can
 				// open the offending one (datetime → Time, area → Geolocation).

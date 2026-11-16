@@ -58,10 +58,20 @@ jQuery(function ($) {
 	syncEndDateMin();
 
 	// Event date (#2579): the End may equal the Start, never precede it.
+	// An End the Start moved past is cleared rather than left invalid: inside
+	// a collapsed section the browser cannot point at it, so the form would
+	// refuse to save without a word (#2626).
 	function syncEventEndMin() {
 		var startVal = $('#ffc_event_date_start').val();
 		var $end     = $('#ffc_event_date_end');
-		if ( startVal ) { $end.attr('min', startVal); } else { $end.removeAttr('min'); }
+		if ( startVal ) {
+			$end.attr('min', startVal);
+			if ( $end.val() && $end.val() < startVal ) {
+				$end.val('');
+			}
+		} else {
+			$end.removeAttr('min');
+		}
 	}
 	$('#ffc_event_date_start').on('change input', syncEventEndMin);
 
