@@ -231,7 +231,12 @@ class CertificateSignersTest extends TestCase {
 		$this->assertSame( 'Maria Souza', $samples['signer:name'] );
 		$this->assertSame( $samples['signer1:name'], $samples['signer:name'] );
 		$this->assertCount( 3, array_unique( array( $samples['signer1:name'], $samples['signer2:name'], $samples['signer3:name'] ) ), 'each column of a template preview shows a different person' );
-		$this->assertSame( '', $samples['signer2:signature'] );
+		$this->assertSame( FFC_PLUGIN_URL . 'assets/img/certificate-defaults/default_assinagture_1.png', $samples['signer2:signature'], 'a preview draws a sample signature in each column (#2624)' );
+		$this->assertSame( FFC_PLUGIN_URL . 'assets/img/certificate-defaults/default_assinagture_2.png', $samples['signer1:signature'] );
+		$this->assertSame( $samples['signer1:signature'], $samples['signer:signature'] );
+		foreach ( array( 'signer1:signature', 'signer2:signature', 'signer3:signature' ) as $key ) {
+			$this->assertFileExists( FFC_PLUGIN_DIR . substr( $samples[ $key ], strlen( FFC_PLUGIN_URL ) ), 'the sample image ships' );
+		}
 
 		$values = CertificateSigners::preview_values( array( 2 => CertificateSigners::get( 1 ) ) );
 		$this->assertSame( 'Maria Souza', $values['signer2:name'] );

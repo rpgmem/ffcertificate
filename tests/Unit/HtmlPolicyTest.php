@@ -80,5 +80,9 @@ class HtmlPolicyTest extends TestCase {
 		$this->assertSame( '<img src="{{signer:signature}}"><p>{{signer:name}}</p>', HtmlPolicy::kses_layout( '<img src="{{signer:signature}}"><p>{{signer:name}}</p>' ) );
 		$this->assertStringNotContainsString( '{{signer:', $seen[0], 'the allow-list never sees the colon' );
 		$this->assertSame( '<img src="alert(1)">', HtmlPolicy::kses_layout( '<img src="javascript:alert(1)">' ), 'any other protocol is still the allow-list\'s' );
+		foreach ( array( 1, 2, 3 ) as $n ) {
+			$this->assertSame( '<img src="{{signer' . $n . ':signature}}">', HtmlPolicy::kses_layout( '<img src="{{signer' . $n . ':signature}}">' ), "signer {$n}'s token keeps its address (#2624)" );
+		}
+		$this->assertSame( '<img src="signature}}">', HtmlPolicy::kses_layout( '<img src="{{signer4:signature}}">' ), 'a position the form cannot name is no token' );
 	}
 }

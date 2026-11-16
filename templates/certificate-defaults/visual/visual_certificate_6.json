@@ -213,7 +213,7 @@
 			"y": 312,
 			"w": 823,
 			"h": 63,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #3e4c59;text-align: center;line-height: 1.25\">has completed with commitment and excellence the course<br><strong style=\"font-size: 18pt;color: #1b2a41\">{{form_title}}</strong><br>with a workload of 4 hours, completed on 25/12/2025.</div>",
+			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #3e4c59;text-align: center;line-height: 1.25\">has completed with commitment and excellence the course<br><strong style=\"font-size: 18pt;color: #1b2a41\">{{form_title}}</strong><br>with a workload of {{model:workload}}, completed on {{schedule:dates}}.</div>",
 			"id": "el-14",
 			"rotation": 0,
 			"locked": false
@@ -240,12 +240,14 @@
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "image",
 			"x": 314,
 			"y": 516,
 			"w": 130,
 			"h": 46,
-			"html": "<img src=\"/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/default_assinagture_1.png\" style=\"width: 130px;height: 46px\" alt=\"\">",
+			"attachment_id": 0,
+			"token": "{{signer2:signature}}",
+			"fit": "contain",
 			"id": "el-16",
 			"rotation": 0,
 			"locked": false
@@ -256,18 +258,20 @@
 			"y": 566,
 			"w": 264,
 			"h": 43,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #1b2a41;text-align: center;line-height: 1.2\"><strong style=\"font-size: 10.5pt\">Joe Doe</strong><br> <span style=\"font-size: 9.5pt;color: #52606d\">Speaker</span></div>",
+			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #1b2a41;text-align: center;line-height: 1.2\"><strong style=\"font-size: 10.5pt\">{{signer2:name}}</strong><br> <span style=\"font-size: 9.5pt;color: #52606d\">{{signer2:role}}</span></div>",
 			"id": "el-17",
 			"rotation": 0,
 			"locked": false
 		},
 		{
-			"type": "html",
+			"type": "image",
 			"x": 679,
 			"y": 517,
 			"w": 130,
 			"h": 45,
-			"html": "<img src=\"/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/default_assinagture_2.png\" style=\"width: 130px;height: 45px\" alt=\"\">",
+			"attachment_id": 0,
+			"token": "{{signer1:signature}}",
+			"fit": "contain",
 			"id": "el-18",
 			"rotation": 0,
 			"locked": false
@@ -278,7 +282,7 @@
 			"y": 566,
 			"w": 264,
 			"h": 43,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #1b2a41;text-align: center;line-height: 1.2\"><strong style=\"font-size: 10.5pt\">Jane Doe</strong><br> <span style=\"font-size: 9.5pt;color: #52606d\">Director</span></div>",
+			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 16.0px;color: #1b2a41;text-align: center;line-height: 1.2\"><strong style=\"font-size: 10.5pt\">{{signer1:name}}</strong><br> <span style=\"font-size: 9.5pt;color: #52606d\">{{signer1:role}}</span></div>",
 			"id": "el-19",
 			"rotation": 0,
 			"locked": false
@@ -289,7 +293,7 @@
 			"y": 652,
 			"w": 823,
 			"h": 142,
-			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 11.33px;color: #52606d;text-align: center;line-height: 1.2\">Issued San Diego, 26/12/2025 · {{qr_code:size=50:margin=0}} · Verify at {{validation_url}} with code <strong>{{auth_code}}</strong></div>",
+			"html": "<div style=\"font-family: Montserrat, Arial, Helvetica, sans-serif;font-size: 11.33px;color: #52606d;text-align: center;line-height: 1.2\">Issued {{model:place}}, {{submission_date}} · {{qr_code:size=50:margin=0}} · Verify at {{validation_url}} with code <strong>{{auth_code}}</strong></div>",
 			"id": "el-20",
 			"rotation": 0,
 			"locked": false

@@ -341,6 +341,14 @@ class FormEditor {
 			if ( '' === $html ) {
 				wp_send_json_error();
 			}
+			// The form's own copy has no template fields of its own, so a
+			// `{{model:…}}` token would print as written: it takes the
+			// declared default instead (#2624).
+			$html = \FreeFormCertificate\Core\TemplateFields::replace_tokens(
+				$html,
+				\FreeFormCertificate\Core\CertificateTemplateLink::fields( $template_id ),
+				array()
+			);
 			// #865: structured payload so a loaded template carries its stored
 			// background image into the form's Background Image URL field. The JS
 			// load handler tolerates the legacy bare-string shape for safety.

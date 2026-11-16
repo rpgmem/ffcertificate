@@ -75,10 +75,13 @@ final class CertificateSigners {
 	 * so a template preview shows distinct names in each column.
 	 */
 	private const SAMPLES = array(
-		1 => array( 'Maria Souza', 'Coordenação Pedagógica' ),
-		2 => array( 'João Lima', 'Direção' ),
-		3 => array( 'Ana Ribeiro', 'Supervisão Escolar' ),
+		1 => array( 'Maria Souza', 'Coordenação Pedagógica', 'default_assinagture_2.png' ),
+		2 => array( 'João Lima', 'Direção', 'default_assinagture_1.png' ),
+		3 => array( 'Ana Ribeiro', 'Supervisão Escolar', 'default_assinagture_1.png' ),
 	);
+
+	/** Where the sample signature images ship, relative to the plugin root. */
+	private const SAMPLE_SIGNATURE_DIR = 'assets/img/certificate-defaults/';
 
 	/**
 	 * Every signer, by id.
@@ -347,7 +350,8 @@ final class CertificateSigners {
 	/**
 	 * Sample values for a preview, for the positions that name no signer:
 	 * a distinct sample person per position, the RF as the mask placeholder
-	 * and no signature.
+	 * and a shipped sample signature, so a template preview draws every
+	 * column (#2624). A certificate never prints these.
 	 *
 	 * @param array<int, array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null> $positions Position → signer; a position with a signer is left to the caller.
 	 * @return array<string, string>
@@ -362,7 +366,7 @@ final class CertificateSigners {
 			$values[ $prefix . ':name' ]      = $sample[0];
 			$values[ $prefix . ':rf' ]        = DocumentFormatter::mask_placeholder( DocumentFormatter::MASK_RF );
 			$values[ $prefix . ':role' ]      = $sample[1];
-			$values[ $prefix . ':signature' ] = '';
+			$values[ $prefix . ':signature' ] = FFC_PLUGIN_URL . self::SAMPLE_SIGNATURE_DIR . $sample[2];
 			if ( 1 === $position ) {
 				foreach ( self::TOKENS as $token ) {
 					$values[ 'signer:' . $token ] = $values[ $prefix . ':' . $token ];

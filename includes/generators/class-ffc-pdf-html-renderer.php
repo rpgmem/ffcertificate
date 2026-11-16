@@ -145,6 +145,11 @@ class PdfHtmlRenderer {
 			(string) ( $data[ \FreeFormCertificate\Core\EventDate::DATA_END ] ?? '' )
 		);
 
+		// An image whose source a token left empty (#2624) — a signer position
+		// with no signer, or one with no signature image — is removed rather
+		// than drawn as a broken image.
+		$layout = self::drop_empty_images( $layout );
+
 		// Fix relative URLs to absolute.
 		$site_url = untrailingslashit( get_home_url() );
 		$layout   = preg_replace( '/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $layout ) ?? $layout;
@@ -361,5 +366,17 @@ class PdfHtmlRenderer {
 			. '<p><strong>' . esc_html__( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
 			. '<p><strong>' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</strong> {{validation_code}}</p>'
 			. '</div>';
+	}
+
+	/**
+	 * Remove every `<img>` whose `src` is empty or only whitespace.
+	 *
+	 * @param string $layout Layout HTML.
+	 */
+	private static function drop_empty_images( string $layout ): string {
+		if ( false === stripos( $layout, '<img' ) ) {
+			return $layout;
+		}
+		return (string) preg_replace( '/<img\b[^>]*?\ssrc\s*=\s*(["\'])\s*\1[^>]*>/i', '', $layout );
 	}
 }

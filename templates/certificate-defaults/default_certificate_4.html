@@ -21,15 +21,15 @@
             <tr>
                 <td style="width: 33%;text-align: center;padding: 14px 0">
                     <p style="margin: 0;font-size: 8.5pt;letter-spacing: 2px;text-transform: uppercase;color: #7b8794">Workload</p>
-                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">4 hours</p>
+                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">{{model:workload}}</p>
                 </td>
                 <td style="width: 34%;text-align: center;padding: 14px 0;border-left: 1px solid #cbd2d9;border-right: 1px solid #cbd2d9">
                     <p style="margin: 0;font-size: 8.5pt;letter-spacing: 2px;text-transform: uppercase;color: #7b8794">Completed on</p>
-                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">25/12/2025</p>
+                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">{{schedule:dates}}</p>
                 </td>
                 <td style="width: 33%;text-align: center;padding: 14px 0">
                     <p style="margin: 0;font-size: 8.5pt;letter-spacing: 2px;text-transform: uppercase;color: #7b8794">Issued in</p>
-                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">San Diego, 26/12/2025</p>
+                    <p style="margin: 4px 0 0;font-size: 13pt;color: #1e2a3a">{{model:place}}, {{submission_date}}</p>
                 </td>
             </tr>
         </table>
@@ -39,18 +39,18 @@
         <table style="width: 100%;border-collapse: collapse">
             <tr>
                 <td style="width: 45%;text-align: center;vertical-align: bottom">
-                    <img src="/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/default_assinagture_1.png" style="width: 130px;height: auto">
+                    <img src="{{signer2:signature}}" style="width: 130px;height: auto">
                     <div style="border-top: 1px solid #1e2a3a;margin: 0 20px;padding-top: 6px">
-                        <strong style="font-size: 10.5pt">Speaker</strong><br>
-                        <span style="font-size: 9.5pt;color: #52606d">Joe Doe</span>
+                        <strong style="font-size: 10.5pt">{{signer2:role}}</strong><br>
+                        <span style="font-size: 9.5pt;color: #52606d">{{signer2:name}}</span>
                     </div>
                 </td>
                 <td style="width: 10%"></td>
                 <td style="width: 45%;text-align: center;vertical-align: bottom">
-                    <img src="/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/default_assinagture_2.png" style="width: 130px;height: auto">
+                    <img src="{{signer1:signature}}" style="width: 130px;height: auto">
                     <div style="border-top: 1px solid #1e2a3a;margin: 0 20px;padding-top: 6px">
-                        <strong style="font-size: 10.5pt">Director</strong><br>
-                        <span style="font-size: 9.5pt;color: #52606d">Jane Doe</span>
+                        <strong style="font-size: 10.5pt">{{signer1:role}}</strong><br>
+                        <span style="font-size: 9.5pt;color: #52606d">{{signer1:name}}</span>
                     </div>
                 </td>
             </tr>

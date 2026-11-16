@@ -95,8 +95,17 @@ class CertTemplateSeeder {
 	 * Version 13 gives the last line of visual models 1, 2, 3, 4 and 6 room
 	 * for its QR code (#2603): the box was 12 px tall and clipped the code,
 	 * the verification URL and the authentication code off the certificate.
+	 *
+	 * Version 14 turns the example text of the twelve certificate models into
+	 * tokens (#2624): the place and the workload are template fields whose
+	 * defaults are the old examples, the completion date is the form's event
+	 * date and the issue date the submission's, and the two signature columns
+	 * print signers 1 and 2 (#2620). The bump refreshes the bodies and stores
+	 * the fields. A form that loaded one of these bodies keeps its copy with
+	 * the defaults filled in, which is what the archive under `previous/`
+	 * must hold once this version is released.
 	 */
-	private const SEED_VERSION = 13;
+	private const SEED_VERSION = 14;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
@@ -211,6 +220,7 @@ class CertTemplateSeeder {
 
 			$id = self::insert_default( $slug, $def['title'], $source['html'], self::bg_url( $def['bg'] ), $def['kind'] );
 			self::store_layout( $id, $source['layout'] );
+			self::store_fields( $id, $def );
 		}
 	}
 
@@ -243,11 +253,13 @@ class CertTemplateSeeder {
 				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_BG_IMAGE, self::bg_url( $def['bg'] ) );
 				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_KIND, $kind );
 				self::store_layout( $existing_map[ $slug ], $source['layout'] );
+				self::store_fields( $existing_map[ $slug ], $def );
 				continue;
 			}
 
 			$id = self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ), $kind );
 			self::store_layout( $id, $source['layout'] );
+			self::store_fields( $id, $def );
 		}
 	}
 
@@ -297,6 +309,49 @@ class CertTemplateSeeder {
 	}
 
 	/**
+	 * Store the template fields a default declares (#2624). Only the
+	 * certificate models declare any, and a default never lost a field it
+	 * once declared, so there is nothing to remove.
+	 *
+	 * @param int                  $id  Template post id (0 when the insert failed).
+	 * @param array<string, mixed> $def Definition.
+	 * @return void
+	 */
+	private static function store_fields( int $id, array $def ): void {
+		$fields = is_array( $def['fields'] ?? null ) ? $def['fields'] : array();
+		if ( $id <= 0 || array() === $fields ) {
+			return;
+		}
+		update_post_meta( $id, \FreeFormCertificate\Core\CertificateTemplateLink::META_FIELDS, $fields );
+	}
+
+	/**
+	 * The template fields the certificate models declare (#2624): the place
+	 * and the workload, whose defaults are the examples the bodies printed
+	 * before they became tokens.
+	 *
+	 * @return array<int, array{key: string, label: string, type: string, required: bool, default: string}>
+	 */
+	private static function certificate_model_fields(): array {
+		return array(
+			array(
+				'key'      => 'place',
+				'label'    => __( 'Place', 'ffcertificate' ),
+				'type'     => 'text',
+				'required' => false,
+				'default'  => 'San Diego',
+			),
+			array(
+				'key'      => 'workload',
+				'label'    => __( 'Workload', 'ffcertificate' ),
+				'type'     => 'text',
+				'required' => false,
+				'default'  => '4 hours',
+			),
+		);
+	}
+
+	/**
 	 * Insert one shipped default template with its canonical meta.
 	 *
 	 * @param string $slug  Stable default slug.
@@ -339,7 +394,7 @@ class CertTemplateSeeder {
 	 * A visual default (#2586) sets `layout` and points `file` at its layout
 	 * JSON; its HTML is rendered from the layout.
 	 *
-	 * @return array<string, array{title:string, file:string, bg:string, kind:string, dir?:string, layout?:bool}>
+	 * @return array<string, array{title:string, file:string, bg:string, kind:string, dir?:string, layout?:bool, fields?:array<int, array<string, mixed>>}>
 	 */
 	private static function definitions(): array {
 		$visual = array();
@@ -353,45 +408,52 @@ class CertTemplateSeeder {
 				'kind'   => CertTemplateCpt::KIND_CERTIFICATE,
 				'dir'    => 'templates/certificate-defaults/visual/',
 				'layout' => true,
+				'fields' => self::certificate_model_fields(),
 			);
 		}
 
 		$html = array(
 			'default_certificate_1'               => array(
-				'title' => __( 'Certificate model 1', 'ffcertificate' ),
-				'file'  => 'default_certificate_1.html',
-				'bg'    => 'default_background_certificate_1.png',
-				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+				'title'  => __( 'Certificate model 1', 'ffcertificate' ),
+				'file'   => 'default_certificate_1.html',
+				'bg'     => 'default_background_certificate_1.png',
+				'kind'   => CertTemplateCpt::KIND_CERTIFICATE,
+				'fields' => self::certificate_model_fields(),
 			),
 			'default_certificate_2'               => array(
-				'title' => __( 'Certificate model 2', 'ffcertificate' ),
-				'file'  => 'default_certificate_2.html',
-				'bg'    => 'default_background_certificate_2.png',
-				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+				'title'  => __( 'Certificate model 2', 'ffcertificate' ),
+				'file'   => 'default_certificate_2.html',
+				'bg'     => 'default_background_certificate_2.png',
+				'kind'   => CertTemplateCpt::KIND_CERTIFICATE,
+				'fields' => self::certificate_model_fields(),
 			),
 			'default_certificate_3'               => array(
-				'title' => __( 'Certificate model 3', 'ffcertificate' ),
-				'file'  => 'default_certificate_3.html',
-				'bg'    => '',
-				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+				'title'  => __( 'Certificate model 3', 'ffcertificate' ),
+				'file'   => 'default_certificate_3.html',
+				'bg'     => '',
+				'kind'   => CertTemplateCpt::KIND_CERTIFICATE,
+				'fields' => self::certificate_model_fields(),
 			),
 			'default_certificate_4'               => array(
-				'title' => __( 'Certificate model 4', 'ffcertificate' ),
-				'file'  => 'default_certificate_4.html',
-				'bg'    => '',
-				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+				'title'  => __( 'Certificate model 4', 'ffcertificate' ),
+				'file'   => 'default_certificate_4.html',
+				'bg'     => '',
+				'kind'   => CertTemplateCpt::KIND_CERTIFICATE,
+				'fields' => self::certificate_model_fields(),
 			),
 			'default_certificate_5'               => array(
-				'title' => __( 'Certificate model 5', 'ffcertificate' ),
-				'file'  => 'default_certificate_5.html',
-				'bg'    => '',
-				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+				'title'  => __( 'Certificate model 5', 'ffcertificate' ),
+				'file'   => 'default_certificate_5.html',
+				'bg'     => '',
+				'kind'   => CertTemplateCpt::KIND_CERTIFICATE,
+				'fields' => self::certificate_model_fields(),
 			),
 			'default_certificate_6'               => array(
-				'title' => __( 'Certificate model 6', 'ffcertificate' ),
-				'file'  => 'default_certificate_6.html',
-				'bg'    => '',
-				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+				'title'  => __( 'Certificate model 6', 'ffcertificate' ),
+				'file'   => 'default_certificate_6.html',
+				'bg'     => '',
+				'kind'   => CertTemplateCpt::KIND_CERTIFICATE,
+				'fields' => self::certificate_model_fields(),
 			),
 			// Appointment-receipt defaults (#945) — HTML under templates/documents/,
 			// no background image, tagged with the appointment_receipt kind.
