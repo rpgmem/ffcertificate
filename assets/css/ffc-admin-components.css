@@ -942,3 +942,47 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* Add signer's account search (#2622): a combobox whose results drop under
+   the field, so the screen never lists every account with an RF. */
+.ffc-signer-user-search {
+    position: relative;
+    max-width: 25em;
+}
+
+.ffc-signer-user-results {
+    position: absolute;
+    z-index: var(--ffc-z-dropdown);
+    top: 100%;
+    right: 0;
+    left: 0;
+    max-height: 16em;
+    margin: var(--ffc-spacing-2xs) 0 0;
+    padding: var(--ffc-spacing-2xs) 0;
+    overflow-y: auto;
+    list-style: none;
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    box-shadow: var(--ffc-shadow-md);
+}
+
+.ffc-signer-user-option {
+    margin: 0;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    cursor: pointer;
+}
+
+.ffc-signer-user-option:hover,
+.ffc-signer-user-option.is-active {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-text);
+}
+
+.ffc-signer-user-status {
+    min-height: 1.4em;
+    margin: var(--ffc-spacing-2xs) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-secondary);
+}

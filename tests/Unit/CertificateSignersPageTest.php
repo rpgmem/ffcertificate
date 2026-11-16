@@ -53,7 +53,9 @@ class CertificateSignersPageTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		$_GET = array();
+		$_GET  = array();
+		$_POST = array();
+		unset( $GLOBALS['wpdb'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -95,5 +97,125 @@ class CertificateSignersPageTest extends TestCase {
 		);
 		$this->expectExceptionMessage( 'die' );
 		( new CertificateSignersPage() )->render_page();
+	}
+
+	/**
+	 * Run the search endpoint with `$term`, capturing what get_users() was asked.
+	 *
+	 * @return array{0: string, 1: mixed, 2: array<string, mixed>|null} Outcome, payload, query args.
+	 */
+	private function search( string $term, array $users = array() ): array {
+		$_POST = array( 'term' => $term, 'nonce' => 'n' );
+		Functions\when( 'check_ajax_referer' )->justReturn( 1 );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		$asked = null;
+		Functions\when( 'get_users' )->alias(
+			static function ( $args ) use ( &$asked, $users ) {
+				$asked = $args;
+				return $users;
+			}
+		);
+		Functions\when( 'wp_send_json_success' )->alias(
+			static function ( $data ) {
+				throw new \RuntimeException( 'success:' . wp_json_encode( $data ) );
+			}
+		);
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data, $status = null ) {
+				throw new \RuntimeException( 'error:' . $status );
+			}
+		);
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		try {
+			( new CertificateSignersPage() )->ajax_search_candidates();
+		} catch ( \RuntimeException $e ) {
+			list( $outcome, $payload ) = explode( ':', $e->getMessage(), 2 );
+			return array( $outcome, json_decode( $payload, true ) ?? $payload, $asked );
+		}
+		$this->fail( 'the endpoint must answer' );
+	}
+
+	private function wp_user( int $id, string $name, string $login ): \WP_User {
+		$user               = new \WP_User();
+		$user->ID           = $id;
+		$user->display_name = $name;
+		$user->user_login   = $login;
+		$user->user_email   = $login . '@example.test';
+		return $user;
+	}
+
+	public function test_the_search_finds_accounts_with_an_rf_by_name_and_returns_no_pii(): void {
+		$this->caps = array( 'ffc_manage_forms' );
+		list( $outcome, $payload, $asked ) = $this->search( ' mar ', array( $this->wp_user( 9, 'Mário Lima', 'mario' ) ) );
+
+		$this->assertSame( 'success', $outcome );
+		$this->assertSame( array( 'users' => array( array( 'id' => 9, 'label' => 'Mário Lima (mario)' ) ) ), $payload, 'name and login only: no e-mail, no RF' );
+		$this->assertSame( '*mar*', $asked['search'] );
+		$this->assertSame( array( 'user_login', 'user_email', 'display_name', 'user_nicename' ), $asked['search_columns'] );
+		$this->assertSame( CertificateSigners::RF_META_KEY, $asked['meta_key'], 'only accounts with an RF on the profile' );
+		$this->assertSame( 'EXISTS', $asked['meta_compare'] );
+		$this->assertSame( array( 7 ), $asked['exclude'], 'a current signer is never offered again' );
+		$this->assertSame( 20, $asked['number'] );
+	}
+
+	public function test_a_full_rf_is_matched_through_the_profile_hash(): void {
+		$this->caps = array( 'ffc_manage_forms' );
+		$wpdb       = new class() {
+			/** @var string */
+			public $prefix = 'wp_';
+			/** @var array<int, mixed> */
+			public $asked = array();
+			public function prepare( $sql, ...$args ) {
+				$this->asked = $args;
+				return $sql;
+			}
+			public function get_col( $sql ) {
+				return array( '9' );
+			}
+		};
+		$GLOBALS['wpdb'] = $wpdb;
+		list( $outcome, , $asked ) = $this->search( '518.178-0', array( $this->wp_user( 9, 'Mário Lima', 'mario' ) ) );
+
+		$this->assertSame( 'success', $outcome );
+		$this->assertSame( array( 9 ), $asked['include'], 'the accounts whose profile carries that RF' );
+		$this->assertArrayNotHasKey( 'search', $asked, 'an RF is not searched as text' );
+		$this->assertSame( 'rf_hash', $wpdb->asked[1] );
+		$this->assertSame( \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'rf', '5181780' ), $wpdb->asked[2] );
+	}
+
+	public function test_an_rf_nobody_carries_finds_nobody(): void {
+		$this->caps = array( 'ffc_manage_forms' );
+		$GLOBALS['wpdb'] = new class() {
+			/** @var string */
+			public $prefix = 'wp_';
+			public function prepare( $sql, ...$args ) {
+				return $sql;
+			}
+			public function get_col( $sql ) {
+				return array();
+			}
+		};
+		list( $outcome, $payload, $asked ) = $this->search( '1234567' );
+		$this->assertSame( 'success', $outcome );
+		$this->assertSame( array( 'users' => array() ), $payload );
+		$this->assertNull( $asked, 'no account query runs' );
+	}
+
+	public function test_the_search_refuses_without_the_cap_and_a_short_term(): void {
+		$this->caps = array( 'ffc_view_forms' );
+		$this->assertSame( array( 'error', 403, null ), $this->search( 'maria' ) );
+
+		$this->caps = array( 'ffc_manage_forms' );
+		$this->assertSame( array( 'error', 400, null ), $this->search( ' m ' ) );
+	}
+
+	public function test_the_add_form_offers_the_search_instead_of_a_list(): void {
+		$this->caps = array( 'ffc_view_forms', 'ffc_manage_forms' );
+		$html       = $this->render();
+		$this->assertStringContainsString( 'data-ffc-signer-user-search', $html );
+		$this->assertStringContainsString( 'role="combobox"', $html );
+		$this->assertStringContainsString( '<input type="hidden" name="ffc_signer_user" value="">', $html );
+		$this->assertStringNotContainsString( '<select name="ffc_signer_user"', $html );
 	}
 }
