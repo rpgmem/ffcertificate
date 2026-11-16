@@ -2068,6 +2068,36 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertContains( 'ffc_visual_copy_report_3_5', $deleted, 'shown once' );
 	}
 
+	/**
+	 * A shipped visual model is drawn as its sample preview, at the page's
+	 * shape, because it has no canvas to edit (#2628).
+	 *
+	 * @dataProvider default_page_orientations
+	 */
+	public function test_a_default_visual_model_shows_its_sample_preview( string $orientation, bool $portrait ): void {
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'get_post_meta' )->justReturn( '{"version":1,"page":{"orientation":"' . $orientation . '"},"elements":[]}' );
+
+		$method = new \ReflectionMethod( CertTemplateAdminScreen::class, 'render_default_page' );
+		$method->setAccessible( true );
+		$html = $this->capture( fn() => $method->invoke( null, 12 ) );
+
+		$this->assertStringContainsString( '<iframe class="ffc-ve-default-page', $html );
+		$this->assertStringContainsString( 'action=' . CertTemplateAdminScreen::PREVIEW_ACTION . '&post=12', $html );
+		$this->assertSame( $portrait, str_contains( $html, 'ffc-ve-default-page-portrait' ) );
+		$this->assertStringContainsString( 'title="The model with sample data"', $html );
+	}
+
+	/**
+	 * @return array<string, array{string, bool}>
+	 */
+	public static function default_page_orientations(): array {
+		return array(
+			'landscape' => array( 'landscape', false ),
+			'portrait'  => array( 'portrait', true ),
+		);
+	}
+
 	private function capture( callable $fn ): string {
 		ob_start();
 		$fn();
