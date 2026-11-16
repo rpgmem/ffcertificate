@@ -364,3 +364,20 @@
 .ffc-visual-editor .ffc-ve-keys dd {
 	margin: 0;
 }
+
+/* A shipped visual model, drawn read-only (#2628): the sample-data preview,
+   a page of 1123 × 794 inside the preview's 24px margins. */
+.ffc-ve-default-page {
+    display: block;
+    width: 100%;
+    max-width: 1171px;
+    aspect-ratio: 1171 / 842;
+    margin: 0 0 var(--ffc-spacing-sm);
+    border: 1px solid var(--ffc-border-light);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-gray-100);
+}
+
+.ffc-ve-default-page.ffc-ve-default-page-portrait {
+    aspect-ratio: 1171 / 1171;
+}
