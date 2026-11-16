@@ -520,7 +520,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	}
 
 	public function test_opening_the_panel_logs_the_form_and_the_masked_cpf(): void {
-		list( $_POST ) = $this->answered_post( array( 'cpf' => '529.982.247-25' ) );
+		list( $_POST ) = $this->answered_post( array( 'cpf' => \FreeFormCertificate\Tests\Support\Identifiers::CPF_A ) );
 
 		$entries = $this->panel_entries();
 
@@ -529,10 +529,10 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		$this->assertSame( 'public_panel_opened', $entries[0]['action'] );
 		$this->assertSame( self::FORM_ID, $entries[0]['context']['form_id'] );
 		$this->assertSame(
-			\FreeFormCertificate\Core\DocumentFormatter::mask( \FreeFormCertificate\Core\DocumentFormatter::MASK_CPF, '52998224725' ),
+			\FreeFormCertificate\Core\DocumentFormatter::mask( \FreeFormCertificate\Core\DocumentFormatter::MASK_CPF, \FreeFormCertificate\Tests\Support\Identifiers::CPF_A ),
 			$entries[0]['context']['operator_cpf_masked']
 		);
-		$this->assertStringNotContainsString( '52998224725', (string) json_encode( ActivityLogBuffer::entries() ), 'The CPF is never written in clear.' );
+		$this->assertStringNotContainsString( \FreeFormCertificate\Tests\Support\Identifiers::CPF_A, (string) json_encode( ActivityLogBuffer::entries() ), 'The CPF is never written in clear.' );
 	}
 
 	/**
