@@ -536,7 +536,7 @@
             signer_id_2: $('#ffc_signer_id_2').val() || '',
             signer_id_3: $('#ffc_signer_id_3').val() || '',
             // The event date as typed on the Time tab, saved or not (#2626).
-            post_id: $('#post_ID').val() || '',
+            post_id: $('input[name="post_ID"]').val() || '',
             event_date_start: $('#ffc_event_date_start').val() || '',
             event_date_end: $('#ffc_event_date_end').val() || ''
         })

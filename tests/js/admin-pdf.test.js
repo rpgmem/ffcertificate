@@ -532,7 +532,7 @@ describe('ffc-admin-pdf.js — preview button', () => {
 	});
 
 	it('sends the event date typed on the Time tab and the form id (#2626)', () => {
-		document.body.insertAdjacentHTML('beforeend', '<input type="hidden" id="post_ID" value="440"><input type="date" id="ffc_event_date_start" value="2026-03-10"><input type="date" id="ffc_event_date_end" value="2026-03-12">');
+		document.body.insertAdjacentHTML('beforeend', '<input type="hidden" id="post_ID" name="post_ID" value="440"><input type="date" id="ffc_event_date_start" value="2026-03-10"><input type="date" id="ffc_event_date_end" value="2026-03-12">');
 		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
 		document.querySelector('#ffc_pdf_layout').value = '<p>{{schedule:dates}}</p>';
 		window.$('#ffc_btn_preview').trigger('click');
