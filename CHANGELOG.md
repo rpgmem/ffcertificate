@@ -58,6 +58,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
 - **A `{{signer2:signature}}` or `{{signer3:signature}}` image address survives the layout allow-list and the visual conversion** (#2624): the allow-list held only `{{signer:`, and the conversion's markup escaped the braces, so both cut the token down to `signature}}`.
+- **The event date on the Time tab is saved and previewed** (#2626): it is kept when another geofence setting fails validation, an End the Start moved past is cleared instead of silently blocking the save, and the layout preview prints the date typed (else the saved one) instead of today.
 
 ### Fixed
 

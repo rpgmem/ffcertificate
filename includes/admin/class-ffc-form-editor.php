@@ -435,7 +435,11 @@ class FormEditor {
 			$positions[ $position ] = \FreeFormCertificate\Core\CertificateSigners::get( \FreeFormCertificate\Core\RequestInput::get_post_int( $field, 0 ) );
 		}
 		$samples = array_merge( $samples, \FreeFormCertificate\Core\CertificateSigners::preview_values( $positions ) );
-		$body    = \FreeFormCertificate\Generators\FormLayoutPreview::body(
+		list( $samples[ \FreeFormCertificate\Core\EventDate::DATA_START ], $samples[ \FreeFormCertificate\Core\EventDate::DATA_END ] ) = self::preview_event_date(
+			$samples[ \FreeFormCertificate\Core\EventDate::DATA_START ] ?? '',
+			$samples[ \FreeFormCertificate\Core\EventDate::DATA_END ] ?? ''
+		);
+		$body = \FreeFormCertificate\Generators\FormLayoutPreview::body(
 			$layout,
 			$title,
 			$image,
@@ -451,6 +455,35 @@ class FormEditor {
 				'height' => $size['height'],
 			)
 		);
+	}
+
+	/**
+	 * The event date the layout preview prints (#2626): what the Time tab
+	 * holds now, saved or not; else the form's saved date, when the user may
+	 * edit that form; else the sample's.
+	 *
+	 * @param string $sample_start The sample's start, `Y-m-d`.
+	 * @param string $sample_end   The sample's end, `Y-m-d` or ''.
+	 * @return array{0: string, 1: string}
+	 */
+	private static function preview_event_date( string $sample_start, string $sample_end ): array {
+		$typed = \FreeFormCertificate\Core\EventDate::range_from_config(
+			array(
+				'class_date_start' => \FreeFormCertificate\Core\RequestInput::get_post_string( 'event_date_start' ),
+				'class_date_end'   => \FreeFormCertificate\Core\RequestInput::get_post_string( 'event_date_end' ),
+			)
+		);
+		if ( '' !== $typed[0] ) {
+			return $typed;
+		}
+		$form_id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'post_id', 0 );
+		if ( $form_id > 0 && current_user_can( 'edit_post', $form_id ) ) {
+			$saved = \FreeFormCertificate\Core\EventDate::range( $form_id );
+			if ( '' !== $saved[0] ) {
+				return $saved;
+			}
+		}
+		return array( $sample_start, $sample_end );
 	}
 
 	/**

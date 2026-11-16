@@ -168,4 +168,16 @@ describe('ffc-form-editor-geofence-metabox — event date (#2579)', () => {
 		window.$('#ffc_event_date_start').val('').trigger('change');
 		expect(window.$('#ffc_event_date_end').attr('min')).toBeUndefined();
 	});
+
+	it('clears an End the Start moved past, so the save is never blocked by it (#2626)', async () => {
+		install('');
+		await loadOnReady();
+		window.$('#ffc_event_date_start').val('2026-03-02').trigger('change');
+		window.$('#ffc_event_date_end').val('2026-03-04');
+		window.$('#ffc_event_date_start').val('2026-03-04').trigger('change');
+		expect(window.$('#ffc_event_date_end').val()).toBe('2026-03-04', 'an End equal to the Start stays');
+		window.$('#ffc_event_date_start').val('2026-03-06').trigger('change');
+		expect(window.$('#ffc_event_date_end').val()).toBe('');
+		expect(document.getElementById('ffc_event_date_end').checkValidity()).toBe(true);
+	});
 });
