@@ -133,7 +133,7 @@ describe('FFCVisualMeasure.read', () => {
 	it('reads the held QR code, a signature and other images', () => {
 		const held = window.FFCVisualMeasure.holdQr('<p data-r="0,0,10,10">x</p>{{qr_code:size=50:margin=2}}');
 		const content = page(held.replace('<div ', '<div data-r="536,700,50,50" ')
-			+ '<img src="{{signer:signature}}" data-r="100,600,150,50" data-s=\'{"objectFit":"cover"}\'>'
+			+ '<img src="{{signer2:signature}}" data-r="100,600,150,50" data-s=\'{"objectFit":"cover"}\'>'
 			+ '<img src="https://example.test/logo.png" data-r="20,20,80,80">'
 			+ '<img src="https://example.test/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/sig.png?ver=1" data-r="20,200,80,40">');
 		window.ffcVisualMeasure.pluginUrl = 'https://example.test/wp-content/plugins/ffcertificate/';
@@ -145,7 +145,7 @@ describe('FFCVisualMeasure.read', () => {
 		// A plugin image is the plugin's file, not a Media Library copy.
 		expect(layout.elements[4]).toMatchObject({ asset: 'assets/img/certificate-defaults/sig.png', attachment_id: 0, token: '' });
 		expect(layout.elements[1]).toMatchObject({ x: 536, y: 700, w: 50, h: 50, margin: 2 });
-		expect(layout.elements[2]).toMatchObject({ token: '{{signer:signature}}', fit: 'cover' });
+		expect(layout.elements[2]).toMatchObject({ token: '{{signer2:signature}}', fit: 'cover' });
 		expect(layout.elements[3]).toMatchObject({ src: 'https://example.test/logo.png', fit: 'contain' });
 		expect(layout.elements[3].html).toContain('<img src="https://example.test/logo.png"');
 	});

@@ -83,8 +83,8 @@ class FormEditorLayoutMetabox {
 				</td>
 			</tr>
 			<tr>
-				<th><label for="ffc_signer_id"><?php esc_html_e( 'Signer', 'ffcertificate' ); ?></label></th>
-				<td><?php $this->render_signer_select( (int) $post->ID ); ?></td>
+				<th><?php esc_html_e( 'Signers', 'ffcertificate' ); ?></th>
+				<td><?php $this->render_signer_selects( (int) $post->ID ); ?></td>
 			</tr>
 			<tr class="ffc-layout-own"<?php echo $own_hidden ? ' hidden' : ''; ?>>
 				<th><label><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></label></th>
@@ -248,18 +248,57 @@ class FormEditorLayoutMetabox {
 	}
 
 	/**
-	 * The signer the form prints (#2582): the active signers, the form's own
-	 * one kept even when it was deactivated, and a signer whose account has no
-	 * RF any more shown disabled with the reason.
+	 * The signers the form prints (#2582, #2620), one select per position:
+	 * the active signers, the position's own one kept even when it was
+	 * deactivated, and a signer whose account has no RF any more shown
+	 * disabled with the reason.
 	 *
 	 * @param int $form_id Form post id.
 	 */
-	private function render_signer_select( int $form_id ): void {
-		$signers = \FreeFormCertificate\Core\CertificateSigners::all();
-		$current = \FreeFormCertificate\Core\CertificateSigners::for_form( $form_id );
-		$chosen  = null !== $current ? $current['id'] : 0;
+	private function render_signer_selects( int $form_id ): void {
+		$signers   = \FreeFormCertificate\Core\CertificateSigners::all();
+		$positions = \FreeFormCertificate\Core\CertificateSigners::positions_for_form( $form_id );
 		?>
-		<select name="ffc_signer_id" id="ffc_signer_id" aria-describedby="ffc_signer_id_help">
+		<div class="ffc-signer-selects">
+			<?php
+			// One field per position, named as the save handler reads them.
+			$fields = array(
+				1 => array( 'id' => 'ffc_signer_id' ),
+				2 => array( 'id' => 'ffc_signer_id_2' ),
+				3 => array( 'id' => 'ffc_signer_id_3' ),
+			);
+			foreach ( $positions as $position => $current ) {
+				$field = $fields[ $position ]['id'];
+				?>
+				<p>
+					<label for="<?php echo esc_attr( $field ); ?>">
+						<?php
+						/* translators: %d: signer position, 1 to 3 */
+						echo esc_html( sprintf( __( 'Signer %d', 'ffcertificate' ), $position ) );
+						?>
+					</label><br>
+					<?php $this->render_signer_select( $field, $signers, null !== $current ? $current['id'] : 0 ); ?>
+				</p>
+				<?php
+			}
+			?>
+		</div>
+		<p class="description" id="ffc_signer_id_help">
+			<?php esc_html_e( 'Signer 1 prints as {{signer1:name}}, {{signer1:rf}}, {{signer1:role}} and {{signer1:signature}}, and signers 2 and 3 as {{signer2:…}} and {{signer3:…}}. {{signer:…}} is the same as {{signer1:…}}. Name and RF come from the person\'s WordPress profile when the certificate is generated; the RF prints in full on the certificate only.', 'ffcertificate' ); ?>
+		</p>
+		<?php
+	}
+
+	/**
+	 * One signer select.
+	 *
+	 * @param string                                                                                                                                                                             $field   Field name and id.
+	 * @param array<int, array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}> $signers Every signer.
+	 * @param int                                                                                                                                                                                $chosen  The position's signer id, or 0.
+	 */
+	private function render_signer_select( string $field, array $signers, int $chosen ): void {
+		?>
+		<select name="<?php echo esc_attr( $field ); ?>" id="<?php echo esc_attr( $field ); ?>" class="ffc-signer-select" aria-describedby="ffc_signer_id_help">
 			<option value="0"><?php esc_html_e( '— No signer —', 'ffcertificate' ); ?></option>
 			<?php
 			foreach ( $signers as $signer ) {
@@ -286,9 +325,6 @@ class FormEditorLayoutMetabox {
 			}
 			?>
 		</select>
-		<p class="description" id="ffc_signer_id_help">
-			<?php esc_html_e( 'Prints as {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}}. Name and RF come from the person\'s WordPress profile when the certificate is generated; the RF prints in full on the certificate only.', 'ffcertificate' ); ?>
-		</p>
 		<?php
 	}
 

@@ -33,6 +33,29 @@
 	// A frame's gradient holds two to five colours, as the server keeps.
 	var GRADIENT_MIN = 2;
 	var GRADIENT_MAX = 5;
+	// The image source select → the signature token it prints (#2620). Signer
+	// 1 keeps the {{signer:signature}} alias the editor always wrote.
+	var SIGNATURE_SOURCES = {
+		signature: '{{signer:signature}}',
+		signature2: '{{signer2:signature}}',
+		signature3: '{{signer3:signature}}'
+	};
+
+	/**
+	 * The image source select value of an element's token.
+	 *
+	 * @param {string} token Signature token, or ''.
+	 * @return {string} 'media', 'signature', 'signature2' or 'signature3'.
+	 */
+	function sourceOfToken(token) {
+		if (!token) {
+			return 'media';
+		}
+		if (token === SIGNATURE_SOURCES.signature2) {
+			return 'signature2';
+		}
+		return token === SIGNATURE_SOURCES.signature3 ? 'signature3' : 'signature';
+	}
 	var MIN_WIDTH = 1280;
 	var PAGES = {
 		landscape: { width: 1123, height: 794 },
@@ -1645,7 +1668,7 @@
 			source.addEventListener('change', function () {
 				var el = self.selectedElement();
 				if (el && el.type === 'image') {
-					el.token = source.value === 'signature' ? '{{signer:signature}}' : '';
+					el.token = SIGNATURE_SOURCES[source.value] || '';
 					self.changed();
 				}
 			});
@@ -1822,7 +1845,7 @@
 		var name = panel.querySelector('[data-ffc-ve-image-name]');
 		if (el.type === 'image') {
 			if (source) {
-				source.value = el.token ? 'signature' : 'media';
+				source.value = sourceOfToken(el.token);
 			}
 			if (media) {
 				media.hidden = !!el.token;
