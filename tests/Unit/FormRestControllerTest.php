@@ -608,7 +608,7 @@ class FormRestControllerTest extends TestCase {
 				'type'             => 'email',
 				'required'         => true,
 				'options'          => array(),
-				'internal_secret'  => 'should-not-leak',
+				'internal_secret'  => 'fake-should-not-leak',
 			),
 			array(
 				'name'     => 'city',
@@ -1108,7 +1108,7 @@ class FormRestControllerTest extends TestCase {
 		$this->serve_form(
 			array(
 				'restrictions'    => array( 'password' => '1' ),
-				'validation_code' => 'open-sesame',
+				'validation_code' => \FreeFormCertificate\Tests\Support\FakeCredentials::FORM_PASSWORD,
 			),
 			$this->plain_fields()
 		);
@@ -1120,7 +1120,7 @@ class FormRestControllerTest extends TestCase {
 				array(
 					'email'            => 'jane@example.com',
 					'ffc_lgpd_consent' => '1',
-					'ffc_password'     => 'guess',
+					'ffc_password'     => \FreeFormCertificate\Tests\Support\FakeCredentials::PASSWORD_WRONG,
 				)
 			)
 		);
@@ -1135,7 +1135,7 @@ class FormRestControllerTest extends TestCase {
 		$this->serve_form(
 			array(
 				'restrictions'    => array( 'password' => '1' ),
-				'validation_code' => 'open-sesame',
+				'validation_code' => \FreeFormCertificate\Tests\Support\FakeCredentials::FORM_PASSWORD,
 			),
 			$this->plain_fields()
 		);
@@ -1148,7 +1148,7 @@ class FormRestControllerTest extends TestCase {
 				array(
 					'email'            => 'jane@example.com',
 					'ffc_lgpd_consent' => '1',
-					'ffc_password'     => 'open-sesame',
+					'ffc_password'     => \FreeFormCertificate\Tests\Support\FakeCredentials::FORM_PASSWORD,
 				)
 			)
 		);

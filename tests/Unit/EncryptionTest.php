@@ -620,7 +620,7 @@ class EncryptionTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_key_health_report_does_not_credit_a_short_key_the_cipher_ignores(): void {
-		define( 'FFC_ENCRYPTION_KEY', 'short' );
+		define( 'FFC_ENCRYPTION_KEY', 'fake-short' );
 
 		$report = Encryption::key_health_report();
 

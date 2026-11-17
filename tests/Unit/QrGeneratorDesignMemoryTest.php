@@ -79,7 +79,7 @@ class QrGeneratorDesignMemoryTest extends TestCase {
 				'qr_design_logo_id'    => '-3',
 				'margin'               => '99',
 				'error_level'          => 'q',
-				'wifi_password'        => 'secret',
+				'wifi_password'        => \FreeFormCertificate\Tests\Support\FakeCredentials::WIFI_PASSWORD,
 			)
 		);
 

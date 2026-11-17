@@ -78,16 +78,16 @@ if ( ! defined( 'OBJECT_K' ) ) {
 
 // WordPress cryptographic constants needed for Encryption::is_configured()
 if ( ! defined( 'SECURE_AUTH_KEY' ) ) {
-	define( 'SECURE_AUTH_KEY', 'test-secure-auth-key-for-unit-tests-only-32ch' );
+	define( 'SECURE_AUTH_KEY', \FreeFormCertificate\Tests\Support\FakeCredentials::SECURE_AUTH_KEY );
 }
 if ( ! defined( 'LOGGED_IN_KEY' ) ) {
-	define( 'LOGGED_IN_KEY', 'test-logged-in-key-for-unit-tests-only-32char' );
+	define( 'LOGGED_IN_KEY', \FreeFormCertificate\Tests\Support\FakeCredentials::LOGGED_IN_KEY );
 }
 if ( ! defined( 'AUTH_KEY' ) ) {
-	define( 'AUTH_KEY', 'test-auth-key-for-unit-tests' );
+	define( 'AUTH_KEY', \FreeFormCertificate\Tests\Support\FakeCredentials::AUTH_KEY );
 }
 if ( ! defined( 'NONCE_KEY' ) ) {
-	define( 'NONCE_KEY', 'test-nonce-key-for-unit-tests' );
+	define( 'NONCE_KEY', \FreeFormCertificate\Tests\Support\FakeCredentials::NONCE_KEY );
 }
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );

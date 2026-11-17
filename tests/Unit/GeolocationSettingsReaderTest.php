@@ -142,8 +142,8 @@ class GeolocationSettingsReaderTest extends TestCase {
 		$this->stub_option( array() );
 		$this->assertSame( '', GeolocationSettingsReader::ipinfo_api_key() );
 
-		$this->stub_option( array( 'ipinfo_api_key' => 'abc123' ) );
-		$this->assertSame( 'abc123', GeolocationSettingsReader::ipinfo_api_key() );
+		$this->stub_option( array( 'ipinfo_api_key' => \FreeFormCertificate\Tests\Support\FakeCredentials::API_KEY ) );
+		$this->assertSame( \FreeFormCertificate\Tests\Support\FakeCredentials::API_KEY, GeolocationSettingsReader::ipinfo_api_key() );
 	}
 
 	public function test_api_fallback_default_and_value(): void {

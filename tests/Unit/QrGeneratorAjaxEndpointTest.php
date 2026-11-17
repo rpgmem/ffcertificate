@@ -155,7 +155,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 			'logo_id'     => '0',
 			'margin'      => '3',
 			'error_level' => 'H',
-			'fields'      => array( 'password' => 'secret' ),
+			'fields'      => array( 'password' => \FreeFormCertificate\Tests\Support\FakeCredentials::WIFI_PASSWORD ),
 		);
 
 		list( $kind, $data ) = $this->run_handler( 'handle_remember' );
@@ -167,7 +167,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertTrue( $stored['qr_design_gradient'] );
 		$this->assertSame( 3, $stored['margin'] );
 		$this->assertSame( 'H', $stored['error_level'] );
-		$this->assertStringNotContainsString( 'secret', (string) json_encode( $stored ), 'Content never reaches the database.' );
+		$this->assertStringNotContainsString( \FreeFormCertificate\Tests\Support\FakeCredentials::WIFI_PASSWORD, (string) json_encode( $stored ), 'Content never reaches the database.' );
 		$this->assertSame( $stored, $data['state'] );
 	}
 
@@ -201,7 +201,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 			'type'        => 'wifi',
 			'fields'      => array(
 				'ssid'     => 'Escola',
-				'password' => "p'a<s>s",
+				'password' => "fake-p'a<s>s",
 				'security' => 'WPA',
 			),
 			'design'      => array( 'dots' => 'dots' ),
@@ -212,7 +212,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 
 		$this->assertSame( 'success', $kind );
 		// The password is encoded as typed: no sanitiser mangles it.
-		$this->assertSame( "WIFI:T:WPA;S:Escola;P:p'a<s>s;;", $data['payload'] );
+		$this->assertSame( "WIFI:T:WPA;S:Escola;P:fake-p'a<s>s;;", $data['payload'] );
 		$this->assertStringContainsString( '<circle', $data['svg'] );
 		$this->assertSame( 1000, $data['width'] );
 		$this->assertSame( 'Q', $data['usage']['level'] );

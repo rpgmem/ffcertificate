@@ -445,7 +445,7 @@ flush_rewrite_rules();
 
 // One participant signs in for the user-dashboard shot.
 $participant = get_user_by( 'email', array_key_first( $user_of ) );
-wp_set_password( 'demo-participant', $participant->ID );
+wp_set_password( 'fake-demo-participant', $participant->ID );
 
 // What the capture script needs to find its screens.
 $token       = $wpdb->get_var( $wpdb->prepare( 'SELECT magic_token FROM %i WHERE user_id = %d ORDER BY id LIMIT 1', $table, $participant->ID ) );
@@ -453,7 +453,7 @@ $manifest    = array(
 	'form_id'          => $first_form,
 	'calendar_post_id' => (int) $cal_post,
 	'rule_id'          => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MIN(id) FROM %i', $wpdb->prefix . 'ffc_date_message_rules' ) ),
-	'participant'      => array( 'login' => $participant->user_login, 'password' => 'demo-participant' ),
+	'participant'      => array( 'login' => $participant->user_login, 'password' => 'fake-demo-participant' ),
 	'certificate_url'  => add_query_arg( 'token', $token, get_permalink( (int) get_option( 'ffc_verification_page_id' ) ) ),
 	'dashboard_url'    => get_permalink( (int) get_option( 'ffc_dashboard_page_id' ) ),
 	'pages'            => $page_urls,

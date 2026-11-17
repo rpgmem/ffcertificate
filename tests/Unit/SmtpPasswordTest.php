@@ -52,7 +52,7 @@ final class SmtpPasswordTest extends TestCase {
 	}
 
 	public function test_a_password_saved_before_encryption_is_read_as_it_is(): void {
-		$this->assertSame( 'legacy-plain', SmtpPassword::read( array( 'smtp_pass' => 'legacy-plain' ) ) );
+		$this->assertSame( 'fake-legacy-plain', SmtpPassword::read( array( 'smtp_pass' => 'fake-legacy-plain' ) ) );
 	}
 
 	public function test_a_legacy_password_that_looks_like_base64_is_not_taken_for_a_ciphertext(): void {
@@ -65,7 +65,7 @@ final class SmtpPasswordTest extends TestCase {
 
 	public function test_a_plaintext_password_is_encrypted_once_on_upgrade(): void {
 		$written = array();
-		Functions\when( 'get_option' )->justReturn( array( 'smtp_pass' => 'legacy-plain', 'smtp_host' => 'h' ) );
+		Functions\when( 'get_option' )->justReturn( array( 'smtp_pass' => 'fake-legacy-plain', 'smtp_host' => 'h' ) );
 		Functions\when( 'update_option' )->alias(
 			static function ( $key, $value ) use ( &$written ) {
 				$written[ $key ] = $value;
@@ -75,7 +75,7 @@ final class SmtpPasswordTest extends TestCase {
 
 		$this->assertTrue( SmtpPassword::encrypt_stored() );
 		$this->assertStringStartsWith( Encryption::V2_PREFIX, $written['ffc_settings']['smtp_pass'] );
-		$this->assertSame( 'legacy-plain', SmtpPassword::read( $written['ffc_settings'] ) );
+		$this->assertSame( 'fake-legacy-plain', SmtpPassword::read( $written['ffc_settings'] ) );
 		$this->assertSame( 'h', $written['ffc_settings']['smtp_host'] );
 	}
 
@@ -93,7 +93,7 @@ final class SmtpPasswordTest extends TestCase {
 		$this->assertSame( SmtpPassword::STATE_NONE, SmtpPassword::state( array() ) );
 		$this->assertSame( SmtpPassword::STATE_NONE, SmtpPassword::state( array( 'smtp_pass' => '' ) ) );
 		$this->assertSame( SmtpPassword::STATE_SAVED, SmtpPassword::state( array( 'smtp_pass' => SmtpPassword::for_storage( 'x1' ) ) ) );
-		$this->assertSame( SmtpPassword::STATE_SAVED, SmtpPassword::state( array( 'smtp_pass' => 'legacy-plain' ) ) );
+		$this->assertSame( SmtpPassword::STATE_SAVED, SmtpPassword::state( array( 'smtp_pass' => 'fake-legacy-plain' ) ) );
 	}
 
 	public function test_a_ciphertext_the_key_no_longer_opens_is_unreadable_not_saved(): void {

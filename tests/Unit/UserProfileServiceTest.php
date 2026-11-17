@@ -601,7 +601,7 @@ class UserProfileServiceTest extends TestCase {
 	public function test_write_with_extra_descriptor_encrypts_sensitive_dynamic_field(): void {
 		UserProfileService::write(
 			42,
-			array( 'custom_secret' => 'secret' ),
+			array( 'custom_secret' => \FreeFormCertificate\Tests\Support\FakeCredentials::SECRET ),
 			array(
 				'custom_secret' => array(
 					'storage'   => \FreeFormCertificate\UserDashboard\UserProfileFieldMap::STORAGE_USERMETA,
@@ -612,7 +612,7 @@ class UserProfileServiceTest extends TestCase {
 			)
 		);
 
-		$this->assertStoredCiphertextOf( 'secret', 'ffc_user_custom_secret' );
+		$this->assertStoredCiphertextOf( \FreeFormCertificate\Tests\Support\FakeCredentials::SECRET, 'ffc_user_custom_secret' );
 		$this->assertArrayNotHasKey( 'ffc_user_custom_secret_hash', $this->usermeta_store[42] );
 		// hashable=false: no hash reaches the identity index either.
 		$this->assertNull( $this->profile_row );
