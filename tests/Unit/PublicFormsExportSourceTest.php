@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -150,7 +151,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
 		// Also what Debug::is_enabled() would read; every option is unset here.
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
-		Functions\when( 'wp_salt' )->alias( static fn( $scheme = 'auth' ) => 'test-salt-' . $scheme );
+		Functions\when( 'wp_salt' )->alias( static fn( $scheme = 'auth' ) => FakeCredentials::WP_SALT . '-' . $scheme );
 		Functions\when( 'wp_rand' )->alias( static fn( $min, $max ) => random_int( (int) $min, (int) $max ) );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( (string) $format, (int) $ts ) );

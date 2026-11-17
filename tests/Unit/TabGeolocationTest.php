@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
@@ -283,7 +284,7 @@ class TabGeolocationTest extends TestCase {
 		$_POST['ip_api_enabled']      = '1';
 		$_POST['ip_api_service']      = 'ipinfo';
 		$_POST['ip_api_cascade']      = '1';
-		$_POST['ipinfo_api_key']      = 'test_key_123';
+		$_POST['ipinfo_api_key']      = FakeCredentials::API_KEY;
 		$_POST['ip_cache_enabled']    = '1';
 		$_POST['ip_cache_ttl']        = '900';
 		$_POST['gps_cache_ttl']       = '300';
@@ -310,7 +311,7 @@ class TabGeolocationTest extends TestCase {
 		$this->assertTrue( $captured_settings['ip_api_enabled'] );
 		$this->assertSame( 'ipinfo', $captured_settings['ip_api_service'] );
 		$this->assertTrue( $captured_settings['ip_api_cascade'] );
-		$this->assertSame( 'test_key_123', $captured_settings['ipinfo_api_key'] );
+		$this->assertSame( FakeCredentials::API_KEY, $captured_settings['ipinfo_api_key'] );
 		$this->assertTrue( $captured_settings['ip_cache_enabled'] );
 		$this->assertSame( 900, $captured_settings['ip_cache_ttl'] );
 		$this->assertSame( 300, $captured_settings['gps_cache_ttl'] );

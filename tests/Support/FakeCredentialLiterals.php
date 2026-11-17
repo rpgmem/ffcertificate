@@ -15,7 +15,10 @@ namespace FreeFormCertificate\Tests\Support;
  * A credential literal is a string given to a credential-like key: an array or
  * object key such as `password` or `smtp_pass`, a `define()` of a constant such
  * as `AUTH_KEY`, a YAML key such as `MARIADB_ROOT_PASSWORD`, or a command-line
- * flag such as `--admin_password=`. What it reads is the literal only: a value
+ * flag such as `--admin_password=`, an assignment to such a key
+ * (`$_POST['ffc_password'] = …`), a class constant named like one, a stub of a
+ * function that hands one out (`wp_salt`, `wp_generate_password`), and a
+ * password field filled by a JS test. What it reads is the literal only: a value
  * built from a variable, a constant or a secret is not a literal, and is not
  * judged here.
  */
@@ -152,6 +155,52 @@ final class FakeCredentialLiterals {
 					'value' => self::unquote( $tokens[ $i + 2 ][1] ),
 				);
 			}
+			// $_POST['key'] = 'value', $config['smtp_pass'] = 'value'.
+			if ( T_CONSTANT_ENCAPSED_STRING === $token[0]
+				&& isset( $tokens[ $i + 3 ] )
+				&& ']' === $tokens[ $i + 1 ] && '=' === $tokens[ $i + 2 ]
+				&& is_array( $tokens[ $i + 3 ] ) && T_CONSTANT_ENCAPSED_STRING === $tokens[ $i + 3 ][0]
+				&& 1 === preg_match( self::KEY, self::unquote( $token[1] ) )
+			) {
+				$out[] = array(
+					'line'  => (int) $tokens[ $i + 3 ][2],
+					'key'   => self::unquote( $token[1] ),
+					'value' => self::unquote( $tokens[ $i + 3 ][1] ),
+				);
+			}
+			// const API_KEY = 'value'.
+			if ( T_CONST === $token[0]
+				&& isset( $tokens[ $i + 3 ] )
+				&& is_array( $tokens[ $i + 1 ] ) && T_STRING === $tokens[ $i + 1 ][0]
+				&& '=' === $tokens[ $i + 2 ]
+				&& is_array( $tokens[ $i + 3 ] ) && T_CONSTANT_ENCAPSED_STRING === $tokens[ $i + 3 ][0]
+				&& 1 === preg_match( self::KEY, $tokens[ $i + 1 ][1] )
+			) {
+				$out[] = array(
+					'line'  => (int) $tokens[ $i + 3 ][2],
+					'key'   => $tokens[ $i + 1 ][1],
+					'value' => self::unquote( $tokens[ $i + 3 ][1] ),
+				);
+			}
+			// Functions\when( 'wp_salt' )->justReturn( 'value' ): a stub of a
+			// function that hands out a credential returns one.
+			if ( in_array( $token[0], array( T_STRING, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED ), true )
+				&& in_array( strtolower( substr( (string) strrchr( '\\' . $token[1], '\\' ), 1 ) ), array( 'when', 'expect' ), true )
+				&& isset( $tokens[ $i + 7 ] ) && '(' === $tokens[ $i + 1 ]
+				&& is_array( $tokens[ $i + 2 ] ) && T_CONSTANT_ENCAPSED_STRING === $tokens[ $i + 2 ][0]
+				&& ')' === $tokens[ $i + 3 ]
+				&& is_array( $tokens[ $i + 4 ] ) && T_OBJECT_OPERATOR === $tokens[ $i + 4 ][0]
+				&& is_array( $tokens[ $i + 5 ] ) && in_array( strtolower( $tokens[ $i + 5 ][1] ), array( 'justreturn', 'andreturn' ), true )
+				&& '(' === $tokens[ $i + 6 ]
+				&& is_array( $tokens[ $i + 7 ] ) && T_CONSTANT_ENCAPSED_STRING === $tokens[ $i + 7 ][0]
+				&& 1 === preg_match( self::KEY, self::unquote( $tokens[ $i + 2 ][1] ) )
+			) {
+				$out[] = array(
+					'line'  => (int) $tokens[ $i + 7 ][2],
+					'key'   => self::unquote( $tokens[ $i + 2 ][1] ),
+					'value' => self::unquote( $tokens[ $i + 7 ][1] ),
+				);
+			}
 			// define( 'NAME', 'value' ).
 			if ( T_STRING === $token[0] && 'define' === strtolower( $token[1] )
 				&& isset( $tokens[ $i + 4 ] ) && '(' === $tokens[ $i + 1 ]
@@ -193,6 +242,10 @@ final class FakeCredentialLiterals {
 			'/define\(\s*["\']([A-Z_]+)["\']\s*,\s*["\']([^"\']*)["\']/',
 			// --flag=value on a command line.
 			'/--([a-z_-]+)=(?:"([^"\n]*)"|\'([^\'\n]*)\'|([^\s\\\\]+))/i',
+			// getElementById( 'smtp_pass' ).value = 'value', querySelector( '#x' ).value = 'value'.
+			'/(?:getElementById|querySelector)\(\s*["\']#?([\w-]+)["\']\s*\)\.value\s*=\s*(?:"([^"\n]*)"|\'([^\'\n]*)\')/',
+			// $( '#smtp_pass' ).val( 'value' ).
+			'/\$\(\s*["\']#([\w-]+)["\']\s*\)\.val\(\s*(?:"([^"\n]*)"|\'([^\'\n]*)\')/',
 		);
 		foreach ( preg_split( '/\R/', $source ) as $index => $line ) {
 			$trimmed = ltrim( $line );

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -198,10 +199,10 @@ class FormProcessorTest extends TestCase {
 	}
 
 	public function test_restrictions_password_correct(): void {
-		$_POST['ffc_password'] = 'secret123';
+		$_POST['ffc_password'] = FakeCredentials::FORM_PASSWORD;
 		$config = array(
 			'restrictions' => array( 'password' => '1' ),
-			'validation_code' => 'secret123',
+			'validation_code' => FakeCredentials::FORM_PASSWORD,
 		);
 
 		$result = AccessRestrictionChecker::check( $config, '', '', 1 );
@@ -211,10 +212,10 @@ class FormProcessorTest extends TestCase {
 	}
 
 	public function test_restrictions_password_incorrect(): void {
-		$_POST['ffc_password'] = 'wrong';
+		$_POST['ffc_password'] = FakeCredentials::FORM_PASSWORD_WRONG;
 		$config = array(
 			'restrictions' => array( 'password' => '1' ),
-			'validation_code' => 'secret123',
+			'validation_code' => FakeCredentials::FORM_PASSWORD,
 		);
 
 		$result = AccessRestrictionChecker::check( $config, '', '', 1 );
@@ -227,7 +228,7 @@ class FormProcessorTest extends TestCase {
 	public function test_restrictions_password_empty(): void {
 		$config = array(
 			'restrictions' => array( 'password' => '1' ),
-			'validation_code' => 'secret123',
+			'validation_code' => FakeCredentials::FORM_PASSWORD,
 		);
 		// No $_POST['ffc_password']
 

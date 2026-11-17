@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Migrations\Strategies\RecruitmentPcdPerNoticeMigrationStrategy;
@@ -64,7 +65,7 @@ class RecruitmentPcdPerNoticeMigrationStrategyTest extends TestCase {
 		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'test-auth-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'get_option' )->alias( fn( $key, $default = false ) => $this->options[ $key ] ?? $default );
 		Functions\when( 'update_option' )->alias(
 			function ( $key, $value ) {

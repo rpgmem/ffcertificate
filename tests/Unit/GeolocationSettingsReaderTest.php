@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -142,8 +143,8 @@ class GeolocationSettingsReaderTest extends TestCase {
 		$this->stub_option( array() );
 		$this->assertSame( '', GeolocationSettingsReader::ipinfo_api_key() );
 
-		$this->stub_option( array( 'ipinfo_api_key' => \FreeFormCertificate\Tests\Support\FakeCredentials::API_KEY ) );
-		$this->assertSame( \FreeFormCertificate\Tests\Support\FakeCredentials::API_KEY, GeolocationSettingsReader::ipinfo_api_key() );
+		$this->stub_option( array( 'ipinfo_api_key' => FakeCredentials::API_KEY ) );
+		$this->assertSame( FakeCredentials::API_KEY, GeolocationSettingsReader::ipinfo_api_key() );
 	}
 
 	public function test_api_fallback_default_and_value(): void {

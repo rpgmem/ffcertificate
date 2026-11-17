@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -1108,7 +1109,7 @@ class FormRestControllerTest extends TestCase {
 		$this->serve_form(
 			array(
 				'restrictions'    => array( 'password' => '1' ),
-				'validation_code' => \FreeFormCertificate\Tests\Support\FakeCredentials::FORM_PASSWORD,
+				'validation_code' => FakeCredentials::FORM_PASSWORD,
 			),
 			$this->plain_fields()
 		);
@@ -1120,7 +1121,7 @@ class FormRestControllerTest extends TestCase {
 				array(
 					'email'            => 'jane@example.com',
 					'ffc_lgpd_consent' => '1',
-					'ffc_password'     => \FreeFormCertificate\Tests\Support\FakeCredentials::PASSWORD_WRONG,
+					'ffc_password'     => FakeCredentials::PASSWORD_WRONG,
 				)
 			)
 		);
@@ -1135,7 +1136,7 @@ class FormRestControllerTest extends TestCase {
 		$this->serve_form(
 			array(
 				'restrictions'    => array( 'password' => '1' ),
-				'validation_code' => \FreeFormCertificate\Tests\Support\FakeCredentials::FORM_PASSWORD,
+				'validation_code' => FakeCredentials::FORM_PASSWORD,
 			),
 			$this->plain_fields()
 		);
@@ -1148,7 +1149,7 @@ class FormRestControllerTest extends TestCase {
 				array(
 					'email'            => 'jane@example.com',
 					'ffc_lgpd_consent' => '1',
-					'ffc_password'     => \FreeFormCertificate\Tests\Support\FakeCredentials::FORM_PASSWORD,
+					'ffc_password'     => FakeCredentials::FORM_PASSWORD,
 				)
 			)
 		);

@@ -1,6 +1,7 @@
 // The public CSV screen takes the access hash out of the address bar once
 // the page has read it (#2341), and keeps every other part of the URL.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { FakeCredentials } from './fake-credentials.js';
 import { loadScript } from './helpers.js';
 
 beforeEach(() => {
@@ -23,7 +24,7 @@ async function load() {
 
 describe('access hash in the address bar', () => {
 	it('removes the hash and keeps the form id, other parameters and the fragment', async () => {
-		window.history.replaceState(null, '', '/operator/?form_id=42&hash=secret123&lang=pt#top');
+		window.history.replaceState(null, '', `/operator/?form_id=42&hash=${FakeCredentials.CSV_ACCESS_HASH}&lang=pt#top`);
 		await load();
 		expect(window.location.pathname + window.location.search + window.location.hash).toBe('/operator/?form_id=42&lang=pt#top');
 		expect(window.$('input[name="hash"]').val()).toBe('abc');

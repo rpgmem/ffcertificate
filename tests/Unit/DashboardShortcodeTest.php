@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -742,7 +743,7 @@ class DashboardShortcodeTest extends TestCase {
 		Functions\when( 'get_bloginfo' )->justReturn( 'SME' );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias( static fn( $f, $ts ) => gmdate( (string) $f, (int) $ts ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.com' . $p );
 		Functions\when( 'add_query_arg' )->alias(
 			static fn( $key, $value = null, $url = '' ) => is_array( $key ) ? $value . '?' . http_build_query( $key ) : $url . '?' . $key . '=' . $value

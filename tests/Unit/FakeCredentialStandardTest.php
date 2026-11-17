@@ -97,6 +97,12 @@ class FakeCredentialStandardTest extends TestCase {
 			'yaml key'           => array( "        env:\n          MARIADB_ROOT_PASSWORD: rootpw1\n", 'yml', 'rootpw1' ),
 			'command-line flag'  => array( "wp config create --dbpass=rootpw1 --dbhost=x\n", 'yml', 'rootpw1' ),
 			'api key'            => array( "<?php \$a = array( 'ipinfo_api_key' => 'abc123def' );", 'php', 'abc123def' ),
+			'post assignment'    => array( "<?php \$_POST['ffc_password'] = 'secret123';", 'php', 'secret123' ),
+			'class constant'     => array( "<?php class A { private const SMTP_PASS = 'hunter22'; }", 'php', 'hunter22' ),
+			'salt stub'          => array( "<?php Functions\\when( 'wp_salt' )->justReturn( 'test-salt' );", 'php', 'test-salt' ),
+			'generator stub'     => array( "<?php Functions\\expect( 'wp_generate_password' )->andReturn( 'genpass1' );", 'php', 'genpass1' ),
+			'js field value'     => array( "document.getElementById('smtp_pass').value = 'half-typed';", 'js', 'half-typed' ),
+			'jquery field value' => array( "window.$('#ffc-new-password').val('newpass123');", 'js', 'newpass123' ),
 		);
 	}
 
@@ -127,6 +133,9 @@ class FakeCredentialStandardTest extends TestCase {
 			'secret reference'    => array( "        env:\n          DB_PASSWORD: \${{ secrets.DB_PASSWORD }}\n", 'yml' ),
 			'comment'             => array( "<?php // 'smtp_pass' => 'hunter22'\n", 'php' ),
 			'fake value'          => array( "<?php \$a = array( 'smtp_pass' => 'fake-anything' );", 'php' ),
+			'other stub'          => array( "<?php Functions\\when( 'get_option' )->justReturn( 'abcdefgh' );", 'php' ),
+			'other field value'   => array( "window.$('#ffc-name').val('Maria Silva');", 'js' ),
+			'named stub'          => array( "<?php Functions\\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );", 'php' ),
 		);
 	}
 

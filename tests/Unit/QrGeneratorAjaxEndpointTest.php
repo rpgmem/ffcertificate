@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -155,7 +156,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 			'logo_id'     => '0',
 			'margin'      => '3',
 			'error_level' => 'H',
-			'fields'      => array( 'password' => \FreeFormCertificate\Tests\Support\FakeCredentials::WIFI_PASSWORD ),
+			'fields'      => array( 'password' => FakeCredentials::WIFI_PASSWORD ),
 		);
 
 		list( $kind, $data ) = $this->run_handler( 'handle_remember' );
@@ -167,7 +168,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertTrue( $stored['qr_design_gradient'] );
 		$this->assertSame( 3, $stored['margin'] );
 		$this->assertSame( 'H', $stored['error_level'] );
-		$this->assertStringNotContainsString( \FreeFormCertificate\Tests\Support\FakeCredentials::WIFI_PASSWORD, (string) json_encode( $stored ), 'Content never reaches the database.' );
+		$this->assertStringNotContainsString( FakeCredentials::WIFI_PASSWORD, (string) json_encode( $stored ), 'Content never reaches the database.' );
 		$this->assertSame( $stored, $data['state'] );
 	}
 

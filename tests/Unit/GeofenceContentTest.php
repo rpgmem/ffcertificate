@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -91,7 +92,7 @@ class GeofenceContentTest extends TestCase {
 				return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
 			}
 		);
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_parse_args' )->alias( 'array_merge' );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'current_user_can' )->justReturn( false );

@@ -117,6 +117,41 @@ final class FakeCredentials {
 	public const NONCE_KEY = 'fake-nonce-key-for-unit-tests';
 
 	/**
+	 * A password `wp_generate_password()` returns for a new account.
+	 */
+	public const GENERATED_PASSWORD = 'fake-generated-password';
+
+	/**
+	 * A form's access password after a change.
+	 */
+	public const FORM_PASSWORD_NEW = 'fake-form-password-new';
+
+	/**
+	 * A password that does not match the form's.
+	 */
+	public const FORM_PASSWORD_WRONG = 'fake-form-password-wrong';
+
+	/**
+	 * A form's public CSV access hash.
+	 */
+	public const CSV_ACCESS_HASH = 'fake-csv-access-hash';
+
+	/**
+	 * A CSV access hash that is not the form's.
+	 */
+	public const CSV_ACCESS_HASH_WRONG = 'fake-csv-access-hash-wrong';
+
+	/**
+	 * What a `wp_salt()` stub returns.
+	 */
+	public const WP_SALT = 'fake-wp-salt';
+
+	/**
+	 * What a `wp_salt()` stub returns after the site's salts change.
+	 */
+	public const WP_SALT_ROTATED = 'fake-wp-salt-rotated';
+
+	/**
 	 * Every value, by name.
 	 *
 	 * @return array<string, string>

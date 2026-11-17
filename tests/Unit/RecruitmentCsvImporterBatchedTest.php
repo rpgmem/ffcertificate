@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -113,7 +114,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		Functions\when( 'do_action' )->justReturn( null );
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-uuid-1234' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 
 		// UserCreator's account path, down to the core call that fails: the
 		// candidate is persisted and no account is linked to it.
@@ -121,7 +122,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		Functions\when( 'username_exists' )->justReturn( false );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'sanitize_user' )->returnArg();
-		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'wp_next_scheduled' )->justReturn( false );
 		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 		$created = &$this->created_users;

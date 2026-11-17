@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
@@ -172,7 +173,7 @@ class DateMessagesRunnerTest extends TestCase {
 		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.org' . $p );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
 		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
 		Functions\when( 'get_userdata' )->alias(
 			static fn( $id ) => (object) array(

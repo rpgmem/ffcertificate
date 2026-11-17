@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Security\Geofence;
@@ -128,7 +129,7 @@ class GeofenceCheckSubmissionTest extends TestCase {
 				'longitude' => $point[1],
 			)
 		);
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 	}
 
 	public function test_a_form_without_a_geofence_is_not_checked(): void {

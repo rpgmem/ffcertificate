@@ -10,6 +10,7 @@
 //
 // Sprint I of #173.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { FakeCredentials } from './fake-credentials.js';
 import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
 
 // FFC.confirmDialog() replaced window.confirm() (#2535): answer it, and read
@@ -302,7 +303,7 @@ describe('profile.changePassword', () => {
 
 	it('rejects when new + confirm mismatch, under the confirmation', () => {
 		const spy = mockAjax(() => ({}));
-		setPasswords('old', 'abcdefgh', 'abcdefgi');
+		setPasswords('old', FakeCredentials.PASSWORD_NEW, FakeCredentials.PASSWORD_WRONG);
 		window.$('.ffc-password-save-btn').trigger('click');
 		expect(spy).not.toHaveBeenCalled();
 		expect(messageOf('ffc-confirm-password').textContent).toBe('Passwords do not match');
@@ -327,7 +328,7 @@ describe('profile.changePassword', () => {
 
 	it('on success: clears the password fields and shows the response message', async () => {
 		const spy = mockAjaxSuccess({ message: 'Done!' });
-		setPasswords('oldpass', 'newpass123', 'newpass123');
+		setPasswords(FakeCredentials.PASSWORD, FakeCredentials.PASSWORD_NEW, FakeCredentials.PASSWORD_NEW);
 		window.$('.ffc-password-save-btn').trigger('click');
 		await flush();
 
@@ -336,8 +337,8 @@ describe('profile.changePassword', () => {
 		expect(call.method).toBe('POST');
 		expect(call.url).toContain('user/change-password');
 		const payload = JSON.parse(call.data);
-		expect(payload.current_password).toBe('oldpass');
-		expect(payload.new_password).toBe('newpass123');
+		expect(payload.current_password).toBe(FakeCredentials.PASSWORD);
+		expect(payload.new_password).toBe(FakeCredentials.PASSWORD_NEW);
 
 		expect(document.querySelector('.ffc-password-status').textContent).toBe('Done!');
 		expect(document.getElementById('ffc-current-password').value).toBe('');
@@ -347,7 +348,7 @@ describe('profile.changePassword', () => {
 
 	it('on error: surfaces the server message', async () => {
 		mockAjaxError({ responseJSON: { message: 'Wrong current password' } });
-		setPasswords('badpass', 'newpass123', 'newpass123');
+		setPasswords(FakeCredentials.PASSWORD_WRONG, FakeCredentials.PASSWORD_NEW, FakeCredentials.PASSWORD_NEW);
 		window.$('.ffc-password-save-btn').trigger('click');
 		await flush();
 

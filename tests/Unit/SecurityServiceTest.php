@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -42,7 +43,7 @@ class SecurityServiceTest extends TestCase {
 		// Deterministic signing key. Challenges are HMAC'd with a key derived
 		// from wp_salt() since 6.23.0, so this is what makes them reproducible.
 		Functions\when('wp_salt')->alias(function (string $scheme = 'auth'): string {
-			return 'test-salt-' . $scheme;
+			return FakeCredentials::WP_SALT . '-' . $scheme;
 		});
 
 		// In-memory redemption ledger. Challenges are single-use, so the
@@ -538,7 +539,7 @@ class SecurityServiceTest extends TestCase {
 	 */
 	private function stubChallengeInfrastructure(): void {
 		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
-			return 'test-salt-' . $scheme;
+			return FakeCredentials::WP_SALT . '-' . $scheme;
 		} );
 
 		$store = new \ArrayObject();

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -33,7 +34,7 @@ class QrPayloadTest extends TestCase {
 		Functions\when( 'wp_timezone_string' )->justReturn( 'America/Sao_Paulo' );
 		Functions\when( 'admin_url' )->alias( static fn( $p ) => 'https://site.test/wp-admin/' . $p );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v, $f = 0 ) => json_encode( $v, $f ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 	}
 
 	protected function tearDown(): void {
@@ -106,7 +107,7 @@ class QrPayloadTest extends TestCase {
 	}
 
 	public function test_an_open_network_carries_no_password(): void {
-		$this->assertSame( 'WIFI:T:nopass;S:Guest;;', QrPayload::build( 'wifi', array( 'ssid' => 'Guest', 'password' => \FreeFormCertificate\Tests\Support\FakeCredentials::WIFI_PASSWORD, 'security' => 'nopass' ) ) );
+		$this->assertSame( 'WIFI:T:nopass;S:Guest;;', QrPayload::build( 'wifi', array( 'ssid' => 'Guest', 'password' => FakeCredentials::WIFI_PASSWORD, 'security' => 'nopass' ) ) );
 	}
 
 	public function test_wifi_needs_a_name_and_a_password_unless_open(): void {

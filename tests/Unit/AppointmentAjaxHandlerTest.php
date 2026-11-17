@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -59,12 +60,12 @@ class AppointmentAjaxHandlerTest extends TestCase {
 
 		// wp_hash / wp_rand stubs (used by SecurityService captcha)
 		Functions\when( 'wp_hash' )->alias( function ( $data ) {
-			return md5( $data . 'test-salt' );
+			return md5( $data . FakeCredentials::WP_SALT );
 		} );
 
 		// Challenge signing key + single-redemption ledger (6.23.0).
 		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
-			return 'test-salt-' . $scheme;
+			return FakeCredentials::WP_SALT . '-' . $scheme;
 		} );
 		$this->transients = array();
 		Functions\when( 'get_transient' )->alias( function ( string $key ) {

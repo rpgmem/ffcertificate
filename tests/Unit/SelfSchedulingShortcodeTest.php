@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -32,7 +33,7 @@ class SelfSchedulingShortcodeTest extends TestCase {
 
 		// Captcha challenges are signed with a wp_salt()-derived key since 6.23.0.
 		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
-			return 'test-salt-' . $scheme;
+			return FakeCredentials::WP_SALT . '-' . $scheme;
 		} );
 
 		Functions\when( '__' )->returnArg();

@@ -20,4 +20,11 @@ export const FakeCredentials = Object.freeze({
 	SECURE_AUTH_KEY: 'fake-secure-auth-key-for-unit-tests-only-32ch',
 	LOGGED_IN_KEY: 'fake-logged-in-key-for-unit-tests-only-32char',
 	NONCE_KEY: 'fake-nonce-key-for-unit-tests',
+	GENERATED_PASSWORD: 'fake-generated-password',
+	FORM_PASSWORD_NEW: 'fake-form-password-new',
+	FORM_PASSWORD_WRONG: 'fake-form-password-wrong',
+	CSV_ACCESS_HASH: 'fake-csv-access-hash',
+	CSV_ACCESS_HASH_WRONG: 'fake-csv-access-hash-wrong',
+	WP_SALT: 'fake-wp-salt',
+	WP_SALT_ROTATED: 'fake-wp-salt-rotated',
 });

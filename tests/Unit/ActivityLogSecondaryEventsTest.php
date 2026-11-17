@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Admin\SettingsChangeAudit;
@@ -156,12 +157,12 @@ class ActivityLogSecondaryEventsTest extends TestCase {
 		$written = SettingsChangeAudit::record(
 			'ffc_settings',
 			array(
-				'smtp_password' => \FreeFormCertificate\Tests\Support\FakeCredentials::SMTP_PASSWORD,
+				'smtp_password' => FakeCredentials::SMTP_PASSWORD,
 				'dark_mode'     => 'off',
 				'cleanup_days'  => 365,
 			),
 			array(
-				'smtp_password' => \FreeFormCertificate\Tests\Support\FakeCredentials::SMTP_PASSWORD_NEW,
+				'smtp_password' => FakeCredentials::SMTP_PASSWORD_NEW,
 				'dark_mode'     => 'off',
 				'cleanup_days'  => 30,
 			)
@@ -177,8 +178,8 @@ class ActivityLogSecondaryEventsTest extends TestCase {
 			'cleanup_days is a Danger Zone key, recorded with its values by the audit.'
 		);
 		$logged = (string) wp_json_encode( ActivityLogBuffer::entries() );
-		$this->assertStringNotContainsString( \FreeFormCertificate\Tests\Support\FakeCredentials::SMTP_PASSWORD, $logged );
-		$this->assertStringNotContainsString( \FreeFormCertificate\Tests\Support\FakeCredentials::SMTP_PASSWORD_NEW, $logged );
+		$this->assertStringNotContainsString( FakeCredentials::SMTP_PASSWORD, $logged );
+		$this->assertStringNotContainsString( FakeCredentials::SMTP_PASSWORD_NEW, $logged );
 	}
 
 	public function test_a_save_that_changes_nothing_writes_nothing(): void {

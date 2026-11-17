@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\PasswordInvite;
@@ -266,8 +267,8 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce'              => 'ok',
-				'ffc_pass1'               => 'aGoodPassword1',
-				'ffc_pass2'               => 'outraSenha99',
+				'ffc_pass1'               => FakeCredentials::PASSWORD,
+				'ffc_pass2'               => FakeCredentials::PASSWORD_WRONG,
 			),
 			'ffc_password_error=mismatch'
 		);
@@ -301,7 +302,7 @@ class PasswordInviteTest extends TestCase {
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'remove_filter' )->justReturn( true );
 		Functions\when( 'check_password_reset_key' )->justReturn( $user );
-		Functions\expect( 'reset_password' )->once()->with( $user, 'aGoodPassword1' );
+		Functions\expect( 'reset_password' )->once()->with( $user, FakeCredentials::PASSWORD );
 		Functions\expect( 'wp_set_current_user' )->once()->with( 7 );
 		// The session is born AFTER the password exists, never from the link alone.
 		Functions\expect( 'wp_set_auth_cookie' )->once()->with( 7, false );
@@ -309,8 +310,8 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce'              => 'ok',
-				'ffc_pass1'               => 'aGoodPassword1',
-				'ffc_pass2'               => 'aGoodPassword1',
+				'ffc_pass1'               => FakeCredentials::PASSWORD,
+				'ffc_pass2'               => FakeCredentials::PASSWORD,
 			),
 			'ffc_password=set'
 		);
@@ -326,7 +327,7 @@ class PasswordInviteTest extends TestCase {
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'remove_filter' )->justReturn( true );
 		Functions\when( 'check_password_reset_key' )->justReturn( $user );
-		Functions\expect( 'reset_password' )->once()->with( $user, 'aGoodPassword1' );
+		Functions\expect( 'reset_password' )->once()->with( $user, FakeCredentials::PASSWORD );
 		Functions\expect( 'wp_set_auth_cookie' )->once()->with( 7, false );
 		Functions\when( 'wp_set_current_user' )->justReturn( null );
 
@@ -334,8 +335,8 @@ class PasswordInviteTest extends TestCase {
 			array(
 				'_ffc_nonce'              => 'ok',
 				'user_id'                 => '99',
-				'ffc_pass1'               => 'aGoodPassword1',
-				'ffc_pass2'               => 'aGoodPassword1',
+				'ffc_pass1'               => FakeCredentials::PASSWORD,
+				'ffc_pass2'               => FakeCredentials::PASSWORD,
 			),
 			'ffc_password=set'
 		);
@@ -483,8 +484,8 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce' => 'ok',
-				'ffc_pass1'  => 'aGoodPassword1',
-				'ffc_pass2'  => 'outraSenha99',
+				'ffc_pass1'  => FakeCredentials::PASSWORD,
+				'ffc_pass2'  => FakeCredentials::PASSWORD_WRONG,
 			),
 			'https://example.test/dashboard|ffc_password_error=mismatch'
 		);
@@ -506,8 +507,8 @@ class PasswordInviteTest extends TestCase {
 		$this->submitExpectingRedirect(
 			array(
 				'_ffc_nonce' => 'ok',
-				'ffc_pass1'  => 'aGoodPassword1',
-				'ffc_pass2'  => 'aGoodPassword1',
+				'ffc_pass1'  => FakeCredentials::PASSWORD,
+				'ffc_pass2'  => FakeCredentials::PASSWORD,
 			),
 			'ffc_password=set'
 		);

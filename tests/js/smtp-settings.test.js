@@ -6,6 +6,7 @@
 // The script registers handlers on parse, so it is loaded via
 // `loadScript` after the v4 markup is mounted.
 import { describe, it, expect, beforeEach } from 'vitest';
+import { FakeCredentials } from './fake-credentials.js';
 import { loadScript } from './helpers.js';
 
 describe('ffc-smtp-settings', () => {
@@ -154,7 +155,7 @@ describe('ffc-smtp-settings: change password', () => {
 
 	it('cancel empties the field, so saving keeps the stored password', () => {
 		document.getElementById('ffc-smtp-pass-change').click();
-		document.getElementById('smtp_pass').value = 'half-typed';
+		document.getElementById('smtp_pass').value = FakeCredentials.SMTP_PASSWORD_NEW;
 		document.getElementById('ffc-smtp-pass-cancel').click();
 
 		expect(document.getElementById('smtp_pass').value).toBe('');

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -120,7 +121,7 @@ class SubmissionGuardsTest extends TestCase {
 		Functions\when( 'is_email' )->alias( static fn( $v ) => false !== filter_var( (string) $v, FILTER_VALIDATE_EMAIL ) ? $v : false );
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
-		Functions\when( 'wp_salt' )->justReturn( 'submission-guards-test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, null === $ts ? time() : $ts ) );
 		Functions\when( 'current_time' )->justReturn( '2027-01-15 08:00:00' );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
@@ -743,7 +744,7 @@ class SubmissionGuardsTest extends TestCase {
 
 	public function test_access_restriction_guard_throws_when_denied(): void {
 		$ctx              = $this->ctx();
-		$ctx->form_config = array( 'restrictions' => array( 'password' => '1' ), 'validation_code' => 'secret' );
+		$ctx->form_config = array( 'restrictions' => array( 'password' => '1' ), 'validation_code' => FakeCredentials::FORM_PASSWORD );
 		try {
 			( new AccessRestrictionGuard() )->apply( $ctx );
 			$this->fail( 'expected SubmissionRejected' );

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -44,7 +45,7 @@ class RecruitmentEmailDispatcherTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_specialchars_decode' )->returnArg();
 		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'remove_filter' )->justReturn( true );
 		Functions\when( 'is_email' )->alias(

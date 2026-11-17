@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceFormInvite;
@@ -18,7 +19,7 @@ class AudienceFormInviteTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 	}
 
 	protected function tearDown(): void {
@@ -62,7 +63,7 @@ class AudienceFormInviteTest extends TestCase {
 
 	public function test_rotating_the_salt_voids_the_codes(): void {
 		$code = AudienceFormInvite::code( 5, 7, 40 );
-		Functions\when( 'wp_salt' )->justReturn( 'another salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT_ROTATED );
 
 		$this->assertNull( AudienceFormInvite::verify( $code, 40 ) );
 	}

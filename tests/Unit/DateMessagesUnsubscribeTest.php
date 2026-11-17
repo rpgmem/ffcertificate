@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\DateMessages\Unsubscribe;
@@ -61,7 +62,7 @@ class DateMessagesUnsubscribeTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
 		Functions\when( 'get_userdata' )->alias(
 			static fn( $id ) => 42 === (int) $id ? (object) array(
@@ -119,7 +120,7 @@ class DateMessagesUnsubscribeTest extends TestCase {
 
 	public function test_the_token_changes_with_the_salt(): void {
 		$before = Unsubscribe::token( 42 );
-		Functions\when( 'wp_salt' )->justReturn( 'rotated' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT_ROTATED );
 
 		$this->assertNotSame( $before, Unsubscribe::token( 42 ) );
 	}

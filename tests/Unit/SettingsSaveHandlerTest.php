@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -666,7 +667,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$_POST['_ffc_tab'] = 'smtp';
 		$new = array(
 			'smtp_user'      => 'mailer@example.com',
-			'smtp_pass'      => \FreeFormCertificate\Tests\Support\FakeCredentials::SMTP_PASSWORD,
+			'smtp_pass'      => FakeCredentials::SMTP_PASSWORD,
 			'smtp_from_name' => 'Acme Certs',
 		);
 		$_POST['ffc_settings'] = $new;
@@ -674,7 +675,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 'mailer@example.com', $result['smtp_user'] );
 		// Stored encrypted, never as typed (#2342).
 		$this->assertStringStartsWith( 'v2:', $result['smtp_pass'] );
-		$this->assertSame( \FreeFormCertificate\Tests\Support\FakeCredentials::SMTP_PASSWORD, \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
+		$this->assertSame( FakeCredentials::SMTP_PASSWORD, \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
 		$this->assertSame( 'Acme Certs', $result['smtp_from_name'] );
 	}
 
