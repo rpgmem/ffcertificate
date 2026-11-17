@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -1071,7 +1072,7 @@ class AppointmentRestControllerTest extends TestCase {
 		Functions\when( 'username_exists' )->justReturn( false );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'sanitize_user' )->alias( static fn ( $name ) => strtolower( (string) preg_replace( '/[^A-Za-z0-9 _.@-]/', '', (string) $name ) ) );
-		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'wp_create_user' )->alias(
 			function ( $username, $password, $email ) {
 				$this->created_accounts[]          = array( (string) $username, (string) $email );

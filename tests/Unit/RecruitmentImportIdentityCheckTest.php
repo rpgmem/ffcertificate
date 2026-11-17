@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -33,7 +34,7 @@ class RecruitmentImportIdentityCheckTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'remove_accents' )->alias(
 			static fn( string $s ): string => strtr( $s, array( 'á' => 'a', 'Á' => 'A', 'ç' => 'c', 'Ç' => 'C', 'ã' => 'a', 'Ã' => 'A' ) )
 		);

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\DateMessages\UserMessages;
@@ -77,7 +78,7 @@ class DateMessagesUserMessagesTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.org/dashboard' );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'wp_date' )->alias( static fn( $f, $ts ) => gmdate( (string) $f, (int) $ts ) );
 		Functions\when( 'get_user_meta' )->justReturn( '' );

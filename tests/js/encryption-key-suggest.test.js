@@ -90,15 +90,15 @@ describe('ffc-encryption-key-suggest', () => {
 	describe('buildSnippet', () => {
 		it('wraps the key in a wp-config define, defaulting to FFC_ENCRYPTION_KEY', () => {
 			loadScript(SCRIPT);
-			expect(window.FFCEncryptionKeySuggest.buildSnippet('ABC123')).toBe(
-				"define( 'FFC_ENCRYPTION_KEY', 'ABC123' );"
+			expect(window.FFCEncryptionKeySuggest.buildSnippet('fake-ABC123')).toBe(
+				"define( 'FFC_ENCRYPTION_KEY', 'fake-ABC123' );"
 			);
 		});
 
 		it('honours an explicit constant name (e.g. FFC_HASH_SALT)', () => {
 			loadScript(SCRIPT);
-			expect(window.FFCEncryptionKeySuggest.buildSnippet('ABC123', 'FFC_HASH_SALT')).toBe(
-				"define( 'FFC_HASH_SALT', 'ABC123' );"
+			expect(window.FFCEncryptionKeySuggest.buildSnippet('fake-ABC123', 'FFC_HASH_SALT')).toBe(
+				"define( 'FFC_HASH_SALT', 'fake-ABC123' );"
 			);
 		});
 

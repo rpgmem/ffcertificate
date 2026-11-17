@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -41,7 +42,7 @@ class ScheduleExceptionActionTest extends TestCase {
 		// WP helpers used by the action (or its callees, incl. the
 		// real Geofence::get_form_*_timestamp() helpers we exercise
 		// through the action).
-		Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'is_ssl' )->justReturn( false );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );

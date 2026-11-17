@@ -2,6 +2,7 @@
 // admin editors (the certificate form editor first; renamed for the family in
 // #1788).
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { FakeCredentials } from './fake-credentials.js';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
@@ -501,7 +502,7 @@ describe('FFC.VerticalTabs — pending state (#1755)', () => {
 		expect(tab('email').hasClass('is-on')).toBe(false);
 		expect(tab('email').find('.screen-reader-text').text()).toBe(' (Incompleto)');
 
-		window.$('#pass-value').val('PASS2025').trigger('input');
+		window.$('#pass-value').val(FakeCredentials.SMTP_PASSWORD).trigger('input');
 		await tick();
 		expect(tab('email').hasClass('is-pending')).toBe(false);
 		expect(tab('email').hasClass('is-on')).toBe(true);

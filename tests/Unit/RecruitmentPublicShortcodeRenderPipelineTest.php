@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -93,7 +94,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		Functions\when( 'add_query_arg' )->alias( fn( $k, $v, $base = '' ) => "?{$k}={$v}" );
 		Functions\when( 'remove_query_arg' )->alias( fn( $k, $base = '' ) => '?' );
 		Functions\when( 'is_email' )->alias( static fn( $email ) => false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false );
-		Functions\when( 'wp_salt' )->justReturn( 'unit-test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );

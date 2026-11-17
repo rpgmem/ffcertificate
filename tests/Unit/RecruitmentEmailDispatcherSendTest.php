@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -94,7 +95,7 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		// is chosen here rather than inherited from whichever test ran first.
 		Functions\when( 'wp_tempnam' )->alias( static fn ( $name = '' ) => (string) tempnam( sys_get_temp_dir(), 'ffc-test-' ) );
 		Functions\when( 'is_email' )->alias( static fn ( $email ) => false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );

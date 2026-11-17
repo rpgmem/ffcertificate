@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -31,7 +32,7 @@ class QrEventLinkTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v, $f = 0 ) => json_encode( $v, $f ) );
 		Functions\when( 'admin_url' )->alias( static fn( $p ) => 'https://site.test/wp-admin/' . $p );
 		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
@@ -75,7 +76,7 @@ class QrEventLinkTest extends TestCase {
 
 	public function test_a_link_signed_with_another_sites_salt_is_refused(): void {
 		list( $data, $sig ) = $this->params( QrEventLink::url( self::EVENT ) );
-		Functions\when( 'wp_salt' )->justReturn( 'another-site' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT_ROTATED );
 
 		$this->assertNull( QrEventLink::verify( $data, $sig ) );
 	}
@@ -140,7 +141,7 @@ class QrEventLinkTest extends TestCase {
 		$this->assertFalse( QrEventLink::expired( self::EVENT ) );
 		// A link issued before `until` existed decodes with the key empty.
 		$legacy = rtrim( strtr( base64_encode( (string) json_encode( array( 'title' => 'Old', 'date' => '2020-01-01', 'start' => '09:00', 'end' => '10:00' ) ) ), '+/', '-_' ), '=' );
-		$sig    = substr( hash_hmac( 'sha256', $legacy, 'test-salt|ffc_qr_ics' ), 0, 32 );
+		$sig    = substr( hash_hmac( 'sha256', $legacy, FakeCredentials::WP_SALT . '|ffc_qr_ics' ), 0, 32 );
 		$event  = QrEventLink::verify( $legacy, $sig );
 		$this->assertSame( '', $event['until'] ?? null );
 		$this->assertNotSame( '', QrEventIcsHandler::build( $legacy, $sig ), 'An old link keeps serving its file.' );

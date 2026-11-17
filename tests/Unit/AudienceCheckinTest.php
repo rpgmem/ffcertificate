@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAttendanceWriter;
@@ -70,7 +71,7 @@ class AudienceCheckinTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'current_time' )->justReturn( self::DAY );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'wp_cache_get' )->justReturn( false );

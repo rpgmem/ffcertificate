@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -47,7 +48,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 		// #Item11: live_exception_payload() round-trips a real signed token
 		// through ScheduleExceptionSession, which needs the HMAC salt + JSON
 		// encoder. Deterministic salt keeps sign/verify consistent.
-		Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
 		// Spy repository.

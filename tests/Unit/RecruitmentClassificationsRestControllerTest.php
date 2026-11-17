@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -186,7 +187,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		Functions\when( 'size_format' )->justReturn( '10 MB' );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-1' );
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );

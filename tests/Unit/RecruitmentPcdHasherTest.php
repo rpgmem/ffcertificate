@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -25,7 +26,7 @@ class RecruitmentPcdHasherTest extends TestCase {
 		Monkey\setUp();
 
 		// Stable salt across the test so `compute()` is deterministic.
-		Functions\when( 'wp_salt' )->justReturn( 'test-auth-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 	}
 
 	protected function tearDown(): void {
@@ -115,7 +116,7 @@ class RecruitmentPcdHasherTest extends TestCase {
 
 	public function test_the_row_hash_does_not_depend_on_the_wordpress_auth_salt(): void {
 		$before = RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true );
-		Functions\when( 'wp_salt' )->justReturn( 'rotated-auth-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT_ROTATED );
 
 		$this->assertSame( $before, RecruitmentPcdHasher::compute_for_row( 1, 2, 3, true ), 'Rotating wp_salt(auth) no longer turns PCD into general.' );
 	}

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -33,7 +34,7 @@ class QrPayloadTest extends TestCase {
 		Functions\when( 'wp_timezone_string' )->justReturn( 'America/Sao_Paulo' );
 		Functions\when( 'admin_url' )->alias( static fn( $p ) => 'https://site.test/wp-admin/' . $p );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v, $f = 0 ) => json_encode( $v, $f ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 	}
 
 	protected function tearDown(): void {
@@ -92,12 +93,12 @@ class QrPayloadTest extends TestCase {
 
 	public function test_wifi_escapes_its_special_characters(): void {
 		$this->assertSame(
-			'WIFI:T:WPA;S:Escola\;Rede\\:1;P:p@ss\\,\\"x\\\\y;H:true;;',
+			'WIFI:T:WPA;S:Escola\;Rede\\:1;P:fake-p@ss\\,\\"x\\\\y;H:true;;',
 			QrPayload::build(
 				'wifi',
 				array(
 					'ssid'     => 'Escola;Rede:1',
-					'password' => 'p@ss,"x\\y',
+					'password' => 'fake-p@ss,"x\\y',
 					'security' => 'WPA',
 					'hidden'   => '1',
 				)
@@ -106,7 +107,7 @@ class QrPayloadTest extends TestCase {
 	}
 
 	public function test_an_open_network_carries_no_password(): void {
-		$this->assertSame( 'WIFI:T:nopass;S:Guest;;', QrPayload::build( 'wifi', array( 'ssid' => 'Guest', 'password' => 'ignored', 'security' => 'nopass' ) ) );
+		$this->assertSame( 'WIFI:T:nopass;S:Guest;;', QrPayload::build( 'wifi', array( 'ssid' => 'Guest', 'password' => FakeCredentials::WIFI_PASSWORD, 'security' => 'nopass' ) ) );
 	}
 
 	public function test_wifi_needs_a_name_and_a_password_unless_open(): void {
@@ -118,12 +119,12 @@ class QrPayloadTest extends TestCase {
 
 	public function test_an_enterprise_network_carries_the_user_name_and_its_methods(): void {
 		$this->assertSame(
-			'WIFI:T:WPA2-EAP;S:Escola;P:s3nha\\;x;E:TTLS;PH2:PAP;I:maria@sme;A:anon;H:true;;',
+			'WIFI:T:WPA2-EAP;S:Escola;P:fake-s3nha\\;x;E:TTLS;PH2:PAP;I:maria@sme;A:anon;H:true;;',
 			QrPayload::build(
 				'wifi',
 				array(
 					'ssid'      => 'Escola',
-					'password'  => 's3nha;x',
+					'password'  => 'fake-s3nha;x',
 					'security'  => 'WPA2-EAP',
 					'identity'  => 'maria@sme',
 					'eap'       => 'TTLS',

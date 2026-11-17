@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +42,7 @@ class AltchaCaptchaTest extends TestCase {
 		class_exists( '\FreeFormCertificate\Core\Captcha\ChallengeStore' );
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'unit-test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		// The work factor and the lifetime are settings now, read through
 		// CaptchaSettings; with no stored option they fall to the declared
 		// defaults, which is the configuration these tests mean to exercise.

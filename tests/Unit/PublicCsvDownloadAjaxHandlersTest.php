@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -48,7 +49,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	private const FORM_ID = 42;
 
-	private const HASH = 'validhash';
+	private const HASH = FakeCredentials::CSV_ACCESS_HASH;
 
 	/** @var array<string, mixed> json payload captured before the terminator throws */
 	private array $captured = array();
@@ -128,7 +129,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		Functions\when( 'esc_html_e' )->echoArg();
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args ) );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt-public-csv' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
@@ -457,7 +458,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	}
 
 	public function test_ajax_info_rejects_when_hash_validation_fails(): void {
-		list( $_POST ) = $this->answered_post( array( 'hash' => 'otherhash' ) );
+		list( $_POST ) = $this->answered_post( array( 'hash' => FakeCredentials::CSV_ACCESS_HASH_WRONG ) );
 
 		try {
 			( new PublicCsvDownload() )->ajax_info();
@@ -562,7 +563,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		$this->assertSame( 'public_panel_access_failed', $entries[0]['action'] );
 		$this->assertSame( 'warning', $entries[0]['level'] );
 		$this->assertSame( $expected, $entries[0]['context']['reason'] );
-		$this->assertStringNotContainsString( 'otherhash', (string) json_encode( ActivityLogBuffer::entries() ), 'The posted hash is never recorded.' );
+		$this->assertStringNotContainsString( FakeCredentials::CSV_ACCESS_HASH_WRONG, (string) json_encode( ActivityLogBuffer::entries() ), 'The posted hash is never recorded.' );
 	}
 
 	/**
@@ -573,7 +574,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			'nonce'          => array( array(), array(), 'nonce' ),
 			'captcha'        => array( array(), array(), 'captcha' ),
 			'missing fields' => array( array( 'hash' => '' ), array(), 'missing_fields' ),
-			'hash'           => array( array( 'hash' => 'otherhash' ), array(), 'hash' ),
+			'hash'           => array( array( 'hash' => FakeCredentials::CSV_ACCESS_HASH_WRONG ), array(), 'hash' ),
 			'cpf'            => array( array(), array( PublicCsvDownload::META_CPF_MODE => 'audit' ), 'cpf' ),
 		);
 	}

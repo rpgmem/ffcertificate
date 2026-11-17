@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -79,7 +80,7 @@ class QrGeneratorDesignMemoryTest extends TestCase {
 				'qr_design_logo_id'    => '-3',
 				'margin'               => '99',
 				'error_level'          => 'q',
-				'wifi_password'        => 'secret',
+				'wifi_password'        => FakeCredentials::WIFI_PASSWORD,
 			)
 		);
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -83,7 +84,7 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		Functions\when( '_n' )->alias( static fn ( $single, $plural, $number ) => 1 === (int) $number ? $single : $plural );
 		Functions\when( 'add_query_arg' )->alias( static fn ( $k, $v, $base = '' ) => "?{$k}={$v}" );
 		Functions\when( 'remove_query_arg' )->alias( static fn ( $k, $base = '' ) => '?' );
-		Functions\when( 'wp_salt' )->justReturn( 'unit-test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );

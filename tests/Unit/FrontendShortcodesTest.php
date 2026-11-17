@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
@@ -68,7 +69,7 @@ class FrontendShortcodesTest extends TestCase {
 		// ScheduleExceptionSession which needs wp_salt + is_ssl +
 		// setcookie stubs even on the no-exception path (the cookie
 		// read is unconditional — only the embed is gated).
-		Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'is_ssl' )->justReturn( false );
 		Functions\when( 'setcookie' )->justReturn( true );
 		Functions\when( 'headers_sent' )->justReturn( false );

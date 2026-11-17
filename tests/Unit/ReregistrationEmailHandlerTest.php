@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -705,7 +706,7 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	 * would ship to the recipient as literal text.
 	 */
 	public function test_send_invitations_resolves_every_token_for_both_audiences(): void {
-		Functions\when( 'wp_generate_password' )->justReturn( 'secret-key' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'add_query_arg' )->alias(
 			static function ( $args, $url ) {
 				return $url . '?' . http_build_query( (array) $args );

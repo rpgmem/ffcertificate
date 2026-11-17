@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -1006,7 +1007,7 @@ class UserProfileRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$ctrl    = new UserProfileRestController( 'ffc/v1' );
-		$request = $this->make_request( array( 'new_password' => 'short' ) );
+		$request = $this->make_request( array( 'new_password' => 'fake-1' ) );
 		$result  = $ctrl->change_password( $request );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1023,8 +1024,8 @@ class UserProfileRestControllerTest extends TestCase {
 
 		$ctrl    = new UserProfileRestController( 'ffc/v1' );
 		$request = $this->make_request( array(
-			'current_password' => 'wrongpassword',
-			'new_password'     => 'newpassword123',
+			'current_password' => FakeCredentials::PASSWORD_WRONG,
+			'new_password'     => FakeCredentials::PASSWORD_NEW,
 		) );
 		$result  = $ctrl->change_password( $request );
 
@@ -1045,8 +1046,8 @@ class UserProfileRestControllerTest extends TestCase {
 
 		$ctrl    = new UserProfileRestController( 'ffc/v1' );
 		$request = $this->make_request( array(
-			'current_password' => 'correctpassword',
-			'new_password'     => 'newpassword123',
+			'current_password' => FakeCredentials::PASSWORD,
+			'new_password'     => FakeCredentials::PASSWORD_NEW,
 		) );
 		$result  = $ctrl->change_password( $request );
 
@@ -1069,7 +1070,7 @@ class UserProfileRestControllerTest extends TestCase {
 				array(
 					'viewAsUserId'     => $target,
 					'current_password' => '',
-					'new_password'     => 'newpassword123',
+					'new_password'     => FakeCredentials::PASSWORD_NEW,
 				)
 			)
 		);
@@ -1100,7 +1101,7 @@ class UserProfileRestControllerTest extends TestCase {
 		$set = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_set_password' );
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
-			$this->make_request( array( 'new_password' => 'newpassword123' ) )
+			$this->make_request( array( 'new_password' => FakeCredentials::PASSWORD_NEW ) )
 		);
 
 		$this->assertSame( 'missing_fields', $result->get_error_code(), 'An administrator is asked for their own password too.' );
@@ -1285,7 +1286,7 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->user_limit_reached = true;
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
-			$this->make_request( array( 'new_password' => 'longenough1' ) )
+			$this->make_request( array( 'new_password' => FakeCredentials::PASSWORD_NEW ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1297,7 +1298,7 @@ class UserProfileRestControllerTest extends TestCase {
 		Functions\when( 'get_user_by' )->justReturn( false );
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
-			$this->make_request( array( 'new_password' => 'longenough1' ) )
+			$this->make_request( array( 'new_password' => FakeCredentials::PASSWORD_NEW ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1310,7 +1311,7 @@ class UserProfileRestControllerTest extends TestCase {
 
 		// Valid new password but no current password (and not view-as).
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
-			$this->make_request( array( 'new_password' => 'longenough1' ) )
+			$this->make_request( array( 'new_password' => FakeCredentials::PASSWORD_NEW ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1324,7 +1325,7 @@ class UserProfileRestControllerTest extends TestCase {
 		} );
 
 		$result = ( new UserProfileRestController( 'ffc/v1' ) )->change_password(
-			$this->make_request( array( 'new_password' => 'longenough1', 'current_password' => 'x' ) )
+			$this->make_request( array( 'new_password' => FakeCredentials::PASSWORD_NEW, 'current_password' => 'x' ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );

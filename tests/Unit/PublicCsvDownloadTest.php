@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
@@ -63,7 +64,7 @@ class PublicCsvDownloadTest extends TestCase {
 
 		// Captcha challenges are signed + single-use since 6.23.0.
 		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
-			return 'test-salt-' . $scheme;
+			return FakeCredentials::WP_SALT . '-' . $scheme;
 		} );
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
@@ -201,13 +202,13 @@ class PublicCsvDownloadTest extends TestCase {
 	private function seed_valid_request( int $form_id = 42, array $overrides = array() ): void {
 		$defaults = array(
 			'enabled'     => '1',
-			'stored_hash' => 'validhash123',
+			'stored_hash' => FakeCredentials::CSV_ACCESS_HASH,
 			'limit'       => 5,
 			'count'       => 0,
 			'date_end'    => '2000-01-01', // Past by default → form expired.
 			'time_end'    => '00:00:00',
 			'post_type'   => 'ffc_form',
-			'posted_hash' => 'validhash123',
+			'posted_hash' => FakeCredentials::CSV_ACCESS_HASH,
 		);
 		$cfg = array_merge( $defaults, $overrides );
 
@@ -964,20 +965,20 @@ class PublicCsvDownloadTest extends TestCase {
 
 	public function test_validate_form_access_returns_null_on_success(): void {
 		$this->seed_valid_request( 42 );
-		$result = $this->handler->validate_form_access( 42, 'validhash123' );
+		$result = $this->handler->validate_form_access( 42, FakeCredentials::CSV_ACCESS_HASH );
 		$this->assertNull( $result );
 	}
 
 	public function test_validate_form_access_rejects_non_ffc_form(): void {
 		$this->seed_valid_request( 42, array( 'post_type' => 'post' ) );
-		$result = $this->handler->validate_form_access( 42, 'validhash123' );
+		$result = $this->handler->validate_form_access( 42, FakeCredentials::CSV_ACCESS_HASH );
 		$this->assertNotNull( $result );
 		$this->assertStringContainsString( 'Form not found', $result );
 	}
 
 	public function test_validate_form_access_rejects_disabled_feature(): void {
 		$this->seed_valid_request( 42, array( 'enabled' => '0' ) );
-		$result = $this->handler->validate_form_access( 42, 'validhash123' );
+		$result = $this->handler->validate_form_access( 42, FakeCredentials::CSV_ACCESS_HASH );
 		$this->assertNotNull( $result );
 		$this->assertStringContainsString( 'not enabled', $result );
 	}
@@ -991,7 +992,7 @@ class PublicCsvDownloadTest extends TestCase {
 
 	public function test_validate_form_access_rejects_missing_end_date(): void {
 		$this->seed_valid_request( 42, array( 'date_end' => '' ) );
-		$result = $this->handler->validate_form_access( 42, 'validhash123' );
+		$result = $this->handler->validate_form_access( 42, FakeCredentials::CSV_ACCESS_HASH );
 		$this->assertNotNull( $result );
 		$this->assertStringContainsString( 'no end date', $result );
 	}
@@ -999,14 +1000,14 @@ class PublicCsvDownloadTest extends TestCase {
 	public function test_validate_form_access_rejects_active_form(): void {
 		$future = gmdate( 'Y-m-d', time() + 86400 * 7 );
 		$this->seed_valid_request( 42, array( 'date_end' => $future, 'time_end' => '23:59:59' ) );
-		$result = $this->handler->validate_form_access( 42, 'validhash123' );
+		$result = $this->handler->validate_form_access( 42, FakeCredentials::CSV_ACCESS_HASH );
 		$this->assertNotNull( $result );
 		$this->assertStringContainsString( 'still active', $result );
 	}
 
 	public function test_validate_form_access_rejects_exceeded_quota(): void {
 		$this->seed_valid_request( 42, array( 'limit' => 3, 'count' => 3 ) );
-		$result = $this->handler->validate_form_access( 42, 'validhash123' );
+		$result = $this->handler->validate_form_access( 42, FakeCredentials::CSV_ACCESS_HASH );
 		$this->assertNotNull( $result );
 		$this->assertStringContainsString( 'maximum number of downloads', $result );
 	}
@@ -1019,7 +1020,7 @@ class PublicCsvDownloadTest extends TestCase {
 			}
 			return $default;
 		} );
-		$result = $this->handler->validate_form_access( 42, 'validhash123' );
+		$result = $this->handler->validate_form_access( 42, FakeCredentials::CSV_ACCESS_HASH );
 		$this->assertNotNull( $result );
 		$this->assertStringContainsString( 'maximum number of downloads', $result );
 	}

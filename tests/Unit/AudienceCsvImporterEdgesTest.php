@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -96,7 +97,7 @@ class AudienceCsvImporterEdgesTest extends TestCase {
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'sanitize_user' )->alias( static fn ( $name ) => strtolower( (string) $name ) );
 		Functions\when( 'username_exists' )->justReturn( false );
-		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'get_user_by' )->alias(
 			function ( $field, $value ) {
 				return 'email' === $field && null !== $this->existing_user ? (object) array( 'ID' => $this->existing_user ) : false;

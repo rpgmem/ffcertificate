@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -34,7 +35,7 @@ class DynamicFragmentsTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		// The honeypot stamp the response carries is signed (#2339).
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
@@ -163,7 +164,7 @@ class DynamicFragmentsTest extends TestCase {
 	 */
 	private function stubWordPress(): void {
 		// The honeypot stamp the response carries is signed (#2339).
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );

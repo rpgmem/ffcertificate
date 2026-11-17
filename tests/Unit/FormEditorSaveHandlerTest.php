@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use FreeFormCertificate\Tests\Support\FormSubmissionCountWpdb;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
@@ -1316,7 +1317,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 				'restrictions'         => array(),   // ALL four off
 				'allowed_users_list'   => 'fresh-allow',
 				'denied_users_list'    => 'fresh-deny',
-				'validation_code'      => 'fresh-pass',
+				'validation_code'      => FakeCredentials::FORM_PASSWORD_NEW,
 				'generated_codes_list' => 'fresh-tickets',
 			),
 		);
@@ -1346,7 +1347,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 			'ffc_config'     => array(
 				'pdf_layout'           => '{{auth_code}} {{name}} {{cpf_rf}}',
 				'restrictions'         => array( 'password' => '1' ),
-				'validation_code'      => 'secret',
+				'validation_code'      => FakeCredentials::FORM_PASSWORD,
 				'allowed_users_list'   => 'should-not-save',
 				'denied_users_list'    => 'should-not-save',
 				'generated_codes_list' => 'should-not-save',
@@ -1356,7 +1357,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->handler->save_form_data( 10 );
 
 		$form_config = $written['_ffc_form_config'];
-		$this->assertSame( 'secret', $form_config['validation_code'] );
+		$this->assertSame( FakeCredentials::FORM_PASSWORD, $form_config['validation_code'] );
 		$this->assertArrayNotHasKey( 'allowed_users_list', $form_config );
 		$this->assertArrayNotHasKey( 'denied_users_list', $form_config );
 		$this->assertArrayNotHasKey( 'generated_codes_list', $form_config );

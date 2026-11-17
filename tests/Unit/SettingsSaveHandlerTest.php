@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -666,7 +667,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$_POST['_ffc_tab'] = 'smtp';
 		$new = array(
 			'smtp_user'      => 'mailer@example.com',
-			'smtp_pass'      => 's3cret',
+			'smtp_pass'      => FakeCredentials::SMTP_PASSWORD,
 			'smtp_from_name' => 'Acme Certs',
 		);
 		$_POST['ffc_settings'] = $new;
@@ -674,7 +675,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 'mailer@example.com', $result['smtp_user'] );
 		// Stored encrypted, never as typed (#2342).
 		$this->assertStringStartsWith( 'v2:', $result['smtp_pass'] );
-		$this->assertSame( 's3cret', \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
+		$this->assertSame( FakeCredentials::SMTP_PASSWORD, \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
 		$this->assertSame( 'Acme Certs', $result['smtp_from_name'] );
 	}
 
@@ -715,9 +716,9 @@ class SettingsSaveHandlerTest extends TestCase {
 	public function test_smtp_pass_is_not_saved_without_the_smtp_capability(): void {
 		$_POST['_ffc_tab'] = 'smtp';
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$_POST['ffc_settings'] = array( 'smtp_pass' => 'intruder' );
+		$_POST['ffc_settings'] = array( 'smtp_pass' => 'fake-intruder' );
 
-		$result = $this->invoke( 'save_smtp_settings', array( array( 'smtp_pass' => 'old' ), array( 'smtp_pass' => 'intruder' ) ) );
+		$result = $this->invoke( 'save_smtp_settings', array( array( 'smtp_pass' => 'old' ), array( 'smtp_pass' => 'fake-intruder' ) ) );
 
 		$this->assertSame( 'old', $result['smtp_pass'] );
 	}

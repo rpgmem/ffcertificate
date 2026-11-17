@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Integration;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -297,7 +298,7 @@ abstract class IntegrationTestCase extends TestCase {
 		Functions\when( 'get_users' )->justReturn( array() );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'get_user_by' )->justReturn( false );
-		Functions\when( 'wp_generate_password' )->justReturn( 'xxxxxxxxxxxxxxxx' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'current_time' )->alias(
 			static fn( $type = 'timestamp' ) => ( 'timestamp' === $type ? 1_600_000_000 : '2020-09-13 12:26:40' )
 		);

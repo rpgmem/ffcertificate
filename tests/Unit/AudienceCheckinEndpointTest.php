@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceCheckin;
@@ -74,7 +75,7 @@ class AudienceCheckinEndpointTest extends TestCase {
 		Functions\when( 'current_time' )->justReturn( self::DAY );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.org' . $path );
 		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
