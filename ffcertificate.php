@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 define( 'FFC_VERSION', '6.44.1' );                 // Plugin version (WordPress Plugin Check compliance)
 // External libraries versions.
-define( 'FFC_HTML2CANVAS_PRO_VERSION', '2.5.0' ); // html2canvas-pro - https://github.com/yorickshan/html2canvas-pro (MIT, vendored at libs/js/).
+define( 'FFC_HTML2CANVAS_PRO_VERSION', '2.6.4' ); // html2canvas-pro - https://github.com/yorickshan/html2canvas-pro (MIT, vendored at libs/js/).
 define( 'FFC_JSPDF_VERSION', '4.2.1' );         // jsPDF - https://github.com/parallax/jsPDF.
 define( 'FFC_THUMBMARK_VERSION', '1.12.0' );    // thumbmarkjs - https://github.com/thumbmarkjs/thumbmarkjs (MIT, vendored at libs/js/).
 define( 'FFC_ALTCHA_VERSION', '3.6.0' );        // ALTCHA widget - https://github.com/altcha-org/altcha (MIT, vendored at libs/js/).

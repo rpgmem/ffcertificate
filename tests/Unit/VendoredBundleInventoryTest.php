@@ -80,8 +80,8 @@ final class VendoredBundleInventoryTest extends TestCase {
 	private const REGISTER = array(
 		'altcha-3.6.0.LICENSE.txt',
 		'altcha-3.6.0.umd.js',
-		'html2canvas-pro-2.5.0.LICENSE.txt',
-		'html2canvas-pro-2.5.0.min.js',
+		'html2canvas-pro-2.6.4.LICENSE.txt',
+		'html2canvas-pro-2.6.4.min.js',
 		'jspdf-4.2.1.LICENSE.txt',
 		'jspdf-4.2.1.umd.min.js',
 		'thumbmark-1.12.0.LICENSE.txt',
@@ -195,7 +195,7 @@ final class VendoredBundleInventoryTest extends TestCase {
 
 	/**
 	 * The library part of a bundle's file name: everything before the hyphen
-	 * that opens the version (`html2canvas-pro` in `html2canvas-pro-2.5.0.min.js`).
+	 * that opens the version (`html2canvas-pro` in `html2canvas-pro-2.6.4.min.js`).
 	 *
 	 * @param string $entry A file name in `libs/js/`.
 	 */
