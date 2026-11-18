@@ -85,6 +85,58 @@ final class QrCapacity {
 	}
 
 	/**
+	 * The highest error-correction level, at or above the one asked for,
+	 * that draws the text on the same grid (#2648).
+	 *
+	 * A level's code grows only in whole versions, so a text usually leaves
+	 * part of its version unused. When the text also fits that version at a
+	 * higher level, the spare room becomes error correction at no cost in
+	 * size: the code survives more damage and prints exactly as large. The
+	 * version is read the way the encoder reads it, through
+	 * `QRinput::convertData()`, without the masking that makes encoding slow.
+	 *
+	 * @param string $text Text to encode.
+	 * @param string $ecc  The level asked for.
+	 * @return string L, M, Q or H; the level asked for when nothing higher is free.
+	 */
+	public static function free_level( string $text, string $ecc ): string {
+		$ecc     = self::level_name( $ecc );
+		$order   = array( 'L', 'M', 'Q', 'H' );
+		$version = self::version( $text, $ecc );
+		if ( $version <= 0 ) {
+			return $ecc;
+		}
+		$best = $ecc;
+		foreach ( array_slice( $order, (int) array_search( $ecc, $order, true ) + 1 ) as $higher ) {
+			if ( self::version( $text, $higher ) !== $version ) {
+				break;
+			}
+			$best = $higher;
+		}
+		return $best;
+	}
+
+	/**
+	 * The version the encoder picks for the text at a level, or 0 when the
+	 * text does not fit.
+	 *
+	 * @param string $text Text.
+	 * @param string $ecc  Level.
+	 * @return int
+	 */
+	private static function version( string $text, string $ecc ): int {
+		$input = self::input( $text, $ecc );
+		if ( null === $input ) {
+			return 0;
+		}
+		try {
+			return 0 === $input->convertData() ? (int) $input->getVersion() : 0;
+		} catch ( \Throwable $e ) {
+			return 0;
+		}
+	}
+
+	/**
 	 * Whether the encoder accepts the text at a level.
 	 *
 	 * @param string $text Text to encode.
