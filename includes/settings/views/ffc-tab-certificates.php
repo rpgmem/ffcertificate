@@ -230,4 +230,107 @@ $ffcertificate_data_row = static function ( string $index, array $row, array $ty
 
 </form>
 
+<?php
+// Integrity signature (#2639): the key that signs certificate records. Its
+// own form, outside the settings form above, because generating a key is an
+// action, not a setting the tab's Save writes.
+$ffcertificate_keys       = \FreeFormCertificate\Core\SigningKeys::all();
+$ffcertificate_active_key = $ffcertificate_keys['active'];
+$ffcertificate_can_rotate = \FreeFormCertificate\Admin\SigningKeyHandler::current_user_can();
+$ffcertificate_key_notice = \FreeFormCertificate\Admin\SettingsNotice::take( \FreeFormCertificate\Admin\SigningKeyHandler::NOTICE_AREA );
+$ffcertificate_key_counts = array() === $ffcertificate_keys['keys'] ? array() : \FreeFormCertificate\Submissions\CertificateSignatureRepository::count_by_key();
+$ffcertificate_rotate_url = wp_nonce_url( add_query_arg( 'action', \FreeFormCertificate\Admin\SigningKeyHandler::ACTION, admin_url( 'admin-post.php' ) ), \FreeFormCertificate\Admin\SigningKeyHandler::ACTION );
+?>
+<div class="card" id="ffc-integrity-signature">
+	<h2 class="ffc-icon-key"><?php esc_html_e( 'Integrity signature', 'ffcertificate' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Forms with a signed QR mode sign a record of each certificate with this site\'s key. The verification page checks the record against the database and says when a certificate changed after it was signed. Choose the mode per form, on its Layout tab.', 'ffcertificate' ); ?>
+	</p>
+	<?php
+	if ( null !== $ffcertificate_key_notice ) {
+		\FreeFormCertificate\Core\AdminNotice::callout( $ffcertificate_key_notice['type'], '<p>' . esc_html( $ffcertificate_key_notice['message'] ) . '</p>', array( 'classes' => array( 'inline' ) ) );
+	}
+	if ( '' === $ffcertificate_active_key ) {
+		\FreeFormCertificate\Core\AdminNotice::callout( 'warning', '<p>' . esc_html__( 'No signing key yet. Forms with a signed QR mode print the link only until one is generated.', 'ffcertificate' ) . '</p>', array( 'classes' => array( 'inline' ) ) );
+	} else {
+		$ffcertificate_active = $ffcertificate_keys['keys'][ $ffcertificate_active_key ];
+		?>
+		<dl class="ffc-facts">
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Active key', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value">
+				<code><?php echo esc_html( $ffcertificate_active_key ); ?></code>
+				<?php
+				/* translators: %s: date the key was created */
+				echo esc_html( sprintf( __( 'created on %s', 'ffcertificate' ), \FreeFormCertificate\Core\DateFormatter::format_date( $ffcertificate_active['created'] ) ) );
+				?>
+			</dd>
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Algorithm', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value"><?php echo esc_html( \FreeFormCertificate\Core\SigningKeys::ALGORITHM ); ?></dd>
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Fingerprint', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value"><code><?php echo esc_html( \FreeFormCertificate\Core\SigningKeys::fingerprint( $ffcertificate_active_key ) ); ?></code></dd>
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Signed certificates', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value"><?php echo esc_html( number_format_i18n( (int) ( $ffcertificate_key_counts[ $ffcertificate_active_key ] ?? 0 ) ) ); ?></dd>
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Public key', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value"><code><?php echo esc_html( $ffcertificate_active['public'] ); ?></code></dd>
+		</dl>
+		<?php
+		if ( ! \FreeFormCertificate\Core\SigningKeys::secret_is_encrypted() ) {
+			\FreeFormCertificate\Core\AdminNotice::callout( 'warning', '<p>' . esc_html__( 'The private key is stored unencrypted, because this site has no encryption key. Configure one under Settings → Advanced and generate a new signing key.', 'ffcertificate' ) . '</p>', array( 'classes' => array( 'inline' ) ) );
+		}
+	}
+
+	$ffcertificate_retired = array_filter( $ffcertificate_keys['keys'], static fn( array $key ): bool => $key['retired'] > 0 );
+	if ( array() !== $ffcertificate_retired ) {
+		?>
+		<h3><?php esc_html_e( 'Previous keys', 'ffcertificate' ); ?></h3>
+		<table class="widefat striped">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Key', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Used from', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Until', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Signed certificates', 'ffcertificate' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $ffcertificate_retired as $ffcertificate_key_id => $ffcertificate_key ) : ?>
+					<tr>
+						<td><code><?php echo esc_html( (string) $ffcertificate_key_id ); ?></code></td>
+						<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( $ffcertificate_key['created'] ) ); ?></td>
+						<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( $ffcertificate_key['retired'] ) ); ?></td>
+						<td><?php echo esc_html( number_format_i18n( (int) ( $ffcertificate_key_counts[ $ffcertificate_key_id ] ?? 0 ) ) ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p class="description"><?php esc_html_e( 'A previous key is never deleted: it keeps verifying the certificates it signed.', 'ffcertificate' ); ?></p>
+		<?php
+	}
+
+	if ( $ffcertificate_can_rotate ) {
+		// The question is ffc-core's delegated `[data-confirm]` (#2535).
+		$ffcertificate_key_button = '' === $ffcertificate_active_key
+			? array(
+				'label'    => __( 'Generate key', 'ffcertificate' ),
+				'category' => 'primary',
+				'icon'     => 'key',
+				'href'     => $ffcertificate_rotate_url,
+			)
+			: array(
+				'label'    => __( 'Rotate key', 'ffcertificate' ),
+				'category' => 'caution',
+				'icon'     => 'key',
+				'href'     => $ffcertificate_rotate_url,
+				'attrs'    => array(
+					'data-confirm'          => __( "Generate a new signing key?\n\nCertificates issued from now on are signed with the new key. The current key is retired and keeps verifying the certificates it signed.", 'ffcertificate' ),
+					'data-confirm-category' => 'caution',
+				),
+			);
+		echo '<p>' . \FreeFormCertificate\Admin\AdminUI::button( $ffcertificate_key_button ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Button::html() escapes every value.
+	} else {
+		echo '<p class="description">' . esc_html__( 'Generating or rotating the key needs the Danger Zone capability.', 'ffcertificate' ) . '</p>';
+	}
+	?>
+</div>
+
 </div><!-- .ffc-settings-wrap -->

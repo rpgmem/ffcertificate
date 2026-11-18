@@ -211,10 +211,10 @@ final class CertificateSigner {
 	 * @return array<string, string>
 	 */
 	public static function fields( array $submission, string $key_id ): array {
-		$form_id = (int) ( $submission['form_id'] ?? 0 );
-		$data    = SubmissionHandler::submission_data( $submission );
+		$form_id             = (int) ( $submission['form_id'] ?? 0 );
+		$data                = SubmissionHandler::submission_data( $submission );
 		list( $start, $end ) = EventDate::range( $form_id );
-		$values  = CertificateTemplateLink::values( $form_id );
+		$values              = CertificateTemplateLink::values( $form_id );
 
 		return array(
 			'form_id'       => (string) $form_id,

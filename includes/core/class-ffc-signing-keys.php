@@ -136,7 +136,7 @@ final class SigningKeys {
 	public static function sign( string $message ): ?array {
 		$id     = self::active_id();
 		$secret = '' === $id ? null : self::secret( $id );
-		if ( null === $secret ) {
+		if ( null === $secret || '' === $secret ) {
 			return null;
 		}
 		try {
@@ -160,7 +160,7 @@ final class SigningKeys {
 	public static function verify( string $message, string $signature, string $id ): bool {
 		$public = self::public_key( $id );
 		$raw    = self::unb64( $signature );
-		if ( null === $public || SODIUM_CRYPTO_SIGN_BYTES !== strlen( $raw ) ) {
+		if ( null === $public || '' === $public || SODIUM_CRYPTO_SIGN_BYTES !== strlen( $raw ) ) {
 			return false;
 		}
 		try {
@@ -248,6 +248,7 @@ final class SigningKeys {
 	 * @param string $raw Bytes.
 	 */
 	public static function b64( string $raw ): string {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: keys and signatures travel as base64url text.
 		return rtrim( strtr( base64_encode( $raw ), '+/', '-_' ), '=' );
 	}
 
@@ -257,6 +258,7 @@ final class SigningKeys {
 	 * @param string $text Base64url.
 	 */
 	public static function unb64( string $text ): string {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: reading back a base64url key or signature.
 		$raw = base64_decode( strtr( $text, '-_', '+/' ), true );
 		return false === $raw ? '' : $raw;
 	}

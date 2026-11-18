@@ -24,6 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * One certificate's signed records.
+ *
+ * @phpstan-type SignatureRow array{id: numeric-string|int, submission_id: numeric-string|int, key_id: string, record_encrypted: string, record_hash: string, signature_full: string, signature_compact: string, signed_at: numeric-string|int, superseded_at: numeric-string|int|null}
+ * @phpstan-type KeyCountRow array{key_id: string, total: numeric-string|int}
  */
 final class CertificateSignatureRepository {
 
@@ -36,6 +39,11 @@ final class CertificateSignatureRepository {
 	public static function current( int $submission_id ): ?array {
 		global $wpdb;
 
+		/**
+		 * The row as `ARRAY_A` returns it.
+		 *
+		 * @var SignatureRow|null $row
+		 */
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE submission_id = %d AND superseded_at IS NULL ORDER BY id DESC LIMIT 1',
@@ -48,17 +56,17 @@ final class CertificateSignatureRepository {
 			return null;
 		}
 
-		$stored = (string) $row['record_encrypted'];
+		$stored = $row['record_encrypted'];
 		$record = 0 === strpos( $stored, Encryption::V2_PREFIX ) ? (string) Encryption::decrypt( $stored ) : $stored;
 
 		return array(
 			'id'                => (int) $row['id'],
 			'submission_id'     => (int) $row['submission_id'],
-			'key_id'            => (string) $row['key_id'],
+			'key_id'            => $row['key_id'],
 			'record'            => $record,
-			'record_hash'       => (string) $row['record_hash'],
-			'signature_full'    => (string) $row['signature_full'],
-			'signature_compact' => (string) $row['signature_compact'],
+			'record_hash'       => $row['record_hash'],
+			'signature_full'    => $row['signature_full'],
+			'signature_compact' => $row['signature_compact'],
 			'signed_at'         => (int) $row['signed_at'],
 		);
 	}
@@ -135,6 +143,11 @@ final class CertificateSignatureRepository {
 	public static function count_by_key(): array {
 		global $wpdb;
 
+		/**
+		 * The rows as `ARRAY_A` returns them.
+		 *
+		 * @var list<KeyCountRow>|null $rows
+		 */
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT key_id, COUNT(*) AS total FROM %i WHERE superseded_at IS NULL GROUP BY key_id',
@@ -144,7 +157,7 @@ final class CertificateSignatureRepository {
 		);
 		$out  = array();
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
-			$out[ (string) $row['key_id'] ] = (int) $row['total'];
+			$out[ $row['key_id'] ] = (int) $row['total'];
 		}
 		return $out;
 	}

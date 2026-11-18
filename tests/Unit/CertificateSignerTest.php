@@ -6,6 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\SigningKeys;
+use FreeFormCertificate\Frontend\VerificationResponseRenderer;
 use FreeFormCertificate\Submissions\CertificateSignatureRepository;
 use FreeFormCertificate\Submissions\CertificateSigner;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
@@ -22,6 +23,7 @@ use PHPUnit\Framework\TestCase;
  * @covers \FreeFormCertificate\Submissions\CertificateSigner
  * @covers \FreeFormCertificate\Submissions\CertificateSignatureRepository
  * @covers \FreeFormCertificate\Submissions\CertificateSignatureActivator
+ * @covers \FreeFormCertificate\Frontend\VerificationResponseRenderer::integrity_notice
  */
 final class CertificateSignerTest extends TestCase {
 
@@ -239,5 +241,55 @@ final class CertificateSignerTest extends TestCase {
 
 		$this->assertSame( array(), $this->table->rows );
 	}
-}
 
+	/**
+	 * The verification page's notice for a submission row as the database
+	 * returns it (the columns this fixture stores in plain text).
+	 *
+	 * @param array<string, mixed> $row Row.
+	 */
+	private function notice( array $row ): string {
+		foreach ( array( '__', 'esc_html', 'esc_attr', 'esc_html__' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		Functions\when( 'get_option' )->alias( fn( string $name, $default = false ) => 'date_format' === $name ? 'Y-m-d' : ( $this->options[ $name ] ?? $default ) );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		// The table has split columns; the decrypted row's `cpf_rf` is derived.
+		$row['cpf'] = $row['cpf_rf'];
+		unset( $row['cpf_rf'] );
+		return ( new VerificationResponseRenderer() )->integrity_notice( (object) $row );
+	}
+
+	public function test_the_verification_page_confirms_an_intact_certificate(): void {
+		SigningKeys::rotate();
+		CertificateSigner::sign( 345, $this->submission() );
+
+		$html = $this->notice( $this->submission() );
+
+		$this->assertStringContainsString( 'Integrity confirmed', $html );
+		$this->assertStringContainsString( 'ffc-icon-shield', $html );
+	}
+
+	public function test_the_verification_page_names_the_changed_field(): void {
+		SigningKeys::rotate();
+		CertificateSigner::sign( 345, $this->submission() );
+
+		$html = $this->notice( $this->submission( array( 'data' => self::json( array( 'name' => 'Outra Pessoa' ) ) ) ) );
+
+		$this->assertStringContainsString( 'Changed after signing', $html );
+		$this->assertStringContainsString( 'Name', $html );
+	}
+
+	public function test_the_verification_page_refuses_a_broken_signature(): void {
+		SigningKeys::rotate();
+		CertificateSigner::sign( 345, $this->submission() );
+		$id                                         = array_key_first( $this->table->rows );
+		$this->table->rows[ $id ]['signature_full'] = str_repeat( 'A', 86 );
+
+		$this->assertStringContainsString( 'Signature not valid', $this->notice( $this->submission() ) );
+	}
+
+	public function test_the_verification_page_says_nothing_about_an_unsigned_certificate(): void {
+		$this->assertSame( '', $this->notice( $this->submission() ) );
+	}
+}

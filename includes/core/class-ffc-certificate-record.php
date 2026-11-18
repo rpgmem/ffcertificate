@@ -141,7 +141,7 @@ final class CertificateRecord {
 	 * Join values with the separator, escaping a separator or a backslash
 	 * inside a value with a backslash.
 	 *
-	 * @param list<string> $values Already normalized values.
+	 * @param string[] $values Already normalized values, in order.
 	 */
 	public static function join( array $values ): string {
 		return implode(

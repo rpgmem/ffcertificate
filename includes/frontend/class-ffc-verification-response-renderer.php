@@ -101,10 +101,7 @@ class VerificationResponseRenderer {
 	 * @param object $submission The submission row.
 	 */
 	public function integrity_notice( object $submission ): string {
-		$row = ( new \FreeFormCertificate\Submissions\SubmissionHandler() )->decrypt_submission_data( (array) $submission );
-		if ( ! is_array( $row ) ) {
-			return '';
-		}
+		$row       = ( new \FreeFormCertificate\Submissions\SubmissionHandler() )->decrypt_submission_data( (array) $submission );
 		$integrity = \FreeFormCertificate\Submissions\CertificateSigner::integrity( $row );
 
 		switch ( $integrity['state'] ) {
