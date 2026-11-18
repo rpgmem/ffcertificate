@@ -315,6 +315,21 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['event_date_from_layout'] );
 					break;
 
+				case 'certificate_signing_backfill':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\CertificateSigningBackfillMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-certificate-signing-backfill-migration-strategy.php';
+					}
+
+					$this->strategies['certificate_signing_backfill'] = new \FreeFormCertificate\Migrations\Strategies\CertificateSigningBackfillMigrationStrategy();
+					unset( $this->strategy_errors['certificate_signing_backfill'] );
+					break;
+
 				case 'shared_template_from_layout':
 					$strategy_dir = __DIR__ . '/strategies/';
 
