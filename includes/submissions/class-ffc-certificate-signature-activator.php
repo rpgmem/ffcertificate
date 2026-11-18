@@ -68,9 +68,9 @@ class CertificateSignatureActivator {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		$charset_collate = $wpdb->get_charset_collate();
-		$table           = self::table();
+		$table_name      = self::table();
 
-		$sql = "CREATE TABLE $table (
+		$sql = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			submission_id bigint(20) unsigned NOT NULL,
 			key_id varchar(16) NOT NULL,
