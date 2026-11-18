@@ -65,6 +65,10 @@ function markup(json) {
 						<p data-ffc-ve-image-media><button type="button" data-ffc-ve-choose-image="1">Choose</button><span data-ffc-ve-image-name></span></p>
 						<select data-ffc-ve-prop="fit"><option value="contain">C</option><option value="cover">V</option></select>
 					</fieldset>
+					<fieldset data-ffc-ve-for="qr">
+						<input type="number" data-ffc-ve-prop="margin" data-ffc-ve-number>
+						<p data-ffc-ve-qr-fit></p>
+					</fieldset>
 					<fieldset data-ffc-ve-for="frame">
 						<input type="color" data-ffc-ve-prop="fill">
 						<input type="checkbox" data-ffc-ve-no-fill>
@@ -122,7 +126,18 @@ describe('ffc-visual-editor.js', () => {
 			ajaxUrl: '/wp-admin/admin-ajax.php',
 			previewError: 'Could not draw.',
 			imageChosen: 'Image #%d',
-			noImage: 'No image.'
+			noImage: 'No image.',
+			// The module counts PHP measures for each mode (#2639).
+			qrFit: {
+				modulePx: 0.3 * 1123 / 297,
+				modes: [
+					{ modules: 77, label: 'Full' },
+					{ modules: 65, label: 'Compact' },
+					{ modules: 37, label: 'Link' }
+				],
+				fits: 'Fits: %s.',
+				none: 'Too small: %d px.'
+			}
 		};
 		window.matchMedia = (q) => ({ matches: q === '(pointer: fine)', media: q, addEventListener() {}, removeEventListener() {} });
 		loadScript('assets/js/ffc-core.js');
@@ -357,6 +372,28 @@ describe('ffc-visual-editor.js', () => {
 			expect(g().fontState('Georgia, serif', known)).toEqual({ missing: false, fallback: '' });
 			expect(g().fontState('"Cinzel", Georgia, serif', known)).toEqual({ missing: true, fallback: 'Georgia' });
 			expect(g().fontState('Cinzel', known)).toEqual({ missing: true, fallback: '' });
+		});
+
+		it('says which QR modes a QR box prints readably (#2639)', () => {
+			const fit = window.ffcVisualEditor.qrFit;
+			const text = (w, h, margin) => window.FFCVisualEditor.qrFitText({ w, h, margin }, fit);
+			// PHP's px_for(): full 92 px, compact 79 px, link 47 px at margin 2.
+			expect(text(92, 92, 2)).toBe('Fits: Full; Compact; Link.');
+			expect(text(91, 120, 2)).toBe('Fits: Compact; Link.', 'the shorter side is the size');
+			expect(text(78, 78, 2)).toBe('Fits: Link.');
+			expect(text(46, 46, 2)).toBe('Too small: 47 px.');
+			expect(text(88, 88, 0)).toBe('Fits: Full; Compact; Link.', 'a smaller quiet zone needs less room');
+			expect(window.FFCVisualEditor.qrFitText({ w: 90, h: 90 }, {})).toBe('');
+		});
+
+		it('shows the fit of the selected QR code in its panel', () => {
+			const ed = editor();
+			select(ed, 'seal');
+			const note = panel().querySelector('[data-ffc-ve-qr-fit]');
+			expect(note.textContent).toBe('Fits: Full; Compact; Link.', '90 px with no quiet zone');
+			ed.layout.elements[2].margin = 2;
+			ed.render();
+			expect(note.textContent).toBe('Fits: Compact; Link.');
 		});
 
 		it('inserts at a caret, replacing a selection', () => {

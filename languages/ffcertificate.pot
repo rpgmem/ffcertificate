@@ -34807,7 +34807,7 @@ msgid "A previous key is never deleted: it keeps verifying the certificates it s
 msgstr ""
 
 #: includes/settings/views/documentation/reference-qr-codes.php:76
-msgid "A signed QR code carries more data, so it needs more room on the page and is drawn without the logo of the QR Code design. The form editor warns when the layout's QR code is smaller than the mode needs to be read reliably on paper."
+msgid "A signed QR code carries more data, so it needs more room on the page and is drawn without the logo of the QR Code design. The form editor warns when the layout's QR code is smaller than the mode needs to be read reliably on paper, and the visual editor's QR code panel says which modes the selected code's size prints readably."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-certificates.php:259
@@ -35108,4 +35108,20 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-qr-codes.php:77
 msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:284
+msgid "Copy public key"
+msgstr ""
+
+#. translators: %s: comma-separated QR modes, such as "Signed, compact; Link only"
+#: includes/admin/class-ffc-cert-template-admin-screen.php:879
+#, php-format
+msgid "At this size the code is read reliably on paper in: %s."
+msgstr ""
+
+#. translators: %d: minimum size, in px
+#: includes/admin/class-ffc-cert-template-admin-screen.php:881
+#, php-format
+msgid "Too small to be read reliably on paper: even the link alone needs %d px."
 msgstr ""
