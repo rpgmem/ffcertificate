@@ -38,15 +38,15 @@
     <div style="position: absolute;top: 615px;left: 200px;width: 723px;box-sizing: border-box">
         <table style="width: 100%;border-collapse: collapse">
             <tr>
-                <td style="width: 45%;text-align: center;vertical-align: bottom">
+                <td style="width: 43%;text-align: center;vertical-align: bottom">
                     <img src="{{signer2:signature}}" style="width: 130px;height: auto">
                     <div style="border-top: 1px solid #1e2a3a;margin: 0 20px;padding-top: 6px">
                         <strong style="font-size: 10.5pt">{{signer2:role}}</strong><br>
                         <span style="font-size: 9.5pt;color: #52606d">{{signer2:name}}</span>
                     </div>
                 </td>
-                <td style="width: 10%"></td>
-                <td style="width: 45%;text-align: center;vertical-align: bottom">
+                <td style="width: 14%;text-align: center;vertical-align: bottom">{{qr_code:size=96:margin=2}}</td>
+                <td style="width: 43%;text-align: center;vertical-align: bottom">
                     <img src="{{signer1:signature}}" style="width: 130px;height: auto">
                     <div style="border-top: 1px solid #1e2a3a;margin: 0 20px;padding-top: 6px">
                         <strong style="font-size: 10.5pt">{{signer1:role}}</strong><br>
@@ -58,6 +58,6 @@
     </div>
 
     <div style="position: absolute;top: 722px;left: 80px;width: 963px;text-align: center;font-size: 8.5pt;color: #7b8794;box-sizing: border-box">
-        {{qr_code:size=50:margin=0}} &nbsp; Verify at {{validation_url}} with code <strong>{{auth_code}}</strong>
+        Verify at {{validation_url}} with code <strong>{{auth_code}}</strong>
     </div>
 </div>
