@@ -42,6 +42,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A QR code element on the visual editor's canvas shows a sample code** (#2616) instead of the words "QR code", which overflowed small boxes. The sample ships as an SVG encoding the plugin's GitHub address; the PDF and the preview still print the real code.
 - Every password, key, salt and access hash in the tests, the CI workflow and the screenshot seed now starts with `fake-`, taken from `tests/Support/FakeCredentials.php` (mirrored for JS), and a guard fails on a credential literal that does not (#2637).
 - **The default certificate models print their QR code at 96 px between the signers**, where a signed QR code is readable; the verification line becomes two centred lines and model 6's signer columns move apart. Model 5 is unchanged. Forms on a default model get the Update layout notice (#2639).
+- **html2canvas-pro moves to 2.6.4** (#2643), byte-identical to upstream; the six default certificate models rasterise to the same pixels as under 2.5.0.
 
 ### Removed
 
