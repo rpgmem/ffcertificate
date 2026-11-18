@@ -175,6 +175,17 @@ class MigrationRegistry {
 			'order'       => 15,
 		);
 
+		// #2639: certificates issued before their form chose a signed QR mode,
+		// or before the site had a signing key, get the signed record the
+		// verification page and the QR code read.
+		$this->migrations['certificate_signing_backfill'] = array(
+			'name'        => __( 'Certificates: Sign Certificates Already Issued', 'ffcertificate' ),
+			'description' => __( 'Sign every published certificate of a form on a signed QR mode (Compact or Full) that has no signed record yet: those issued before the form chose the mode, or before the site had a signing key. Forms on Link only are never touched. The record is signed as the certificate reads today, with its original issue date, and a PDF already downloaded keeps the plain link until it is downloaded again. Generate a signing key first. Completion here means every such certificate was EXAMINED: one that cannot be signed is listed in the activity log and counted as done; switching another form to a signed mode starts the walk again.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-key',
+			'batch_size'  => 25,
+			'order'       => 16,
+		);
+
 		// #2245: PCD moved from the candidate to each notice classification.
 		$this->migrations['recruitment_pcd_per_notice'] = array(
 			'name'        => __( 'Recruitment: PCD per Notice', 'ffcertificate' ),

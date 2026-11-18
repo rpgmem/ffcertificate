@@ -88,6 +88,7 @@ return array(
 	'Migrations>Repositories',
 	'Migrations>Reregistration',
 	'Migrations>Security',
+	'Migrations>Submissions',
 	'Migrations>UserDashboard',
 	'Privacy>Admin',
 	'Privacy>Audience',

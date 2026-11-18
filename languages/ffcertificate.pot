@@ -35076,6 +35076,40 @@ msgstr ""
 msgid "You do not have permission to download the verifier."
 msgstr ""
 
+#: includes/migrations/class-ffc-migration-registry.php:182
+msgid "Certificates: Sign Certificates Already Issued"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:183
+msgid "Sign every published certificate of a form on a signed QR mode (Compact or Full) that has no signed record yet: those issued before the form chose the mode, or before the site had a signing key. Forms on Link only are never touched. The record is signed as the certificate reads today, with its original issue date, and a PDF already downloaded keeps the plain link until it is downloaded again. Generate a signing key first. Completion here means every such certificate was EXAMINED: one that cannot be signed is listed in the activity log and counted as done; switching another form to a signed mode starts the walk again."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:124
+msgid "Every certificate of a form on a signed QR mode has been examined."
+msgstr ""
+
+#. translators: %d: number of certificates signed.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:147
+#, php-format
+msgid "Signed %d certificate."
+msgid_plural "Signed %d certificates."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: number of certificates signed, 2: number that could not be signed.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:152
+#, php-format
+msgid "Signed %1$d certificates; %2$d could not be signed and are listed in the activity log."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:168
+msgid "Generate a signing key first, under Settings → Certificates."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again."
+msgstr ""
+
 #: includes/settings/views/ffc-tab-certificates.php:284
 msgid "Copy public key"
 msgstr ""

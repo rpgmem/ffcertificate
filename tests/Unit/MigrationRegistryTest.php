@@ -67,7 +67,8 @@ class MigrationRegistryTest extends TestCase {
 		// eighteen once the reregistration draft encryption did (#2242),
 		// seventeen once the refused-address cleanup did (#2109), sixteen
 		// once the rate-limit log address encryption did (#2109).
-		// Eighteen once the shared-template card joined (#2583).
+		// Eighteen once the shared-template card joined (#2583), nineteen once
+		// the certificate signing backfill did (#2639).
 		// Fourteen once the activity-log IP encryption joined (#1574),
 		// thirteen once the name-parts backfill did (#1552), twelve once the
 		// birth-date backfill did (#1538), both in 6.33.0. Eleven
@@ -77,7 +78,7 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 18, $all );
+		$this->assertCount( 19, $all );
 		// #2583: copies of one layout move onto the shared template.
 		$this->assertArrayHasKey( 'shared_template_from_layout', $all );
 		// #2580: the event date typed into each layout moves to its field.
@@ -112,6 +113,9 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'birth_date_backfill', $all );
 		// The split of full names stored whole in `first_name` (#1552).
 		$this->assertArrayHasKey( 'name_parts_backfill', $all );
+		// The signing of certificates issued before their form chose a signed
+		// QR mode, or before the first signing key (#2639).
+		$this->assertArrayHasKey( 'certificate_signing_backfill', $all );
 		// The encryption of sensitive answers drafts stored in clear (#2242).
 		$this->assertArrayHasKey( 'rereg_draft_encryption', $all );
 		// The encryption of client IPs older rows still hold in clear (#1574).
