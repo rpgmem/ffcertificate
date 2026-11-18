@@ -109,8 +109,13 @@ class CertTemplateSeeder {
 	 * signer columns, the verification line around the QR code, model 5's
 	 * gradient band, model 6's corner triangles and its course paragraph were
 	 * HTML blocks, which the editor can move but not edit.
+	 *
+	 * Version 16 prints the QR code of models 1, 2, 3, 4 and 6 at 96 px with a
+	 * margin of 2 modules, between the signers, where a signed QR code is
+	 * readable (#2639); their verification line becomes two centred lines,
+	 * model 6's signer columns move 16 px apart each, and model 5 is unchanged.
 	 */
-	private const SEED_VERSION = 15;
+	private const SEED_VERSION = 16;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background

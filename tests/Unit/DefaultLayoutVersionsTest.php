@@ -24,12 +24,12 @@ class DefaultLayoutVersionsTest extends TestCase {
 	 * the replaced body is still offered the new one.
 	 */
 	private const CURRENT = array(
-		'default_certificate_1' => '10373da68d067d35302bd6b70e7deef703cb6e72',
-		'default_certificate_2' => '67a108177a6ede3a5c3138658aef58ef89d39dfc',
-		'default_certificate_3' => '6017caa783037e13c7dd7d7e9454b15383ed69d3',
-		'default_certificate_4' => 'd1a7434215dfd23420658583d13e9c16d5bab346',
+		'default_certificate_1' => '9da168d1ebad6da06e61616d47cc64ff66b31410',
+		'default_certificate_2' => '84fe4570ca49446ed47e99fca7d85afea4a2c6e1',
+		'default_certificate_3' => 'f8834c2745d242f4afb7a74b890e0d423208c7a6',
+		'default_certificate_4' => '21b69c261fa8b2c8ea9efadedbba4d13f1adca0a',
 		'default_certificate_5' => '0488042b752ca132c64a8122ff56cd71c9759d23',
-		'default_certificate_6' => '34ecc238fb6a21f08342858c1c58ec74de0d1c6d',
+		'default_certificate_6' => '3f48d917c5c7a2576f6e3e5b2f5ea97210550804',
 	);
 
 	/** @var int Pool id the default lookup answers; 0 means the pool lacks it. */
