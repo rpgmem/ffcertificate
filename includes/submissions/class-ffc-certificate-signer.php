@@ -171,8 +171,10 @@ final class CertificateSigner {
 	 * @return array{state: string, changed: list<string>, key: string, signed_at: int}
 	 */
 	public static function integrity( array $submission ): array {
-		$id     = (int) ( $submission['id'] ?? 0 );
-		$signed = $id > 0 ? CertificateSignatureRepository::current( $id ) : null;
+		$id = (int) ( $submission['id'] ?? 0 );
+		// No key was ever generated: nothing can be signed, so the table is
+		// not asked on every verification of an install that never opted in.
+		$signed = $id > 0 && array() !== SigningKeys::public_keys() ? CertificateSignatureRepository::current( $id ) : null;
 		$out    = array(
 			'state'     => self::STATE_UNSIGNED,
 			'changed'   => array(),

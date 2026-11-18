@@ -209,6 +209,36 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc_update_default_layout_btn', $this->render( array( 'pdf_layout' => '<p>own layout</p>' ) ) );
 	}
 
+	public function test_the_qr_mode_row_offers_three_modes_and_keeps_the_saved_one(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+
+		$html = $this->render( array( 'qr_mode' => 'full', 'pdf_layout' => '<p>{{qr_code:size=96:margin=2}}</p>' ) );
+
+		$this->assertStringContainsString( 'name="ffc_config[qr_mode]"', $html );
+		foreach ( array( 'link', 'compact', 'full' ) as $mode ) {
+			$this->assertStringContainsString( 'value="' . $mode . '"', $html );
+		}
+		$this->assertMatchesRegularExpression( '/value="full"[^>]*checked/', $html );
+		$this->assertStringNotContainsString( 'prints the QR code at', $html, 'A 96 px QR fits both signed modes.' );
+	}
+
+	public function test_a_small_qr_a_missing_key_and_a_logo_are_said_on_the_signed_modes(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'get_option' )->alias( static fn( $name, $default = false ) => 'ffc_settings' === $name ? array( 'qr_design_logo_id' => 9 ) : $default );
+
+		$html = $this->render( array( 'qr_mode' => 'compact', 'pdf_layout' => '<p>{{qr_code:size=50:margin=0}}</p>' ) );
+
+		$this->assertStringContainsString( 'The layout prints the QR code at 50 px; this mode needs at least', $html );
+		$this->assertStringContainsString( 'No signing key exists yet', $html );
+		$this->assertStringContainsString( 'The global QR design has a logo', $html );
+	}
+
+	public function test_a_layout_with_no_qr_says_the_signature_has_nowhere_to_go(): void {
+		$html = $this->render( array( 'qr_mode' => 'full', 'pdf_layout' => '<p>No code here</p>' ) );
+
+		$this->assertStringContainsString( 'The layout prints no QR code', $html );
+	}
+
 	/**
 	 * Render the metabox for a post id.
 	 *
