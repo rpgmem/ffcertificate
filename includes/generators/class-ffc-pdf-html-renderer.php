@@ -204,12 +204,21 @@ class PdfHtmlRenderer {
 		// Get submission ID for caching.
 		$submission_id = isset( $data['submission_id'] ) ? absint( $data['submission_id'] ) : 0;
 
+		// The signed payload of a form in a signed QR mode (#2639), fitted to
+		// each placeholder's printed size.
+		$fragments = \FreeFormCertificate\Generators\SignedQrLink::fragments( $submission_id );
+
 		// Replace all QR Code placeholders.
 		$layout = preg_replace_callback(
 			'/\{\{qr_code(?::([^}]+))?\}\}/',
-			function ( $matches ) use ( $qr_generator, $target_url, $submission_id ) {
+			function ( $matches ) use ( $qr_generator, $target_url, $submission_id, $fragments ) {
 				$placeholder = $matches[0];
-				$result      = $qr_generator->parse_and_generate( $placeholder, $target_url, $submission_id );
+				$url         = $target_url;
+				$placement   = null === $fragments ? null : ( $qr_generator->placements( $placeholder )[0] ?? null );
+				if ( null !== $placement ) {
+					$url = \FreeFormCertificate\Generators\SignedQrLink::for_placement( $target_url, $fragments, $placement['size'], $placement['margin'], $placement['error_level'] );
+				}
+				$result = $qr_generator->parse_and_generate( $placeholder, $url, $submission_id );
 
 				\FreeFormCertificate\Core\Debug::log_pdf(
 					'QR Code placeholder replaced',

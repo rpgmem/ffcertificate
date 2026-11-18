@@ -137,12 +137,18 @@ class QRCodeGenerator {
 		// instead of the PNG: it needs no GD and no temp file, so it is not
 		// cached either -- and skipping the cache is what keeps a design
 		// change from being masked by PNGs stored before it (#1563).
+		// A signed link (#2639) is drawn without the design's logo, and never
+		// served from or written to the per-submission PNG cache, which holds
+		// whatever link was drawn first.
+		$signed = SignedQrLink::is_signed( $url );
+
 		if ( QrDesign::applies_to( 'certificate' ) ) {
 			/** This filter is documented below. */
-			$url = apply_filters( 'ffcertificate_qrcode_url', $url, $submission_id, $params );
+			$url    = apply_filters( 'ffcertificate_qrcode_url', $url, $submission_id, $params );
+			$design = QrDesign::from_settings();
 			// A frame makes the document taller than wide, so the height comes
 			// from the renderer rather than repeating the width.
-			$drawn = QrSvgRenderer::render_sized( $url, QrDesign::from_settings(), $params['error_level'], $params['margin'], $params['size'] );
+			$drawn = QrSvgRenderer::render_sized( $url, $signed ? $design->without_logo() : $design, $params['error_level'], $params['margin'], $params['size'] );
 			if ( '' === $drawn['svg'] ) {
 				return '';
 			}
@@ -153,7 +159,7 @@ class QRCodeGenerator {
 		}
 
 		// Check cache if enabled and submission_id provided.
-		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
+		if ( ! $signed && $submission_id > 0 && $this->is_cache_enabled() ) {
 			$cached = $this->get_from_cache( $submission_id );
 			if ( $cached ) {
 				\FreeFormCertificate\Core\Debug::log_qrcode(
@@ -191,7 +197,7 @@ class QRCodeGenerator {
 		}
 
 		// Cache if enabled.
-		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
+		if ( ! $signed && $submission_id > 0 && $this->is_cache_enabled() ) {
 			$this->save_to_cache( $submission_id, $qr_base64 );
 			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'QR Code cached',

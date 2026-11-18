@@ -31,6 +31,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The default certificate models print their place, workload, dates and signers from the form** (#2624). Place and workload are template fields defaulting to the old examples, the completion date is the event date, the issue date the submission's, and the columns print signers 1 and 2; an empty signature is not drawn.
 - **The activity log can record the public CSV panel** (#2632). Two items under Public access and security: who opens the panel (form, masked CPF, address) and every refused attempt with its reason (hash, CPF, captcha, missing fields, expired page, rate limit). The hash is never recorded.
 - **Signed certificate records.** A form can sign each certificate it issues (Layout tab → QR code: Link only, Signed, compact or Signed, full), with an Ed25519 key generated and rotated in Settings → Certificates. The verification page says whether the certificate still matches what was signed and names any changed field; the editor warns when the layout's QR is too small for the mode (#2639).
+- **Signed QR codes.** On a form in a signed QR mode the certificate's QR code carries its signed record, full or compact as its printed size allows and without the logo. The verification page checks it in the browser, even offline, and flags a QR code issued for an earlier version; an offline verifier file is downloadable from the key card (#2639).
 
 ### Changed
 

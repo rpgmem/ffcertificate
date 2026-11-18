@@ -204,6 +204,21 @@ final class CertificateSigner {
 	}
 
 	/**
+	 * The record hash a certificate is signed with now, or '' when it is not
+	 * signed. The verification page compares it with the hash a signed QR code
+	 * carries, to tell a QR code printed for an earlier version (#2639).
+	 *
+	 * @param int $submission_id Submission id.
+	 */
+	public static function current_hash( int $submission_id ): string {
+		if ( $submission_id <= 0 || array() === SigningKeys::public_keys() ) {
+			return '';
+		}
+		$signed = CertificateSignatureRepository::current( $submission_id );
+		return null === $signed ? '' : $signed['record_hash'];
+	}
+
+	/**
 	 * A certificate's record fields as the database holds them now.
 	 *
 	 * @param array<string, mixed> $submission The decrypted submission row.
