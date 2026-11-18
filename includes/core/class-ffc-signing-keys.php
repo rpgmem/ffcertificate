@@ -180,7 +180,7 @@ final class SigningKeys {
 	 * @return string 64 hex characters, or '' for an empty identifier or an unknown key.
 	 */
 	public static function identifier_mac( string $identifier, string $id ): string {
-		$digits = (string) preg_replace( '/\D+/', '', $identifier );
+		$digits = DataSanitizer::normalize_cpf_rf( $identifier );
 		$secret = '' === $digits ? null : self::secret( $id );
 		if ( null === $secret ) {
 			return '';
