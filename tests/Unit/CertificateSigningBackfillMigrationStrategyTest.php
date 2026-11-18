@@ -170,6 +170,19 @@ final class CertificateSigningBackfillMigrationStrategyTest extends TestCase {
 		$this->assertStringContainsString( '1 could not be signed', (string) $result['message'] );
 	}
 
+	public function test_a_batch_that_signed_nothing_still_asks_for_the_next_one(): void {
+		SigningKeys::rotate();
+		$card = $this->card( array( 1 => 7, 2 => 7, 3 => 7 ), array( 7 ), array( 1, 2 ) );
+
+		$first  = $card->execute( 'certificate_signing_backfill', array( 'batch_size' => 2 ) );
+		$second = $card->execute( 'certificate_signing_backfill', array( 'batch_size' => 2 ) );
+
+		$this->assertSame( 0, $first['processed'] );
+		$this->assertTrue( $first['has_more'], 'The runner stops on processed 0 unless told otherwise.' );
+		$this->assertSame( 1, $second['processed'] );
+		$this->assertFalse( $second['has_more'] );
+	}
+
 	public function test_switching_another_form_to_a_signed_mode_starts_the_walk_again(): void {
 		SigningKeys::rotate();
 		$card = $this->card( array( 1 => 7, 2 => 8, 3 => 7 ), array( 7 ), array( 1 ) );

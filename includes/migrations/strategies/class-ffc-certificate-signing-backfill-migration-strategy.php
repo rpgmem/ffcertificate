@@ -105,6 +105,7 @@ class CertificateSigningBackfillMigrationStrategy implements MigrationStrategyIn
 			return array(
 				'success'   => false,
 				'processed' => 0,
+				'has_more'  => false,
 				'message'   => $ready->get_error_message(),
 			);
 		}
@@ -121,6 +122,7 @@ class CertificateSigningBackfillMigrationStrategy implements MigrationStrategyIn
 			return array(
 				'success'   => true,
 				'processed' => 0,
+				'has_more'  => false,
 				'message'   => __( 'Every certificate of a form on a signed QR mode has been examined.', 'ffcertificate' ),
 			);
 		}
@@ -141,6 +143,10 @@ class CertificateSigningBackfillMigrationStrategy implements MigrationStrategyIn
 			'success'   => true,
 			// What changed, never what was selected (#1378).
 			'processed' => $signed,
+			// From the cursor, not from `processed`: a batch whose every
+			// certificate failed signed nothing and still moved past them, so
+			// the runner must ask for the next one while any remain.
+			'has_more'  => $this->count_certificates( $forms, true, end( $ids ) ) > 0,
 			'message'   => 0 === $failed
 				? sprintf(
 					/* translators: %d: number of certificates signed. */
