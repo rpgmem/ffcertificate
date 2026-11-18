@@ -35157,3 +35157,37 @@ msgstr "Carga horária (horas):"
 #: includes/admin/class-ffc-signing-key-handler.php:70
 msgid "You do not have permission to download the verifier."
 msgstr "Você não tem permissão para baixar o verificador."
+
+#: includes/migrations/class-ffc-migration-registry.php:182
+msgid "Certificates: Sign Certificates Already Issued"
+msgstr "Certificados: Assinar os Certificados Já Emitidos"
+
+#: includes/migrations/class-ffc-migration-registry.php:183
+msgid "Sign every published certificate of a form on a signed QR mode (Compact or Full) that has no signed record yet: those issued before the form chose the mode, or before the site had a signing key. Forms on Link only are never touched. The record is signed as the certificate reads today, with its original issue date, and a PDF already downloaded keeps the plain link until it is downloaded again. Generate a signing key first. Completion here means every such certificate was EXAMINED: one that cannot be signed is listed in the activity log and counted as done; switching another form to a signed mode starts the walk again."
+msgstr "Assina cada certificado publicado de um formulário em modo de QR assinado (Compacto ou Completo) que ainda não tem registro assinado: os emitidos antes de o formulário escolher o modo, ou antes de o site ter uma chave de assinatura. Formulários em Somente link nunca são tocados. O registro é assinado como o certificado está hoje, com a data de emissão original, e um PDF já baixado mantém o link simples até ser baixado de novo. Gere uma chave de assinatura antes. Concluído aqui significa que cada um desses certificados foi EXAMINADO: um que não pode ser assinado fica registrado no log de atividades e conta como feito; passar outro formulário para um modo assinado recomeça a varredura."
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:124
+msgid "Every certificate of a form on a signed QR mode has been examined."
+msgstr "Todos os certificados dos formulários em modo de QR assinado foram examinados."
+
+#. translators: %d: number of certificates signed.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:147
+#, php-format
+msgid "Signed %d certificate."
+msgid_plural "Signed %d certificates."
+msgstr[0] "%d certificado assinado."
+msgstr[1] "%d certificados assinados."
+
+#. translators: 1: number of certificates signed, 2: number that could not be signed.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:152
+#, php-format
+msgid "Signed %1$d certificates; %2$d could not be signed and are listed in the activity log."
+msgstr "%1$d certificados assinados; %2$d não puderam ser assinados e estão registrados no log de atividades."
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:168
+msgid "Generate a signing key first, under Settings → Certificates."
+msgstr "Gere uma chave de assinatura antes, em Configurações → Certificados."
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again."
+msgstr "Certificados emitidos antes de o formulário escolher um modo assinado, ou antes da primeira chave, não têm registro assinado. O cartão Certificados: Assinar os Certificados Já Emitidos, em Configurações → Migrações de Dados, os assina, apenas nos formulários em modo assinado, como cada certificado está hoje e com a data de emissão original. Um PDF já baixado mantém o link simples até ser baixado de novo."

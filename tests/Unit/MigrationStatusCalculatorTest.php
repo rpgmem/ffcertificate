@@ -536,6 +536,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 			'name_parts_backfill'             => array( 'name_parts_backfill', $ns . 'NamePartsBackfillMigrationStrategy' ),
 			'birth_date_backfill'             => array( 'birth_date_backfill', $ns . 'BirthDateBackfillMigrationStrategy' ),
 			'rereg_draft_encryption'          => array( 'rereg_draft_encryption', $ns . 'ReregistrationDraftEncryptionMigrationStrategy' ),
+			'certificate_signing_backfill'    => array( 'certificate_signing_backfill', $ns . 'CertificateSigningBackfillMigrationStrategy' ),
 		);
 	}
 
