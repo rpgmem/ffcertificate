@@ -8,6 +8,7 @@
     },
     "require-dev": {
         "brain/monkey": "^2.6",
+        "chillerlan/php-qrcode": "^6.0",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "phpcompatibility/phpcompatibility-wp": "^2.1",
         "phpstan/phpstan": "^2.1",
