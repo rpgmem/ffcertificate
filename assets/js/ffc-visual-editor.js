@@ -1779,6 +1779,36 @@
 		frame.open();
 	};
 
+	/**
+	 * Which QR modes a QR box prints readably (#2639), as the sentence the
+	 * panel shows. The box prints the code at its shorter side, quiet zone
+	 * included, and a mode fits when its modules plus that zone, at the
+	 * readable module size, take no more than that (SignedQrSize::px_for()).
+	 *
+	 * @param {Object} el  A QR element.
+	 * @param {Object} fit ffcVisualEditor.qrFit.
+	 * @return {string}
+	 */
+	function qrFitText(el, fit) {
+		if (!fit || !fit.modes || !fit.modes.length) {
+			return '';
+		}
+		var size = Math.floor(Math.min(Number(el.w) || 0, Number(el.h) || 0));
+		var margin = Math.max(0, parseInt(el.margin, 10) || 0);
+		var need = function (mode) {
+			return Math.ceil((mode.modules + 2 * margin) * fit.modulePx);
+		};
+		var fits = fit.modes.filter(function (mode) {
+			return need(mode) <= size;
+		}).map(function (mode) {
+			return mode.label;
+		});
+		if (!fits.length) {
+			return String(fit.none || '').replace('%d', String(need(fit.modes[fit.modes.length - 1])));
+		}
+		return String(fit.fits || '').replace('%s', fits.join('; '));
+	}
+
 	/** Show the selected element's properties; leave the control being typed in alone. */
 	Editor.prototype.renderProperties = function () {
 		var panel = this.props;
@@ -1855,6 +1885,10 @@
 					? String(this.s.imageChosen || 'Image #%d').replace('%d', String(el.attachment_id))
 					: (el.asset ? el.asset.split('/').pop() : (this.s.noImage || ''));
 			}
+		}
+		var qrNote = panel.querySelector('[data-ffc-ve-qr-fit]');
+		if (qrNote && el.type === 'qr') {
+			qrNote.textContent = qrFitText(el, this.s.qrFit);
 		}
 		this.renderFontState(el);
 	};
@@ -2170,7 +2204,7 @@
 		return editors;
 	}
 
-	window.FFCVisualEditor = { geometry: geometry, Editor: Editor, boot: boot };
+	window.FFCVisualEditor = { geometry: geometry, Editor: Editor, boot: boot, qrFitText: qrFitText };
 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', boot);

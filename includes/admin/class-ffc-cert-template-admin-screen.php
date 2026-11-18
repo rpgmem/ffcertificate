@@ -820,6 +820,8 @@ class CertTemplateAdminScreen {
 				'postId'         => $post_id,
 				// The canvas draws the page colour under the background (#2612).
 				'bgColor'        => $post_id > 0 ? (string) sanitize_hex_color( CertTemplateReader::get_bg_color( $post_id ) ) : '',
+				// Which QR modes the selected QR box prints readably (#2639).
+				'qrFit'          => self::qr_fit(),
 				'previewLoading' => __( 'Drawing the page…', 'ffcertificate' ),
 				'previewError'   => __( 'The preview could not be drawn.', 'ffcertificate' ),
 				/* translators: %s: comma-separated tags, such as {{auth_code}} */
@@ -844,6 +846,39 @@ class CertTemplateAdminScreen {
 					'html'  => __( 'HTML block', 'ffcertificate' ),
 				),
 			)
+		);
+	}
+
+	/**
+	 * What the visual editor needs to say which QR modes a QR box prints
+	 * readably (#2639): the modules across the representative payload of
+	 * each mode, and the page pixels one module takes at the readable size.
+	 * The box fits a mode when ceil( ( modules + 2 * margin ) * module_px )
+	 * is no larger than it, the rule `SignedQrSize::px_for()` applies.
+	 *
+	 * @return array{modulePx: float, modes: list<array{modules: int, label: string}>, fits: string, none: string}
+	 */
+	public static function qr_fit(): array {
+		$size  = \FreeFormCertificate\Generators\SignedQrSize::class;
+		$modes = array(
+			\FreeFormCertificate\Submissions\CertificateSigner::MODE_FULL    => __( 'Signed, full', 'ffcertificate' ),
+			\FreeFormCertificate\Submissions\CertificateSigner::MODE_COMPACT => __( 'Signed, compact', 'ffcertificate' ),
+			\FreeFormCertificate\Submissions\CertificateSigner::MODE_LINK    => __( 'Link only', 'ffcertificate' ),
+		);
+		$out   = array();
+		foreach ( $modes as $mode => $label ) {
+			$out[] = array(
+				'modules' => $size::modules( $size::sample( $mode ) ),
+				'label'   => $label,
+			);
+		}
+		return array(
+			'modulePx' => $size::MODULE_MM * $size::PX_PER_MM,
+			'modes'    => $out,
+			/* translators: %s: comma-separated QR modes, such as "Signed, compact; Link only" */
+			'fits'     => __( 'At this size the code is read reliably on paper in: %s.', 'ffcertificate' ),
+			/* translators: %d: minimum size, in px */
+			'none'     => __( 'Too small to be read reliably on paper: even the link alone needs %d px.', 'ffcertificate' ),
 		);
 	}
 
@@ -1355,6 +1390,7 @@ class CertTemplateAdminScreen {
 					<legend><?php esc_html_e( 'QR code', 'ffcertificate' ); ?></legend>
 					<?php self::number_control( 'margin', __( 'Quiet zone (modules)', 'ffcertificate' ), 0, 10, 1 ); ?>
 					<p class="description"><?php esc_html_e( 'The code links to the validation page; its size is the box.', 'ffcertificate' ); ?></p>
+					<p class="description" data-ffc-ve-qr-fit aria-live="polite"></p>
 				</fieldset>
 
 				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="frame">

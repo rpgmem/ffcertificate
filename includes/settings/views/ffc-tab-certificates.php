@@ -270,8 +270,28 @@ $ffcertificate_rotate_url = wp_nonce_url( add_query_arg( 'action', \FreeFormCert
 			<dd class="ffc-facts__value"><code><?php echo esc_html( \FreeFormCertificate\Core\SigningKeys::fingerprint( $ffcertificate_active_key ) ); ?></code></dd>
 			<dt class="ffc-facts__label"><?php esc_html_e( 'Signed certificates', 'ffcertificate' ); ?></dt>
 			<dd class="ffc-facts__value"><?php echo esc_html( number_format_i18n( (int) ( $ffcertificate_key_counts[ $ffcertificate_active_key ] ?? 0 ) ) ); ?></dd>
-			<dt class="ffc-facts__label"><?php esc_html_e( 'Public key', 'ffcertificate' ); ?></dt>
-			<dd class="ffc-facts__value"><code><?php echo esc_html( $ffcertificate_active['public'] ); ?></code></dd>
+			<dt class="ffc-facts__label"><label for="ffc-signing-public-key"><?php esc_html_e( 'Public key', 'ffcertificate' ); ?></label></dt>
+			<dd class="ffc-facts__value">
+				<?php
+				// A read-only input, not a <code>: the shared copy button
+				// (`.ffc-copy-link`, in ffc-core.js) reads the .val() of its target.
+				?>
+				<span class="ffc-shortcode-copy">
+					<input type="text" readonly id="ffc-signing-public-key" class="ffc-shortcode-display code" value="<?php echo esc_attr( $ffcertificate_active['public'] ); ?>">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Copy public key', 'ffcertificate' ),
+							'icon'  => 'copy',
+							'class' => 'ffc-copy-link',
+							'attrs' => array(
+								'data-ffc-copy-target' => '#ffc-signing-public-key',
+							),
+						)
+					);
+					?>
+				</span>
+			</dd>
 		</dl>
 		<?php
 		if ( ! \FreeFormCertificate\Core\SigningKeys::secret_is_encrypted() ) {

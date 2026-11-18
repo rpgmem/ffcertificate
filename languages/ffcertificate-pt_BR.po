@@ -34889,8 +34889,8 @@ msgid "A previous key is never deleted: it keeps verifying the certificates it s
 msgstr "Uma chave anterior nunca é excluída: ela continua verificando os certificados que assinou."
 
 #: includes/settings/views/documentation/reference-qr-codes.php:76
-msgid "A signed QR code carries more data, so it needs more room on the page and is drawn without the logo of the QR Code design. The form editor warns when the layout's QR code is smaller than the mode needs to be read reliably on paper."
-msgstr "Um QR code assinado carrega mais dados, então precisa de mais espaço na página e é desenhado sem o logotipo do design de QR Code. O editor do formulário avisa quando o QR code do layout é menor do que o modo precisa para ser lido com segurança no papel."
+msgid "A signed QR code carries more data, so it needs more room on the page and is drawn without the logo of the QR Code design. The form editor warns when the layout's QR code is smaller than the mode needs to be read reliably on paper, and the visual editor's QR code panel says which modes the selected code's size prints readably."
+msgstr "Um QR code assinado carrega mais dados, então precisa de mais espaço na página e é desenhado sem o logotipo do design de QR Code. O editor do formulário avisa quando o QR code do layout é menor do que o modo precisa para ser lido com segurança no papel, e o painel do QR code no editor visual diz quais modos o tamanho do código selecionado imprime de forma legível."
 
 #: includes/settings/views/ffc-tab-certificates.php:259
 msgid "Active key"
@@ -35157,3 +35157,19 @@ msgstr "Carga horária (horas):"
 #: includes/admin/class-ffc-signing-key-handler.php:70
 msgid "You do not have permission to download the verifier."
 msgstr "Você não tem permissão para baixar o verificador."
+
+#: includes/settings/views/ffc-tab-certificates.php:284
+msgid "Copy public key"
+msgstr "Copiar chave pública"
+
+#. translators: %s: comma-separated QR modes, such as "Signed, compact; Link only"
+#: includes/admin/class-ffc-cert-template-admin-screen.php:879
+#, php-format
+msgid "At this size the code is read reliably on paper in: %s."
+msgstr "Neste tamanho o código é lido com segurança no papel em: %s."
+
+#. translators: %d: minimum size, in px
+#: includes/admin/class-ffc-cert-template-admin-screen.php:881
+#, php-format
+msgid "Too small to be read reliably on paper: even the link alone needs %d px."
+msgstr "Pequeno demais para ser lido com segurança no papel: mesmo só o link precisa de %d px."
