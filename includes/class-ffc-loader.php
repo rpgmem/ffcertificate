@@ -146,6 +146,11 @@ class Loader {
 		// Bulk-issue staging tables (#1945). Same heal-on-request pattern.
 		\FreeFormCertificate\Submissions\BulkIssueActivator::maybe_create_tables();
 
+		// Signed certificate records (#2639). Same heal-on-request pattern;
+		// the signer listens on the submission save, update and delete hooks.
+		\FreeFormCertificate\Submissions\CertificateSignatureActivator::maybe_create_table();
+		\FreeFormCertificate\Submissions\CertificateSigner::init();
+
 		// Ensure activity_log schema is healed. Installs created in a
 		// pre-`action`-column plugin version skipped dbDelta on every
 		// upgrade because create_table() used to early-return on

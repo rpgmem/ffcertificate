@@ -245,6 +245,7 @@ final class ActivityLogItems {
 		'rewrite_html_image_refs_errors'          => 'migrations',
 
 		'dangerzone_setting_changed'              => 'destructive_settings',
+		'signing_key_generated'                   => 'destructive_settings',
 
 		'role_capability_changed'                 => 'role_changes',
 		'role_default_restored'                   => 'role_changes',
@@ -274,6 +275,7 @@ final class ActivityLogItems {
 
 		'submission_updated'                      => 'cert_changes',
 		'certificate_signer_added'                => 'cert_changes',
+		'certificate_signing_failed'              => 'cert_changes',
 		'submission_trashed'                      => 'cert_changes',
 		'submission_restored'                     => 'cert_changes',
 		'submission_moved'                        => 'cert_changes',

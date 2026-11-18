@@ -53,6 +53,11 @@ return array(
 		'revision'    => '1',
 		'fingerprint' => '3f6f70e83a7c5157b8a8f98dc0fe22a6d21b1d3d',
 	),
+	'includes/submissions/class-ffc-certificate-signature-activator.php' => array(
+		'class'       => 'FreeFormCertificate\\Submissions\\CertificateSignatureActivator',
+		'revision'    => '1',
+		'fingerprint' => '97dd2cb77982095aa6dc10dba04f0b4ec58ecb0e',
+	),
 	'includes/url-shortener/class-ffc-url-shortener-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\UrlShortener\\UrlShortenerActivator',
 		'revision'    => '2',

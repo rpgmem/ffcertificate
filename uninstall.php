@@ -175,6 +175,8 @@ $ffcertificate_tables = array(
 	// Bulk-issue staging (#1945): rows hold personal data until the job ends.
 	$wpdb->prefix . 'ffc_bulk_issue_rows',
 	$wpdb->prefix . 'ffc_bulk_issue_jobs',
+	// Signed certificate records (#2639): the record is encrypted, it names the holder.
+	$wpdb->prefix . 'ffc_certificate_signatures',
 );
 
 // The discovered half. `esc_like()` is load-bearing on the underscore: `_` is a
@@ -210,6 +212,8 @@ $ffcertificate_options = array(
 	'ffc_rate_limit_keyed_cutover',
 	'ffc_encryption_v1_reads',
 	'ffc_bulk_issue_db_version',
+	'ffc_certificate_signatures_db_version',
+	'ffc_signing_keys', // Written only when a signing key is generated (#2639).
 	'ffc_user_access_settings',
 	'ffc_global_holidays',
 	'ffc_calendar_appearance', // Written only when the calendar colours and labels are saved (#2215).
