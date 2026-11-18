@@ -80,11 +80,67 @@ class VerificationResponseRenderer {
 		// a legitimate adjustment rather than as tampering.
 		$schedule_exception_block = $this->build_schedule_exception_block( $submission );
 
+		// Whether the certificate still matches its signed record (#2639).
+		$integrity_notice = $this->integrity_notice( $submission );
+
 		// Render template.
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/certificate-preview.php';
 		$preview_html = ob_get_clean();
 		return $preview_html ? $preview_html : '';
+	}
+
+	/**
+	 * The notice saying whether the certificate still matches the record it
+	 * was signed with (#2639); '' for a certificate that was never signed.
+	 *
+	 * The signature is checked against the database here, on the server: a
+	 * changed value names the field, and a signature row that no longer
+	 * verifies says so rather than vouching for anything.
+	 *
+	 * @param object $submission The submission row.
+	 */
+	public function integrity_notice( object $submission ): string {
+		$row       = ( new \FreeFormCertificate\Submissions\SubmissionHandler() )->decrypt_submission_data( (array) $submission );
+		$integrity = \FreeFormCertificate\Submissions\CertificateSigner::integrity( $row );
+
+		switch ( $integrity['state'] ) {
+			case \FreeFormCertificate\Submissions\CertificateSigner::STATE_INTACT:
+				return \FreeFormCertificate\Core\Notice::render(
+					'success',
+					'shield',
+					sprintf(
+						/* translators: %s: date the certificate was signed */
+						__( 'This certificate was signed by this site on %s, and its data still matches what was signed.', 'ffcertificate' ),
+						\FreeFormCertificate\Core\DateFormatter::format_date( $integrity['signed_at'] )
+					),
+					__( 'Integrity confirmed', 'ffcertificate' ),
+					array( 'role' => 'note' )
+				);
+			case \FreeFormCertificate\Submissions\CertificateSigner::STATE_CHANGED:
+				$labels  = \FreeFormCertificate\Core\CertificateRecord::field_labels();
+				$changed = array_values( array_unique( array_map( static fn( string $field ): string => $labels[ $field ] ?? $field, $integrity['changed'] ) ) );
+				return \FreeFormCertificate\Core\Notice::render(
+					'warning',
+					'warning',
+					sprintf(
+						/* translators: %s: list of changed fields, such as "Name, Course" */
+						__( 'Data changed after the certificate was signed: %s. Ask the issuer which version is the right one.', 'ffcertificate' ),
+						implode( ', ', $changed )
+					),
+					__( 'Changed after signing', 'ffcertificate' ),
+					array( 'role' => 'note' )
+				);
+			case \FreeFormCertificate\Submissions\CertificateSigner::STATE_INVALID:
+				return \FreeFormCertificate\Core\Notice::render(
+					'danger',
+					'warning',
+					__( 'The signature stored for this certificate does not verify, so this page cannot vouch for its data. Ask the issuer.', 'ffcertificate' ),
+					__( 'Signature not valid', 'ffcertificate' ),
+					array( 'role' => 'note' )
+				);
+		}
+		return '';
 	}
 
 	/**

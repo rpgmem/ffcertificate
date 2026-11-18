@@ -43,6 +43,7 @@ final class SettingsNotice {
 		'pubaccess',
 		'submission_audit',
 		'cron_times',
+		'signing_key',
 	);
 
 	/**

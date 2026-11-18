@@ -453,6 +453,12 @@ class RequiredDataTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( null );
+		// The Integrity signature card below the form (#2639).
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://site.test/wp-admin/' . $path );
+		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
+		Functions\when( 'wp_nonce_url' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'selected' )->alias(
 			static function ( $a, $b ): void {
 				echo (string) $a === (string) $b ? 'selected' : '';

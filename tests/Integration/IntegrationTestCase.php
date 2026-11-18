@@ -147,12 +147,13 @@ abstract class IntegrationTestCase extends TestCase {
 			}
 		};
 
-		// These two re-run their dbDelta whenever the stored version differs,
+		// These re-run their dbDelta whenever the stored version differs,
 		// tables present or not. The versions are read from the code, so a
 		// bump there cannot leave this seed stale.
 		$this->options['ffc_rate_limit_db_version']   = \FreeFormCertificate\Security\RateLimitActivator::SCHEMA_REVISION;
 		$this->options['ffc_activity_log_db_version'] = \FreeFormCertificate\Core\ActivityLog::SCHEMA_REVISION;
 		$this->options['ffc_bulk_issue_db_version']   = \FreeFormCertificate\Submissions\BulkIssueActivator::SCHEMA_REVISION;
+		$this->options['ffc_certificate_signatures_db_version'] = \FreeFormCertificate\Submissions\CertificateSignatureActivator::SCHEMA_REVISION;
 	}
 
 	protected function tearDown(): void {

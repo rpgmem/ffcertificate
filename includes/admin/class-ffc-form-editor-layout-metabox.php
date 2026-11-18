@@ -86,6 +86,10 @@ class FormEditorLayoutMetabox {
 				<th><?php esc_html_e( 'Signers', 'ffcertificate' ); ?></th>
 				<td><?php $this->render_signer_selects( (int) $post->ID ); ?></td>
 			</tr>
+			<tr>
+				<th><?php esc_html_e( 'QR code', 'ffcertificate' ); ?></th>
+				<td><?php $this->render_qr_mode( (int) $post->ID ); ?></td>
+			</tr>
 			<tr class="ffc-layout-own"<?php echo $own_hidden ? ' hidden' : ''; ?>>
 				<th><label><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></label></th>
 				<td>
@@ -245,6 +249,96 @@ class FormEditorLayoutMetabox {
 			<?php endif; ?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * The form's QR mode (#2639): Link only, Signed compact or Signed full.
+	 *
+	 * Each option's description says what the QR carries and, for the signed
+	 * modes, what stands in the way on this form: no signing key yet, a
+	 * template that prints the QR smaller than the mode needs, or a global QR
+	 * design with a logo, which the signed modes draw without. The control
+	 * shows only the chosen option's description, so the warnings follow the
+	 * choice with no script.
+	 *
+	 * @param int $form_id Form post id.
+	 */
+	private function render_qr_mode( int $form_id ): void {
+		$signer = \FreeFormCertificate\Submissions\CertificateSigner::class;
+		$mode   = $signer::mode( $form_id );
+
+		$descriptions = array(
+			$signer::MODE_LINK    => __( 'The QR code carries the verification link only, as before. Checking the certificate needs the site.', 'ffcertificate' ),
+			$signer::MODE_COMPACT => __( 'The QR code carries the link and a signature over the code, the issue date and a digest of the certificate. Without internet it confirms the code and the date.', 'ffcertificate' ),
+			$signer::MODE_FULL    => __( 'The QR code carries the link and a signature over the code, the date, the name, the course and the workload. Without internet it shows them to compare with the paper; a name or course too long for the template\'s QR falls back to compact.', 'ffcertificate' ),
+		);
+
+		$notes = array();
+		if ( ! \FreeFormCertificate\Core\SigningKeys::has_active() ) {
+			$notes[] = __( 'No signing key exists yet: until one is generated under Settings → Certificates, this form prints the link only.', 'ffcertificate' );
+		}
+		if ( \FreeFormCertificate\Settings\SettingsReader::get_int( 'qr_design_logo_id', 0 ) > 0 ) {
+			$notes[] = __( 'The global QR design has a logo, which the signed modes do not print: it would force a much larger code.', 'ffcertificate' );
+		}
+		foreach ( array( $signer::MODE_COMPACT, $signer::MODE_FULL ) as $signed ) {
+			$size_note = $this->qr_size_note( $form_id, $signed );
+			$extra     = array_filter( array_merge( array( $size_note ), $notes ) );
+			if ( array() !== $extra ) {
+				$descriptions[ $signed ] .= ' ' . implode( ' ', $extra );
+			}
+		}
+
+		AdminUI::render_segmented(
+			array(
+				'name'         => 'ffc_config[' . $signer::CONFIG_KEY . ']',
+				'id'           => 'ffc_qr_mode',
+				'legend'       => __( 'QR code', 'ffcertificate' ),
+				'options'      => array(
+					$signer::MODE_LINK    => __( 'Link only', 'ffcertificate' ),
+					$signer::MODE_COMPACT => __( 'Signed, compact', 'ffcertificate' ),
+					$signer::MODE_FULL    => __( 'Signed, full', 'ffcertificate' ),
+				),
+				'value'        => $mode,
+				'descriptions' => $descriptions,
+			)
+		);
+	}
+
+	/**
+	 * What the form's layout says about the QR size a signed mode needs, ''
+	 * when every QR it prints is large enough.
+	 *
+	 * @param int    $form_id Form post id.
+	 * @param string $mode    A signed mode.
+	 */
+	private function qr_size_note( int $form_id, string $mode ): string {
+		$link        = \FreeFormCertificate\Core\CertificateTemplateLink::class;
+		$template_id = $link::template_id( $form_id );
+		if ( $template_id > 0 ) {
+			$layout = $link::layout( $template_id, $link::values( $form_id ) );
+		} else {
+			$config = get_post_meta( $form_id, '_ffc_form_config', true );
+			$layout = is_array( $config ) && is_string( $config['pdf_layout'] ?? null ) ? $config['pdf_layout'] : '';
+		}
+		$placements = ( new \FreeFormCertificate\Generators\QRCodeGenerator() )->placements( $layout );
+		if ( array() === $placements ) {
+			return '' === trim( $layout ) ? '' : __( 'The layout prints no QR code, so the signature has nowhere to go.', 'ffcertificate' );
+		}
+		$size    = \FreeFormCertificate\Generators\SignedQrSize::class;
+		$modules = $size::modules( $size::sample( $mode ) );
+		foreach ( $placements as $placement ) {
+			// A placement's size includes its own quiet zone.
+			$needed = $size::px_for( $modules, $placement['margin'] );
+			if ( $placement['size'] < $needed ) {
+				return sprintf(
+					/* translators: 1: QR size the layout prints, in px; 2: minimum size, in px */
+					__( 'The layout prints the QR code at %1$d px; this mode needs at least %2$d px to be read reliably. Enlarge it in the template.', 'ffcertificate' ),
+					$placement['size'],
+					$needed
+				);
+			}
+		}
+		return '';
 	}
 
 	/**

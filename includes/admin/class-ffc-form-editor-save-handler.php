@@ -368,6 +368,9 @@ class FormEditorSaveHandler {
 
 			$clean_config['enable_restriction'] = sanitize_key( ArrayValue::string( $config, 'enable_restriction' ) );
 
+			// QR mode (#2639): Link only, Signed compact or Signed full.
+			$clean_config[ \FreeFormCertificate\Submissions\CertificateSigner::CONFIG_KEY ] = \FreeFormCertificate\Submissions\CertificateSigner::sanitize_mode( ArrayValue::string( $config, \FreeFormCertificate\Submissions\CertificateSigner::CONFIG_KEY ) );
+
 			// Email — master toggle is `send_user_email`. Sub-options
 			// (subject + body) are only written when the toggle is on, so
 			// turning email off preserves the prior subject/body verbatim

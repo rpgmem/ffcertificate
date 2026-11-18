@@ -1364,6 +1364,43 @@ class FormEditorSaveHandlerTest extends TestCase {
 	}
 
 	/**
+	 * The QR mode (#2639) is stored as one of the three modes, anything else
+	 * as Link only.
+	 *
+	 * @dataProvider qr_modes
+	 */
+	public function test_the_qr_mode_is_stored_sanitized( string $posted, string $stored ): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_config'     => array(
+				'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}',
+				'qr_mode'    => $posted,
+			),
+		);
+
+		$this->handler->save_form_data( 10 );
+
+		$this->assertSame( $stored, $written['_ffc_form_config']['qr_mode'] );
+	}
+
+	/**
+	 * @return array<string, array{string, string}>
+	 */
+	public static function qr_modes(): array {
+		return array(
+			'full'    => array( 'full', 'full' ),
+			'compact' => array( 'compact', 'compact' ),
+			'link'    => array( 'link', 'link' ),
+			'unknown' => array( '<script>', 'link' ),
+		);
+	}
+
+	/**
 	 * Quiz quiz_enabled OFF → 4 sub-options skipped; merge preserves old.
 	 */
 	public function test_quiz_off_skips_sub_options(): void {

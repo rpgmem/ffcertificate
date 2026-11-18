@@ -92,6 +92,21 @@ class QRCodeGenerator {
 	}
 
 	/**
+	 * Every QR code a layout prints, with the size, margin and error level
+	 * each one is drawn with (#2639). A visual layout prints its QR elements
+	 * as the same placeholder, so this covers both kinds.
+	 *
+	 * @param string $layout Layout HTML.
+	 * @return list<array{size: int, margin: int, error_level: string}>
+	 */
+	public function placements( string $layout ): array {
+		if ( ! preg_match_all( '/\{\{qr_code(?::[^}]+)?\}\}/', $layout, $matches ) ) {
+			return array();
+		}
+		return array_map( array( $this, 'parse_placeholder_params' ), $matches[0] );
+	}
+
+	/**
 	 * Parse placeholder and generate QR Code
 	 *
 	 * Supported formats:

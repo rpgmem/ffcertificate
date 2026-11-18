@@ -19,6 +19,8 @@
  *                                         null when this submission has no override.
  *                                         Keys: before_range, after_range, operator,
  *                                         ts_label (already formatted).
+ * @var string $integrity_notice Notice markup saying whether the certificate still
+ *                               matches its signed record (#2639), '' when unsigned.
  *
  * @package FreeFormCertificate
  * @since 3.1.0
@@ -36,6 +38,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<div class="ffc-preview-body">
+		<?php
+		if ( ! empty( $integrity_notice ) ) {
+			echo $integrity_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+		}
+		?>
 		<h3><?php esc_html_e( 'Certificate Details', 'ffcertificate' ); ?></h3>
 
 		<div class="ffc-detail-row">

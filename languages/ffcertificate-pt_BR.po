@@ -34879,3 +34879,193 @@ msgstr "Painel de CSV público recusado"
 
 msgid "Two items cover the public CSV download panel: one records who opens it (the form, and the CPF masked), the other every refused attempt and why (access hash, CPF, captcha, missing fields, an expired page or too many attempts). The access hash itself is never recorded."
 msgstr "Dois itens cobrem o painel de download público de CSV: um registra quem o acessa (o formulário e o CPF mascarado), o outro cada tentativa recusada e o motivo (hash de acesso, CPF, captcha, campos em branco, página expirada ou tentativas demais). O hash de acesso nunca é registrado."
+
+#: includes/settings/views/documentation/reference-qr-codes.php:73
+msgid "A form chooses what its certificate's QR code carries on the Layout tab of the form editor, under QR code: Link only (the default, as before), Signed, compact, or Signed, full. A signed mode signs a record of each certificate when it is issued: form, certificate number, validation code, issue date, name, a keyed fingerprint of the CPF/RF (never the number itself), course, workload and event dates. The layout is not part of the record, so changing the design never breaks a signature."
+msgstr "Cada formulário escolhe o que o QR code do certificado carrega na aba Layout do editor do formulário, em QR code: Somente link (o padrão, como antes), Assinado, compacto ou Assinado, completo. Um modo assinado assina um registro de cada certificado quando ele é emitido: formulário, número do certificado, código de validação, data de emissão, nome, uma impressão digital com chave do CPF/RF (nunca o número em si), curso, carga horária e datas do evento. O layout não faz parte do registro, então mudar o design nunca invalida uma assinatura."
+
+#: includes/settings/views/ffc-tab-certificates.php:306
+msgid "A previous key is never deleted: it keeps verifying the certificates it signed."
+msgstr "Uma chave anterior nunca é excluída: ela continua verificando os certificados que assinou."
+
+#: includes/settings/views/documentation/reference-qr-codes.php:76
+msgid "A signed QR code carries more data, so it needs more room on the page and is drawn without the logo of the QR Code design. The form editor warns when the layout's QR code is smaller than the mode needs to be read reliably on paper."
+msgstr "Um QR code assinado carrega mais dados, então precisa de mais espaço na página e é desenhado sem o logotipo do design de QR Code. O editor do formulário avisa quando o QR code do layout é menor do que o modo precisa para ser lido com segurança no papel."
+
+#: includes/settings/views/ffc-tab-certificates.php:259
+msgid "Active key"
+msgstr "Chave ativa"
+
+#: includes/settings/views/ffc-tab-certificates.php:267
+msgid "Algorithm"
+msgstr "Algoritmo"
+
+#: includes/core/class-ffc-certificate-record.php:82
+msgid "Authentication code"
+msgstr "Código de autenticação"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:315
+msgid "Certificate Not Signed"
+msgstr "Certificado não assinado"
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:134
+msgid "Changed after signing"
+msgstr "Alterado após a assinatura"
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:131
+#, php-format
+msgid "Data changed after the certificate was signed: %s. Ask the issuer which version is the right one."
+msgstr "Dados alterados depois que o certificado foi assinado: %s. Pergunte ao emissor qual versão é a correta."
+
+#: includes/core/class-ffc-certificate-record.php:88 includes/core/class-ffc-certificate-record.php:89
+msgid "Event date"
+msgstr "Data do evento"
+
+#: includes/settings/views/ffc-tab-certificates.php:269
+msgid "Fingerprint"
+msgstr "Impressão digital"
+
+#: includes/settings/views/ffc-tab-certificates.php:247
+msgid "Forms with a signed QR mode sign a record of each certificate with this site's key. The verification page checks the record against the database and says when a certificate changed after it was signed. Choose the mode per form, on its Layout tab."
+msgstr "Formulários com um modo de QR assinado assinam um registro de cada certificado com a chave deste site. A página de verificação confere o registro com o banco de dados e avisa quando um certificado foi alterado depois de assinado. Escolha o modo em cada formulário, na aba Layout."
+
+#: includes/settings/views/ffc-tab-certificates.php:325
+msgid "Generate a new signing key?\n\nCertificates issued from now on are signed with the new key. The current key is retired and keeps verifying the certificates it signed."
+msgstr "Gerar uma nova chave de assinatura?\n\nOs certificados emitidos a partir de agora são assinados com a nova chave. A chave atual é aposentada e continua verificando os certificados que assinou."
+
+#: includes/settings/views/ffc-tab-certificates.php:314
+msgid "Generate key"
+msgstr "Gerar chave"
+
+#: includes/settings/views/ffc-tab-certificates.php:331
+msgid "Generating or rotating the key needs the Danger Zone capability."
+msgstr "Gerar ou trocar a chave exige a permissão da Zona de Perigo."
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:120
+msgid "Integrity confirmed"
+msgstr "Integridade confirmada"
+
+#: includes/settings/views/ffc-tab-certificates.php:245
+msgid "Integrity signature"
+msgstr "Assinatura de integridade"
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:297
+msgid "Link only"
+msgstr "Somente link"
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:278
+msgid "No signing key exists yet: until one is generated under Settings → Certificates, this form prints the link only."
+msgstr "Ainda não existe chave de assinatura: até que uma seja gerada em Configurações → Certificados, este formulário imprime somente o link."
+
+#: includes/settings/views/ffc-tab-certificates.php:254
+msgid "No signing key yet. Forms with a signed QR mode print the link only until one is generated."
+msgstr "Ainda não há chave de assinatura. Formulários com um modo de QR assinado imprimem somente o link até que uma seja gerada."
+
+#: includes/settings/views/ffc-tab-certificates.php:285
+msgid "Previous keys"
+msgstr "Chaves anteriores"
+
+#: includes/settings/views/ffc-tab-certificates.php:273
+msgid "Public key"
+msgstr "Chave pública"
+
+#: includes/settings/views/ffc-tab-certificates.php:320
+msgid "Rotate key"
+msgstr "Trocar chave"
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:142
+msgid "Signature not valid"
+msgstr "Assinatura inválida"
+
+#: includes/settings/views/documentation/reference-qr-codes.php:72
+msgid "Signed QR codes"
+msgstr "QR codes assinados"
+
+#: includes/settings/views/ffc-tab-certificates.php:271 includes/settings/views/ffc-tab-certificates.php:292
+msgid "Signed certificates"
+msgstr "Certificados assinados"
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:298
+msgid "Signed, compact"
+msgstr "Assinado, compacto"
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:299
+msgid "Signed, full"
+msgstr "Assinado, completo"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:363
+msgid "Signing Key Generated"
+msgstr "Chave de assinatura gerada"
+
+#: includes/admin/class-ffc-signing-key-handler.php:106
+#, php-format
+msgid "Signing key %1$s is now active. Key %2$s is retired and still verifies the certificates it signed."
+msgstr "A chave de assinatura %1$s agora está ativa. A chave %2$s foi aposentada e continua verificando os certificados que assinou."
+
+#: includes/admin/class-ffc-signing-key-handler.php:104
+#, php-format
+msgid "Signing key %s generated. Forms with a signed QR mode now sign every certificate they issue."
+msgstr "Chave de assinatura %s gerada. Formulários com um modo de QR assinado agora assinam todo certificado que emitem."
+
+#: includes/settings/views/documentation/reference-qr-codes.php:75
+msgid "Signing needs a key, generated once on Settings → Certificates, in the Integrity signature card, by someone with the Danger Zone capability. Rotating it retires the old key, which keeps verifying what it signed. Until a key exists, forms with a signed mode print the link only, and each certificate that could not be signed is recorded in the activity log."
+msgstr "Assinar exige uma chave, gerada uma vez em Configurações → Certificados, no cartão Assinatura de integridade, por alguém com a permissão da Zona de Perigo. Trocá-la aposenta a chave antiga, que continua verificando o que assinou. Enquanto não houver chave, formulários com um modo assinado imprimem somente o link, e cada certificado que não pôde ser assinado é registrado no Registro de Atividades."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:273
+msgid "The QR code carries the link and a signature over the code, the date, the name, the course and the workload. Without internet it shows them to compare with the paper; a name or course too long for the template's QR falls back to compact."
+msgstr "O QR code carrega o link e uma assinatura sobre o código, a data, o nome, o curso e a carga horária. Sem internet, ele os mostra para comparar com o papel; um nome ou curso longo demais para o QR do modelo recai no modo compacto."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:272
+msgid "The QR code carries the link and a signature over the code, the issue date and a digest of the certificate. Without internet it confirms the code and the date."
+msgstr "O QR code carrega o link e uma assinatura sobre o código, a data de emissão e um resumo do certificado. Sem internet, ele confirma o código e a data."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:271
+msgid "The QR code carries the verification link only, as before. Checking the certificate needs the site."
+msgstr "O QR code carrega somente o link de verificação, como antes. Conferir o certificado exige o site."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:281
+msgid "The global QR design has a logo, which the signed modes do not print: it would force a much larger code."
+msgstr "O design global de QR tem um logotipo, que os modos assinados não imprimem: ele obrigaria um código muito maior."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:325
+msgid "The layout prints no QR code, so the signature has nowhere to go."
+msgstr "O layout não imprime QR code, então a assinatura não tem onde ir."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:335
+#, php-format
+msgid "The layout prints the QR code at %1$d px; this mode needs at least %2$d px to be read reliably. Enlarge it in the template."
+msgstr "O layout imprime o QR code com %1$d px; este modo precisa de pelo menos %2$d px para ser lido com segurança. Aumente-o no modelo."
+
+#: includes/settings/views/ffc-tab-certificates.php:278
+msgid "The private key is stored unencrypted, because this site has no encryption key. Configure one under Settings → Advanced and generate a new signing key."
+msgstr "A chave privada está armazenada sem criptografia, porque este site não tem chave de criptografia. Configure uma em Configurações → Avançado e gere uma nova chave de assinatura."
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:141
+msgid "The signature stored for this certificate does not verify, so this page cannot vouch for its data. Ask the issuer."
+msgstr "A assinatura armazenada para este certificado não confere, então esta página não pode garantir os seus dados. Pergunte ao emissor."
+
+#: includes/admin/class-ffc-signing-key-handler.php:89
+msgid "The signing key could not be generated: this server cannot create Ed25519 keys."
+msgstr "Não foi possível gerar a chave de assinatura: este servidor não consegue criar chaves Ed25519."
+
+#: includes/settings/views/documentation/reference-qr-codes.php:74
+msgid "The verification page checks the certificate against its signed record and says one of three things: integrity confirmed, changed after signing (naming the fields that changed), or signature not valid. Editing a signed certificate signs it again."
+msgstr "A página de verificação confere o certificado com o seu registro assinado e diz uma de três coisas: integridade confirmada, alterado após a assinatura (citando os campos alterados) ou assinatura inválida. Editar um certificado assinado o assina de novo."
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:117
+#, php-format
+msgid "This certificate was signed by this site on %s, and its data still matches what was signed."
+msgstr "Este certificado foi assinado por este site em %s, e os seus dados ainda conferem com o que foi assinado."
+
+#: includes/settings/views/ffc-tab-certificates.php:290
+msgid "Used from"
+msgstr "Usada desde"
+
+#: includes/admin/class-ffc-signing-key-handler.php:69
+msgid "You do not have permission to manage the signing key."
+msgstr "Você não tem permissão para gerenciar a chave de assinatura."
+
+#: includes/settings/views/ffc-tab-certificates.php:264
+#, php-format
+msgid "created on %s"
+msgstr "criada em %s"
