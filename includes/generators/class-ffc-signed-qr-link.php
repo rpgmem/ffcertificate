@@ -75,11 +75,11 @@ final class SignedQrLink {
 	 * The link one QR placeholder should encode: full when it is readable at
 	 * the size the placeholder prints, else compact, else the plain link.
 	 *
-	 * @param string                                   $url       The verification link.
+	 * @param string                                    $url       The verification link.
 	 * @param array{full: string, compact: string}|null $fragments From fragments().
-	 * @param int                                      $size      Printed width, in page pixels.
-	 * @param int                                      $margin    Quiet zone, in modules.
-	 * @param string                                   $ecc       Error level the code is drawn with.
+	 * @param int                                       $size      Printed width, in page pixels.
+	 * @param int                                       $margin    Quiet zone, in modules.
+	 * @param string                                    $ecc       Error level the code is drawn with.
 	 * @return string
 	 */
 	public static function for_placement( string $url, ?array $fragments, int $size, int $margin, string $ecc ): string {

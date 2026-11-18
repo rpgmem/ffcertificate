@@ -34987,3 +34987,91 @@ msgstr ""
 #, php-format
 msgid "created on %s"
 msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:99
+msgid "Certificate QR code verifier"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:70
+msgid "Changed after issue"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:100
+msgid "Checks the signature a certificate's QR code carries, with no internet connection. Scan the QR code with the phone's camera, copy the link it opens, and paste it below."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:80
+msgid "Course:"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:317
+msgid "Download offline verifier"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "Each QR code is drawn with the largest payload its printed size can carry readably: the full one where it fits, else the compact one, else the link only."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:101
+msgid "Link the QR code opens"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:103
+msgid "No signature in this link"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:313
+msgid "Offline verifier"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:314
+msgid "One HTML file that checks a signed QR code with no internet connection: it carries this site's public keys, every one listed above included. Download it again after rotating the key, so it knows the new one."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:75
+msgid "Signature not checked"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:68
+msgid "Signed by the issuer"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:69
+msgid "The QR code carries this site's signature over the data below. Compare it with the paper."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:71
+msgid "The QR code is genuine but was signed for an earlier version of this certificate: its data has changed since. Ask the issuer which version is the right one."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:74
+msgid "The QR code names a signing key this site does not have."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:73
+msgid "The QR code's signature does not match its data. It was not issued this way by this site."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:76
+msgid "The signature rides in the part of the link after #, which a browser never sends to the server. The verification page checks it in the browser with the site's public keys and lists what was signed, even when the site does not answer; when it does, a QR code printed for an earlier version of the certificate is reported as changed after issue. Without internet, the offline verifier downloaded from the Integrity signature card checks a pasted link the same way. QR codes printed before a form switched to a signed mode carry the link only and verify as before."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:76
+msgid "This browser cannot check the QR code's signature. Use an up-to-date browser, or rely on the result from the site."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:104
+msgid "This link carries no signature: the certificate was issued with the link only, or the link was cut short. Paste the whole link, including the part after #."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:77
+msgid "Validation code:"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:81
+msgid "Workload (hours):"
+msgstr ""
+
+#: includes/admin/class-ffc-signing-key-handler.php:70
+msgid "You do not have permission to download the verifier."
+msgstr ""
