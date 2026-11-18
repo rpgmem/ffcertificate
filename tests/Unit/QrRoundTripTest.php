@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
+use FreeFormCertificate\Generators\QrCapacity;
 use FreeFormCertificate\Generators\QrSvgRenderer;
 use PHPUnit\Framework\TestCase;
 
@@ -21,6 +22,7 @@ use PHPUnit\Framework\TestCase;
  * a dev-only dependency that never ships.
  *
  * @covers \FreeFormCertificate\Generators\QrSvgRenderer::matrix
+ * @covers \FreeFormCertificate\Generators\QrCapacity::free_level
  */
 final class QrRoundTripTest extends TestCase {
 
@@ -120,6 +122,19 @@ final class QrRoundTripTest extends TestCase {
 
 			$this->assertSame( $text, self::read( $png ), 'Margin ' . $margin );
 		}
+	}
+
+	/**
+	 * A code drawn at the level raised for free (#2648) reads back too.
+	 *
+	 * @dataProvider texts
+	 *
+	 * @param string $text What the plugin encodes.
+	 */
+	public function test_a_code_at_the_free_level_reads_back_exactly( string $text ): void {
+		$level = QrCapacity::free_level( $text, 'M' );
+
+		$this->assertSame( $text, self::read( self::png( QrSvgRenderer::matrix( $text, $level ) ) ), 'Level ' . $level );
 	}
 
 	public function test_a_code_does_not_read_as_another_text(): void {

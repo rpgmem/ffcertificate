@@ -148,7 +148,11 @@ class QRCodeGenerator {
 			$design = QrDesign::from_settings();
 			// A frame makes the document taller than wide, so the height comes
 			// from the renderer rather than repeating the width.
-			$drawn = QrSvgRenderer::render_sized( $url, $signed ? $design->without_logo() : $design, $params['error_level'], $params['margin'], $params['size'] );
+			$design = $signed ? $design->without_logo() : $design;
+			// The highest level that keeps the grid (#2648): same size, more
+			// damage survived. A logo still forces H inside the renderer.
+			$level = QrCapacity::free_level( $url, $design->error_level( $params['error_level'] ) );
+			$drawn = QrSvgRenderer::render_sized( $url, $design, $level, $params['margin'], $params['size'] );
 			if ( '' === $drawn['svg'] ) {
 				return '';
 			}
@@ -322,11 +326,11 @@ class QRCodeGenerator {
 			$point_size = max( 1, (int) ( $params['size'] / 10 ) );
 			$margin     = (int) $params['margin'];
 
-			// Generate QR Code.
+			// Generate QR Code, at the highest level that keeps the grid (#2648).
 			\QRcode::png(
 				$url,
 				$temp_file,
-				$this->get_error_correction_constant( $params['error_level'] ),
+				$this->get_error_correction_constant( QrCapacity::free_level( $url, $params['error_level'] ) ),
 				$point_size,
 				$margin
 			);

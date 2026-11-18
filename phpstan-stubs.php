@@ -106,6 +106,15 @@ class QRinput {
 	}
 
 	/**
+	 * The version, set by setVersion() or chosen by convertData().
+	 *
+	 * @return int
+	 */
+	public function getVersion(): int {
+		return 0;
+	}
+
+	/**
 	 * Encode every entry at the current version.
 	 *
 	 * @return int Bits, or -1.

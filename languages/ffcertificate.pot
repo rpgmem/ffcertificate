@@ -7709,7 +7709,7 @@ msgid "The design sections are the same as on Settings → QR Code, and start fr
 msgstr ""
 
 #: includes/settings/views/documentation/config-qr-code.php
-msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
+msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. The level is a minimum: when the code's content leaves room in its grid, certificates and short-URL codes are drawn at the highest level that keeps the same size. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
 msgstr ""
 
 #: includes/settings/views/documentation/config-qr-code.php
