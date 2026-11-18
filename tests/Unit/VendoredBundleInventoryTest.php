@@ -36,6 +36,22 @@
  * bytes match upstream. Both need the network and a human. What it guarantees
  * is that the inventory cannot change without somebody saying so.
  *
+ * `libs/phpqrcode/` is the other third-party code that ships, and the PHP
+ * half of the same blind spot (#2643). It is the QR encoder: 1.1.4 by
+ * Dominik Dzienia (LGPL-3.0), last released in 2010, with no maintained
+ * successor that keeps its API. It stays, on purpose. What the plugin asks of
+ * it is pure computation over a string it already holds (`QRcode::text()`,
+ * `QRcode::png()`, `QRspec` / `QRinput` for the capacity check), with its file
+ * cache switched off in `qrconfig.php`, so nothing a visitor sends reaches a
+ * path, a network call or an eval. The copy is not byte-identical to any
+ * upstream: it carries local return-value fixes (`qrinput.php`, `qrmask.php`,
+ * `qrsplit.php`, …) and lacks the later fork's `qrvect.php`, so there is no
+ * release to diff it against and no newer one to move to. Replacing it would
+ * mean a new encoder under three classes and every QR the plugin draws, for
+ * no measured defect. So it is frozen like the bundles: a file that appears,
+ * leaves or is renamed fails here, and the edit to PHP_LIBRARY is the moment
+ * somebody looks at it.
+ *
  * Dependency-free on purpose — no WordPress, no Brain\Monkey — like the module
  * boundary, AJAX wiring and suppression guards. It reads source text only.
  *
@@ -62,14 +78,42 @@ final class VendoredBundleInventoryTest extends TestCase {
 	 * @var array<int, string>
 	 */
 	private const REGISTER = array(
-		'altcha-3.4.0.LICENSE.txt',
-		'altcha-3.4.0.umd.js',
+		'altcha-3.6.0.LICENSE.txt',
+		'altcha-3.6.0.umd.js',
 		'html2canvas-pro-2.6.4.LICENSE.txt',
 		'html2canvas-pro-2.6.4.min.js',
 		'jspdf-4.2.1.LICENSE.txt',
 		'jspdf-4.2.1.umd.min.js',
 		'thumbmark-1.12.0.LICENSE.txt',
 		'thumbmark-1.12.0.umd.js',
+	);
+
+	/**
+	 * Everything `libs/` is allowed to hold at its top level.
+	 *
+	 * @var array<int, string>
+	 */
+	private const LIBS = array( 'js', 'phpqrcode' );
+
+	/**
+	 * Everything `libs/phpqrcode/` is allowed to contain, frozen (#2643).
+	 *
+	 * @var array<int, string>
+	 */
+	private const PHP_LIBRARY = array(
+		'LICENSE',
+		'qrbitstream.php',
+		'qrconfig.php',
+		'qrconst.php',
+		'qrencode.php',
+		'qrimage.php',
+		'qrinput.php',
+		'qrlib.php',
+		'qrmask.php',
+		'qrrscode.php',
+		'qrspec.php',
+		'qrsplit.php',
+		'qrtools.php',
 	);
 
 	/**
@@ -97,9 +141,19 @@ final class VendoredBundleInventoryTest extends TestCase {
 	 * @return array<int, string>
 	 */
 	private static function present(): array {
+		return self::entries( 'libs/js' );
+	}
+
+	/**
+	 * Everything sitting in a directory, sorted.
+	 *
+	 * @param string $dir Repository-relative directory.
+	 * @return array<int, string>
+	 */
+	private static function entries( string $dir ): array {
 		$found = array();
 
-		foreach ( (array) scandir( self::root() . '/libs/js' ) as $entry ) {
+		foreach ( (array) scandir( self::root() . '/' . $dir ) as $entry ) {
 			if ( is_string( $entry ) && '.' !== $entry && '..' !== $entry ) {
 				$found[] = $entry;
 			}
@@ -234,6 +288,26 @@ final class VendoredBundleInventoryTest extends TestCase {
 			. "A CHANGED entry is a bundle upgrade. That is fine, and the register is meant to\n"
 			. "cost this edit: it is the moment somebody looks at what ships. Rename the file,\n"
 			. 'bump the matching FFC_*_VERSION constant, and update the line here.'
+		);
+	}
+
+	public function test_libs_holds_only_the_registered_libraries(): void {
+		$this->assertSame(
+			self::LIBS,
+			self::entries( 'libs' ),
+			"`libs/` holds a directory nobody registered. Third-party code here ships in the zip and is\n"
+			. 'invisible to Dependabot, so it is decided in an issue before it lands (#1208, #2643).'
+		);
+
+		$register = self::PHP_LIBRARY;
+		sort( $register );
+
+		$this->assertSame(
+			$register,
+			self::entries( 'libs/phpqrcode' ),
+			"`libs/phpqrcode/` no longer matches the frozen register. The encoder is kept on purpose\n"
+			. "and patched locally (see this file's docblock): a changed file list is a change to\n"
+			. 'third-party code that ships, so say why in the PR and update PHP_LIBRARY.'
 		);
 	}
 
