@@ -305,6 +305,17 @@ final class QrDesign {
 	}
 
 	/**
+	 * The same design with no logo: what a signed QR code is drawn with
+	 * (#2639). A logo forces error level H, which makes a signed code too
+	 * large and covers the centre of its densest grid.
+	 *
+	 * @return self
+	 */
+	public function without_logo(): self {
+		return new self( array_merge( $this->to_array(), array( 'logo' => '' ) ) );
+	}
+
+	/**
 	 * Error correction the code needs: H under a logo, which hides modules
 	 * that only the redundancy can rebuild; the requested level otherwise.
 	 *

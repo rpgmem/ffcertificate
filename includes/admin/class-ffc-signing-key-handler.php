@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * what every certificate issued from then on is signed with. Nothing is ever
  * deleted here; a rotated key is retired and keeps verifying what it signed.
  */
-final class SigningKeyHandler {
+class SigningKeyHandler {
 
 	/** The `admin_post_*` action. */
 	public const ACTION = 'ffc_signing_key';
@@ -42,6 +42,12 @@ final class SigningKeyHandler {
 	/** The SettingsNotice area of the result. */
 	public const NOTICE_AREA = 'signing_key';
 
+	/** The `admin_post_*` action that downloads the standalone verifier. */
+	public const VERIFIER_ACTION = 'ffc_signed_qr_verifier';
+
+	/** The capability that gates the verifier download: the tab's own. */
+	public const VERIFIER_CAP = 'ffc_manage_settings';
+
 	/**
 	 * Register the request hook.
 	 *
@@ -49,6 +55,39 @@ final class SigningKeyHandler {
 	 */
 	public function init(): void {
 		add_action( 'admin_post_' . self::ACTION, array( $this, 'handle' ) );
+		add_action( 'admin_post_' . self::VERIFIER_ACTION, array( $this, 'download_verifier' ) );
+	}
+
+	/**
+	 * Send the standalone verifier file. It carries public keys only, so the
+	 * gate is the tab's capability, not the Danger Zone's.
+	 *
+	 * @return void
+	 */
+	public function download_verifier(): void {
+		check_admin_referer( self::VERIFIER_ACTION );
+		if ( ! Capabilities::current_user_can_admin_or( self::VERIFIER_CAP ) ) {
+			wp_die( esc_html__( 'You do not have permission to download the verifier.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+		$this->emit_download( 'certificate-verifier.html', \FreeFormCertificate\Frontend\SignedQrVerifier::standalone_html() );
+	}
+
+	/**
+	 * Send a file and stop. Isolated so a test can capture the body without
+	 * emitting headers or exiting.
+	 *
+	 * @param string $filename Download filename.
+	 * @param string $body     File body.
+	 * @return void
+	 */
+	protected function emit_download( string $filename, string $body ): void {
+		nocache_headers();
+		header( 'Content-Type: text/html; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		header( 'Content-Length: ' . strlen( $body ) );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A downloaded HTML file the template built and escaped; escaping again would corrupt it.
+		echo $body;
+		exit;
 	}
 
 	/**

@@ -307,6 +307,21 @@ $ffcertificate_rotate_url = wp_nonce_url( add_query_arg( 'action', \FreeFormCert
 		<?php
 	}
 
+	if ( array() !== $ffcertificate_keys['keys'] ) {
+		$ffcertificate_verifier_url = wp_nonce_url( add_query_arg( 'action', \FreeFormCertificate\Admin\SigningKeyHandler::VERIFIER_ACTION, admin_url( 'admin-post.php' ) ), \FreeFormCertificate\Admin\SigningKeyHandler::VERIFIER_ACTION );
+		?>
+		<h3><?php esc_html_e( 'Offline verifier', 'ffcertificate' ); ?></h3>
+		<p class="description"><?php esc_html_e( 'One HTML file that checks a signed QR code with no internet connection: it carries this site\'s public keys, every one listed above included. Download it again after rotating the key, so it knows the new one.', 'ffcertificate' ); ?></p>
+		<?php
+		$ffcertificate_verifier_button = array(
+			'label'    => __( 'Download offline verifier', 'ffcertificate' ),
+			'category' => 'neutral',
+			'icon'     => 'download',
+			'href'     => $ffcertificate_verifier_url,
+		);
+		echo '<p>' . \FreeFormCertificate\Admin\AdminUI::button( $ffcertificate_verifier_button ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Button::html() escapes every value.
+	}
+
 	if ( $ffcertificate_can_rotate ) {
 		// The question is ffc-core's delegated `[data-confirm]` (#2535).
 		$ffcertificate_key_button = '' === $ffcertificate_active_key

@@ -729,3 +729,100 @@ describe('frontend.textareaAutoResize', () => {
 		expect(document.querySelector('.ffc-textarea').style.height).toBe('123px');
 	});
 });
+
+// ----------------------------------------------------------------------
+// Signed QR codes (#2639): checked in the browser, shown with or without
+// an answer from the site.
+// ----------------------------------------------------------------------
+
+describe('frontend.handleMagicLinkVerification with a signed QR code', () => {
+	let vector;
+
+	beforeAll(async () => {
+		const { readFileSync } = await import('node:fs');
+		const { resolve } = await import('node:path');
+		const { webcrypto } = await import('node:crypto');
+		vector = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/fixtures/signed-qr-vector.json'), 'utf8'));
+		if (!window.crypto || !window.crypto.subtle) {
+			Object.defineProperty(window, 'crypto', { value: webcrypto, configurable: true });
+		}
+		loadScript('assets/js/ffc-signed-qr.js');
+	});
+
+	beforeEach(() => {
+		window.ffcSignedQr = {
+			keys: { k1: vector.public },
+			strings: {
+				valid: 'Signed by the issuer', validText: 'v', superseded: 'Changed after issue', supersededText: 's',
+				invalid: 'Signature not valid', invalidText: 'i', unknownKeyText: 'u', unsupported: 'n', unsupportedText: 'n',
+				code: 'Code:', issued: 'Issued:', name: 'Name:', course: 'Course:', workload: 'Hours:',
+			},
+		};
+		document.body.innerHTML = `
+			<div class="ffc-magic-link-container">
+				<div class="ffc-verification-manual">manual form</div>
+				<div class="ffc-verify-loading" style="display:none">loading</div>
+			</div>
+		`;
+	});
+
+	afterEach(() => {
+		delete window.ffcSignedQr;
+	});
+
+	const notice = () => window.$('[data-ffc-notice="signed-qr"]');
+
+	it('shows what was signed above the site\'s result', async () => {
+		window.location.hash = 'token=abc&s=' + vector.full.s;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
+			success: true,
+			data: { html: '<div class="result">Valid!</div>', integrity_hash: vector.hash },
+		} }));
+
+		loadScript('assets/js/ffc-frontend.js');
+		await waitFor(() => notice().length === 1);
+
+		expect(notice().hasClass('ffc-notice-success')).toBe(true);
+		expect(notice().text()).toContain('Name: José | Maria\\ Ação');
+		expect(window.$('.ffc-magic-link-container .result').length).toBe(1);
+	});
+
+	it('still shows the signature when the site does not answer', async () => {
+		window.location.hash = 'token=abc&s=' + vector.compact.s;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
+
+		loadScript('assets/js/ffc-frontend.js');
+		await waitFor(() => notice().length === 1);
+
+		expect(notice().hasClass('ffc-notice-success')).toBe(true);
+		expect(window.$('.ffc-verification-error').length).toBe(1);
+	});
+
+	it('warns when the site holds a newer record than the QR code', async () => {
+		window.location.hash = 'token=abc&s=' + vector.compact.s;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
+			success: true,
+			data: { html: '<div class="result">Valid!</div>', integrity_hash: 'f'.repeat(64) },
+		} }));
+
+		loadScript('assets/js/ffc-frontend.js');
+		await waitFor(() => notice().length === 1);
+
+		expect(notice().hasClass('ffc-notice-warning')).toBe(true);
+		expect(notice().text()).toContain('Changed after issue');
+	});
+
+	it('adds nothing for a link-only QR code', async () => {
+		window.location.hash = 'token=abc';
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
+			success: true,
+			data: { html: '<div class="result">Valid!</div>' },
+		} }));
+
+		loadScript('assets/js/ffc-frontend.js');
+		await waitFor(() => window.$('.ffc-magic-link-container .result').length === 1);
+		await flush();
+
+		expect(notice().length).toBe(0);
+	});
+});

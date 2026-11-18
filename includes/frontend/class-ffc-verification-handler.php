@@ -370,9 +370,11 @@ class VerificationHandler {
 
 		wp_send_json_success(
 			array(
-				'html'          => $html,
-				'submission_id' => $result['submission']->id,
-				'pdf_data'      => $pdf_data,
+				'html'           => $html,
+				'submission_id'  => $result['submission']->id,
+				'pdf_data'       => $pdf_data,
+				// What a signed QR code is compared with (#2639).
+				'integrity_hash' => \FreeFormCertificate\Submissions\CertificateSigner::current_hash( (int) $result['submission']->id ),
 			)
 		);
 	}

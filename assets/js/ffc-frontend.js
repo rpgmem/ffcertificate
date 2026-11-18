@@ -195,6 +195,10 @@
             return;
         }
 
+        // A signed QR code (#2639) is checked in the browser at once, so the
+        // result stands even when the site does not answer.
+        var signedCheck = startSignedCheck();
+
         // Auto-verify with token - hide manual form, show loading
         $container.find('.ffc-verification-manual').hide();
         $container.find('.ffc-verify-loading').show();
@@ -202,6 +206,7 @@
         FFC.request('ffc_verify_magic_token', { token: token })
             .then(function (data) {
                 displayVerificationResult(data, $container);
+                showSignedCheck(signedCheck, $container, data && data.integrity_hash);
             })
             .catch(function (err) {
                 if (err && err.fromServer) {
@@ -209,7 +214,40 @@
                 } else {
                     showVerificationError('Connection error. Please try again.', $container);
                 }
+                showSignedCheck(signedCheck, $container, '');
             });
+    }
+
+    /**
+     * Start checking the signed payload of the QR code that opened the page,
+     * or return null when it carries none (#2639).
+     *
+     * @return {Promise|null}
+     */
+    function startSignedCheck() {
+        if (!window.FFCSignedQr || !window.ffcSignedQr) {
+            return null;
+        }
+        var signed = window.FFCSignedQr.signedFrom(window.location.hash);
+        return signed ? window.FFCSignedQr.verify(signed, window.ffcSignedQr.keys) : null;
+    }
+
+    /**
+     * Put the signed QR code's result at the top of the verification result.
+     *
+     * @param {Promise|null} check From startSignedCheck().
+     * @param {jQuery} $container Verification container.
+     * @param {string} currentHash The record hash the site holds now; '' when unknown.
+     */
+    function showSignedCheck(check, $container, currentHash) {
+        if (!check) {
+            return;
+        }
+        check.then(function (result) {
+            var d = window.FFCSignedQr.describe(result, window.ffcSignedQr.strings, currentHash || '');
+            $container.find('[data-ffc-notice="signed-qr"]').remove();
+            $container.prepend(FFC.notice(d.tone, d.icon, d.lines, d.title, { role: 'note', hook: 'signed-qr' }));
+        });
     }
     
     /**

@@ -1,0 +1,22 @@
+{
+    "_about": "A signed QR test vector (#2639): PHP must produce these bytes and the JS verifier must accept them. Seed is 32 bytes of 0x07; never a real key.",
+    "seed_hex": "0707070707070707070707070707070707070707070707070707070707070707",
+    "fields": {
+        "auth_code": "A1B2C3D4E5F6",
+        "issued": "2026-11-17",
+        "name": "José | Maria\\ Ação",
+        "course": "Formação em Libras – Módulo I",
+        "workload": "40 horas"
+    },
+    "public": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+    "key": "k1",
+    "full": {
+        "payload": "v1|k1|A1B2C3D4E5F6|2026-11-17|José \\| Maria\\\\ Ação|Formação em Libras – Módulo I|40|2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "s": "djF8azF8QTFCMkMzRDRFNUY2fDIwMjYtMTEtMTd8Sm9zw6kgXHwgTWFyaWFcXCBBw6fDo298Rm9ybWHDp8OjbyBlbSBMaWJyYXMg4oCTIE3Ds2R1bG8gSXw0MHwyZDcxMTY0MmI3MjZiMDQ0MDE2MjdjYTlmYmFjMzJmNWM4NTMwZmIxOTAzY2M0ZGIwMjI1ODcxNzkyMWE0ODgx.Xd4GBbw7nDalU_vGDJUPMMSj3UeS47KwUGHdbeDcUWi-4MxNv6vyP2Xzj8uEMmL5buZsP2KWs3xVTvajXAoeBg"
+    },
+    "compact": {
+        "payload": "v1|k1|A1B2C3D4E5F6|2026-11-17|2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "s": "djF8azF8QTFCMkMzRDRFNUY2fDIwMjYtMTEtMTd8MmQ3MTE2NDJiNzI2YjA0NDAxNjI3Y2E5ZmJhYzMyZjVjODUzMGZiMTkwM2NjNGRiMDIyNTg3MTc5MjFhNDg4MQ.Q4_AotWAdFMSqEJm--bsG3yjejDMC5OBSs8DqjLouX6kDyuzpeIJ9iBfsXAZ-68EQgd3skGvwlauFmCJk0miBA"
+    },
+    "hash": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+}
