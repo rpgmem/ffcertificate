@@ -178,4 +178,15 @@ class MigrationManagerTest extends TestCase {
 
 		$this->assertSame( $error, $this->manager->rearm_migration( 'key_rotation' ) );
 	}
+
+	public function test_can_run_passes_the_strategy_s_answer_through(): void {
+		// The card shows this refusal under a disabled button (#2651), so the
+		// façade must hand it over untouched, message included.
+		$error = new \WP_Error( 'no_signing_key', 'Generate a signing key first.' );
+		$this->statusCalculator->shouldReceive( 'can_run' )->with( 'certificate_signing_backfill' )->andReturn( $error );
+		$this->statusCalculator->shouldReceive( 'can_run' )->with( 'key_rotation' )->andReturn( true );
+
+		$this->assertSame( $error, $this->manager->can_run( 'certificate_signing_backfill' ) );
+		$this->assertTrue( $this->manager->can_run( 'key_rotation' ) );
+	}
 }

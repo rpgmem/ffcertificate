@@ -138,6 +138,18 @@ try {
 				: null;
 			$ffcertificate_conflicts = is_int( $ffcertificate_conflicts ) ? $ffcertificate_conflicts : null;
 
+			// A PREREQUISITE THE STRATEGY STILL LACKS (#2651). The same check
+			// execution makes, asked before the button is drawn, so the card
+			// says what is missing instead of offering a run the server refuses.
+			$ffcertificate_unmet = '';
+			if ( $ffcertificate_can_migrate && ! $ffcertificate_is_complete ) {
+				try {
+					$ffcertificate_unmet = \FreeFormCertificate\Settings\Tabs\TabMigrations::unmet_prerequisite( $ffcertificate_migration_manager->can_run( $ffcertificate_key ) );
+				} catch ( \Throwable $e ) {
+					$ffcertificate_unmet = $e->getMessage();
+				}
+			}
+
 			// Generate migration URL.
 			$ffcertificate_migrate_url = wp_nonce_url(
 				add_query_arg(
@@ -517,6 +529,20 @@ try {
 						);
 						?>
 						<p class="description ffc-icon-lock"><?php esc_html_e( 'Running a migration needs the Danger Zone capability, which this account does not hold.', 'ffcertificate' ); ?></p>
+					<?php elseif ( '' !== $ffcertificate_unmet ) : ?>
+						<?php
+						// Disabled with the strategy's own refusal, the shape the
+						// capability branch above already uses (#2651).
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Run Migration', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'disabled' => true,
+							)
+						);
+						?>
+						<p class="description ffc-icon-lock ffc-migration-unmet"><?php echo esc_html( $ffcertificate_unmet ); ?></p>
 					<?php else : ?>
 						<?php
 						// `ffc-migration-run` is the hook ffc-admin-migrations.js runs the batches from.
@@ -555,7 +581,7 @@ try {
 					// `retryable`, never `rearmable`: a strategy sets it only
 					// once its walk has ended, so there is no progress for the
 					// re-check to discard.
-					if ( $ffcertificate_can_migrate && ! empty( $ffcertificate_status['retryable'] ) ) :
+					if ( $ffcertificate_can_migrate && '' === $ffcertificate_unmet && ! empty( $ffcertificate_status['retryable'] ) ) :
 						\FreeFormCertificate\Admin\AdminUI::render_button(
 							array(
 								'label'    => __( 'Try the remaining records again', 'ffcertificate' ),

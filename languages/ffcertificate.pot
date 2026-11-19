@@ -35125,3 +35125,7 @@ msgstr ""
 #, php-format
 msgid "Too small to be read reliably on paper: even the link alone needs %d px."
 msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-migrations.php
+msgid "This migration cannot run yet on this site."
+msgstr ""

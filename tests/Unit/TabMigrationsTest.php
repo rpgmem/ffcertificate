@@ -527,4 +527,42 @@ class TabMigrationsTest extends TestCase {
 		$this->assertStringContainsString( '</details>', $view );
 	}
 
+	/**
+	 * A refused prerequisite reads as the strategy's own message, and a card
+	 * that can run reads as nothing (#2651).
+	 */
+	public function test_an_unmet_prerequisite_reads_as_the_strategy_s_refusal(): void {
+		$this->assertSame( '', TabMigrations::unmet_prerequisite( true ) );
+		$this->assertSame(
+			'Generate a signing key first, under Settings → Certificates.',
+			TabMigrations::unmet_prerequisite( new \WP_Error( 'no_signing_key', 'Generate a signing key first, under Settings → Certificates.' ) )
+		);
+		// Anything but a plain true is a refusal, never a pass: an empty
+		// message or an odd value still disables the button.
+		$this->assertSame( 'This migration cannot run yet on this site.', TabMigrations::unmet_prerequisite( new \WP_Error( 'x', '' ) ) );
+		$this->assertSame( 'This migration cannot run yet on this site.', TabMigrations::unmet_prerequisite( false ) );
+		$this->assertSame( 'This migration cannot run yet on this site.', TabMigrations::unmet_prerequisite( null ) );
+	}
+
+	/**
+	 * The pending branch asks the prerequisite before drawing Run, renders it
+	 * disabled with the refusal, and keeps the retry control out (#2651).
+	 */
+	public function test_a_card_with_an_unmet_prerequisite_offers_no_run(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$this->assertStringContainsString( '$ffcertificate_migration_manager->can_run( $ffcertificate_key )', $view );
+
+		$from   = (int) strpos( $view, "<?php elseif ( '' !== \$ffcertificate_unmet ) : ?>" );
+		$this->assertGreaterThan( 0, $from, 'The pending branch has an unmet-prerequisite case.' );
+		$branch = substr( $view, $from, (int) strpos( $view, '<?php else : ?>', $from ) - $from );
+		$this->assertStringContainsString( "'disabled' => true", $branch );
+		$this->assertStringContainsString( 'esc_html( $ffcertificate_unmet )', $branch );
+		$this->assertStringNotContainsString( 'ffc-migration-run', $branch, 'No button the batch driver can pick up.' );
+		$this->assertStringNotContainsString( '$ffcertificate_migrate_url', $branch );
+
+		// The case sits before the runnable one, so a refusal never reaches it.
+		$this->assertLessThan( (int) strpos( $view, "'class'    => 'ffc-migration-run'" ), $from );
+		$this->assertStringContainsString( "\$ffcertificate_can_migrate && '' === \$ffcertificate_unmet && ! empty( \$ffcertificate_status['retryable'] )", $view );
+	}
 }
