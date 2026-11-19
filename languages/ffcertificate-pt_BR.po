@@ -35207,3 +35207,7 @@ msgstr "Neste tamanho o código é lido com segurança no papel em: %s."
 #, php-format
 msgid "Too small to be read reliably on paper: even the link alone needs %d px."
 msgstr "Pequeno demais para ser lido com segurança no papel: mesmo só o link precisa de %d px."
+
+#: includes/settings/tabs/class-ffc-tab-migrations.php
+msgid "This migration cannot run yet on this site."
+msgstr "Esta migração ainda não pode ser executada neste site."

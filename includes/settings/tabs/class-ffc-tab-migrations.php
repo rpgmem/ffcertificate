@@ -76,6 +76,24 @@ class TabMigrations extends SettingsTab {
 	}
 
 	/**
+	 * The prerequisite a card still lacks, or '' when it can run (#2651).
+	 *
+	 * Takes what `MigrationManager::can_run()` answered, so the screen shows
+	 * the strategy's own refusal under a disabled button instead of offering
+	 * one that execution then refuses.
+	 *
+	 * @param mixed $can_run True, or a WP_Error naming the prerequisite.
+	 * @return string
+	 */
+	public static function unmet_prerequisite( $can_run ): string {
+		if ( $can_run instanceof \WP_Error ) {
+			$message = $can_run->get_error_message();
+			return '' !== $message ? $message : __( 'This migration cannot run yet on this site.', 'ffcertificate' );
+		}
+		return true === $can_run ? '' : __( 'This migration cannot run yet on this site.', 'ffcertificate' );
+	}
+
+	/**
 	 * Render.
 	 */
 	public function render(): void {

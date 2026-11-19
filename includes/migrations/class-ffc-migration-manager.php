@@ -100,6 +100,20 @@ class MigrationManager {
 	}
 
 	/**
+	 * Whether a migration's prerequisites are met.
+	 *
+	 * Delegates to the strategy's `can_run()`, the same check execution
+	 * makes, so the card can refuse before the button is pressed (#2651).
+	 *
+	 * @since 6.45.0
+	 * @param string $migration_key Migration identifier.
+	 * @return bool|WP_Error True when it can run, or the refusal.
+	 */
+	public function can_run( string $migration_key ) {
+		return $this->status_calculator->can_run( $migration_key );
+	}
+
+	/**
 	 * Execute a migration
 	 *
 	 * Delegates to Status Calculator which delegates to appropriate Strategy.
