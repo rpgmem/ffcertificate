@@ -48,6 +48,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **html2canvas-pro moves to 2.6.4** (#2643), byte-identical to upstream; the six default certificate models rasterise to the same pixels as under 2.5.0.
 - **A test decodes the QR codes the plugin draws** (#2648): links, signed payloads, accented text and short URLs, at every error level and through both the SVG and PNG paths, read back byte for byte with chillerlan/php-qrcode, a development-only dependency that never ships.
 - **QR codes take the highest error correction that keeps their size** (#2648). Certificates (SVG and PNG), magic links and short-URL codes are drawn at the highest level whose grid is no larger than the level set, so they survive more damage at no cost in size; the QR Code Generator keeps the level the user picks.
+- **A migration card waiting on a prerequisite links to where it is met** (#2656): signing issued certificates links to the Integrity signature card on Settings → Certificates, and the identity index backfill to the canonicalisation card it waits for. The button shows only to a user who may open that screen.
 
 ### Removed
 
@@ -70,7 +71,6 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The certificate no longer flashes through the overlay while its PDF is generated** (#2634). It stays hidden on the page and is made visible only in the copy the capture draws, so the PDF is unchanged.
 - **A migration card whose prerequisite is missing shows Run disabled, with what is missing** (#2651). Signing issued certificates without a signing key, or encrypting addresses without encryption keys, was offered as a button the server then refused.
 - **The translation template is valid again, and a malformed entry now fails the tests** (#2653). Four `ffcertificate.pot` entries had no `msgstr` line, which `msgfmt` rejects; the reader the translation guards share took the absence for an empty string, so none of them noticed.
-- **A migration card waiting on a prerequisite links to where it is met** (#2656): signing issued certificates links to the Integrity signature card on Settings → Certificates, and the identity index backfill to the canonicalisation card it waits for. The button shows only to a user who may open that screen.
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
