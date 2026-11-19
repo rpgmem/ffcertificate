@@ -117,6 +117,33 @@ final class QrCapacity {
 	}
 
 	/**
+	 * The level to draw the text with: the one asked for, raised where the
+	 * grid has room ({@see self::free_level()}), or lowered until the text
+	 * fits (#2660).
+	 *
+	 * Lowering trades damage tolerance for room -- L holds about 2.3 times
+	 * what H holds -- and a code that scans is worth more than none. Null
+	 * when the text does not fit even at L, which the caller reports.
+	 *
+	 * @param string $text Text to encode.
+	 * @param string $ecc  The level asked for.
+	 * @return string|null L, M, Q or H, or null when nothing fits.
+	 */
+	public static function fit_level( string $text, string $ecc ): ?string {
+		$ecc = self::level_name( $ecc );
+		if ( self::fits( $text, $ecc ) ) {
+			return self::free_level( $text, $ecc );
+		}
+		$order = array( 'L', 'M', 'Q', 'H' );
+		foreach ( array_reverse( array_slice( $order, 0, (int) array_search( $ecc, $order, true ) ) ) as $lower ) {
+			if ( self::fits( $text, $lower ) ) {
+				return $lower;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * The version the encoder picks for the text at a level, or 0 when the
 	 * text does not fit.
 	 *

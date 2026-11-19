@@ -287,6 +287,7 @@ final class InlineStyleTest extends TestCase {
 		),
 		'includes/generators/class-ffc-qrcode-generator.php' => array(
 			'style=: style="width:%dpx !important; height:%dpx !important; display:block !importan' => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="width:%dpx; margin:0 auto; font-size:10px; line-height:1.3; text-align' => array( 1, self::PDF_DOCUMENT ),
 		),
 		'includes/generators/class-ffc-validation-url-placeholders.php' => array(
 			'style=: style="color:' => array( 1, self::PDF_DOCUMENT ),

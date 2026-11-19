@@ -141,6 +141,9 @@ class QRCodeGenerator {
 		// served from or written to the per-submission PNG cache, which holds
 		// whatever link was drawn first.
 		$signed = SignedQrLink::is_signed( $url );
+		// What the fallback prints when no code can be drawn (#2660): the
+		// link as it came in, never the signed payload a reader cannot type.
+		$readable = $signed ? (string) strstr( $url, '&' . SignedQrLink::FRAGMENT_KEY . '=', true ) : $url;
 
 		if ( QrDesign::applies_to( 'certificate' ) ) {
 			/** This filter is documented below. */
@@ -150,11 +153,17 @@ class QRCodeGenerator {
 			// from the renderer rather than repeating the width.
 			$design = $signed ? $design->without_logo() : $design;
 			// The highest level that keeps the grid (#2648): same size, more
-			// damage survived. A logo still forces H inside the renderer.
-			$level = QrCapacity::free_level( $url, $design->error_level( $params['error_level'] ) );
-			$drawn = QrSvgRenderer::render_sized( $url, $design, $level, $params['margin'], $params['size'] );
+			// damage survived. A logo forces H inside the renderer, so when the
+			// link does not fit at H the logo goes and the level may drop
+			// (#2660) -- a plain code that scans beats a branded one that does not.
+			if ( '' !== $design->logo && ! QrCapacity::fits( $url, 'H' ) ) {
+				$design = $design->without_logo();
+			}
+			$level = QrCapacity::fit_level( $url, $design->error_level( $params['error_level'] ) );
+			$drawn = null === $level ? array( 'svg' => '' ) : QrSvgRenderer::render_sized( $url, $design, $level, $params['margin'], $params['size'] );
 			if ( '' === $drawn['svg'] ) {
-				return '';
+				/** This filter is documented below. */
+				return apply_filters( 'ffcertificate_qrcode_html', $this->format_fallback( $readable, $params['size'] ), $url, $submission_id );
 			}
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding SVG markup for a data URI.
 			$img_html = $this->format_as_img_tag( base64_encode( $drawn['svg'] ), $params['size'], 'image/svg+xml', $drawn['height'] );
@@ -197,7 +206,8 @@ class QRCodeGenerator {
 					'submission_id' => $submission_id,
 				)
 			);
-			return '';
+			/** This filter is documented below. */
+			return apply_filters( 'ffcertificate_qrcode_html', $this->format_fallback( $readable, $params['size'] ), $url, $submission_id );
 		}
 
 		// Cache if enabled.
@@ -306,6 +316,21 @@ class QRCodeGenerator {
 			return '';
 		}
 
+		// The level that fits, lowered when the one asked for holds too little
+		// (#2660). Checked before the library runs: on overflow it draws
+		// nothing, says why only in a log of its own and leaves an output
+		// buffer open.
+		$level = QrCapacity::fit_level( $url, $params['error_level'] );
+		if ( null === $level ) {
+			\FreeFormCertificate\Core\Debug::log_qrcode(
+				'QR Code: content exceeds the capacity of a QR code',
+				array(
+					'url_length' => strlen( $url ),
+				)
+			);
+			return '';
+		}
+
 		try {
 			// Create temporary file - prefer wp_tempnam for better hosting compatibility.
 			$temp_file = function_exists( 'wp_tempnam' )
@@ -330,7 +355,7 @@ class QRCodeGenerator {
 			\QRcode::png(
 				$url,
 				$temp_file,
-				$this->get_error_correction_constant( QrCapacity::free_level( $url, $params['error_level'] ) ),
+				$this->get_error_correction_constant( $level ),
 				$point_size,
 				$margin
 			);
@@ -435,6 +460,28 @@ class QRCodeGenerator {
 			esc_attr__( 'QR Code', 'ffcertificate' ),
 			$size,
 			$height > 0 ? $height : $size
+		);
+	}
+
+	/**
+	 * What a document prints where its QR code would be, when none can be
+	 * drawn (#2660): the link the code would have opened, as text, in the
+	 * box the code was given. A blank square told the reader nothing.
+	 *
+	 * @param string $url  The link, as a person can type it.
+	 * @param int    $size Width of the box, in pixels.
+	 * @return string HTML, or '' when there is no link to print.
+	 */
+	private function format_fallback( string $url, int $size ): string {
+		if ( '' === $url ) {
+			return '';
+		}
+
+		return sprintf(
+			'<div class="ffc-qr-fallback" style="width:%dpx; margin:0 auto; font-size:10px; line-height:1.3; text-align:center; word-break:break-all;">%s<br>%s</div>',
+			max( 1, $size ),
+			esc_html__( 'Verify this document at:', 'ffcertificate' ),
+			esc_html( $url )
 		);
 	}
 

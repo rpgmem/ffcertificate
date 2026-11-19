@@ -72,7 +72,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The certificate no longer flashes through the overlay while its PDF is generated** (#2634). It stays hidden on the page and is made visible only in the copy the capture draws, so the PDF is unchanged.
 - **A migration card whose prerequisite is missing shows Run disabled, with what is missing** (#2651). Signing issued certificates without a signing key, or encrypting addresses without encryption keys, was offered as a button the server then refused.
 - **The translation template is valid again, and a malformed entry now fails the tests** (#2653). Four `ffcertificate.pot` entries had no `msgstr` line, which `msgfmt` rejects; the reader the translation guards share took the absence for an empty string, so none of them noticed.
-
+- **A QR code that does not fit draws at a lower level instead of failing** (#2660). Content too long for the requested error correction is drawn at the highest level that holds it, a logo goes when only that blocks it, and a certificate whose code still cannot be drawn prints its verification link instead of a blank square. The QR library no longer writes `errors.txt` into the plugin folder.
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
 - **A `{{signer2:signature}}` or `{{signer3:signature}}` image address survives the layout allow-list and the visual conversion** (#2624): the allow-list held only `{{signer:`, and the conversion's markup escaped the braces, so both cut the token down to `signature}}`.
