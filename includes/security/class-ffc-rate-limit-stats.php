@@ -44,7 +44,8 @@ final class RateLimitStats {
 	 * (#2109). The Rate Limit tab shows it masked; this is the only path to
 	 * the clear value. A row written before addresses were encrypted still
 	 * carries the address in clear, as its `ip_address` or as the identifier
-	 * of an `ip` row, until the migration card runs.
+	 * of an `ip` row, until the migration card runs. The row is read whole
+	 * because `ip_address` leaves the table once it is empty (#2658).
 	 *
 	 * @param int $id Log row ID.
 	 * @return string The address, or '' when the row or its address is missing.
@@ -56,7 +57,7 @@ final class RateLimitStats {
 		}
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One row of the plugin's own rate-limit log for an audited reveal; WordPress has no API for that table.
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT type, identifier, ip_address, ip_address_encrypted FROM %i WHERE id = %d', $wpdb->prefix . 'ffc_rate_limit_logs', $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $wpdb->prefix . 'ffc_rate_limit_logs', $id ), ARRAY_A );
 		if ( ! is_array( $row ) ) {
 			return '';
 		}
