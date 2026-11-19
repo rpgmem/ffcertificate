@@ -35219,3 +35219,7 @@ msgstr "Gerar uma chave de assinatura"
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
 msgid "Go to Canonicalise Stored Identifiers"
 msgstr "Ir para Canonizar Identificadores Armazenados"
+
+#: includes/generators/class-ffc-qrcode-generator.php
+msgid "Verify this document at:"
+msgstr "Verifique este documento em:"

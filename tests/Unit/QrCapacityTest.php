@@ -149,4 +149,18 @@ class QrCapacityTest extends TestCase {
 		$this->assertSame( 'L', QrCapacity::free_level( str_repeat( 'x', 4000 ), 'L' ), 'Too long for any version.' );
 		$this->assertSame( QrCapacity::free_level( 'abc', 'M' ), QrCapacity::free_level( 'abc', 'Z' ), 'An unknown level reads as M.' );
 	}
+
+	public function test_the_fit_level_lowers_the_level_until_the_text_fits(): void {
+		// #2660: version-40 byte capacity is 1273 at H, 1663 at Q, 2331 at M, 2953 at L.
+		$this->assertSame( 'Q', QrCapacity::fit_level( str_repeat( 'x', 1500 ), 'H' ), 'Too long for H, fits Q.' );
+		$this->assertSame( 'L', QrCapacity::fit_level( str_repeat( 'x', 2500 ), 'H' ), 'Only L holds it.' );
+		$this->assertSame( 'L', QrCapacity::fit_level( str_repeat( 'x', 2500 ), 'M' ) );
+		$this->assertNull( QrCapacity::fit_level( str_repeat( 'x', 4000 ), 'H' ), 'Nothing holds it.' );
+	}
+
+	public function test_the_fit_level_keeps_or_raises_a_level_that_already_fits(): void {
+		$this->assertSame( QrCapacity::free_level( 'https://exemplo.test/s/Ab3dE', 'M' ), QrCapacity::fit_level( 'https://exemplo.test/s/Ab3dE', 'M' ) );
+		$this->assertSame( 'H', QrCapacity::fit_level( 'https://exemplo.test/s/Ab3dE', 'H' ) );
+		$this->assertNull( QrCapacity::fit_level( '', 'M' ), 'Empty text never fits.' );
+	}
 }
