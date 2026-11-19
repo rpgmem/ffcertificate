@@ -96,14 +96,17 @@ class SchemaWrittenColumnTest extends TestCase {
 	/**
 	 * Columns written that NO declarer names, with why that is correct.
 	 *
-	 * Empty since the CPF/RF split card left in 6.45.0 (#2552): it was the last
-	 * writer of the legacy `cpf_rf`, `cpf_rf_encrypted` and `cpf_rf_hash`
-	 * columns, which no `CREATE` has declared since production read 0 pending.
-	 * A column added here has to argue for itself, as those three did.
+	 * The CPF/RF split card was the last writer of `cpf_rf`, `cpf_rf_encrypted`
+	 * and `cpf_rf_hash` until it left in 6.45.0 (#2552). An entry added here has
+	 * to argue for itself, as those three did. Keyed `table.column` where the
+	 * write site names its table, so the excuse cannot cover a namesake.
 	 *
 	 * @var array<string, string>
 	 */
-	private const LEGACY_WITHOUT_DECLARATION = array();
+	private const LEGACY_WITHOUT_DECLARATION = array(
+		'ffc_activity_log.user_ip'       => 'Dropped once empty (#2658); the "Activity Log: Encrypt Client IPs" migration NULLs it, and reads it only while column_exists() says it is there.',
+		'ffc_rate_limit_logs.ip_address' => 'Dropped once empty (#2658); the "Rate Limit Log: Encrypt IPs" migration NULLs it, and reads it only while column_exists() says it is there.',
+	);
 
 	/**
 	 * The site this guard exists for, which must resolve at FULL strength.
@@ -264,6 +267,7 @@ class SchemaWrittenColumnTest extends TestCase {
 				// cannot answer both, so `staging_by_table()` answers this one -- and
 				// those three columns were exactly what blocked closing the hatch.
 				if ( isset( $by_table[ $site['table'] ][ $column ] )
+					|| isset( self::LEGACY_WITHOUT_DECLARATION[ $site['table'] . '.' . $column ] )
 					|| in_array( $column, $increments[ $site['table'] ] ?? array(), true )
 					|| in_array( $column, $staging[ $site['table'] ] ?? array(), true ) ) {
 					continue;
@@ -327,6 +331,9 @@ class SchemaWrittenColumnTest extends TestCase {
 		foreach ( array_merge( $scan['strong'], $scan['weak'] ) as $site ) {
 			foreach ( $site['columns'] as $column ) {
 				$written[ $column ] = true;
+				if ( isset( $site['table'] ) && '' !== $site['table'] ) {
+					$written[ $site['table'] . '.' . $column ] = true;
+				}
 			}
 		}
 
