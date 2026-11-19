@@ -70,6 +70,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The certificate no longer flashes through the overlay while its PDF is generated** (#2634). It stays hidden on the page and is made visible only in the copy the capture draws, so the PDF is unchanged.
 - **A migration card whose prerequisite is missing shows Run disabled, with what is missing** (#2651). Signing issued certificates without a signing key, or encrypting addresses without encryption keys, was offered as a button the server then refused.
 - **The translation template is valid again, and a malformed entry now fails the tests** (#2653). Four `ffcertificate.pot` entries had no `msgstr` line, which `msgfmt` rejects; the reader the translation guards share took the absence for an empty string, so none of them noticed.
+- **A migration card waiting on a prerequisite links to where it is met** (#2656): signing issued certificates links to the Integrity signature card on Settings → Certificates, and the identity index backfill to the canonicalisation card it waits for. The button shows only to a user who may open that screen.
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`

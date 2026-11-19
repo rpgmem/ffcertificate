@@ -171,7 +171,20 @@ class CertificateSigningBackfillMigrationStrategy implements MigrationStrategyIn
 	 */
 	public function can_run( string $migration_key, array $migration_config ) {
 		if ( ! SigningKeys::has_active() ) {
-			return new \WP_Error( 'no_signing_key', __( 'Generate a signing key first, under Settings → Certificates.', 'ffcertificate' ) );
+			// The action takes the operator to the card that generates the key
+			// (#2656); the card shows it only to whoever may open that screen.
+			return new \WP_Error(
+				'no_signing_key',
+				__( 'Generate a signing key first, under Settings → Certificates.', 'ffcertificate' ),
+				array(
+					'action' => array(
+						'label' => __( 'Generate a signing key', 'ffcertificate' ),
+						'url'   => admin_url( 'admin.php?page=ffc-settings&tab=certificates#ffc-integrity-signature' ),
+						'cap'   => 'ffc_manage_settings_dangerzone',
+						'icon'  => 'key',
+					),
+				)
+			);
 		}
 		return true;
 	}

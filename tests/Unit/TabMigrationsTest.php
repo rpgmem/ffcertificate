@@ -521,7 +521,7 @@ class TabMigrationsTest extends TestCase {
 	public function test_each_card_is_a_collapsible_section_the_runner_still_finds(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
 
-		$this->assertStringContainsString( '<details class="ffc-section ffc-migration-card ', $view );
+		$this->assertStringContainsString( '<details id="ffc-migration-<?php echo esc_attr( $ffcertificate_key ); ?>" class="ffc-section ffc-migration-card ', $view );
 		$this->assertStringContainsString( 'TabMigrations::card_opens( (bool) $ffcertificate_is_complete, (string) $ffcertificate_status_error ) ? \' open\'', $view );
 		$this->assertStringContainsString( '<summary class="ffc-section__summary">', $view );
 		$this->assertStringContainsString( '</details>', $view );
@@ -564,5 +564,59 @@ class TabMigrationsTest extends TestCase {
 		// The case sits before the runnable one, so a refusal never reaches it.
 		$this->assertLessThan( (int) strpos( $view, "'class'    => 'ffc-migration-run'" ), $from );
 		$this->assertStringContainsString( "\$ffcertificate_can_migrate && '' === \$ffcertificate_unmet && ! empty( \$ffcertificate_status['retryable'] )", $view );
+	}
+
+	/**
+	 * A refusal's action is offered only when it is whole and the user may
+	 * open its destination (#2656).
+	 */
+	public function test_a_prerequisite_action_is_offered_only_whole_and_to_whoever_may_follow_it(): void {
+		$granted = array( 'ffc_manage_settings_dangerzone' );
+		Functions\when( 'current_user_can' )->alias(
+			static function ( string $cap ) use ( &$granted ): bool {
+				return in_array( $cap, $granted, true );
+			}
+		);
+		$refusal = static fn( $data ) => new \WP_Error( 'no_signing_key', 'Generate a key first.', $data );
+		$action  = array(
+			'label' => 'Generate a signing key',
+			'url'   => 'https://example.test/wp-admin/admin.php?page=ffc-settings&tab=certificates#ffc-integrity-signature',
+			'cap'   => 'ffc_manage_settings_dangerzone',
+			'icon'  => 'key',
+		);
+
+		$this->assertSame(
+			array( 'label' => $action['label'], 'url' => $action['url'], 'icon' => 'key' ),
+			TabMigrations::prerequisite_action( $refusal( array( 'action' => $action ) ) )
+		);
+		$this->assertSame( 'link', TabMigrations::prerequisite_action( $refusal( array( 'action' => array_diff_key( $action, array( 'icon' => 0 ) ) ) ) )['icon'] ?? null, 'Without an icon, the link one.' );
+
+		// Nothing to offer: a pass, a refusal without data, a malformed action.
+		$this->assertNull( TabMigrations::prerequisite_action( true ) );
+		$this->assertNull( TabMigrations::prerequisite_action( new \WP_Error( 'x', 'No data.' ) ) );
+		$this->assertNull( TabMigrations::prerequisite_action( $refusal( array( 'action' => 'not an array' ) ) ) );
+		foreach ( array( 'label', 'url', 'cap' ) as $missing ) {
+			$this->assertNull( TabMigrations::prerequisite_action( $refusal( array( 'action' => array_diff_key( $action, array( $missing => 0 ) ) ) ) ), 'Without ' . $missing . '.' );
+		}
+
+		// A destination this user may not open is never offered.
+		$granted = array();
+		$this->assertNull( TabMigrations::prerequisite_action( $refusal( array( 'action' => $action ) ) ) );
+	}
+
+	/**
+	 * The unmet branch draws the action under the refusal, and every card
+	 * carries the anchor an action may point at (#2656).
+	 */
+	public function test_the_unmet_branch_draws_the_action_and_cards_are_addressable(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$from   = (int) strpos( $view, "<?php elseif ( '' !== \$ffcertificate_unmet ) : ?>" );
+		$branch = substr( $view, $from, (int) strpos( $view, '<?php else : ?>', $from ) - $from );
+		$this->assertStringContainsString( 'null !== $ffcertificate_unmet_action', $branch );
+		$this->assertStringContainsString( "'href'  => \$ffcertificate_unmet_action['url']", $branch );
+		$this->assertStringNotContainsString( 'ffc-migration-run', $branch );
+
+		$this->assertStringContainsString( '<details id="ffc-migration-<?php echo esc_attr( $ffcertificate_key ); ?>"', $view );
 	}
 }
