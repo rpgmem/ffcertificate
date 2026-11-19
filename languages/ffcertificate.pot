@@ -7242,6 +7242,7 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php
 msgid "Destructive"
+msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php
 msgid "Details"
@@ -7906,6 +7907,7 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
 msgid "The unsubscribe link at the end of these e-mails turns off the same preference."
+msgstr ""
 
 #: templates/admin/scheduling/calendar-names.php
 msgid "Word for a session (%s)"
@@ -7917,6 +7919,7 @@ msgstr ""
 
 #: templates/admin/audience/general-tab.php
 msgid "The word for a session on personal calendars, shown when booking, on the receipt, in e-mails and on the verification page. A calendar can set its own on its Names tab."
+msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php
 msgid "{{date}}, {{age}} and {{days_until}} need a date, so an announcement does not offer them."
@@ -31693,6 +31696,7 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:158
 msgid "Sensitive data"
+msgstr ""
 
 
 #: includes/audience/class-ffc-audience-admin-attendance.php:595

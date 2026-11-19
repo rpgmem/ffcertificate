@@ -58,14 +58,27 @@ final class PoCatalogue {
 	 *
 	 * @param string $path Absolute path.
 	 * @return array<int, array{key: string, msgctxt: string|null, msgid: string, msgid_plural: string|null, forms: array<int, string>, fuzzy: bool}>
+	 * @throws \RuntimeException When an entry has no msgstr (or msgstr[0]) line.
 	 */
 	public static function read( string $path ): array {
 		$entries = array();
 		$cur     = array();
 		$field   = null;
+		$line_no = 0;
 
-		$flush = static function () use ( &$cur, &$entries, &$field ): void {
+		$flush = static function () use ( &$cur, &$entries, &$field, $path ): void {
 			if ( isset( $cur['msgid'] ) && '' !== $cur['msgid'] ) {
+				// A missing msgstr is a malformed entry, never an empty one
+				// (#2653). In a `.pot` every msgstr is empty, so reading the
+				// absence as "" made a broken entry and a correct one look the
+				// same, and four of them shipped past every guard; `msgfmt`
+				// rejects the file outright.
+				$needed = isset( $cur['msgid_plural'] ) ? 'msgstr[0]' : 'msgstr';
+				if ( ! isset( $cur[ $needed ] ) ) {
+					throw new \RuntimeException(
+						sprintf( '%s:%d: entry "%s" has no %s line.', $path, (int) $cur['line'], $cur['msgid'], $needed )
+					);
+				}
 				$forms = array();
 				if ( isset( $cur['msgid_plural'] ) ) {
 					for ( $i = 0; isset( $cur[ 'msgstr[' . $i . ']' ] ); $i++ ) {
@@ -89,6 +102,7 @@ final class PoCatalogue {
 		};
 
 		foreach ( explode( "\n", (string) file_get_contents( $path ) ) as $line ) {
+			++$line_no;
 			$trimmed = trim( $line );
 
 			if ( '' === $trimmed ) {
@@ -104,6 +118,9 @@ final class PoCatalogue {
 			if ( preg_match( '/^(msgctxt|msgid|msgid_plural|msgstr(?:\[\d+\])?)\s+"(.*)"$/s', $trimmed, $m ) ) {
 				$field         = $m[1];
 				$cur[ $field ] = ( $cur[ $field ] ?? '' ) . stripcslashes( $m[2] );
+				if ( 'msgid' === $field && ! isset( $cur['line'] ) ) {
+					$cur['line'] = $line_no;
+				}
 				continue;
 			}
 			// A continuation line: the literal keeps going on its own.
