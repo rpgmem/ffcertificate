@@ -183,6 +183,19 @@
     margin: var(--ffc-spacing-sm) 0 0;
 }
 
+/* The ways out offered when the content does not fit (#2660). */
+.ffc-page-qr-generator .ffc-qr-generator__status:not([hidden]) {
+    flex-wrap: wrap;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__fixes {
+    display: flex;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin-top: var(--ffc-spacing-xs);
+}
+
 /* Overlay confirming that a short URL record was written (#1592). */
 .ffc-page-qr-generator .ffc-qr-saved {
     position: fixed;

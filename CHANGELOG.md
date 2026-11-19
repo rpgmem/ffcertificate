@@ -49,6 +49,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A test decodes the QR codes the plugin draws** (#2648): links, signed payloads, accented text and short URLs, at every error level and through both the SVG and PNG paths, read back byte for byte with chillerlan/php-qrcode, a development-only dependency that never ships.
 - **QR codes take the highest error correction that keeps their size** (#2648). Certificates (SVG and PNG), magic links and short-URL codes are drawn at the highest level whose grid is no larger than the level set, so they survive more damage at no cost in size; the QR Code Generator keeps the level the user picks.
 - **A migration card waiting on a prerequisite links to where it is met** (#2656): signing issued certificates links to the Integrity signature card on Settings → Certificates, and the identity index backfill to the canonicalisation card it waits for. The button shows only to a user who may open that screen.
+- **The QR generator offers a way out when the content is too long** (#2662): a button to use the lower error correction that holds it, to remove the logo that forces H, or to use a short URL for an address. Each one changes its own control, so the level in use stays visible.
 
 ### Removed
 

@@ -7710,7 +7710,7 @@ msgid "The design sections are the same as on Settings → QR Code, and start fr
 msgstr ""
 
 #: includes/settings/views/documentation/config-qr-code.php
-msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. The level is a minimum: when the code's content leaves room in its grid, certificates and short-URL codes are drawn at the highest level that keeps the same size. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
+msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. The level is a starting point for certificates and short-URL codes: when the content leaves room in its grid, they are drawn at the highest level that keeps the same size; when it does not fit, the level is lowered until it does, and a logo, which needs H, is left out. A certificate whose code still cannot be drawn prints its verification link instead. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
 msgstr ""
 
 #: includes/settings/views/documentation/config-qr-code.php
@@ -35144,4 +35144,22 @@ msgstr ""
 
 #: includes/generators/class-ffc-qrcode-generator.php
 msgid "Verify this document at:"
+msgstr ""
+
+#. translators: %s: error correction level (L, M, Q or H).
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+#, php-format
+msgid "Use error correction %s"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+msgid "Remove the logo"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+msgid "Use a short URL"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-qr-generator.php
+msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, removing the logo that forces H, or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
 msgstr ""

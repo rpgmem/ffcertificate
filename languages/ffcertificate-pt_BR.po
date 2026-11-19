@@ -7711,8 +7711,8 @@ msgid "The design sections are the same as on Settings → QR Code, and start fr
 msgstr "As seções de design são as mesmas de Configurações → QR Code e partem do design global (ou do último baixado pelo usuário), esteja ou não aplicado lá a certificados ou URLs curtas. A margem e o nível de correção de erros também partem dos padrões de QR Code; o tamanho padrão não se aplica, já que o download define a própria largura. Uma alteração feita no gerador vale só para este código e nunca muda as configurações globais."
 
 #: includes/settings/views/documentation/config-qr-code.php
-msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. The level is a minimum: when the code's content leaves room in its grid, certificates and short-URL codes are drawn at the highest level that keeps the same size. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
-msgstr "Tamanho (px), margem (módulos) e nível de correção de erros (L / M / Q / H) padrão aplicados ao marcador {{qr_code}} quando ele não define os seus. As opções do marcador sempre prevalecem. O Gerador de QR Code parte da margem e do nível de correção de erros. O nível é um mínimo: quando o conteúdo do código deixa espaço na grade, os códigos dos certificados e das URLs curtas são desenhados no nível mais alto que mantém o mesmo tamanho. Uma margem 0 não deixa zona livre, de que muitos leitores precisam, e as prévias avisam sobre isso."
+msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. The level is a starting point for certificates and short-URL codes: when the content leaves room in its grid, they are drawn at the highest level that keeps the same size; when it does not fit, the level is lowered until it does, and a logo, which needs H, is left out. A certificate whose code still cannot be drawn prints its verification link instead. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
+msgstr "Tamanho (px), margem (módulos) e nível de correção de erros (L / M / Q / H) padrão aplicados ao marcador {{qr_code}} quando ele não define os seus. As opções do marcador sempre prevalecem. O Gerador de QR Code parte da margem e do nível de correção de erros. Para certificados e códigos de URLs curtas, o nível é um ponto de partida: quando o conteúdo deixa espaço na grade, eles são desenhados no nível mais alto que mantém o mesmo tamanho; quando não cabe, o nível é rebaixado até caber, e um logo, que exige H, fica de fora. Um certificado cujo código ainda assim não pode ser desenhado imprime o seu link de verificação. Uma margem 0 não deixa zona livre, de que muitos leitores precisam, e as prévias avisam sobre isso."
 
 #: includes/settings/views/documentation/config-qr-code.php
 msgid "Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that lists every readability problem at once: low contrast, inverted colours, a transparent background, a caption hard to read on its ground and a margin of 0. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept."
@@ -35223,3 +35223,21 @@ msgstr "Ir para Canonizar Identificadores Armazenados"
 #: includes/generators/class-ffc-qrcode-generator.php
 msgid "Verify this document at:"
 msgstr "Verifique este documento em:"
+
+#. translators: %s: error correction level (L, M, Q or H).
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+#, php-format
+msgid "Use error correction %s"
+msgstr "Usar correção de erro %s"
+
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+msgid "Remove the logo"
+msgstr "Remover o logo"
+
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+msgid "Use a short URL"
+msgstr "Usar uma URL curta"
+
+#: includes/settings/views/documentation/feature-qr-generator.php
+msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, removing the logo that forces H, or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
+msgstr "Quando o conteúdo é longo demais para a correção de erros escolhida, a mensagem diz quanto remover e oferece um botão para cada saída: o nível mais baixo que o comporta, remover o logo que força H, ou uma URL curta para um site ou perfil social. Um botão só altera o próprio controle, então o formulário sempre mostra com o que o código é desenhado; o gerador nunca muda o nível sozinho."
