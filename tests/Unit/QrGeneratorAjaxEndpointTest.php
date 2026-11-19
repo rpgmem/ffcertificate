@@ -256,6 +256,66 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertSame( 'This content is about 132 bytes too long for error correction H (a plain letter is one byte, an accented one two). Shorten it, or lower the level.', $data['message'] );
 	}
 
+	public function test_content_over_capacity_offers_the_lower_level_that_holds_it(): void {
+		// #2660: 1,400 bytes exceed H and fit Q; text cannot be shortened.
+		$_POST = array(
+			'type'        => 'text',
+			'fields'      => array( 'text' => str_repeat( 'x', 1400 ) ),
+			'error_level' => 'H',
+		);
+
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( array( array( 'action' => 'level', 'value' => 'Q', 'label' => 'Use error correction Q' ) ), $data['fixes'] );
+	}
+
+	public function test_an_address_over_capacity_also_offers_a_short_url(): void {
+		$_POST = array(
+			'type'        => 'url',
+			'fields'      => array( 'url' => 'https://example.com/?q=' . str_repeat( 'x', 1400 ) ),
+			'error_level' => 'H',
+		);
+
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( array( 'level', 'short' ), array_column( $data['fixes'], 'action' ) );
+	}
+
+	public function test_a_logo_that_alone_blocks_the_code_is_offered_for_removal(): void {
+		// The logo forces H; at the M asked for, 1,400 bytes fit.
+		$this->caps[] = 'read_post';
+		$memo         = new \ReflectionProperty( \FreeFormCertificate\Generators\QrLogo::class, 'memo' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, array( 7 => 'data:image/png;base64,iVBORw0KGgo=' ) );
+		$_POST = array(
+			'type'        => 'text',
+			'fields'      => array( 'text' => str_repeat( 'x', 1400 ) ),
+			'error_level' => 'M',
+			'logo_id'     => '7',
+		);
+
+		try {
+			list( , $data ) = $this->run_handler( 'handle_generate' );
+		} finally {
+			$memo->setValue( null, array() );
+		}
+
+		$this->assertTrue( $data['usage']['forced'] );
+		$this->assertSame( array( 'logo' ), array_column( $data['fixes'], 'action' ), 'Lowering the level cannot help while the logo forces H.' );
+	}
+
+	public function test_content_no_level_holds_offers_nothing_but_shortening_it(): void {
+		$_POST = array(
+			'type'        => 'text',
+			'fields'      => array( 'text' => str_repeat( 'x', 4000 ) ),
+			'error_level' => 'M',
+		);
+
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( array(), $data['fixes'] );
+	}
+
 	/**
 	 * A repository double answering the duplicate and code lookups.
 	 *
