@@ -141,10 +141,13 @@ try {
 			// A PREREQUISITE THE STRATEGY STILL LACKS (#2651). The same check
 			// execution makes, asked before the button is drawn, so the card
 			// says what is missing instead of offering a run the server refuses.
-			$ffcertificate_unmet = '';
+			$ffcertificate_unmet        = '';
+			$ffcertificate_unmet_action = null;
 			if ( $ffcertificate_can_migrate && ! $ffcertificate_is_complete ) {
 				try {
-					$ffcertificate_unmet = \FreeFormCertificate\Settings\Tabs\TabMigrations::unmet_prerequisite( $ffcertificate_migration_manager->can_run( $ffcertificate_key ) );
+					$ffcertificate_can_run      = $ffcertificate_migration_manager->can_run( $ffcertificate_key );
+					$ffcertificate_unmet        = \FreeFormCertificate\Settings\Tabs\TabMigrations::unmet_prerequisite( $ffcertificate_can_run );
+					$ffcertificate_unmet_action = \FreeFormCertificate\Settings\Tabs\TabMigrations::prerequisite_action( $ffcertificate_can_run );
 				} catch ( \Throwable $e ) {
 					$ffcertificate_unmet = $e->getMessage();
 				}
@@ -179,7 +182,7 @@ try {
 			// (#2115). The summary carries the name, the progress and the removal
 			// release, so a closed card still reads at a glance.
 			?>
-	<details class="ffc-section ffc-migration-card ffc-migration-<?php echo esc_attr( $ffcertificate_status_class ); ?>"<?php echo \FreeFormCertificate\Settings\Tabs\TabMigrations::card_opens( (bool) $ffcertificate_is_complete, (string) $ffcertificate_status_error ) ? ' open' : ''; ?>>
+	<details id="ffc-migration-<?php echo esc_attr( $ffcertificate_key ); ?>" class="ffc-section ffc-migration-card ffc-migration-<?php echo esc_attr( $ffcertificate_status_class ); ?>"<?php echo \FreeFormCertificate\Settings\Tabs\TabMigrations::card_opens( (bool) $ffcertificate_is_complete, (string) $ffcertificate_status_error ) ? ' open' : ''; ?>>
 		<summary class="ffc-section__summary">
 			<span class="ffc-section__icon"><span class="<?php echo esc_attr( $ffcertificate_migration['icon'] ); ?>" aria-hidden="true"></span></span>
 			<span class="ffc-section__text">
@@ -543,6 +546,23 @@ try {
 						);
 						?>
 						<p class="description ffc-icon-lock ffc-migration-unmet"><?php echo esc_html( $ffcertificate_unmet ); ?></p>
+						<?php
+						// Where the prerequisite is met, when the refusal names a
+						// place this user may open (#2656).
+						if ( null !== $ffcertificate_unmet_action ) :
+							?>
+							<p>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label' => $ffcertificate_unmet_action['label'],
+										'icon'  => $ffcertificate_unmet_action['icon'],
+										'href'  => $ffcertificate_unmet_action['url'],
+									)
+								);
+								?>
+							</p>
+						<?php endif; ?>
 					<?php else : ?>
 						<?php
 						// `ffc-migration-run` is the hook ffc-admin-migrations.js runs the batches from.

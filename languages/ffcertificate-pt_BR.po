@@ -35211,3 +35211,11 @@ msgstr "Pequeno demais para ser lido com segurança no papel: mesmo só o link p
 #: includes/settings/tabs/class-ffc-tab-migrations.php
 msgid "This migration cannot run yet on this site."
 msgstr "Esta migração ainda não pode ser executada neste site."
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+msgid "Generate a signing key"
+msgstr "Gerar uma chave de assinatura"
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Go to Canonicalise Stored Identifiers"
+msgstr "Ir para Canonizar Identificadores Armazenados"

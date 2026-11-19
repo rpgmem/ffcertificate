@@ -39,6 +39,7 @@ final class CertificateSigningBackfillMigrationStrategyTest extends TestCase {
 			}
 		);
 		Functions\when( '__' )->returnArg();
+		Functions\when( 'admin_url' )->alias( static fn( string $path = '' ): string => 'https://example.test/wp-admin/' . $path );
 		Functions\when( '_n' )->alias( static fn( string $one, string $many, int $n ): string => 1 === $n ? $one : $many );
 		Functions\when( 'is_wp_error' )->alias( static fn( $thing ): bool => $thing instanceof \WP_Error );
 		ActivityLogBuffer::reset();
@@ -128,7 +129,12 @@ final class CertificateSigningBackfillMigrationStrategyTest extends TestCase {
 	public function test_it_refuses_to_run_without_a_signing_key(): void {
 		$card = $this->card( array( 1 => 7 ), array( 7 ) );
 
-		$this->assertInstanceOf( \WP_Error::class, $card->can_run( 'certificate_signing_backfill', array() ) );
+		$refusal = $card->can_run( 'certificate_signing_backfill', array() );
+		$this->assertInstanceOf( \WP_Error::class, $refusal );
+		// The refusal links to the card that generates the key (#2656).
+		$action = $refusal->get_error_data()['action'];
+		$this->assertSame( 'https://example.test/wp-admin/admin.php?page=ffc-settings&tab=certificates#ffc-integrity-signature', $action['url'] );
+		$this->assertSame( 'ffc_manage_settings_dangerzone', $action['cap'] );
 		$result = $card->execute( 'certificate_signing_backfill', array() );
 		$this->assertFalse( $result['success'] );
 		$this->assertSame( array(), $card->attempts, 'Nothing is signed without a key.' );

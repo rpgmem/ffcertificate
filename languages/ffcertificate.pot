@@ -35133,3 +35133,11 @@ msgstr ""
 #: includes/settings/tabs/class-ffc-tab-migrations.php
 msgid "This migration cannot run yet on this site."
 msgstr ""
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+msgid "Generate a signing key"
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Go to Canonicalise Stored Identifiers"
+msgstr ""

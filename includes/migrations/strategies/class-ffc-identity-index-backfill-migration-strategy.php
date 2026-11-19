@@ -574,6 +574,15 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 					/* translators: %d: number of rows the canonicalisation migration has not yet processed */
 					__( 'Run "Canonicalise Stored Identifiers" to completion first: %d rows are still pending. A hash copied into the index before then is a hash of whatever spelling arrived, and nothing can repair it afterwards.', 'ffcertificate' ),
 					$pending
+				),
+				// The card it depends on sits on this same screen (#2656).
+				array(
+					'action' => array(
+						'label' => __( 'Go to Canonicalise Stored Identifiers', 'ffcertificate' ),
+						'url'   => '#ffc-migration-identity_normalization',
+						'cap'   => 'ffc_manage_settings_dangerzone',
+						'icon'  => 'link',
+					),
 				)
 			);
 		}
