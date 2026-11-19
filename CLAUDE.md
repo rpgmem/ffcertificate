@@ -489,7 +489,7 @@ It exists because `languages/` was **internally consistent** throughout the two 
 
 **A mis-tuned extractor freezes a wrong baseline, and a baseline is believed.** The first scan matched only `T_STRING`, so `\__( 'I am not a robot', 'ffcertificate' )` — `T_NAME_FULLY_QUALIFIED`, one token carrying the backslash — was invisible: 30 strings, the whole ALTCHA block. Direction A was unaffected; direction B reported 52 orphans instead of 22, so the register would have declared 30 live strings dead. A canary pins that shape.
 
-The extractor lives in `tests/Support/I18nCalls.php` and the `.po` reader in `tests/Support/PoCatalogue.php`, shared with the guard above for the reason `.github/scripts/ffc-create-statements.php` is shared. `PoCatalogue::read()` returns an ordered **list**, not a keyed map, because keying makes a duplicate `msgid` vanish rather than fail — and `ffcertificate.pot` carried one, which `msgfmt` would have rejected outright.
+The extractor lives in `tests/Support/I18nCalls.php` and the `.po` reader in `tests/Support/PoCatalogue.php`, shared with the guard above for the reason `.github/scripts/ffc-create-statements.php` is shared. `PoCatalogue::read()` returns an ordered **list**, not a keyed map, because keying makes a duplicate `msgid` vanish rather than fail — and `ffcertificate.pot` carried one, which `msgfmt` would have rejected outright. For the same reason it **refuses an entry with no `msgstr` line** instead of reading it as empty (#2653): in a `.pot` every entry is empty, so four malformed ones shipped past every guard while `msgfmt` rejected the file.
 
 #### Schema-reachability guard (#1311)
 

@@ -69,6 +69,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The shipped visual certificate models are made of elements the editor can edit** (#2629). Signer columns, the verification line and its QR code, model 5's band and model 6's triangles and paragraph were HTML blocks; they are now fields, text, QR and gradient frames, and the verification line no longer breaks around the code.
 - **The certificate no longer flashes through the overlay while its PDF is generated** (#2634). It stays hidden on the page and is made visible only in the copy the capture draws, so the PDF is unchanged.
 - **A migration card whose prerequisite is missing shows Run disabled, with what is missing** (#2651). Signing issued certificates without a signing key, or encrypting addresses without encryption keys, was offered as a button the server then refused.
+- **The translation template is valid again, and a malformed entry now fails the tests** (#2653). Four `ffcertificate.pot` entries had no `msgstr` line, which `msgfmt` rejects; the reader the translation guards share took the absence for an empty string, so none of them noticed.
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
