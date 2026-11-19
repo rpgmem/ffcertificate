@@ -339,9 +339,11 @@ class ActivityLogQuery {
 			return 0;
 		}
 
-		$rows = $wpdb->query(
+		// The plaintext column leaves the table once it is empty (#2658).
+		$legacy_ip = in_array( 'user_ip', ActivityLog::get_table_columns_cached( $table_name ), true ) ? 'user_ip = NULL, ' : '';
+		$rows      = $wpdb->query(
 			$wpdb->prepare(
-				'UPDATE %i SET user_id = NULL, user_ip = NULL, user_ip_encrypted = NULL, context_encrypted = NULL WHERE user_id = %d',
+				"UPDATE %i SET user_id = NULL, {$legacy_ip}user_ip_encrypted = NULL, context_encrypted = NULL WHERE user_id = %d",
 				$table_name,
 				$user_id
 			)

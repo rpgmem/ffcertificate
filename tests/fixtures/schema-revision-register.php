@@ -20,8 +20,8 @@ return array(
 	),
 	'includes/core/class-ffc-activity-log.php' => array(
 		'class'       => 'FreeFormCertificate\\Core\\ActivityLog',
-		'revision'    => '2.5.0',
-		'fingerprint' => '12a904394fd0f7cc28b7973bd38fcb52d561e883',
+		'revision'    => '2.6.0',
+		'fingerprint' => '843619444d0eff21532fbcbfc37ed4affc4710cf',
 	),
 	'includes/date-messages/class-ffc-date-messages-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\DateMessages\\DateMessagesActivator',
@@ -40,8 +40,8 @@ return array(
 	),
 	'includes/security/class-ffc-rate-limit-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Security\\RateLimitActivator',
-		'revision'    => '1.6.0',
-		'fingerprint' => '4720693ae5bd07c42bd8debcf1b21045bfbba228',
+		'revision'    => '1.7.0',
+		'fingerprint' => 'c30cc56e738407c28f7cfe36a9fac53a133326fc',
 	),
 	'includes/self-scheduling/class-ffc-self-scheduling-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\SelfScheduling\\SelfSchedulingActivator',
