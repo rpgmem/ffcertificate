@@ -388,6 +388,14 @@ class QRCodeGeneratorTest extends TestCase {
 		$this->assertStringNotContainsString( 'iVBORw0KGgo', (string) base64_decode( $m[1] ?? '', true ), 'Drawn without the logo.' );
 	}
 
+	public function test_the_plan_keeps_a_logo_only_while_h_holds_the_text(): void {
+		// #2664: the decision the editor's note and generation share.
+		$this->assertSame( array( 'level' => 'H', 'logo' => true ), QRCodeGenerator::plan( 'https://example.com/valid', 'M', true ) );
+		$this->assertSame( array( 'level' => 'M', 'logo' => false ), QRCodeGenerator::plan( str_repeat( 'x', 1400 ), 'M', true ), 'Too long for H: the logo goes and the M asked for stays.' );
+		$this->assertSame( array( 'level' => 'Q', 'logo' => false ), QRCodeGenerator::plan( str_repeat( 'x', 1400 ), 'H', false ), 'Too long for H, no logo: lowered.' );
+		$this->assertSame( array( 'level' => null, 'logo' => false ), QRCodeGenerator::plan( str_repeat( 'x', 4000 ), 'L', true ) );
+	}
+
 	public function test_parse_and_generate_empty_url_returns_empty(): void {
 		$html = $this->generator->parse_and_generate( '{{qr_code}}', '' );
 

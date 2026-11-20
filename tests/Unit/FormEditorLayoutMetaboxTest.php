@@ -39,6 +39,8 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		// The colour field is normalised on render; null falls back to white.
 		Functions\when( 'sanitize_hex_color' )->justReturn( null );
 		Functions\when( 'admin_url' )->returnArg();
+		// The QR level note measures a link of the real length (#2664).
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://certificados.example.test' . $path );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -231,6 +233,45 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'The layout prints the QR code at 50 px; this mode needs at least', $html );
 		$this->assertStringContainsString( 'No signing key exists yet', $html );
 		$this->assertStringContainsString( 'The global QR design has a logo', $html );
+	}
+
+	public function test_a_link_that_leaves_room_is_said_to_print_above_the_level_asked_for(): void {
+		// #2664: the short verification link fits a higher level at the same size.
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+
+		$html = $this->render( array( 'qr_mode' => 'link', 'pdf_layout' => '<p>{{qr_code:size=200:margin=2:error=L}}</p>' ) );
+
+		// Measured: this 79-byte link keeps its grid at M, and Q needs a larger one.
+		$this->assertStringContainsString( 'printed at error correction M, above the L asked for', $html );
+		$this->assertStringNotContainsString( 'below the', $html );
+	}
+
+	public function test_a_link_too_long_for_the_level_asked_for_is_said_to_print_below_it(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.test/' . str_repeat( 'x', 1400 ) . $path );
+
+		$html = $this->render( array( 'qr_mode' => 'link', 'pdf_layout' => '<p>{{qr_code:size=200:margin=2:error=H}}</p>' ) );
+
+		$this->assertStringContainsString( 'printed at error correction Q, below the H asked for: the link does not fit at H.', $html );
+	}
+
+	public function test_a_logo_the_link_cannot_carry_is_said_to_be_left_out(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.test/' . str_repeat( 'x', 1400 ) . $path );
+		Functions\when( 'get_option' )->alias( static fn( $name, $default = false ) => 'ffc_settings' === $name ? array( 'qr_design_on_certificate' => '1', 'qr_design_logo_id' => 9 ) : $default );
+
+		$html = $this->render( array( 'qr_mode' => 'link', 'pdf_layout' => '<p>{{qr_code:size=200:margin=2:error=M}}</p>' ) );
+
+		$this->assertStringContainsString( 'The logo is left out: the link does not fit at error correction H', $html );
+	}
+
+	public function test_a_link_no_level_holds_is_said_to_print_as_text(): void {
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.test/' . str_repeat( 'x', 4000 ) . $path );
+
+		$html = $this->render( array( 'qr_mode' => 'link', 'pdf_layout' => '<p>{{qr_code:size=200}}</p>' ) );
+
+		$this->assertStringContainsString( 'The link does not fit in a QR code at any error correction', $html );
 	}
 
 	public function test_a_layout_with_no_qr_says_the_signature_has_nowhere_to_go(): void {

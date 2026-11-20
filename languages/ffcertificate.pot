@@ -35163,3 +35163,27 @@ msgstr ""
 #: includes/settings/views/documentation/feature-qr-generator.php
 msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, removing the logo that forces H, or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
 msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "The link does not fit in a QR code at any error correction: the certificate prints it as text instead."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "The logo is left out: the link does not fit at error correction H, which the logo needs."
+msgstr ""
+
+#. translators: 1: error correction level printed, 2: level asked for (L, M, Q or H)
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+#, php-format
+msgid "The QR code is printed at error correction %1$s, above the %2$s asked for: the link leaves room, so it survives more damage at the same size."
+msgstr ""
+
+#. translators: 1: error correction level printed, 2: level asked for (L, M, Q or H)
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+#, php-format
+msgid "The QR code is printed at error correction %1$s, below the %2$s asked for: the link does not fit at %2$s."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php
+msgid "Each option of the form editor's QR code row says when the certificate's code is printed at another error correction than the layout asks for: above it when the link leaves room in the grid, below it when the link does not fit, and when the logo is left out or the link is printed as text instead."
+msgstr ""

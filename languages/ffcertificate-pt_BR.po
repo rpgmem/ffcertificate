@@ -35241,3 +35241,27 @@ msgstr "Usar uma URL curta"
 #: includes/settings/views/documentation/feature-qr-generator.php
 msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, removing the logo that forces H, or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
 msgstr "Quando o conteúdo é longo demais para a correção de erros escolhida, a mensagem diz quanto remover e oferece um botão para cada saída: o nível mais baixo que o comporta, remover o logo que força H, ou uma URL curta para um site ou perfil social. Um botão só altera o próprio controle, então o formulário sempre mostra com o que o código é desenhado; o gerador nunca muda o nível sozinho."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "The link does not fit in a QR code at any error correction: the certificate prints it as text instead."
+msgstr "O link não cabe num QR code em nenhuma correção de erros: o certificado o imprime como texto."
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "The logo is left out: the link does not fit at error correction H, which the logo needs."
+msgstr "O logo fica de fora: o link não cabe na correção de erros H, que o logo exige."
+
+#. translators: 1: error correction level printed, 2: level asked for (L, M, Q or H)
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+#, php-format
+msgid "The QR code is printed at error correction %1$s, above the %2$s asked for: the link leaves room, so it survives more damage at the same size."
+msgstr "O QR code é impresso na correção de erros %1$s, acima da %2$s pedida: o link deixa espaço, então ele resiste a mais danos no mesmo tamanho."
+
+#. translators: 1: error correction level printed, 2: level asked for (L, M, Q or H)
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+#, php-format
+msgid "The QR code is printed at error correction %1$s, below the %2$s asked for: the link does not fit at %2$s."
+msgstr "O QR code é impresso na correção de erros %1$s, abaixo da %2$s pedida: o link não cabe em %2$s."
+
+#: includes/settings/views/documentation/reference-qr-codes.php
+msgid "Each option of the form editor's QR code row says when the certificate's code is printed at another error correction than the layout asks for: above it when the link leaves room in the grid, below it when the link does not fit, and when the logo is left out or the link is printed as text instead."
+msgstr "Cada opção da linha QR code do editor do formulário diz quando o código do certificado é impresso numa correção de erros diferente da que o layout pede: acima dela quando o link deixa espaço na grade, abaixo quando o link não cabe, e quando o logo fica de fora ou o link é impresso como texto."
