@@ -197,8 +197,8 @@ class TabGeolocationTest extends TestCase {
 
 		$this->assertIsArray( $defaults );
 		$this->assertArrayHasKey( 'ip_api_enabled', $defaults );
-		$this->assertArrayHasKey( 'ip_api_service', $defaults );
-		$this->assertArrayHasKey( 'ip_api_cascade', $defaults );
+		$this->assertArrayNotHasKey( 'ip_api_service', $defaults, 'ip-api.com was removed (#2690); there is one service.' );
+		$this->assertArrayNotHasKey( 'ip_api_cascade', $defaults, 'With one service there is nothing to cascade to (#2690).' );
 		$this->assertArrayHasKey( 'ipinfo_api_key', $defaults );
 		$this->assertArrayHasKey( 'ip_cache_enabled', $defaults );
 		$this->assertArrayHasKey( 'ip_cache_ttl', $defaults );
@@ -218,8 +218,6 @@ class TabGeolocationTest extends TestCase {
 		$defaults = $ref->invoke( $this->tab );
 
 		$this->assertFalse( $defaults['ip_api_enabled'] );
-		$this->assertSame( 'ipinfo', $defaults['ip_api_service'] );
-		$this->assertFalse( $defaults['ip_api_cascade'] );
 		$this->assertSame( '', $defaults['ipinfo_api_key'] );
 		$this->assertTrue( $defaults['ip_cache_enabled'] );
 		$this->assertSame( 600, $defaults['ip_cache_ttl'] );
@@ -259,7 +257,7 @@ class TabGeolocationTest extends TestCase {
 
 		$this->assertTrue( $settings['ip_api_enabled'] );
 		// Defaults should be present for keys not in saved settings
-		$this->assertSame( 'ipinfo', $settings['ip_api_service'] );
+		$this->assertTrue( $settings['ip_cache_enabled'] );
 	}
 
 	public function test_get_settings_returns_defaults_when_no_saved_settings(): void {
@@ -282,8 +280,6 @@ class TabGeolocationTest extends TestCase {
 
 	public function test_save_settings_stores_correct_values(): void {
 		$_POST['ip_api_enabled']      = '1';
-		$_POST['ip_api_service']      = 'ipinfo';
-		$_POST['ip_api_cascade']      = '1';
 		$_POST['ipinfo_api_key']      = FakeCredentials::API_KEY;
 		$_POST['ip_cache_enabled']    = '1';
 		$_POST['ip_cache_ttl']        = '900';
@@ -309,8 +305,8 @@ class TabGeolocationTest extends TestCase {
 
 		$this->assertNotNull( $captured_settings );
 		$this->assertTrue( $captured_settings['ip_api_enabled'] );
-		$this->assertSame( 'ipinfo', $captured_settings['ip_api_service'] );
-		$this->assertTrue( $captured_settings['ip_api_cascade'] );
+		$this->assertArrayNotHasKey( 'ip_api_service', $captured_settings );
+		$this->assertArrayNotHasKey( 'ip_api_cascade', $captured_settings );
 		$this->assertSame( FakeCredentials::API_KEY, $captured_settings['ipinfo_api_key'] );
 		$this->assertTrue( $captured_settings['ip_cache_enabled'] );
 		$this->assertSame( 900, $captured_settings['ip_cache_ttl'] );
@@ -338,7 +334,6 @@ class TabGeolocationTest extends TestCase {
 	public function test_a_cleared_cache_ttl_keeps_the_stored_value(): void {
 		// A cleared field posts '', which absint() read as 0 and the floor
 		// then stored as 300 -- a value nobody typed (#2339).
-		$_POST['ip_api_service']      = 'ip-api';
 		$_POST['gps_fallback_preset'] = 'hybrid';
 		$_POST['ip_cache_ttl']        = '';
 		$_POST['gps_cache_ttl']       = '5000';
@@ -354,7 +349,6 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_save_settings_custom_preset_reads_per_case_radios(): void {
-		$_POST['ip_api_service']     = 'ip-api';
 		$_POST['api_fallback']       = 'gps_only';
 		$_POST['both_fail_fallback'] = 'block';
 		$_POST['gps_fallback_preset'] = 'custom';
@@ -397,7 +391,6 @@ class TabGeolocationTest extends TestCase {
 	public function test_save_settings_the_customize_toggle_saves_the_custom_preset(): void {
 		// The screen posts `custom` as the "Customize per case" toggle
 		// (#1758); the steps are then disabled and post nothing.
-		$_POST['ip_api_service']      = 'ip-api';
 		$_POST['api_fallback']        = 'gps_only';
 		$_POST['both_fail_fallback']  = 'block';
 		$_POST['gps_fallback_custom'] = '1';
@@ -428,7 +421,6 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_save_settings_the_customize_toggle_off_saves_the_chosen_step(): void {
-		$_POST['ip_api_service']      = 'ip-api';
 		$_POST['api_fallback']        = 'gps_only';
 		$_POST['both_fail_fallback']  = 'block';
 		$_POST['gps_fallback_preset'] = 'tolerant';
@@ -452,7 +444,6 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_save_settings_invalid_preset_falls_back_to_hybrid(): void {
-		$_POST['ip_api_service']     = 'ip-api';
 		$_POST['api_fallback']       = 'gps_only';
 		$_POST['both_fail_fallback'] = 'block';
 		$_POST['gps_fallback_preset'] = 'not_a_preset';
@@ -502,8 +493,13 @@ class TabGeolocationTest extends TestCase {
 		$this->assertSame( 'block', $cases['safety_timer'] );
 	}
 
-	public function test_save_settings_defaults_invalid_service_to_ipinfo(): void {
-		$_POST['ip_api_service'] = 'invalid_service';
+	/**
+	 * A posted service or cascade is ignored: the keys are not stored again,
+	 * so an install that saved ip-api.com loses it on the next save (#2690).
+	 */
+	public function test_save_settings_drops_a_posted_service_and_cascade(): void {
+		$_POST['ip_api_service'] = 'ip-api';
+		$_POST['ip_api_cascade'] = '1';
 		$_POST['api_fallback']   = 'gps_only';
 		$_POST['gps_fallback_preset'] = 'tolerant';
 		$_POST['both_fail_fallback'] = 'block';
@@ -521,11 +517,11 @@ class TabGeolocationTest extends TestCase {
 		$ref->setAccessible( true );
 		$ref->invoke( $this->tab );
 
-		$this->assertSame( 'ipinfo', $captured_settings['ip_api_service'] );
+		$this->assertArrayNotHasKey( 'ip_api_service', $captured_settings );
+		$this->assertArrayNotHasKey( 'ip_api_cascade', $captured_settings );
 	}
 
 	public function test_save_settings_clamps_ip_cache_ttl(): void {
-		$_POST['ip_api_service']     = 'ip-api';
 		$_POST['api_fallback']       = 'gps_only';
 		$_POST['gps_fallback_preset'] = 'tolerant';
 		$_POST['both_fail_fallback'] = 'block';
@@ -550,7 +546,6 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_save_settings_clamps_the_weak_share_and_keeps_it_when_cleared(): void {
-		$_POST['ip_api_service']      = 'ip-api';
 		$_POST['api_fallback']        = 'gps_only';
 		$_POST['gps_fallback_preset'] = 'tolerant';
 		$_POST['both_fail_fallback']  = 'block';
@@ -577,7 +572,6 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_save_settings_clamps_the_gps_tolerance_and_keeps_it_when_cleared(): void {
-		$_POST['ip_api_service']      = 'ip-api';
 		$_POST['api_fallback']        = 'gps_only';
 		$_POST['gps_fallback_preset'] = 'tolerant';
 		$_POST['both_fail_fallback']  = 'block';
@@ -605,7 +599,6 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_save_settings_calls_save_locations(): void {
-		$_POST['ip_api_service']     = 'ip-api';
 		$_POST['api_fallback']       = 'gps_only';
 		$_POST['gps_fallback_preset'] = 'tolerant';
 		$_POST['both_fail_fallback'] = 'block';
@@ -856,7 +849,6 @@ class TabGeolocationTest extends TestCase {
 	// ==================================================================
 
 	public function test_save_settings_custom_preset_non_array_cases_defaults_block(): void {
-		$_POST['ip_api_service']      = 'ip-api';
 		$_POST['api_fallback']        = 'gps_only';
 		$_POST['both_fail_fallback']  = 'block';
 		$_POST['gps_fallback_preset'] = 'custom';
@@ -888,7 +880,6 @@ class TabGeolocationTest extends TestCase {
 
 	public function test_render_real_post_submission_saves_and_shows_notice(): void {
 		$_POST['ffc_save_geolocation'] = '1';
-		$_POST['ip_api_service']       = 'ip-api';
 		$_POST['api_fallback']         = 'gps_only';
 		$_POST['gps_fallback_preset']  = 'hybrid';
 		$_POST['both_fail_fallback']   = 'block';
@@ -930,7 +921,6 @@ class TabGeolocationTest extends TestCase {
 		// the form nonce directly; render() must NOT persist and must NOT show
 		// the success notice.
 		$_POST['ffc_save_geolocation'] = '1';
-		$_POST['ip_api_service']       = 'ip-api';
 		$_POST['api_fallback']         = 'gps_only';
 		$_POST['gps_fallback_preset']  = 'hybrid';
 		$_POST['both_fail_fallback']   = 'block';

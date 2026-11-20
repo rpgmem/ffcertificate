@@ -236,9 +236,10 @@ class PrivacyHandlerTest extends TestCase {
 
 		PrivacyHandler::add_privacy_policy_content();
 
-		foreach (['ip-api.com', 'location', 'cookie', 'ViaCEP', 'quiz', 'birthday', 'Short links', 'exceed the limits'] as $flow) {
+		foreach (['ipinfo.io', 'location', 'cookie', 'ViaCEP', 'quiz', 'birthday', 'Short links', 'exceed the limits'] as $flow) {
 			$this->assertStringContainsStringIgnoringCase($flow, $captured, "The suggested text omits: {$flow}.");
 		}
+		$this->assertStringNotContainsString('ip-api.com', $captured, 'ip-api.com is no longer asked (#2690).');
 		$this->assertStringContainsString('for 30 days', $captured, 'Device signals use the configured retention.');
 		$this->assertStringContainsString('400 days after', $captured, 'The submission cleanup is named when it is on.');
 		$this->resetRateLimitSettings();

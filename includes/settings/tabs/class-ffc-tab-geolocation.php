@@ -196,8 +196,6 @@ class TabGeolocation extends SettingsTab {
 		return array(
 			// IP Geolocation API Settings.
 			'ip_api_enabled'         => false,
-			'ip_api_service'         => 'ipinfo', // 'ipinfo' (HTTPS, default) or 'ip-api' (HTTPS plan only, #2339)
-			'ip_api_cascade'         => false, // Use both with fallback.
 			'ipinfo_api_key'         => '',
 			'ip_cache_enabled'       => true,
 			'ip_cache_ttl'           => 600, // 10 minutes in seconds (300-3600)
@@ -288,7 +286,6 @@ class TabGeolocation extends SettingsTab {
 	 */
 	private function save_settings(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
-		$ffc_ip_api_service     = sanitize_key( wp_unslash( $_POST['ip_api_service'] ?? '' ) );
 		$ffc_api_fallback       = sanitize_key( wp_unslash( $_POST['api_fallback'] ?? '' ) );
 		$ffc_both_fail_fallback = sanitize_key( wp_unslash( $_POST['both_fail_fallback'] ?? '' ) );
 
@@ -325,10 +322,6 @@ class TabGeolocation extends SettingsTab {
 
 		$settings = array(
 			'ip_api_enabled'         => isset( $_POST['ip_api_enabled'] ),
-			'ip_api_service'         => in_array( $ffc_ip_api_service, array( 'ip-api', 'ipinfo' ), true )
-				? $ffc_ip_api_service
-				: 'ipinfo',
-			'ip_api_cascade'         => isset( $_POST['ip_api_cascade'] ),
 			'ipinfo_api_key'         => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ipinfo_api_key' ),
 			'ip_cache_enabled'       => isset( $_POST['ip_cache_enabled'] ),
 			// A cleared field is "not supplied", never the floor (#1114, #2339).
