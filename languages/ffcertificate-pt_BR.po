@@ -3656,8 +3656,8 @@ msgid "The administrator turned off Preview Certificate for this form."
 msgstr "O administrador desativou Visualizar Certificado neste formulário."
 
 #: includes/frontend/class-ffc-public-csv-download.php:505
-msgid "Certificate preview is only available before the form collection period begins."
-msgstr "A pré-visualização do certificado só está disponível antes do início do período de coleta de formulários."
+msgid "Certificate preview is only available until the form collection period ends."
+msgstr "A pré-visualização do certificado só está disponível até o fim do período de coleta de formulários."
 
 #: includes/frontend/submission/class-ffc-success-responder.php:60
 msgid "Certificate previously issued (Reprint)."
@@ -14316,8 +14316,8 @@ msgid "Removes the reregistration campaign flow and its admin."
 msgstr "Remove o fluxo da campanha de recadastramento de sua administração."
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:38
-msgid "Render the certificate template (on by default)."
-msgstr "Renderizar o modelo de certificado (ativado por padrão)."
+msgid "Render the certificate template with sample data, from before the start until the form closes (on by default)."
+msgstr "Renderizar o modelo de certificado com dados de exemplo, de antes do início até o fechamento do formulário (ativado por padrão)."
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1049
 msgid "Reopen (closed → definitive)"

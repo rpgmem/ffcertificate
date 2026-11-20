@@ -1333,6 +1333,28 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 		expect($btn.prop('disabled')).toBe(true);
 	});
 
+	it('puts Preview Certificate right before Download CSV while the form is open (#2682)', async () => {
+		await renderInfoWith(infoWithStatus({
+			download_blocked_reason: 'active',
+			can_preview_cert: true,
+			can_extend_end: true,
+			can_schedule_exception: true,
+		}));
+		const buttons = Array.from(document.querySelectorAll('.ffc-info-actions button'));
+		const preview = buttons.findIndex((b) => b.classList.contains('ffc-btn-cert-preview'));
+		const download = buttons.findIndex((b) => b.classList.contains('ffc-btn-download-csv'));
+		expect(preview).toBeGreaterThan(-1);
+		expect(buttons[preview].disabled).toBe(false);
+		expect(buttons[download].disabled).toBe(true);
+		expect(download).toBe(preview + 1);
+	});
+
+	it('leaves only Download CSV once the form has ended, even when the admin turned the preview off (#2682)', async () => {
+		await renderInfoWith(infoWithStatus({ form_ended: true, can_download: true, cert_preview_disabled_by_admin: true }));
+		expect(window.$('.ffc-btn-cert-preview').length).toBe(0);
+		expect(window.$('.ffc-btn-download-csv').prop('disabled')).toBe(false);
+	});
+
 	it('renders the open-early button (enabled) when can_open_early', async () => {
 		await renderInfoWith(infoWithStatus({ can_open_early: true }));
 		const $btn = window.$('.ffc-btn-open-early');

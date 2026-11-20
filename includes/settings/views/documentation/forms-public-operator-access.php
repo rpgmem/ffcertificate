@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</thead>
 		<tbody>
-			<tr><td><?php esc_html_e( 'Preview certificate', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Render the certificate template (on by default).', 'ffcertificate' ); ?></td></tr>
+			<tr><td><?php esc_html_e( 'Preview certificate', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Render the certificate template with sample data, from before the start until the form closes (on by default).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'Download submissions CSV', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'On by default, but only unlocks after the form\'s end date has passed and while download quota remains.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'Start Form Early', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Off by default. One-shot — see Schedule.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><?php esc_html_e( 'Postpone Close', 'ffcertificate' ); ?></td><td><?php esc_html_e( 'Off by default. One-shot — see Schedule.', 'ffcertificate' ); ?></td></tr>

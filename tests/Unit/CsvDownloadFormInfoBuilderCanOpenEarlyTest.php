@@ -521,4 +521,22 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
 		$this->assertIsString( $info['status']['start_date_formatted'] );
 		$this->assertIsString( $info['status']['end_date_formatted'] );
 	}
+
+	public function test_can_preview_cert_true_while_the_form_is_open(): void {
+		$this->window( array( 0, '10:00' ), array( 0, '14:00' ) ); // running (#2682).
+		$this->configure_form( 1 );
+
+		$info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
+		$this->assertFalse( $info['status']['before_start'] );
+		$this->assertTrue( $info['status']['can_preview_cert'] );
+	}
+
+	public function test_can_preview_cert_false_once_the_form_has_ended(): void {
+		$this->window( array( 0, '10:00' ), array( 0, '11:00' ) ); // ended (#2682).
+		$this->configure_form( 1 );
+
+		$info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
+		$this->assertTrue( $info['status']['form_ended'] );
+		$this->assertFalse( $info['status']['can_preview_cert'] );
+	}
 }
