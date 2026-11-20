@@ -131,13 +131,9 @@ class CsvDownloadLogExportSource implements SyncSourceInterface {
 			if ( ! is_array( $entry ) ) {
 				continue;
 			}
-			// Render in the site timezone: `ts` is a UTC unix timestamp;
-			// `wp_date()` with no timezone arg uses `wp_timezone()`.
-			$ts = '';
-			if ( isset( $entry['ts'] ) ) {
-				$formatted = wp_date( 'Y-m-d H:i:s', (int) $entry['ts'] );
-				$ts        = false === $formatted ? '' : $formatted;
-			}
+			// `ts` is a UTC instant, shown in the site timezone and the
+			// plugin's format, like every other export (#2676).
+			$ts  = isset( $entry['ts'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $entry['ts'] ) : '';
 			$ip  = CsvDownloadAuditLog::decrypt_log_entry_ip( $entry );
 			$mod = isset( $entry['mode'] ) ? (string) $entry['mode'] : '';
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
@@ -145,11 +141,7 @@ class CsvDownloadLogExportSource implements SyncSourceInterface {
 
 			// A folded failure (#2341): how many attempts the row stands for
 			// and when the first one came; `timestamp` is the last.
-			$first = '';
-			if ( isset( $entry['first_ts'] ) ) {
-				$formatted = wp_date( 'Y-m-d H:i:s', (int) $entry['first_ts'] );
-				$first     = false === $formatted ? '' : $formatted;
-			}
+			$first = isset( $entry['first_ts'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $entry['first_ts'] ) : '';
 
 			++$rows;
 			yield array( $ts, (string) \FreeFormCertificate\Core\PiiExport::cell( 'ip', $ip, $clear ), $mod, (string) \FreeFormCertificate\Core\PiiExport::cell( 'cpf', $cpf, $clear ), $res, (string) CsvDownloadAuditLog::times( $entry ), $first );

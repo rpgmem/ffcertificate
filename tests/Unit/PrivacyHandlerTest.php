@@ -917,13 +917,16 @@ class PrivacyHandlerTest extends TestCase {
 		$user = $this->make_user();
 		Functions\when('get_user_by')->justReturn($user);
 		$this->mock_all_tables_exist();
+		// Date and time go through DateFormatter, in the plugin's format (#2676).
+		Functions\when('get_option')->justReturn(array());
+		Functions\when('wp_date')->alias(static fn($format, $ts) => gmdate($format, (int) $ts));
 
 		$bookings = array(
 			array(
 				'id' => 301,
 				'booking_date' => '2024-08-01',
-				'start_time' => '09:00',
-				'end_time' => '10:00',
+				'start_time' => '09:00:00',
+				'end_time' => '10:00:00',
 				'description' => 'Team standup',
 				'status' => 'confirmed',
 				'is_all_day' => 0,
@@ -952,7 +955,9 @@ class PrivacyHandlerTest extends TestCase {
 			}
 		}
 		$this->assertNotNull($time_data);
-		$this->assertSame('09:00 - 10:00', $time_data['value']);
+		$this->assertSame('09:00 - 10:00', $time_data['value'], 'The stored seconds never reach the export.');
+		$dates = array_column($item['data'], 'value', 'name');
+		$this->assertSame('01/08/2024', $dates['Date']);
 	}
 
 	public function test_export_audience_form_invites_returns_empty_without_a_user_or_a_table(): void {

@@ -198,6 +198,10 @@ class DateFormatterTest extends TestCase {
 		$this->assertSame( '09:00', DateFormatter::format_wallclock_time( '09:00:00' ) );
 		$this->assertSame( '17:00', DateFormatter::format_wallclock_time( '17:00:00' ) );
 		$this->assertSame( '20/05/2026', DateFormatter::format_wallclock_date( '2026-05-20' ) );
+		// A DATETIME already in the site's time (current_time('mysql')) keeps
+		// its clock reading too (#2676).
+		$this->assertSame( '20/05/2026 09:00', DateFormatter::format_wallclock_datetime( '2026-05-20 09:00:00' ) );
+		$this->assertSame( '', DateFormatter::format_wallclock_datetime( '' ) );
 
 		// Contrast: the same wall-clock string through the instant API DOES
 		// shift by the site offset — the bug the wall-clock helper avoids.
