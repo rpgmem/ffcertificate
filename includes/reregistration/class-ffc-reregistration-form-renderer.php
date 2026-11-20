@@ -58,6 +58,15 @@ class ReregistrationFormRenderer {
 	private const FIELD_ID_PREFIX = 'ffc_rereg_field_';
 
 	/**
+	 * Field keys shown read-only on the form being rendered: the identifiers
+	 * the member's profile already holds (#2688). The data processor applies
+	 * the same rule on the server, so this is presentation, not the guard.
+	 *
+	 * @var array<string, true>
+	 */
+	private static array $locked_keys = array();
+
+	/**
 	 * Render the reregistration form HTML.
 	 *
 	 * @param object $rereg      Reregistration object.
@@ -103,6 +112,18 @@ class ReregistrationFormRenderer {
 		);
 
 		$values = self::build_field_values( $fields, $saved_values, $user_id, $user, $previous_values );
+
+		// A CPF/RF the profile holds is shown as held and cannot be edited
+		// here (#2688); changing it is the administrator's.
+		$held              = ReregistrationDataProcessor::held_identifiers( $user_id );
+		self::$locked_keys = array();
+		foreach ( $fields as $field ) {
+			$pkey = (string) ( $field->field_profile_key ?? '' );
+			if ( isset( $held[ $pkey ] ) ) {
+				$values[ (string) $field->field_key ]            = $held[ $pkey ];
+				self::$locked_keys[ (string) $field->field_key ] = true;
+			}
+		}
 
 		$end_ts   = strtotime( $rereg->end_date );
 		$end_date = \FreeFormCertificate\Core\DateFormatter::format_date( false === $end_ts ? null : $end_ts );
@@ -385,15 +406,24 @@ class ReregistrationFormRenderer {
 				break;
 
 			default: // 'text' and any unknown type
+				$locked = isset( self::$locked_keys[ (string) $field->field_key ] );
 				printf(
-					'<input type="text" id="%s" name="%s" value="%s"%s%s>',
+					'<input type="text" id="%s" name="%s" value="%s"%s%s%s>',
 					esc_attr( $field_id ),
 					esc_attr( $field_name ),
 					esc_attr( is_scalar( $value ) ? (string) $value : '' ),
 					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- hardcoded safe attribute string.
 					$req_attr,
-					$mask_attr // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above
+					$mask_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped above
+					$locked ? ' readonly aria-describedby="' . esc_attr( $field_id . '-locked' ) . '"' : '' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in place.
 				);
+				if ( $locked ) {
+					printf(
+						'<p class="ffc-rereg-field-locked description" id="%s">%s</p>',
+						esc_attr( $field_id . '-locked' ),
+						esc_html__( 'Already on your profile. Contact the administrator to change it.', 'ffcertificate' )
+					);
+				}
 				break;
 		}
 	}

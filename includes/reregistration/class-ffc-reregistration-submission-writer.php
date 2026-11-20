@@ -310,7 +310,7 @@ class ReregistrationSubmissionWriter {
 		$wpdb = self::db();
 		$code = $wpdb->get_var( $wpdb->prepare( 'SELECT auth_code FROM %i WHERE id = %d', self::get_table_name(), $id ) );
 
-		return self::update_if_status(
+		$approved = self::update_if_status(
 			$id,
 			array(
 				'status'      => 'approved',
@@ -320,6 +320,14 @@ class ReregistrationSubmissionWriter {
 			),
 			self::REVIEWABLE_STATUSES
 		);
+
+		// The member's profile takes the reviewed answers now, not at
+		// submit (#2688).
+		if ( $approved ) {
+			ReregistrationDataProcessor::sync_approved_profile( $id );
+		}
+
+		return $approved;
 	}
 
 	/**

@@ -29318,8 +29318,8 @@ msgstr "Carga Horária de Trabalho ou Categoria"
 msgid "Work Hours"
 msgstr "Horário de Trabalho"
 
-msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
-msgstr "Um campo aparece uma única vez mesmo quando vários públicos da campanha, ou um público e o seu pai, o possuem; vale a versão do campo do público mais específico. O formulário abre preenchido: primeiro com o rascunho salvo desta campanha, depois com as respostas que o membro deu mais recentemente em outra campanha (em andamento, enviada ou aprovada, nunca uma rejeitada) e depois com o perfil. Tudo continua editável, e o que for digitado é salvo apenas nesta campanha. Uma carga horária respondida com um dos códigos antigos (JBD.30, JEIF.40, JB.20) é trazida como a opção atual correspondente; JB.30 não tem equivalente e fica para o membro escolher."
+msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything else stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
+msgstr "Um campo aparece uma única vez mesmo quando vários públicos da campanha, ou um público e o seu pai, o possuem; vale a versão do campo do público mais específico. O formulário abre preenchido: primeiro com o rascunho salvo desta campanha, depois com as respostas que o membro deu mais recentemente em outra campanha (em andamento, enviada ou aprovada, nunca uma rejeitada) e depois com o perfil. Todo o resto continua editável, e o que for digitado é salvo apenas nesta campanha. Uma carga horária respondida com um dos códigos antigos (JBD.30, JEIF.40, JB.20) é trazida como a opção atual correspondente; JB.30 não tem equivalente e fica para o membro escolher."
 
 msgid "Has bookings, kept"
 msgstr "Tem agendamentos, mantido"
@@ -35335,6 +35335,19 @@ msgstr "Este certificado foi emitido em %1$s e assinado por este site depois, em
 #: includes/settings/views/documentation/config-general.php:44
 msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
 msgstr "Os mesmos formatos valem nas telas do admin, nas exportações CSV, no painel do usuário, nos calendários de público-alvo e no verificador do QR code assinado, inclusive offline. Os títulos de dia dos calendários são a única exceção: escrevem o mês por extenso, no idioma do site."
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "A CPF or RF already on the member's profile is shown read-only, and only an administrator changes it. Fields mapped to the profile reach it when the submission is approved, not when it is sent, and a CPF or RF another account already holds is refused, so one person's records never move onto another's account."
+msgstr "Um CPF ou RF que já está no perfil do membro aparece somente para leitura, e só um administrador o altera. Os campos ligados ao perfil chegam a ele quando o envio é aprovado, não quando é enviado, e um CPF ou RF que outra conta já tem é recusado, para que os registros de uma pessoa nunca passem para a conta de outra."
+
+#: includes/reregistration/class-ffc-reregistration-form-renderer.php
+msgid "Already on your profile. Contact the administrator to change it."
+msgstr "Já está no seu perfil. Fale com o administrador para alterá-lo."
+
+#: includes/reregistration/class-ffc-reregistration-data-processor.php
+#, php-format
+msgid "This %s is already linked to another account. Contact the administrator."
+msgstr "Este %s já está vinculado a outra conta. Fale com o administrador."
 
 #: templates/admin/qr/design-fields.php
 msgid "Use the logo"

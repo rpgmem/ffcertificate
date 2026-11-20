@@ -29239,7 +29239,7 @@ msgstr ""
 msgid "Work Hours"
 msgstr ""
 
-msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
+msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything else stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
 msgstr ""
 
 msgid "Has bookings, kept"
@@ -35256,6 +35256,19 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-general.php:44
 msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "A CPF or RF already on the member's profile is shown read-only, and only an administrator changes it. Fields mapped to the profile reach it when the submission is approved, not when it is sent, and a CPF or RF another account already holds is refused, so one person's records never move onto another's account."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-form-renderer.php
+msgid "Already on your profile. Contact the administrator to change it."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-data-processor.php
+#, php-format
+msgid "This %s is already linked to another account. Contact the administrator."
 msgstr ""
 
 #: templates/admin/qr/design-fields.php
