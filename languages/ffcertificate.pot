@@ -11285,8 +11285,16 @@ msgstr ""
 msgid "Member Since:"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-shortcode.php:801
-msgid "member(s) have overlapping bookings."
+#. translators: %d: always 1.
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d member has overlapping bookings."
+msgstr ""
+
+#. translators: %d: number of members, 2 or more.
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d members have overlapping bookings."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:57 includes/audience/class-ffc-audience-admin-audience-renderer.php:134

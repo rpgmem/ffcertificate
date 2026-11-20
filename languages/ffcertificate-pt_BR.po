@@ -894,7 +894,7 @@ msgstr "Um módulo desativado mantém todas as linhas que já armazenou; apenas 
 
 #: includes/settings/views/documentation/email-texts-hub.php:24
 msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button, which restores its subject and body. One \"Save email texts\" button persists them all — you do not save per email."
-msgstr "Um seletor organizado por funcionalidades lista todos os e-mails editáveis; ao selecionar um deles, abre-se apenas o editor correspondente (o editor de texto rico é criado sob demanda, mantendo a página leve, mesmo com um grande número de e-mails). Cada editor conta com sua própria ajuda para {{tokens}} e um botão \"Restaurar texto padrão\", que restaura o assunto e o corpo. Um único botão \"Salvar textos dos e-mails\" salva todas as alterações de uma só vez — não é necessário salvar e-mail por e-mail."
+msgstr "Um seletor organizado por funcionalidades lista todos os e-mails editáveis; ao selecionar um deles, abre-se apenas o editor correspondente (o editor de texto rico é criado sob demanda, mantendo a página leve, mesmo com um grande número de e-mails). Cada editor conta com sua própria ajuda para {{token}} e um botão \"Restaurar texto padrão\", que restaura o assunto e o corpo. Um único botão \"Salvar textos dos e-mails\" salva todas as alterações de uma só vez — não é necessário salvar e-mail por e-mail."
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:24
 msgid "A field whose Variable Name (Tag) is"
@@ -918,7 +918,7 @@ msgstr "Um painel na interface do usuário onde cada usuário logado visualiza s
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:109
 msgid "A full administrator (manage_options) always sees every FFC menu"
-msgstr "Um administrador com acesso total (manage_options) sempre vê todos os menus do FFC."
+msgstr "Um administrador com acesso total (manage_options) sempre vê todos os menus do FFC"
 
 #: includes/settings/views/documentation/feature-reregistration.php:53
 msgid "A manual resend replaces that member's automatic reminder — it does not add to it."
@@ -1030,7 +1030,7 @@ msgstr "É necessário um adjutancy_id válido."
 
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:165
 msgid "A valid form_id is required"
-msgstr "Um form_id válido é obrigatório."
+msgstr "Um form_id válido é obrigatório"
 
 #: includes/settings/views/documentation/config-captcha.php:49
 msgid "A visitor without JavaScript cannot submit the form at all. The widget also refuses to run outside a secure connection, so this mode cannot be saved on a site that is not served over HTTPS."
@@ -1245,7 +1245,7 @@ msgstr "Configure uma exceção para as URLs do formulário FFC e do painel, ou 
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:102
 msgid "Add a trusted IP or identifier to the allowlist there if needed"
-msgstr "Adicione um IP ou identificador confiável à lista de permissões nesse local, se necessário."
+msgstr "Adicione um IP ou identificador confiável à lista de permissões nesse local, se necessário"
 
 #: templates/admin/reregistration/transfer-list.php:30
 msgid "Add all"
@@ -1261,7 +1261,7 @@ msgstr "Adicionar Dia"
 
 #: includes/settings/views/documentation/feature-audiences.php:63
 msgid "Add fields with labels, types, and validation rules"
-msgstr "Adicione campos com rótulos, tipos e regras de validação."
+msgstr "Adicione campos com rótulos, tipos e regras de validação"
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:565 templates/admin/audience/general-tab.php:89
 msgid "Add Holiday"
@@ -1528,7 +1528,7 @@ msgstr "Administradores ignoram restrições de geolocalização"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:88
 msgid "Admins can enable \"bypass\" for date/time and geolocation to test (Settings → Geolocation)"
-msgstr "Administradores podem ativar o \"bypass\" para data/hora e geolocalização para fins de teste (Configurações → Geolocalização)."
+msgstr "Administradores podem ativar o \"bypass\" para data/hora e geolocalização para fins de teste (Configurações → Geolocalização)"
 
 
 #: includes/settings/views/ffc-tab-advanced.php:834
@@ -1643,7 +1643,7 @@ msgstr "Todos os Níveis"
 
 #: includes/api/class-ffc-user-profile-rest-controller.php:335 includes/api/class-ffc-user-profile-rest-controller.php:350
 msgid "All password fields are required"
-msgstr "Todos os campos de senha são obrigatórios."
+msgstr "Todos os campos de senha são obrigatórios"
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:342
 msgid "All plugin emails"
@@ -1709,7 +1709,7 @@ msgstr "Permitir acesso quando %s"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:749
 msgid "Allow administrators to bypass booking restrictions on this calendar"
-msgstr "Permitir que os administradores ignorem as restrições de reserva neste calendário."
+msgstr "Permitir que os administradores ignorem as restrições de reserva neste calendário"
 
 #: includes/settings/views/ffc-tab-geolocation.php:499
 msgid "Allow administrators to bypass geofence restrictions for testing and content management."
@@ -1815,11 +1815,11 @@ msgstr "Aberto antecipadamente em %s. Valeu só para aquele dia; salvar o formul
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:325
 msgid "Also notify admin on cancellation"
-msgstr "Notifique também o administrador sobre o cancelamento."
+msgstr "Notificar também o administrador sobre o cancelamento"
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:314
 msgid "Also notify admin on new booking"
-msgstr "Notifique também o administrador sobre novas reservas."
+msgstr "Notificar também o administrador sobre novas reservas"
 
 #: includes/core/captcha/class-ffc-altcha-captcha.php:179
 msgid "Altcha (official website)"
@@ -1843,7 +1843,7 @@ msgstr "Sempre use estilos embutidos"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:106
 msgid "An admin cannot see a plugin menu"
-msgstr "Um administrador não consegue ver o menu de um plugin."
+msgstr "Um administrador não consegue ver o menu de um plugin"
 
 #: includes/settings/views/ffc-tab-captcha.php:37
 msgid "An arithmetic question the visitor answers. Works everywhere — no JavaScript, no HTTPS required."
@@ -1907,7 +1907,7 @@ msgstr "Responde a uma pergunta de aritmética."
 
 #: includes/settings/views/documentation/reference-tokens.php:106
 msgid "Any custom field name you created"
-msgstr "Qualquer nome de campo personalizado que você criou."
+msgstr "Qualquer nome de campo personalizado que você criou"
 
 #: includes/settings/views/documentation/reference-tokens.php:133
 msgid "Any custom field you create in Form Builder automatically becomes a template variable:"
@@ -1920,7 +1920,7 @@ msgstr "Qualquer campo de identidade, contato, endereço ou vínculo empregatíc
 
 #: includes/settings/views/ffc-tab-rate-limit.php:220
 msgid "Any logged-in WordPress user bypasses the read limit (staff / kiosks signed in to WP)"
-msgstr "Qualquer usuário do WordPress com login válido ignora o limite de leitura (funcionários/quiosques com login no WP)."
+msgstr "Qualquer usuário do WordPress com login válido ignora o limite de leitura (funcionários/quiosques com login no WP)"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:539
 msgid "API"
@@ -1932,7 +1932,7 @@ msgstr "Recurso indeferido"
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:148
 msgid "Appeal denied requires a reason"
-msgstr "Indeferir um recurso exige uma justificativa."
+msgstr "Indeferir um recurso exige uma justificativa"
 
 #: includes/recruitment/class-ffc-recruitment-reasons-list-table.php:196 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:571 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:806 includes/recruitment/class-ffc-recruitment-reason-edit-page.php:111 templates/admin/recruitment/admin-page/settings-tab.php:129 templates/admin/recruitment/admin-page/create-reason-form.php:34
 msgid "Appeal granted"
@@ -1940,7 +1940,7 @@ msgstr "Recurso deferido"
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:149
 msgid "Appeal granted requires a reason"
-msgstr "Deferir um recurso exige uma justificativa."
+msgstr "Deferir um recurso exige uma justificativa"
 
 #: includes/settings/views/ffc-tab-advanced.php:171
 msgid "Appearance options for the code-based editors used inside the plugin admin."
@@ -2486,7 +2486,7 @@ msgstr "Excluir automaticamente envios antigos"
 
 #: includes/settings/views/documentation/feature-record.php:48
 msgid "Auto-generated section with all custom field values"
-msgstr "Seção gerada automaticamente com todos os valores dos campos personalizados."
+msgstr "Seção gerada automaticamente com todos os valores dos campos personalizados"
 
 #: includes/settings/views/ffc-tab-cache.php:145
 msgid "Automatic check"
@@ -2502,7 +2502,7 @@ msgstr "Excluir automaticamente os registros de atividades com mais de um determ
 
 #: includes/settings/views/ffc-tab-url-shortener.php:112
 msgid "Automatically generate a short URL when a post/page is published"
-msgstr "Gere automaticamente um URL curto quando uma postagem/página for publicada."
+msgstr "Gere automaticamente um URL curto quando uma postagem/página for publicada"
 
 #: includes/frontend/class-ffc-frontend.php:458
 msgid "Availability & Schedule"
@@ -2839,7 +2839,7 @@ msgstr "Reservar agendamentos"
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
 msgid "book outside the normal private/past/out-of-hours/blocked restrictions."
-msgstr "Tokens de corpo"
+msgstr "agendar fora das restrições normais de calendário privado, data passada, fora do horário ou bloqueado."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:201 includes/audience/class-ffc-audience-shortcode.php:302 includes/audience/class-ffc-audience-shortcode.php:821
 msgid "Booked"
@@ -2932,7 +2932,7 @@ msgstr "reservas"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:733
 msgid "Bookings can only be made during working hours"
-msgstr "As reservas só podem ser feitas durante o horário de funcionamento."
+msgstr "As reservas só podem ser feitas durante o horário de funcionamento"
 
 #: includes/settings/views/documentation/feature-audiences.php:42
 msgid "Boolean yes/no toggle"
@@ -3108,7 +3108,7 @@ msgstr "O calendário \"%s\" foi excluído"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:717
 msgid "Calendar can only be viewed during working hours"
-msgstr "O calendário só pode ser visualizado durante o horário de expediente."
+msgstr "O calendário só pode ser visualizado durante o horário de expediente"
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:625
 msgid "Calendar created successfully."
@@ -3717,11 +3717,11 @@ msgstr "Verificar geolocalização (GPS/IP) — o visitante pode estar fora da �
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:39
 msgid "Check image is publicly accessible"
-msgstr "Verifique se a imagem é de acesso público."
+msgstr "Verifique se a imagem é de acesso público"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:30
 msgid "Check spelling matches exactly"
-msgstr "Verifique se a ortografia corresponde exatamente."
+msgstr "Verifique se a ortografia corresponde exatamente"
 
 #: includes/settings/views/documentation/reference-emails.php:122
 #| msgid "Check the \"Disable all emails\" toggle, configure Custom SMTP, and see Troubleshooting → \"Emails not arriving\"."
@@ -3730,7 +3730,7 @@ msgstr "Marque a opção \"Desativar todos os e-mails\" (aba SMTP), configure o 
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:78
 msgid "Check the recipient spam folder and sender reputation (SPF / DKIM)"
-msgstr "Verifique a pasta de spam do destinatário e a reputação do remetente (SPF/DKIM)."
+msgstr "Verifique a pasta de spam do destinatário e a reputação do remetente (SPF/DKIM)"
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:83 includes/admin/class-ffc-admin-assets-manager.php:623 includes/reregistration/class-ffc-custom-field-reader.php:81 includes/settings/views/ffc-tab-captcha.php:177
 msgid "Checkbox"
@@ -4124,7 +4124,7 @@ msgstr "Configuração"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:77
 msgid "Configure Custom SMTP with a real provider — the server default often lands in spam"
-msgstr "Configure um SMTP personalizado com um provedor real — o servidor padrão frequentemente cai na pasta de spam."
+msgstr "Configure um SMTP personalizado com um provedor real — o servidor padrão frequentemente cai na pasta de spam"
 
 #: includes/settings/views/ffc-tab-geolocation.php:190
 msgid "Configure external IP geolocation services for backend validation. These services detect user location by IP address."
@@ -4173,11 +4173,11 @@ msgstr "Confirmar adiamento"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:76
 msgid "Confirm the global \"Disable all emails\" toggle is off (Settings → SMTP)"
-msgstr "Confirme se a chave global \"Desativar todos os e-mails\" está desativada (Configurações → SMTP)."
+msgstr "Confirme se a chave global \"Desativar todos os e-mails\" está desativada (Configurações → SMTP)"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:95
 msgid "Confirm the link is Active (not disabled or trashed) in the Short URLs list"
-msgstr "Confirme se o link está ativo (não desativado nem enviado para a lixeira) na lista de URLs curtas."
+msgstr "Confirme se o link está ativo (não desativado nem enviado para a lixeira) na lista de URLs curtas"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:216
 msgid "Confirmation Code"
@@ -4547,7 +4547,7 @@ msgstr "Não foi possível gravar os valores recriptografados do candidato de re
 
 #: includes/frontend/class-ffc-frontend.php:352
 msgid "Couldn't generate the certificate"
-msgstr "Não foi possível gerar o certificado."
+msgstr "Não foi possível gerar o certificado"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:584
 msgid "Countdown timer"
@@ -4647,7 +4647,7 @@ msgstr "CPF/RF deve ter 7 dígitos (RF) ou 11 dígitos (CPF)."
 
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:342
 msgid "CPF/RF must be exactly 7 or 11 digits"
-msgstr "O CPF/RF deve ter exatamente 7 ou 11 dígitos."
+msgstr "O CPF/RF deve ter exatamente 7 ou 11 dígitos"
 
 #: includes/frontend/submission/class-ffc-field-sanitizer.php:65
 msgid "CPF/RF must be exactly 7 or 11 digits."
@@ -4698,7 +4698,7 @@ msgstr "criar / editar editais, candidatos e adjutâncias."
 #: includes/settings/views/documentation/reference-tokens.php:135
 #| msgid "Create a field in Form Builder (e.g., field name:"
 msgid "Create a field in Form Builder (e.g. field name \"company\")"
-msgstr "Crie um campo no Form Builder (por exemplo, com o nome \"company\")."
+msgstr "Crie um campo no Form Builder (por exemplo, com o nome \"company\")"
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:677
 msgid "Create a free Cloudflare account and add this site."
@@ -4873,7 +4873,7 @@ msgstr "Atribuições atuais"
 
 #: includes/settings/views/documentation/reference-tokens.php:61
 msgid "Current date/time when PDF is being generated"
-msgstr "Data e hora atuais em que o PDF está sendo gerado."
+msgstr "Data e hora atuais em que o PDF está sendo gerado"
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:706
 msgid "Current Members"
@@ -4885,7 +4885,7 @@ msgstr "Senha Atual"
 
 #: includes/api/class-ffc-user-profile-rest-controller.php:353
 msgid "Current password is incorrect"
-msgstr "A senha atual está incorreta."
+msgstr "A senha atual está incorreta"
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:477
 msgid "Current Position/Role"
@@ -5131,7 +5131,7 @@ msgstr "Data de criação do envio (a partir do banco de dados)"
 
 #: includes/settings/views/documentation/feature-record.php:51
 msgid "Date when the PDF was generated"
-msgstr "Data em que o PDF foi gerado."
+msgstr "Data em que o PDF foi gerado"
 
 #: includes/settings/views/documentation/reference-tokens.php:111
 msgid "Date when the submission was created (alias of {{submission_date}}) — note this is the submission date, not the PDF generation date"
@@ -5525,7 +5525,7 @@ msgstr "Indeferido"
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:146
 msgid "Denied requires a reason"
-msgstr "A recusa exige uma justificativa."
+msgstr "A recusa exige uma justificativa"
 
 #: includes/settings/views/documentation/reference-security.php:39
 msgid "Denylist"
@@ -5625,7 +5625,7 @@ msgstr "Hooks para desenvolvedores:"
 
 #: includes/settings/views/documentation/feature-record.php:157
 msgid "Developers can also override the resolved HTML via the filter"
-msgstr "Os desenvolvedores também podem substituir o HTML resolvido por meio do filtro."
+msgstr "Os desenvolvedores também podem substituir o HTML resolvido por meio do filtro"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:267
 msgid "Device Fingerprint"
@@ -5650,7 +5650,7 @@ msgstr "Memória do dispositivo"
 
 #: includes/settings/views/ffc-tab-geolocation.php:383
 msgid "Device never responded (40 s safety timer)"
-msgstr "O dispositivo não respondeu (temporizador de segurança de 40 segundos)."
+msgstr "O dispositivo não respondeu (temporizador de segurança de 40 segundos)"
 
 #: includes/recruitment/class-ffc-recruitment-admin-page.php:92 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:408 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:466 includes/recruitment/class-ffc-recruitment-dashboard-section.php:327 includes/recruitment/class-ffc-recruitment-dashboard-section.php:350 templates/admin/recruitment/admin-page/settings-tab.php:107
 msgid "Did not show up"
@@ -5984,7 +5984,7 @@ msgstr "Monte os campos arrastando e soltando, projete o PDF em um editor HTML c
 
 #: includes/settings/views/ffc-tab-advanced.php:932
 msgid "Drop all tables, options, custom posts, roles, capabilities and transients when the plugin is deleted via the WordPress admin"
-msgstr "Ao excluir o plugin pelo painel de administração do WordPress, todas as tabelas, opções, posts personalizados, funções, recursos e dados transitórios serão apagados."
+msgstr "Ao excluir o plugin pelo painel de administração do WordPress, todas as tabelas, opções, posts personalizados, funções, recursos e dados transitórios serão apagados"
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:81 includes/admin/class-ffc-admin-assets-manager.php:622
 msgid "Dropdown Select"
@@ -6064,7 +6064,7 @@ msgstr "Cada domínio administrativo expõe um par de visualização/gerenciamen
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:108
 msgid "Each area is gated by a capability — grant the matching ffc_view_* capability on the user profile"
-msgstr "Cada área é protegida por uma permissão — conceda a permissão `ffc_view_*` correspondente no perfil do usuário."
+msgstr "Cada área é protegida por uma permissão — conceda a permissão `ffc_view_*` correspondente no perfil do usuário"
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:29
 msgid "Each capability is an independent per-form toggle:"
@@ -6452,7 +6452,7 @@ msgstr "Ativar registro de diagnóstico do ambiente do navegador"
 
 #: includes/settings/views/ffc-tab-geolocation.php:255
 msgid "Enable cascade: if primary fails, try the other service"
-msgstr "Ativar cascata: se o serviço primário falhar, tente o outro serviço."
+msgstr "Ativar cascata: se o serviço primário falhar, tente o outro serviço"
 
 #: includes/settings/views/documentation/forms-schedule.php:32
 msgid "Enable date/time restriction"
@@ -6476,11 +6476,11 @@ msgstr "Ativar o registro de depuração para migrações de banco de dados"
 
 #: includes/settings/views/ffc-tab-advanced.php:367
 msgid "Enable debug logging for email sending"
-msgstr "Ative o registro de depuração para o envio de e-mails."
+msgstr "Ative o registro de depuração para o envio de e-mails"
 
 #: includes/settings/views/ffc-tab-advanced.php:388
 msgid "Enable debug logging for encryption operations"
-msgstr "Ative o registro de depuração para operações de criptografia."
+msgstr "Ative o registro de depuração para operações de criptografia"
 
 #: includes/settings/views/ffc-tab-advanced.php:325
 msgid "Enable debug logging for form submission processing"
@@ -6492,15 +6492,15 @@ msgstr "Ativar registro de depuração para shortcodes de front-end + verificaç
 
 #: includes/settings/views/ffc-tab-advanced.php:253
 msgid "Enable debug logging for geofence validation"
-msgstr "Ative o registro de depuração para validação de geocercas."
+msgstr "Ative o registro de depuração para validação de geocercas"
 
 #: includes/settings/views/ffc-tab-advanced.php:346
 msgid "Enable debug logging for PDF generation"
-msgstr "Ative o registro de depuração para a geração de PDFs."
+msgstr "Ative o registro de depuração para a geração de PDFs"
 
 #: includes/settings/views/ffc-tab-advanced.php:410
 msgid "Enable debug logging for REST API operations"
-msgstr "Ative o registro de depuração para operações da API REST."
+msgstr "Ative o registro de depuração para operações da API REST"
 
 #: includes/settings/views/ffc-tab-advanced.php:211
 msgid "Enable debug logging for specific areas. Debug logs are written to the PHP error log."
@@ -6512,7 +6512,7 @@ msgstr "Ative o registro de depuração para o módulo de público-alvo"
 
 #: includes/settings/views/ffc-tab-advanced.php:431
 msgid "Enable debug logging for user management"
-msgstr "Ative o registro de depuração para gerenciamento de usuários."
+msgstr "Ative o registro de depuração para gerenciamento de usuários"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:276
 msgid "Enable device fingerprint limit"
@@ -6709,7 +6709,7 @@ msgstr "Impor limite a este endpoint"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:31
 msgid "Ensure field exists in form"
-msgstr "Verifique se o campo existe no formulário."
+msgstr "Verifique se o campo existe no formulário"
 
 #: includes/admin/class-ffc-settings-ajax-endpoint.php:572
 msgid "Enter a number — an empty field leaves the setting unchanged."
@@ -6717,7 +6717,7 @@ msgstr "Digite um número — um campo vazio mantém a configuração inalterada
 
 #: includes/frontend/class-ffc-frontend.php:309 includes/frontend/class-ffc-frontend.php:583
 msgid "Enter a valid CPF (11 digits) or RF (7 digits)"
-msgstr "Insira um CPF válido (11 dígitos) ou RF (7 dígitos)."
+msgstr "Insira um CPF válido (11 dígitos) ou RF (7 dígitos)"
 
 #: includes/admin/class-ffc-admin-ui.php:44
 msgid "Enter a valid value"
@@ -6754,7 +6754,7 @@ msgstr "Insira sua chave de API do ipinfo.io"
 
 #: includes/frontend/class-ffc-shortcodes.php:294
 msgid "Enter your unique ticket code"
-msgstr "Insira seu código de ingresso exclusivo."
+msgstr "Insira seu código de ingresso exclusivo"
 
 #: includes/reregistration/class-ffc-record-generator.php:249
 msgid "Entry"
@@ -6918,7 +6918,7 @@ msgstr "Ocorreu um erro. Tente novamente."
 
 #: includes/api/class-ffc-user-profile-rest-controller.php:452
 msgid "Error processing privacy request"
-msgstr "Erro ao processar a solicitação de privacidade."
+msgstr "Erro ao processar a solicitação de privacidade"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:561
 msgid "Error reading file."
@@ -7050,7 +7050,7 @@ msgstr "A programação do evento não é o período de submissão."
 
 #: includes/frontend/class-ffc-frontend.php:462
 msgid "Event schedule printed on the certificate"
-msgstr "A programação do evento será impressa no certificado."
+msgstr "A programação do evento será impressa no certificado"
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:177
 msgid "Event spans more than one day"
@@ -8081,7 +8081,7 @@ msgstr "Todos os e-mails que o plugin pode enviar e onde cada um é configurado.
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:23
 msgid "Every field is a token"
-msgstr "Cada campo é um token."
+msgstr "Cada campo é um token"
 
 #: includes/settings/views/documentation/reference-emails.php:113
 msgid "every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. The inbox preview line shows the start of the message instead of the site name. No configuration needed."
@@ -8125,11 +8125,11 @@ msgstr "Exemplo de Uso:"
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:230
 msgid "Example: Start 01/01 + End 10/01 + Time 12:00-23:00 = Open 12:00-23:00 every day from Jan 1-10"
-msgstr "Exemplo: Início 01/01 + Fim 10/01 + Horário 12:00-23:00 = Aberto das 12:00 às 23:00 todos os dias de 1 a 10 de janeiro."
+msgstr "Exemplo: Início 01/01 + Fim 10/01 + Horário 12:00-23:00 = Aberto das 12:00 às 23:00 todos os dias de 1 a 10 de janeiro"
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:221
 msgid "Example: Start 01/01 12:00 + End 10/01 23:00 = Open from 12:00 on Jan 1st until 23:00 on Jan 10th"
-msgstr "Exemplo: Início em 01/01 às 12:00 + Fim em 10/01 às 23:00 = Aberto das 12:00 do dia 1º de janeiro até as 23:00 do dia 10 de janeiro."
+msgstr "Exemplo: Início em 01/01 às 12:00 + Fim em 10/01 às 23:00 = Aberto das 12:00 do dia 1º de janeiro até as 23:00 do dia 10 de janeiro"
 
 #: includes/frontend/class-ffc-frontend.php:563
 msgid "Exception staged. Open the participant's form in the next tab to consume it."
@@ -8684,7 +8684,7 @@ msgstr "Fields & Ficha"
 
 #: includes/settings/views/documentation/feature-audiences.php:64
 msgid "Fields appear on user profiles and reregistration forms automatically"
-msgstr "Os campos aparecem automaticamente nos perfis de usuário e nos formulários de recadastramento."
+msgstr "Os campos aparecem automaticamente nos perfis de usuário e nos formulários de recadastramento"
 
 #. %s — comma-separated list of field names
 #: includes/recruitment/class-ffc-recruitment-candidate-history-service.php:196
@@ -8753,7 +8753,7 @@ msgstr "Classificação Final"
 
 #: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:404
 msgid "Final classification."
-msgstr "Classificação Final"
+msgstr "Classificação final."
 
 #: includes/settings/views/documentation/feature-recruitment.php:53
 msgid "Final ranking in force; candidates can be called."
@@ -8825,7 +8825,7 @@ msgstr "Para obter suporte adicional, consulte a documentação do repositório 
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:79
 msgid "For bulk sends, install the total-mail-queue plugin for queueing + automatic retries"
-msgstr "Para envios em massa, instale o plugin total-mail-queue para enfileiramento e novas tentativas automáticas."
+msgstr "Para envios em massa, instale o plugin total-mail-queue para enfileiramento e novas tentativas automáticas"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:403
 msgid "For external integrators authenticating with Application Passwords."
@@ -8912,7 +8912,7 @@ msgstr "O formulário está oculto ou \"não disponível\""
 
 #: includes/api/class-ffc-form-rest-controller.php:370 includes/api/class-ffc-form-rest-controller.php:435 includes/api/class-ffc-operator-certificates-rest-controller.php:175
 msgid "Form is not published"
-msgstr "O formulário não foi publicado."
+msgstr "O formulário não foi publicado"
 
 #: includes/frontend/class-ffc-frontend.php:534 includes/frontend/class-ffc-public-csv-download.php:608
 msgid "Form is now open."
@@ -9367,7 +9367,7 @@ msgstr "Admitido"
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:147
 msgid "Granted requires a reason"
-msgstr "A admissão exige uma razão."
+msgstr "Deferir exige uma justificativa"
 
 #: includes/settings/views/documentation/submissions-list.php:36 includes/settings/views/documentation/feature-recruitment.php:72
 msgid "Grants"
@@ -9383,7 +9383,7 @@ msgstr "Eventos em Grupo"
 
 #: includes/api/class-ffc-user-audience-rest-controller.php:383 includes/api/class-ffc-user-audience-rest-controller.php:458
 msgid "Group ID is required"
-msgstr "É necessário o ID do Grupo."
+msgstr "É necessário o ID do Grupo"
 
 #: includes/api/class-ffc-user-audience-rest-controller.php:474
 msgid "Group not found or cannot be left by user"
@@ -9679,7 +9679,7 @@ msgstr "Como essa solicitação específica seria resolvida. Os endereços IP s�
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:265
 msgid "How to display the form after the end date / end time."
-msgstr "Como exibir o formulário após a data / hora de término?"
+msgstr "Como exibir o formulário após a data / hora de término."
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:243
 msgid "How to display the form before the start date / start time. \"Hide form completely\" makes the page render as if the form did not exist yet."
@@ -9792,7 +9792,7 @@ msgstr "Imagem inserida no layout."
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:36
 msgid "Image not showing in PDF"
-msgstr "A imagem não aparece no PDF."
+msgstr "A imagem não aparece no PDF"
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:317
 msgid "Image Reference Rewrite Errors"
@@ -10322,7 +10322,7 @@ msgstr "IPs"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:207
 msgid "IPs listed in the global Whitelist below bypass the read limit"
-msgstr "Os endereços IP listados na lista branca global abaixo ignoram o limite de leitura."
+msgstr "Os endereços IP listados na lista branca global abaixo ignoram o limite de leitura"
 
 #: includes/settings/views/ffc-tab-migrations.php:985
 msgid "Is it safe?"
@@ -10442,7 +10442,7 @@ msgstr "Fonte de chave / salt"
 
 #: includes/settings/views/documentation/reference-privacy.php:30
 msgid "Key health & rotation is on the Advanced page"
-msgstr "As opções principais de saúde e rotação estão na página Avançado."
+msgstr "As opções principais de saúde e rotação estão na página Avançado"
 
 #: includes/settings/views/documentation/document-templates-hub.php:29
 msgid "Kind"
@@ -10492,7 +10492,7 @@ msgstr "Saiba mais sobre a total-mail-queue"
 
 #: includes/frontend/class-ffc-shortcodes.php:339
 msgid "Learn more."
-msgstr "Saiba mais"
+msgstr "Saiba mais."
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:280
 msgid "Leave"
@@ -10512,7 +10512,7 @@ msgstr "Deixe vazio para acesso 24h. Padrão: 00:00 a 23:59"
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:194
 msgid "Leave empty for no date restriction. Format: YYYY-MM-DD"
-msgstr "Deixe em branco se não houver restrição de data."
+msgstr "Deixe em branco se não houver restrição de data"
 
 #. %s: highlighted current global default — the block message shown when the device limit is reached.
 #: includes/admin/class-ffc-form-editor-device-limit-metabox.php:209
@@ -10649,7 +10649,7 @@ msgstr "Link magico, texto link mágico"
 
 #: includes/settings/views/documentation/reference-tokens.php:101
 msgid "Link to page with certificate validation"
-msgstr "Link para a página com a validação do certificado."
+msgstr "Link para a página com a validação do certificado"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:223
 msgid "Linked Emails:"
@@ -10964,7 +10964,7 @@ msgstr "Saída para refeição"
 
 #: includes/settings/views/documentation/reference-validation-url.php:45
 msgid "Magic (download) link with custom text and color — custom text may contain spaces"
-msgstr "Link \"mágico\" (para download) com texto e cor personalizados — o texto personalizado pode conter espaços."
+msgstr "Link \"mágico\" (para download) com texto e cor personalizados — o texto personalizado pode conter espaços"
 
 #: includes/settings/views/documentation/submissions-download.php:22
 msgid "Magic download link"
@@ -11299,9 +11299,17 @@ msgstr "Membro Desde"
 msgid "Member Since:"
 msgstr "Membro Desde:"
 
-#: includes/audience/class-ffc-audience-shortcode.php:801
-msgid "member(s) have overlapping bookings."
-msgstr "Os membros têm reservas sobrepostas."
+#. translators: %d: always 1.
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d member has overlapping bookings."
+msgstr "%d membro tem reservas sobrepostas."
+
+#. translators: %d: number of members, 2 or more.
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d members have overlapping bookings."
+msgstr "%d membros têm reservas sobrepostas."
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:57 includes/audience/class-ffc-audience-admin-audience-renderer.php:134
 msgid "Members"
@@ -11514,7 +11522,7 @@ msgstr "Mover submissões"
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:329
 msgid "Move submissions to another form"
-msgstr "Mova as submissões para outro formulário."
+msgstr "Mover as submissões para outro formulário"
 
 #: includes/frontend/class-ffc-frontend.php:537
 msgid "Move the form's close time later within the same day. One-shot per form."
@@ -11969,7 +11977,7 @@ msgstr "Nenhum atrito pré-voo ou de limite de taxa registrada nos últimos 30 d
 
 #: includes/api/class-ffc-user-profile-rest-controller.php:265
 msgid "No profile data provided"
-msgstr "Nenhum dado de perfil fornecido."
+msgstr "Nenhum dado de perfil fornecido"
 
 #: includes/core/class-ffc-batched-csv-export.php:101
 msgid "No records available for export."
@@ -12214,7 +12222,7 @@ msgstr "Notificar o administrador da submissão?"
 
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:246
 msgid "Notify the candidate by email about this call"
-msgstr "Notifique o candidato por e-mail sobre esta chamada."
+msgstr "Notifique o candidato por e-mail sobre esta chamada"
 
 #: includes/settings/views/documentation/operations-updates.php:25
 msgid "Notify, opt-in."
@@ -12416,7 +12424,7 @@ msgstr "Apenas arquivos .csv são aceitos."
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:86
 msgid "Only approved CPF/RF can submit"
-msgstr "Somente CPF/RF aprovados podem enviar."
+msgstr "Somente CPF/RF aprovados podem enviar"
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:126
 msgid "Only candidates that are hired, withdrawn, or marked as no-show can be reset to waiting."
@@ -12452,15 +12460,15 @@ msgstr "Abrir perfil"
 
 #: includes/admin/class-ffc-preflight-stats-service.php:119
 msgid "Open the Activity Log filtered by cookie-wall hits"
-msgstr "Abra o registro de atividades filtrado por acessos de barreira de cookies."
+msgstr "Abra o registro de atividades filtrado por acessos de barreira de cookies"
 
 #: includes/admin/class-ffc-preflight-stats-service.php:126
 msgid "Open the Activity Log filtered by GPS-denied hits"
-msgstr "Abra o registro de atividades filtrado por ocorrências de GPS negado."
+msgstr "Abra o registro de atividades filtrado por ocorrências de GPS negado"
 
 #: includes/admin/class-ffc-preflight-stats-service.php:133
 msgid "Open the Activity Log filtered by GPS-prompt explainer renders"
-msgstr "Abra o Registro de Atividades filtrado por instruções de GPS."
+msgstr "Abra o Registro de Atividades filtrado por instruções de GPS"
 
 #: includes/admin/class-ffc-admin-user-capabilities.php:348
 msgid "Open the Audiences screen →"
@@ -12552,7 +12560,7 @@ msgstr "Opcional. Se um CPF for preenchido ele será registrado (criptografado) 
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:670
 msgid "Optional: put Cloudflare in front of this site"
-msgstr "Opcional: coloque o Cloudflare na frente deste site."
+msgstr "Opcional: coloque o Cloudflare na frente deste site"
 
 #: includes/settings/views/documentation/config-geolocation.php:51
 msgid "Optionally let administrators ignore the date/time restriction and/or the geolocation restriction, so they can test forms from anywhere at any time."
@@ -12616,7 +12624,7 @@ msgstr "referência órfã"
 
 #: includes/settings/views/ffc-tab-migrations.php:586
 msgid "Orphaned — the target post no longer exists"
-msgstr "Órfão — a postagem de destino não existe mais."
+msgstr "Órfão — a postagem de destino não existe mais"
 
 #: includes/reregistration/class-ffc-reregistration-field-options.php:159
 msgid "OTHER"
@@ -12768,7 +12776,7 @@ msgstr "É necessário usar uma senha."
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:265 includes/api/class-ffc-user-profile-rest-controller.php:339
 msgid "Password must be at least 8 characters"
-msgstr "A senha deve ter pelo menos 8 caracteres."
+msgstr "A senha deve ter pelo menos 8 caracteres"
 
 #: includes/frontend/class-ffc-frontend.php:450
 msgid "Password required"
@@ -12780,7 +12788,7 @@ msgstr "Valor da Senha"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:264
 msgid "Passwords do not match"
-msgstr "As senhas não coincidem."
+msgstr "As senhas não coincidem"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:242
 msgid "Past"
@@ -13134,7 +13142,7 @@ msgstr "Por favor, insira o código."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:165 includes/frontend/class-ffc-frontend.php:315
 msgid "Please fill all required fields"
-msgstr "Por favor, preencha todos os campos obrigatórios."
+msgstr "Por favor, preencha todos os campos obrigatórios"
 
 #: includes/audience/class-ffc-audience-shortcode.php:795
 msgid "Please fill in the time fields."
@@ -13469,7 +13477,7 @@ msgstr "Página anterior"
 #: templates/admin/recruitment/notice-edit/status-section.php:38
 #| msgid "previously reopened — hired/not_shown classifications are frozen"
 msgid "previously reopened — hired/withdrew/not_shown classifications are frozen"
-msgstr "anteriormente reaberto — as classificações de contratado/desistiu/não compareceu estão congeladas."
+msgstr "anteriormente reaberto — as classificações de contratado/desistiu/não compareceu estão congeladas"
 
 #: includes/settings/views/ffc-tab-geolocation.php:227
 msgid "Primary Service"
@@ -13863,7 +13871,7 @@ msgstr "Troca de segredo concluída."
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:94
 msgid "Re-save Settings → Permalinks once to flush WordPress rewrite rules"
-msgstr "Salve novamente as configurações de Links Permanentes uma vez para atualizar as regras de reescrita do WordPress."
+msgstr "Salve novamente as configurações de Links Permanentes uma vez para atualizar as regras de reescrita do WordPress"
 
 #: includes/settings/views/documentation/config-captcha.php:43
 msgid "Reach, not strength: the server accepts either proof, so an attacker picks the cheaper one and the effective security equals the math challenge alone."
@@ -13879,7 +13887,7 @@ msgstr "Pontos de extremidade de leitura (GET público)"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:402
 msgid "Read forms via REST API"
-msgstr "Leia formulários via API REST."
+msgstr "Ler formulários via API REST"
 
 #: includes/settings/views/documentation/developer-hooks-api.php:96
 msgid "Read tier — Application Password + ffc_view_url_shortener. Returns the short URL's QR Code as base64 (png/svg)."
@@ -14022,7 +14030,7 @@ msgstr "Recomendado: 100-200px para certificados"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:446
 msgid "Record blocked device-fingerprint attempts in the rate-limit log"
-msgstr "Registre as tentativas bloqueadas de identificação do dispositivo no log de limite de taxa."
+msgstr "Registre as tentativas bloqueadas de identificação do dispositivo no log de limite de taxa"
 
 #: includes/admin/class-ffc-admin-ajax.php:127
 msgid "Record not found."
@@ -14261,7 +14269,7 @@ msgstr "Remover shortcodes para formulários encerrados há mais de"
 
 #: includes/settings/views/ffc-tab-migrations.php:383 includes/settings/views/ffc-tab-migrations.php:388
 msgid "Remove shortcodes now"
-msgstr "Remova os shortcodes agora."
+msgstr "Remova os shortcodes agora"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:570
 msgid "Remove this field?"
@@ -14650,11 +14658,11 @@ msgstr "Restringir Reservas ao Horário Comercial"
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:156
 msgid "Restrict form access by date and time"
-msgstr "Restringir o acesso ao formulário por data e hora."
+msgstr "Restringir o acesso ao formulário por data e hora"
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:386
 msgid "Restrict form access by geographic location"
-msgstr "Restringir o acesso ao formulário por localização geográfica."
+msgstr "Restringir o acesso ao formulário por localização geográfica"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:709
 msgid "Restrict Viewing to Business Hours"
@@ -14700,7 +14708,7 @@ msgstr "Devolver ao Rascunho"
 
 #: templates/admin/reregistration/submission-row.php:45
 msgid "Return to user for revision"
-msgstr "Devolver ao usuário para revisão."
+msgstr "Devolver ao usuário para revisão"
 
 #: includes/settings/views/documentation/feature-reregistration.php:75
 msgid "Returns"
@@ -14946,7 +14954,7 @@ msgstr "Seguro por princípio:"
 
 #: includes/settings/views/ffc-tab-migrations.php:904
 msgid "Same CPF shared across users"
-msgstr "O mesmo CPF é compartilhado entre os usuários."
+msgstr "O mesmo CPF é compartilhado entre os usuários"
 
 #: includes/audience/class-ffc-audience-admin-import.php:139 includes/audience/class-ffc-audience-admin-import.php:176
 msgid "Sample CSV Format"
@@ -15371,7 +15379,7 @@ msgstr "Consulte Segurança e Restrições."
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:80
 msgid "See the \"Emails &amp; Delivery\" reference page for the full pipeline"
-msgstr "Consulte a página de referência \"E-mails e Entrega\" para ver o pipeline completo."
+msgstr "Consulte a página de referência \"E-mails e Entrega\" para ver o pipeline completo"
 
 #: includes/settings/views/documentation/feature-certificates.php:35 includes/settings/views/documentation/feature-self-scheduling.php:72 includes/settings/views/documentation/feature-record.php:154
 msgid "See the Document Templates hub."
@@ -15434,7 +15442,7 @@ msgstr "Selecione um Modelo"
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:671
 #| msgid "Select all `empty` rows on this page"
 msgid "Select all waiting rows on this page"
-msgstr "Selecione todas as filas de espera nesta página."
+msgstr "Selecione todas as filas de espera nesta página"
 
 #: templates/admin/settings/email-body-hub.php:54
 msgid "Select an email to edit"
@@ -15538,11 +15546,11 @@ msgstr "Envie um e-mail de notificação ao administrador após um envio bem-suc
 
 #: includes/settings/views/documentation/overview.php:50
 msgid "Send beautiful, reliable email"
-msgstr "Envie e-mails bonitos e confiáveis."
+msgstr "Envie e-mails bonitos e confiáveis"
 
 #: templates/admin/reregistration/form.php:115
 msgid "Send confirmation email after submission"
-msgstr "Enviar e-mail de confirmação após o envio."
+msgstr "Enviar e-mail de confirmação após o envio"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:802
 msgid "Send confirmation email to user"
@@ -15748,7 +15756,7 @@ msgstr "Configurações Alteradas"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:66
 msgid "Settings not saving between tabs"
-msgstr "As configurações não estão sendo salvas entre as abas."
+msgstr "As configurações não estão sendo salvas entre as abas"
 
 #: includes/settings/tabs/class-ffc-tab-rate-limit.php:191
 msgid "Settings saved!"
@@ -15937,7 +15945,7 @@ msgstr "Exibir Barra de Administração"
 
 #: includes/settings/views/ffc-tab-user-access.php:304
 msgid "Show admin bar on frontend for blocked roles"
-msgstr "Exibir a barra de administração no frontend para funções bloqueadas."
+msgstr "Exibir a barra de administração no frontend para funções bloqueadas"
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:239 includes/admin/class-ffc-form-editor-geofence-metabox.php:250 includes/admin/class-ffc-form-editor-geofence-metabox.php:261 includes/admin/class-ffc-form-editor-geofence-metabox.php:537
 msgid "Show blocked message (Recommended)"
@@ -15953,7 +15961,7 @@ msgstr "Mostrar reservas canceladas"
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:346
 msgid "Show event list alongside the calendar"
-msgstr "Exibir a lista de eventos ao lado do calendário."
+msgstr "Exibir a lista de eventos ao lado do calendário"
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:803
 msgid "Show in the appointment-receipt selection"
@@ -15973,11 +15981,11 @@ msgstr "Exibir mensagem"
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:186
 msgid "Show preliminary reasons publicly"
-msgstr "Apresentar publicamente os motivo de lista preliminar."
+msgstr "Mostrar publicamente os motivos de lista preliminar"
 
 #: templates/admin/recruitment/notice-edit/general-section.php:70
 msgid "Show preliminary reasons publicly on this notice"
-msgstr "Apresente publicamente, neste edital, os motivos de lista preliminar."
+msgstr "Mostrar publicamente, neste edital, os motivos de lista preliminar"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:560
 msgid "Show remaining attempts"
@@ -16074,7 +16082,7 @@ msgstr "Sinais coletados"
 
 #: includes/settings/views/documentation/reference-html-styling.php:87
 msgid "Signature with fixed height, proportional width"
-msgstr "Assinatura com altura fixa e largura proporcional."
+msgstr "Assinatura com altura fixa e largura proporcional"
 
 #: includes/settings/views/documentation/developer-hooks-api.php
 msgid "After a person is resolved to a WordPress user, so a module can claim its own records that carry the same CPF/RF hash and no user yet — args ( cpf_hash, rf_hash, user_id ). Submissions and appointments are adopted directly; recruitment candidacies subscribe to this."
@@ -16280,7 +16288,7 @@ msgstr "Iniciando o download…"
 
 #: includes/frontend/class-ffc-frontend.php:533
 msgid "Starting…"
-msgstr "Iniciando..."
+msgstr "Iniciando…"
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:312 includes/frontend/class-ffc-verification-response-renderer.php:470 includes/settings/views/documentation/feature-record.php:92
 msgid "State"
@@ -16422,7 +16430,7 @@ msgstr "Assunto:"
 
 #: includes/settings/views/documentation/reference-emails.php:75
 msgid "Subjects follow one shape — \"Event: {{reference}}\" (a short event title, a colon, then the record it refers to). Bodies follow one visual standard — an event-title heading in a semantic colour (green = confirmed, red = cancelled, amber = reminder, purple = waitlist, blue = informational), a greeting, one context line, and a details box."
-msgstr "Os assuntos seguem um padrão: \"Evento: {{referência}}\" (um título curto do evento, dois-pontos e, em seguida, o registro ao qual se refere). O corpo da mensagem segue um padrão visual: um cabeçalho com o título do evento em uma cor semântica (verde = confirmado, vermelho = cancelado, âmbar = lembrete, roxo = lista de espera, azul = informativo), uma saudação, uma linha de contexto e uma caixa de detalhes."
+msgstr "Os assuntos seguem um padrão: \"Evento: {{reference}}\" (um título curto do evento, dois-pontos e, em seguida, o registro ao qual se refere). O corpo da mensagem segue um padrão visual: um cabeçalho com o título do evento em uma cor semântica (verde = confirmado, vermelho = cancelado, âmbar = lembrete, roxo = lista de espera, azul = informativo), uma saudação, uma linha de contexto e uma caixa de detalhes."
 
 #: includes/reregistration/class-ffc-reregistration-admin.php:306
 msgid "Submission approved."
@@ -16897,7 +16905,7 @@ msgstr "E-mail de teste enviado para sua conta."
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:62
 msgid "Test with simple content first"
-msgstr "Teste primeiro com conteúdo simples."
+msgstr "Teste primeiro com conteúdo simples"
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:76 includes/reregistration/class-ffc-custom-field-reader.php:76 templates/admin/settings/email-model-box.php:47
 msgid "Text"
@@ -16925,7 +16933,7 @@ msgstr "A interface do \"Modelo de E-mail\""
 
 #: includes/settings/views/documentation/reference-emails.php:56
 msgid "The \"Email texts\" hub — edit every email's wording"
-msgstr "A central \"Textos de e-mail\" — edite a redação de cada e-mail."
+msgstr "A central \"Textos de e-mail\" — edite a redação de cada e-mail"
 
 #: includes/settings/views/ffc-tab-user-access.php:321
 #| msgid "The \"FFC User\" role is automatically assigned to users who submit forms with CPF/RF."
@@ -17216,7 +17224,7 @@ msgstr "O endereço institucional; preenche o marcador {{main_address}} nos mode
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:101
 msgid "The IP / email / CPF-RF rate limit was hit — review Settings → Rate Limit"
-msgstr "O limite de taxa para IP / e-mail / CPF-RF foi atingido — verifique Configurações → Limite de Taxa."
+msgstr "O limite de taxa para IP / e-mail / CPF-RF foi atingido — verifique Configurações → Limite de Taxa"
 
 #: includes/settings/views/documentation/submissions-list.php:22
 msgid "The list"
@@ -17333,7 +17341,7 @@ msgstr "A interface de desenvolvimento do plugin: hooks de ação e filtro para 
 
 #: includes/settings/views/documentation/feature-url-shortener.php:31
 msgid "The Post Types setting has two columns per type: \"Shorten\" (show the meta box and allow short URLs for that type) and \"Expose\". When a type is exposed, a published post's short URL becomes the site's canonical shortlink — WordPress emits it as the"
-msgstr "A configuração Tipos de Postagem possui duas colunas por tipo: \"Encurtar\" (exibir a caixa de metadados e permitir URLs curtas para esse tipo) e \"Expor\". Quando um tipo é exposto, a URL curta de uma postagem publicada se torna o link curto canônico do site — o WordPress o emite como o link canônico."
+msgstr "A configuração Tipos de Postagem possui duas colunas por tipo: \"Encurtar\" (exibir a caixa de metadados e permitir URLs curtas para esse tipo) e \"Expor\". Quando um tipo é exposto, a URL curta de uma postagem publicada se torna o link curto canônico do site — o WordPress o emite como o link canônico"
 
 #: includes/settings/views/documentation/feature-url-shortener.php:28
 msgid "The public short link is"
@@ -17373,7 +17381,7 @@ msgstr "O lembrete é enviado uma vez por membro por campanha. Há exatamente du
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:32
 msgid "The reregistration banner and \"Download Record\" action when a reregistration applies to them"
-msgstr "O banner de recadastramento e a ação \"Baixar Ficha\" quando um recadastramento se aplica a eles."
+msgstr "O banner de recadastramento e a ação \"Baixar Ficha\" quando um recadastramento se aplica a eles"
 
 #: includes/settings/views/ffc-tab-modulos.php:39
 msgid "The reregistration campaign flow and its admin."
@@ -17489,7 +17497,7 @@ msgstr "O URL de validação pode ser personalizado com vários atributos:"
 
 #: includes/settings/views/documentation/reference-tokens.php:137
 msgid "The value is replaced automatically in the PDF"
-msgstr "O valor é substituído automaticamente no PDF."
+msgstr "O valor é substituído automaticamente no PDF"
 
 #: includes/settings/views/documentation/reference-capabilities.php:29
 msgid "the view capability: inputs disabled, no save, row/bulk actions hidden."
@@ -18080,7 +18088,7 @@ msgstr "TLS (recomendado)"
 
 #: includes/settings/views/ffc-tab-smtp.php:191
 msgid "TLS is recommended for port 587, SSL for port 465"
-msgstr "Recomenda-se o uso de TLS na porta 587 e SSL na porta 465."
+msgstr "Recomenda-se o uso de TLS na porta 587 e SSL na porta 465"
 
 #: includes/audience/class-ffc-audience-admin-bookings.php:154
 msgid "To"
@@ -18219,7 +18227,7 @@ msgstr "Total:"
 
 #: includes/settings/views/ffc-tab-advanced.php:48
 msgid "Track activities for audit trail"
-msgstr "Registre as atividades para fins de auditoria."
+msgstr "Registrar as atividades para fins de auditoria"
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:84
 msgid "Transient cache for the public shortcode. 0 disables."
@@ -18438,7 +18446,7 @@ msgstr "Desvincular usuário do WordPress?"
 
 #: includes/settings/views/ffc-tab-migrations.php:903
 msgid "Unlinked but CPF matches a linked record"
-msgstr "Não vinculado, mas o CPF corresponde a um registro vinculado."
+msgstr "Não vinculado, mas o CPF corresponde a um registro vinculado"
 
 #: includes/admin/class-ffc-admin-ajax.php:119
 msgid "Unsupported field."
@@ -18484,7 +18492,7 @@ msgstr "Atualizar Recadastramento"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:68
 msgid "Update to latest version"
-msgstr "Atualize para a versão mais recente."
+msgstr "Atualize para a versão mais recente"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:385 includes/url-shortener/class-ffc-url-shortener-export-source.php:197
 msgid "Updated At"
@@ -18544,7 +18552,7 @@ msgstr "Use um servidor SMTP externo. Melhor entregabilidade e rastreamento."
 
 #: includes/settings/views/ffc-tab-smtp.php:240
 msgid "Use API key as password"
-msgstr "Use a chave da API como senha."
+msgstr "Use a chave da API como senha"
 
 #: includes/settings/views/ffc-tab-smtp.php:247
 msgid "Use API key as password, or find your settings in hPanel."
@@ -18552,7 +18560,7 @@ msgstr "Use a chave da API como senha, ou encontre suas configurações no hPane
 
 #: includes/settings/views/ffc-tab-smtp.php:226
 msgid "Use app-specific password"
-msgstr "Use a senha específica do aplicativo."
+msgstr "Use a senha específica do aplicativo"
 
 #. %d: minimum number of characters
 #: templates/public/set-password.php:27
@@ -18566,7 +18574,7 @@ msgstr "Usar público-alvo do CSV"
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:480
 msgid "Use different areas for IP validation"
-msgstr "Utilize áreas diferentes para validação por IP."
+msgstr "Utilize áreas diferentes para validação por IP"
 
 #: includes/settings/views/ffc-tab-geolocation.php:463
 msgid "Use GPS only (ignore IP validation)"
@@ -18582,7 +18590,7 @@ msgstr "Use-o no modelo:"
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:32
 msgid "Use lowercase for custom fields"
-msgstr "Use letras minúsculas para campos personalizados."
+msgstr "Use letras minúsculas para campos personalizados"
 
 #: includes/settings/views/ffc-tab-general.php:262 includes/settings/views/ffc-tab-general.php:303 includes/settings/views/ffc-tab-general.php:344 includes/settings/views/ffc-tab-general.php:385
 msgid "Use PHP date format characters."
@@ -18590,7 +18598,7 @@ msgstr "Use caracteres de formatação de data PHP."
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:60
 msgid "Use tables for complex layouts"
-msgstr "Utilize tabelas para layouts complexos."
+msgstr "Utilize tabelas para layouts complexos"
 
 #: includes/settings/views/documentation/overview.php:62
 msgid "Use the Quick Navigation beside the topics — it mirrors the plugin's own menus. Start with"
@@ -18842,7 +18850,7 @@ msgstr "Valida o formato do e-mail"
 
 #: includes/settings/views/documentation/feature-audiences.php:54
 msgid "Validates phone number format"
-msgstr "Valida o formato do número de telefone."
+msgstr "Valida o formato do número de telefone"
 
 #: includes/frontend/class-ffc-frontend.php:429
 msgid "Validating access…"
@@ -19099,7 +19107,7 @@ msgstr "Ver URLs curtas"
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:195
 msgid "View submissions for this form"
-msgstr "Veja as submissões para este formulário."
+msgstr "Ver as submissões deste formulário"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:108 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:219
 msgid "View/Print Receipt"
@@ -19412,11 +19420,11 @@ msgstr "Quando ativada, se o serviço principal falhar, o serviço alternativo s
 
 #: includes/settings/views/documentation/feature-certificates.php:58
 msgid "When enabled, new forms auto-select this location for GPS validation"
-msgstr "Quando ativada, essa opção seleciona automaticamente essa localização para validação por GPS em novos formulários."
+msgstr "Quando ativada, essa opção seleciona automaticamente essa localização para validação por GPS em novos formulários"
 
 #: includes/settings/views/documentation/feature-certificates.php:59
 msgid "When enabled, new forms auto-select this location for IP validation"
-msgstr "Quando ativada, essa opção seleciona automaticamente esse local para validação de IP em novos formulários."
+msgstr "Quando ativada, essa opção seleciona automaticamente esse local para validação de IP em novos formulários"
 
 #: includes/settings/views/ffc-tab-general.php:226
 msgid "When enabled, published submissions older than this many days are permanently deleted by the daily cleanup. Off by default — turning it on will delete existing submissions older than the window on the next run."
@@ -19756,11 +19764,11 @@ msgstr "Você está prestes a excluir permanentemente este motivo."
 
 #: includes/api/class-ffc-user-audience-rest-controller.php:402
 msgid "You are already a member of this group"
-msgstr "Você já é membro deste grupo."
+msgstr "Você já é membro deste grupo"
 
 #: includes/api/class-ffc-user-audience-rest-controller.php:487
 msgid "You are not a member of this group"
-msgstr "Você não é membro deste grupo."
+msgstr "Você não é membro deste grupo"
 
 
 #: includes/reregistration/class-ffc-reregistration-frontend.php:169 includes/reregistration/class-ffc-reregistration-frontend.php:222 includes/reregistration/class-ffc-reregistration-frontend.php:292
@@ -19950,7 +19958,7 @@ msgstr "Você não tem permissão para visualizar nenhuma configuração."
 
 #: includes/api/class-ffc-user-appointments-rest-controller.php:81
 msgid "You do not have permission to view appointments"
-msgstr "Você não tem permissão para visualizar agendamentos."
+msgstr "Você não tem permissão para visualizar agendamentos"
 
 #: includes/api/class-ffc-user-audience-rest-controller.php:131
 msgid "You do not have permission to view audience bookings"
@@ -19958,7 +19966,7 @@ msgstr "Você não tem permissão para ver os agendamentos de público-alvo"
 
 #: includes/api/class-ffc-user-certificates-rest-controller.php:81
 msgid "You do not have permission to view certificates"
-msgstr "Você não tem permissão para visualizar certificados."
+msgstr "Você não tem permissão para visualizar certificados"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:88
 msgid "You do not have permission to view this appointment receipt."
@@ -20039,7 +20047,7 @@ msgstr "Você deve concordar com os termos para agendar."
 
 #: includes/api/class-ffc-user-profile-rest-controller.php:320 includes/api/class-ffc-user-profile-rest-controller.php:398 includes/api/class-ffc-user-reregistrations-rest-controller.php:73 includes/api/class-ffc-user-audience-rest-controller.php:232 includes/api/class-ffc-user-audience-rest-controller.php:379 includes/api/class-ffc-user-audience-rest-controller.php:454 includes/api/class-ffc-user-audience-rest-controller.php:519
 msgid "You must be logged in"
-msgstr "Você precisa estar conectado."
+msgstr "Você precisa estar conectado"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:255
 msgid "You must be logged in to book this calendar."
@@ -20047,7 +20055,7 @@ msgstr "Você deve estar logado para agendar neste calendário."
 
 #: includes/api/class-ffc-user-profile-rest-controller.php:233
 msgid "You must be logged in to update profile"
-msgstr "Você precisa estar conectado para atualizar seu perfil."
+msgstr "Você precisa estar conectado para atualizar seu perfil"
 
 #: includes/api/class-ffc-user-appointments-rest-controller.php:73
 msgid "You must be logged in to view appointments"
@@ -20059,11 +20067,11 @@ msgstr "Você precisa estar logado para ver os agendamentos"
 
 #: includes/api/class-ffc-user-certificates-rest-controller.php:73
 msgid "You must be logged in to view certificates"
-msgstr "Você precisa estar conectado para visualizar os certificados."
+msgstr "Você precisa estar conectado para visualizar os certificados"
 
 #: includes/api/class-ffc-user-profile-rest-controller.php:105
 msgid "You must be logged in to view profile"
-msgstr "Você precisa estar conectado para visualizar o perfil."
+msgstr "Você precisa estar conectado para visualizar o perfil"
 
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:325
 msgid "You must be logged in to view your dashboard."
@@ -24000,7 +24008,7 @@ msgid "Change the URL a certificate QR code encodes."
 msgstr "Altere a URL codificada no QR Code de um certificado."
 
 msgid "Child audiences inherit fields from parent audiences"
-msgstr "Os públicos-alvo filhos herdam os campos dos públicos-alvo pais."
+msgstr "Os públicos-alvo filhos herdam os campos dos públicos-alvo pais"
 
 msgid "Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed."
 msgstr "Limpar todos os QR Codes armazenados em cache?\n\nEles serão regenerados automaticamente quando necessário."
@@ -24190,7 +24198,7 @@ msgid "Short URL QR Code (base64)"
 msgstr "QR Code de URL curta (base64)"
 
 msgid "Store generated QR Codes in database"
-msgstr "Armazene os QR Codes gerados no banco de dados."
+msgstr "Armazenar os QR Codes gerados no banco de dados"
 
 msgid "Store generated QR Codes in database to avoid regenerating them on each request."
 msgstr "Armazene os QR Codes gerados no banco de dados para evitar regenerá-los a cada solicitação."
@@ -25688,7 +25696,7 @@ msgstr "Um nome aceita letras minúsculas, dígitos e sublinhados. O e-mail é s
 
 #: includes/settings/views/documentation/feature-certificates.php
 msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only. {{schedule}} prints nothing on a form without an Event Schedule on the Time tab, and every shipped certificate model carries it. The table saves as you change it."
-msgstr "O que um certificado exige é uma única tabela, Configurações → Certificados → Dados obrigatórios. Cada linha tem um nome, um rótulo, um tipo e dois interruptores. Obrigatório no formulário: um formulário novo já começa com o campo, e o editor de formulário o trava e recusa um formulário sem ele. Obrigatório no HTML do certificado: o editor de formulário se recusa a salvar um layout sem a {{etiqueta}}. Por padrão, name e cpf_rf são obrigatórios nos dois, email no formulário e {{auth_code}} e {{schedule}} no HTML. O email não pode sair do formulário e {{auth_code}} não pode sair do HTML. Uma etiqueta que o próprio plugin preenche, como {{schedule}}, tem só o interruptor do HTML. {{schedule}} não imprime nada num formulário sem Cronograma do Evento na aba Horário, e todos os modelos de certificado do plugin já a trazem. A tabela é salva à medida que você a altera."
+msgstr "O que um certificado exige é uma única tabela, Configurações → Certificados → Dados obrigatórios. Cada linha tem um nome, um rótulo, um tipo e dois interruptores. Obrigatório no formulário: um formulário novo já começa com o campo, e o editor de formulário o trava e recusa um formulário sem ele. Obrigatório no HTML do certificado: o editor de formulário se recusa a salvar um layout sem a {{tag}}. Por padrão, name e cpf_rf são obrigatórios nos dois, email no formulário e {{auth_code}} e {{schedule}} no HTML. O email não pode sair do formulário e {{auth_code}} não pode sair do HTML. Uma etiqueta que o próprio plugin preenche, como {{schedule}}, tem só o interruptor do HTML. {{schedule}} não imprime nada num formulário sem Cronograma do Evento na aba Horário, e todos os modelos de certificado do plugin já a trazem. A tabela é salva à medida que você a altera."
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php
 msgid "A new form starts with every row of Settings → Certificates → Required data whose \"Required in the form\" switch is on, with the label and type given there. By default they are:"
@@ -33955,7 +33963,7 @@ msgid "Template fields"
 msgstr "Campos do modelo"
 
 msgid "Each form that references this template fills these fields on its Layout tab. Print one in the HTML as {{model:key}}; a date also takes {{model:key:format=d/m/Y}}."
-msgstr "Cada formulário que usa este modelo preenche estes campos na aba Layout. Imprima um no HTML como {{model:chave}}; uma data também aceita {{model:chave:format=d/m/Y}}."
+msgstr "Cada formulário que usa este modelo preenche estes campos na aba Layout. Imprima um no HTML como {{model:key}}; uma data também aceita {{model:key:format=d/m/Y}}."
 
 msgid "Key"
 msgstr "Chave"
@@ -34009,7 +34017,7 @@ msgid "An empty field prints the template’s default, shown in grey."
 msgstr "Um campo vazio imprime o padrão do modelo, mostrado em cinza."
 
 msgid "A field the certificate template declares, filled by each form that references the template, or the field's default when the form leaves it empty. A date field takes a format, as in {{model:key:format=d/m/Y}}. A key the template does not declare prints as written."
-msgstr "Um campo declarado pelo modelo de certificado, preenchido por cada formulário que usa o modelo, ou o padrão do campo quando o formulário o deixa vazio. Um campo de data aceita formato, como em {{model:chave:format=d/m/Y}}. Uma chave que o modelo não declara é impressa como escrita."
+msgstr "Um campo declarado pelo modelo de certificado, preenchido por cada formulário que usa o modelo, ou o padrão do campo quando o formulário o deixa vazio. Um campo de data aceita formato, como em {{model:key:format=d/m/Y}}. Uma chave que o modelo não declara é impressa como escrita."
 
 msgid "Copy or reference a certificate template"
 msgstr "Copiar ou usar um modelo de certificado"
@@ -34018,7 +34026,7 @@ msgid "The Layout tab of a form chooses its Layout source. Own layout is the cop
 msgstr "A aba Layout de um formulário escolhe a Origem do layout. Layout próprio é a cópia descrita acima. Modelo faz o formulário imprimir um modelo de certificado do acervo, com seu fundo: editar esse modelo altera todos os formulários que o usam, e os certificados já emitidos, na próxima vez em que forem gerados ou verificados. A tela de edição do modelo diz quantos formulários e certificados são antes de salvar."
 
 msgid "A template can declare fields that each referencing form fills — a place, the description of the activity, a date. Declare them in the template's Template fields box (key, label, short text, long text or date, required, default) and print them as {{model:key}}. On the form they appear under the chosen template; an empty field prints the default, and a required field left empty saves with a warning. Removing a field leaves the values forms filled stored and unused."
-msgstr "Um modelo pode declarar campos que cada formulário que o usa preenche — um local, a descrição da atividade, uma data. Declare-os na caixa Campos do modelo (chave, rótulo, texto curto, texto longo ou data, obrigatório, padrão) e imprima-os como {{model:chave}}. No formulário eles aparecem abaixo do modelo escolhido; um campo vazio imprime o padrão, e um campo obrigatório vazio salva com um aviso. Remover um campo mantém guardados, sem uso, os valores que os formulários preencheram."
+msgstr "Um modelo pode declarar campos que cada formulário que o usa preenche — um local, a descrição da atividade, uma data. Declare-os na caixa Campos do modelo (chave, rótulo, texto curto, texto longo ou data, obrigatório, padrão) e imprima-os como {{model:key}}. No formulário eles aparecem abaixo do modelo escolhido; um campo vazio imprime o padrão, e um campo obrigatório vazio salva com um aviso. Remover um campo mantém guardados, sem uso, os valores que os formulários preencheram."
 
 msgid "Where it is stored: the form keeps the template's id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too. The certificate models declare two fields, place and workload, whose defaults are the examples they print, and print the form's event date as the completion date, the submission date as the issue date, and signers 1 and 2 in their right and left signature columns; loading one into the form's own layout fills its fields with their defaults."
 msgstr "Onde fica guardado: o formulário guarda o id do modelo e os valores que preencheu nos próprios metadados, e mantém intacta sua cópia, de modo que voltar para Layout próprio, ou um modelo enviado para a lixeira, imprime essa cópia. Os modelos padrão também podem ser referenciados. Os modelos de certificado declaram dois campos, place (local) e workload (carga horária), cujos padrões são os exemplos que imprimem, e imprimem a data do evento do formulário como data de conclusão, a data do envio como data de emissão e os assinantes 1 e 2 nas colunas de assinatura da direita e da esquerda; carregar um deles no layout próprio do formulário preenche os campos com os padrões."
@@ -34306,7 +34314,7 @@ msgid "A second card moves forms carrying copies of one layout onto a shared tem
 msgstr "Um segundo card passa os formulários com cópias de um mesmo layout para um modelo compartilhado que você escreveu com tokens {{model:…}} e {{signer:…}}, preenchendo os campos de cada formulário com o que ele digitou, só quando o certificado sai igual; adicionar um assinante ou um modelo traz de volta os formulários que ele deixou como estavam."
 
 msgid "Many forms carrying copies of one layout can be moved onto a shared template at once. Copy one form's layout into a new certificate template, put a {{model:key}} token where the forms differ (the place, the action) and the {{signer:…}} tokens where the signer is typed, declare the fields and add the signers under Certificates → Signers. The \"Move Copied Layouts onto a Shared Template\" card under Settings → Data Migrations then fills each form's fields with what it typed in place of each token and switches it, but only when its certificate prints exactly what it printed before; it previews each form first and lists the rest with the reason. Several families of copies take one template each."
-msgstr "Muitos formulários com cópias de um mesmo layout podem passar de uma vez para um modelo compartilhado. Copie o layout de um formulário para um novo modelo de certificado, coloque um token {{model:chave}} onde os formulários diferem (o local, a ação) e os tokens {{signer:…}} onde o assinante está digitado, declare os campos e adicione os assinantes em Certificados → Assinantes. O card \"Mover layouts copiados para um modelo compartilhado\" em Configurações → Migrações de Dados preenche então os campos de cada formulário com o que ele digitou no lugar de cada token e o troca, mas só quando o certificado imprime exatamente o que imprimia antes; ele mostra cada formulário antes de executar e lista os demais com o motivo. Cada família de cópias usa um modelo próprio."
+msgstr "Muitos formulários com cópias de um mesmo layout podem passar de uma vez para um modelo compartilhado. Copie o layout de um formulário para um novo modelo de certificado, coloque um token {{model:key}} onde os formulários diferem (o local, a ação) e os tokens {{signer:…}} onde o assinante está digitado, declare os campos e adicione os assinantes em Certificados → Assinantes. O card \"Mover layouts copiados para um modelo compartilhado\" em Configurações → Migrações de Dados preenche então os campos de cada formulário com o que ele digitou no lugar de cada token e o troca, mas só quando o certificado imprime exatamente o que imprimia antes; ele mostra cada formulário antes de executar e lista os demais com o motivo. Cada família de cópias usa um modelo próprio."
 
 msgid "Align bottom"
 msgstr "Alinhar embaixo"
