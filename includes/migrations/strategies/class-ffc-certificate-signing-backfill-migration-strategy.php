@@ -268,9 +268,10 @@ class CertificateSigningBackfillMigrationStrategy implements MigrationStrategyIn
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- The plugin's own table, for which WordPress exposes no API; the statement is built from placeholders only. A migration card must reflect the live rows, never a cache.
 		$row = $wpdb->get_row( $wpdb->prepare( $sql, ...$args ), ARRAY_A );
 
+		$row = is_array( $row ) ? $row : array();
 		return array(
-			'forms'        => is_array( $row ) ? (int) ( $row['forms'] ?? 0 ) : 0,
-			'certificates' => is_array( $row ) ? (int) ( $row['certificates'] ?? 0 ) : 0,
+			'forms'        => \FreeFormCertificate\Core\ArrayValue::int( $row, 'forms' ),
+			'certificates' => \FreeFormCertificate\Core\ArrayValue::int( $row, 'certificates' ),
 		);
 	}
 
