@@ -351,7 +351,8 @@ class AppointmentRestController {
 					'phone'            => $phone_display,
 					'user_notes'       => $appointment['user_notes'] ?? '',
 					// @removal 6.46.0 -- `created_at` as a site-local DATETIME with no offset; `created_at_iso` replaces it (#2342).
-					'created_at'       => $appointment['created_at'],
+					// The column stores an instant since #2679; the field keeps its old shape.
+					'created_at'       => \FreeFormCertificate\Core\DateFormatter::site_mysql_datetime( $appointment['created_at'] ?? null ),
 					'created_at_iso'   => \FreeFormCertificate\Core\DateFormatter::iso8601( $appointment['created_at'] ?? null ),
 				)
 			);

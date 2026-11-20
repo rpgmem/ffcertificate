@@ -53,6 +53,9 @@ class VerificationSplitParityTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A legacy DATETIME `created_at` reads in the site's timezone (#2679);
+		// at UTC that is the instant the legacy handler's `strtotime()` read.
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 
 		$rl = new \ReflectionClass( \FreeFormCertificate\Security\RateLimitChecker::class );
 		if ( $rl->hasProperty( 'settings_cache' ) ) {

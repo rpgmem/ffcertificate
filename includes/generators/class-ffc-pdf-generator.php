@@ -344,12 +344,11 @@ class PdfGenerator {
 		// receipts. Falls back to the start alone when no end is stored.
 		$formatted_range = '' !== $formatted_end ? $formatted_start . ' – ' . $formatted_end : $formatted_start;
 
+		// An instant (#2679); a legacy DATETIME reads in the site's timezone.
 		$formatted_created = __( 'N/A', 'ffcertificate' );
-		if ( ! empty( $appointment['created_at'] ) ) {
-			$ts = strtotime( $appointment['created_at'] );
-			if ( false !== $ts ) {
-				$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts, 'pdf' );
-			}
+		$created_ts        = \FreeFormCertificate\Core\DateFormatter::instant_of( $appointment['created_at'] ?? null );
+		if ( $created_ts > 0 ) {
+			$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $created_ts, 'pdf' );
 		}
 
 		// Decrypt sensitive data if needed.
@@ -419,16 +418,11 @@ class PdfGenerator {
 
 		// Generate HTML using the existing generate_html() method.
 		//
-		// `appointment.created_at` is a DATETIME string (housekeeping
-		// column kept as DATETIME per the Category A exception in
-		// CLAUDE.md). `generate_html()` expects a unix timestamp
-		// (`?int`) for the PDF date stamp — convert here. UTC because
-		// `created_at` is auto-set by MySQL `DEFAULT CURRENT_TIMESTAMP`
-		// which writes in the DB's timezone (UTC by convention).
+		// `generate_html()` takes the PDF date stamp as unix seconds, which
+		// `created_at` stores (#2679).
 		$calendar_title = $calendar['title'] ?? __( 'Appointment Receipt', 'ffcertificate' );
-		$created_at_str = isset( $appointment['created_at'] ) ? (string) $appointment['created_at'] : '';
-		$created_at_ts  = '' !== $created_at_str ? strtotime( $created_at_str . ' UTC' ) : false;
-		$html           = $this->html_renderer->generate_html( $data, $calendar_title, $form_config, false !== $created_at_ts ? $created_at_ts : null );
+		$created_at_ts  = \FreeFormCertificate\Core\DateFormatter::instant_of( $appointment['created_at'] ?? null );
+		$html           = $this->html_renderer->generate_html( $data, $calendar_title, $form_config, $created_at_ts > 0 ? $created_at_ts : null );
 
 		// 6.6.11 — standardized filename pattern via the shared helper
 		// (`recibo_{calendar_id}_{validation_code}.pdf` in PT-BR sites).

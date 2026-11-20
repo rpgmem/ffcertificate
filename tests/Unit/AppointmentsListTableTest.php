@@ -503,6 +503,9 @@ class AppointmentsListTableTest extends TestCase {
 		$table                   = new AppointmentsListTable();
 
 		$this->assertSame( '21-10-2026', $table->column_appointment_date( array( 'appointment_date' => '2026-10-21' ) ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		// An instant since #2679; a row not converted yet still reads as the same time.
+		$this->assertSame( '01-10-2026 14h05', $table->column_created_at( array( 'created_at' => '1790863500' ) ) );
 		$this->assertSame( '01-10-2026 14h05', $table->column_created_at( array( 'created_at' => '2026-10-01 14:05:00' ) ) );
 		$this->assertSame( '-', $table->column_appointment_date( array( 'appointment_date' => '' ) ) );
 		$this->assertSame( '-', $table->column_created_at( array() ) );

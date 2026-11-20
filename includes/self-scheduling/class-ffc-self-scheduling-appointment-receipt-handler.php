@@ -220,12 +220,11 @@ class AppointmentReceiptHandler {
 			$end_time = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['end_time'] );
 		}
 
+		// An instant (#2679); a legacy DATETIME reads in the site's timezone.
 		$created_at = __( 'N/A', 'ffcertificate' );
-		if ( ! empty( $appointment['created_at'] ) ) {
-			$timestamp = strtotime( $appointment['created_at'] );
-			if ( false !== $timestamp ) {
-				$created_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( $timestamp );
-			}
+		$created_ts = \FreeFormCertificate\Core\DateFormatter::instant_of( $appointment['created_at'] ?? null );
+		if ( $created_ts > 0 ) {
+			$created_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( $created_ts );
 		}
 
 		// Status label with safety check.

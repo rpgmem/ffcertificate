@@ -1002,7 +1002,7 @@ Current inventory (point-in-time snapshot — re-verify a column against the liv
 | `ffc_short_urls` | none: Category A since #2337 | `created_at` and `updated_at` are instants (the duplicates alert and the CSV show them, the cleaner compares them); table name is `ffc_short_urls` (not `ffc_url_shortener`, which is only an option-key/meta-box id prefix) |
 | `ffc_rate_limit_*` (3 tables) | P1 (MySQL auto) | — |
 | `ffc_custom_fields*` (3 tables) | P1 (MySQL auto) | — |
-| `ffc_self_scheduling_*` | P3 (hybrid: `created_at` auto, `updated_at` PHP) | — |
+| `ffc_self_scheduling_*` | P3 (hybrid: `created_at` auto, `updated_at` PHP) | `ffc_self_scheduling_appointments` left this category in #2679: its `created_at` and `updated_at` are Category A instants (the receipt, its PDF, the verification page, the admin list and the CSV show them) |
 | `ffc_activity_log` | none: Category A since #2340 | `created_at` is an instant (the log screen, the CSV and the privacy export show it; retention and the stats compare it); existing rows were converted from the site timezone by `ActivityLogInstants`, one statement per offset stretch |
 
 If a future feature renders one of these columns to a user, that column must be migrated to Category A storage at that point — not left as a hidden TZ-drift trap.

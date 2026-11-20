@@ -92,7 +92,7 @@ function ffc_ss_plant( string $offset, string $status, ?int $reminded = null ): 
 		'start_time'       => $at->format( 'H:i:s' ),
 		'end_time'         => $at->modify( '+30 minutes' )->format( 'H:i:s' ),
 		'status'           => $status,
-		'created_at'       => current_time( 'mysql' ),
+		'created_at'       => time(), // An instant since #2679.
 	);
 	if ( null !== $reminded ) {
 		$row['reminder_sent_at'] = $reminded;

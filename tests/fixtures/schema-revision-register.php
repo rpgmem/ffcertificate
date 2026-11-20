@@ -45,8 +45,8 @@ return array(
 	),
 	'includes/self-scheduling/class-ffc-self-scheduling-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\SelfScheduling\\SelfSchedulingActivator',
-		'revision'    => '3',
-		'fingerprint' => 'ca846edce458f1715522f82939b9606ead3aed76',
+		'revision'    => '4',
+		'fingerprint' => '53fa9c46f890768ae85fd8c3637409be383368ab',
 	),
 	'includes/submissions/class-ffc-bulk-issue-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Submissions\\BulkIssueActivator',

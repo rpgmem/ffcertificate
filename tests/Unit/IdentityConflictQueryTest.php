@@ -1231,9 +1231,10 @@ class IdentityConflictQueryTest extends TestCase {
 	 * A unix instant is rendered through the site timezone, never sliced.
 	 *
 	 * `ffc_submissions.submission_date` is a Category A instant -- unix UTC
-	 * seconds -- while the other three stores hold housekeeping DATETIMEs the
-	 * site's own timezone already wrote. Treating the two the same is how a
-	 * comparison silently skews three stores against one.
+	 * seconds -- and so are the appointment and candidate columns once an
+	 * install has converted them (#2679), while a store not converted yet
+	 * holds a housekeeping DATETIME the site's own timezone already wrote.
+	 * The shape is read off the value, so either store reads right.
 	 */
 	public function test_a_unix_store_is_rendered_through_the_site_timezone(): void {
 		$asked = array();
@@ -1252,6 +1253,24 @@ class IdentityConflictQueryTest extends TestCase {
 
 		$this->assertSame( '2026-07-04', $facts[438]['activity'] );
 		$this->assertSame( array( array( 'Y-m-d', 1782172800 ) ), $asked, 'The instant must reach wp_date() as an int.' );
+
+		// An appointment converted to instants reads the same way (#2679).
+		$this->wpdb->mockery_verify();
+		$this->setUp();
+		$asked = array();
+		Functions\when( 'wp_date' )->alias(
+			function ( $format, $stamp ) use ( &$asked ) {
+				$asked[] = array( $format, $stamp );
+				return '2026-07-04';
+			}
+		);
+		$facts = $this->facts_with_activity(
+			array( 438 ),
+			array(),
+			array( array( 'user_id' => 438, 'last_seen' => '1782172800' ) )
+		);
+		$this->assertSame( '2026-07-04', $facts[438]['activity'] );
+		$this->assertSame( array( array( 'Y-m-d', 1782172800 ) ), $asked );
 	}
 
 	/**

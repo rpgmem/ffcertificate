@@ -175,6 +175,62 @@ final class DateFormatter {
 	}
 
 	/**
+	 * The unix seconds a stored timestamp means (#2679).
+	 *
+	 * A unix integer (Category A), or its digits as `$wpdb` returns them, is
+	 * the instant itself. A `DATETIME` string is read in the site's timezone,
+	 * which is how `current_time( 'mysql' )` wrote it, so a column that has
+	 * not been converted yet still reads as the right instant.
+	 *
+	 * @param int|string|null $value Unix seconds or a site-local `Y-m-d H:i:s`.
+	 * @return int Unix seconds, or 0 when empty or unparseable.
+	 */
+	public static function instant_of( $value ): int {
+		if ( null === $value || '' === $value ) {
+			return 0;
+		}
+		if ( is_int( $value ) || ctype_digit( (string) $value ) ) {
+			return max( 0, (int) $value );
+		}
+		try {
+			return max( 0, ( new \DateTimeImmutable( (string) $value, \wp_timezone() ) )->getTimestamp() );
+		} catch ( \Exception $e ) {
+			unset( $e );
+			return 0;
+		}
+	}
+
+	/**
+	 * A stored timestamp in the configured date and time formats, in the
+	 * site's timezone (#2679): unix seconds, or a legacy site-local
+	 * `DATETIME` a column held before it stored instants.
+	 *
+	 * @param int|string|null $value   Unix seconds or a site-local `Y-m-d H:i:s`.
+	 * @param string          $context 'default' or 'pdf'.
+	 * @return string Formatted date and time, or '' when empty or unparseable.
+	 */
+	public static function format_instant( $value, string $context = 'default' ): string {
+		$ts = self::instant_of( $value );
+		return $ts > 0 ? self::format_datetime( $ts, $context ) : '';
+	}
+
+	/**
+	 * A stored timestamp as the site-local `Y-m-d H:i:s` the REST responses
+	 * have always carried (#2679), so a column moving to UTC seconds does not
+	 * change what an integration reads.
+	 *
+	 * @param int|string|null $value Unix seconds or a site-local `Y-m-d H:i:s`.
+	 * @return string `2026-11-02 06:00:00`, or '' when empty or unparseable.
+	 */
+	public static function site_mysql_datetime( $value ): string {
+		$ts = self::instant_of( $value );
+		if ( $ts <= 0 ) {
+			return '';
+		}
+		return ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone( \wp_timezone() )->format( 'Y-m-d H:i:s' );
+	}
+
+	/**
 	 * Format a wall-clock DATE string (Category B) in the configured date
 	 * format, WITHOUT applying the site timezone.
 	 *
