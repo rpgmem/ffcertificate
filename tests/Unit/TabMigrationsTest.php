@@ -472,6 +472,22 @@ class TabMigrationsTest extends TestCase {
 		};
 	}
 
+	/**
+	 * A strategy may say what its card covers (#2672): the line renders under
+	 * the description, escaped, and only from a string, so a status that
+	 * carries none, or an error, draws nothing.
+	 */
+	public function test_the_scope_line_renders_escaped_under_the_description(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$description = strpos( $view, "echo esc_html( \$ffcertificate_migration['description'] )" );
+		$scope       = strpos( $view, "echo esc_html( \$ffcertificate_status['scope'] )" );
+		$this->assertNotFalse( $description );
+		$this->assertNotFalse( $scope, 'The scope line is printed through esc_html().' );
+		$this->assertGreaterThan( $description, $scope, 'The scope line follows the description.' );
+		$this->assertStringContainsString( "! is_wp_error( \$ffcertificate_status ) && ! empty( \$ffcertificate_status['scope'] ) && is_string( \$ffcertificate_status['scope'] )", $view );
+	}
+
 	public function test_render_error_when_view_missing(): void {
 		$tab = $this->tab_with_views_in( sys_get_temp_dir() . '/ffc_test_no_such_view_dir_' . getmypid() );
 

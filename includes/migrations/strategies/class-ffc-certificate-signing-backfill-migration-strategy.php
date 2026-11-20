@@ -88,6 +88,40 @@ class CertificateSigningBackfillMigrationStrategy implements MigrationStrategyIn
 			'pending'     => $pending,
 			'percent'     => round( $total > 0 ? ( $done / $total ) * 100 : 100, 2 ),
 			'is_complete' => 0 === $pending,
+			'scope'       => $this->scope_line( count( $forms ), $total ),
+		);
+	}
+
+	/**
+	 * What the card covers and what it leaves out (#2672).
+	 *
+	 * The card counts only the forms on a signed mode, and Link only is the
+	 * default, so on a site where most forms never switched it signs a handful
+	 * and reads 100%. Saying how many certificates sit on Link only is what
+	 * keeps that 100% from reading as "every certificate is signed".
+	 *
+	 * @param int $signed_forms       Forms on a signed mode.
+	 * @param int $signed_certificates Their published certificates.
+	 * @return string
+	 */
+	private function scope_line( int $signed_forms, int $signed_certificates ): string {
+		$covered = sprintf(
+			/* translators: 1: number of forms on a signed QR mode, 2: number of their published certificates. */
+			__( 'Covered: forms on a signed QR mode: %1$d, certificates: %2$d.', 'ffcertificate' ),
+			$signed_forms,
+			$signed_certificates
+		);
+
+		$left = $this->link_only_summary();
+		if ( 0 === $left['certificates'] ) {
+			return $covered . ' ' . __( 'No form on Link only has certificates.', 'ffcertificate' );
+		}
+
+		return $covered . ' ' . sprintf(
+			/* translators: 1: number of forms on Link only, 2: number of their published certificates. */
+			__( 'Not covered: forms on Link only: %1$d, certificates: %2$d. To include a form, choose "Signed, compact" or "Signed, full" under QR code in its editor.', 'ffcertificate' ),
+			$left['forms'],
+			$left['certificates']
 		);
 	}
 
@@ -208,6 +242,46 @@ class CertificateSigningBackfillMigrationStrategy implements MigrationStrategyIn
 	 * @return list<int>
 	 */
 	protected function signed_forms(): array {
+		return $this->forms_by_mode( true );
+	}
+
+	/**
+	 * The forms on Link only that have published certificates, and how many
+	 * certificates they hold. A seam, so the scope line can be driven without
+	 * a database.
+	 *
+	 * @return array{forms: int, certificates: int}
+	 */
+	protected function link_only_summary(): array {
+		global $wpdb;
+
+		$forms = $this->forms_by_mode( false );
+		if ( array() === $forms ) {
+			return array(
+				'forms'        => 0,
+				'certificates' => 0,
+			);
+		}
+
+		$sql  = 'SELECT COUNT(DISTINCT s.form_id) AS forms, COUNT(*) AS certificates FROM %i s WHERE s.status = %s AND s.form_id IN (' . implode( ',', array_fill( 0, count( $forms ), '%d' ) ) . ')';
+		$args = array_merge( array( $wpdb->prefix . 'ffc_submissions', 'publish' ), $forms );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- The plugin's own table, for which WordPress exposes no API; the statement is built from placeholders only. A migration card must reflect the live rows, never a cache.
+		$row = $wpdb->get_row( $wpdb->prepare( $sql, ...$args ), ARRAY_A );
+
+		$row = is_array( $row ) ? $row : array();
+		return array(
+			'forms'        => \FreeFormCertificate\Core\ArrayValue::int( $row, 'forms' ),
+			'certificates' => \FreeFormCertificate\Core\ArrayValue::int( $row, 'certificates' ),
+		);
+	}
+
+	/**
+	 * The ids of every form on a signed mode, or on Link only, ascending.
+	 *
+	 * @param bool $signed True for Compact or Full, false for Link only.
+	 * @return list<int>
+	 */
+	private function forms_by_mode( bool $signed ): array {
 		$ids = get_posts(
 			array(
 				'post_type'      => 'ffc_form',
@@ -222,7 +296,8 @@ class CertificateSigningBackfillMigrationStrategy implements MigrationStrategyIn
 
 		$out = array();
 		foreach ( (array) $ids as $id ) {
-			if ( CertificateSigner::MODE_LINK !== CertificateSigner::mode( (int) $id ) ) {
+			$is_signed = CertificateSigner::MODE_LINK !== CertificateSigner::mode( (int) $id );
+			if ( $is_signed === $signed ) {
 				$out[] = (int) $id;
 			}
 		}
