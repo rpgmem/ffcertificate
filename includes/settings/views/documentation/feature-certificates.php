@@ -118,16 +118,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Example 1: Simple Certificate', 'ffcertificate' ); ?></h4>
 		<pre><code>&lt;div style="text-align: center; font-family: Arial; padding: 50px;"&gt;
-	&lt;h1&gt;CERTIFICADO&lt;/h1&gt;
+	&lt;h1&gt;CERTIFICATE&lt;/h1&gt;
 	
 	&lt;p&gt;
-		Certificamos que &lt;strong&gt;{{name}}&lt;/strong&gt;, 
+		We certify that &lt;strong&gt;{{name}}&lt;/strong&gt;, 
 		CPF &lt;strong&gt;{{cpf_rf}}&lt;/strong&gt;, 
-		participou do evento &lt;strong&gt;{{form_title}}&lt;/strong&gt;.
+		attended the event &lt;strong&gt;{{form_title}}&lt;/strong&gt;.
 	&lt;/p&gt;
 	
-	&lt;p&gt;Data: {{submission_date}}&lt;/p&gt;
-	&lt;p&gt;Código: {{auth_code}}&lt;/p&gt;
+	&lt;p&gt;Date: {{submission_date}}&lt;/p&gt;
+	&lt;p&gt;Code: {{auth_code}}&lt;/p&gt;
 	
 	{{qr_code:size=150}}
 &lt;/div&gt;</code></pre>
