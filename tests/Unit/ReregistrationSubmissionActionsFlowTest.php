@@ -146,6 +146,9 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
 		$wpdb->users  = 'wp_users';
+		// An approval syncs the reviewed answers to the profile (#2688); the
+		// campaign here has no fields, so there is nothing to sync.
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
 
 		// Interpolates, so the reads below can dispatch on the query's intent.
 		// A conditional UPDATE (#2242) is kept as its parsed parts instead,

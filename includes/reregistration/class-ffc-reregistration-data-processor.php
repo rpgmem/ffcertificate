@@ -234,8 +234,8 @@ class ReregistrationDataProcessor {
 	 */
 	public static function validate_submission( array $data, object $rereg, int $user_id ): array {
 		$errors = array();
-		$values = is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
 		$fields = self::get_fields_for_reregistration( $rereg );
+		$values = self::with_held_identifiers( $fields, is_array( $data['fields'] ?? null ) ? $data['fields'] : array(), $user_id );
 		$second = self::holds_second_post( $values );
 
 		foreach ( $fields as $field ) {
@@ -269,6 +269,14 @@ class ReregistrationDataProcessor {
 			$check = CustomFieldReader::validate_field_value( $field, $value, $values );
 			if ( is_wp_error( $check ) ) {
 				$errors[ $name ] = $check->get_error_message();
+				continue;
+			}
+
+			// A CPF or RF another account holds would move that person's
+			// records onto this one when it reaches the profile (#2688).
+			if ( self::identifier_held_by_another( $field, $value, $user_id ) ) {
+				/* translators: %s: field label, e.g. CPF */
+				$errors[ $name ] = sprintf( __( 'This %s is already linked to another account. Contact the administrator.', 'ffcertificate' ), $label );
 				continue;
 			}
 
@@ -319,7 +327,7 @@ class ReregistrationDataProcessor {
 		$new_status = ! empty( $rereg->auto_approve ) ? 'approved' : 'submitted';
 
 		$fields = self::get_fields_for_reregistration( $rereg );
-		$values = is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
+		$values = self::with_held_identifiers( $fields, is_array( $data['fields'] ?? null ) ? $data['fields'] : array(), $user_id );
 
 		$persisted_data = array( 'fields' => self::persistable_fields( $fields, $values ) );
 
@@ -349,10 +357,14 @@ class ReregistrationDataProcessor {
 			return false;
 		}
 
-		// Sync profile-mapped fields back to the user profile. We pass the.
-		// *plain* (pre-encryption) values to update_extended_profile which.
-		// will re-encrypt the sensitive ones on its side.
-		self::sync_profile( $user_id, $fields, $values );
+		// Profile-mapped fields reach the profile only on approval (#2688): a
+		// submission nobody reviewed must not rewrite the CPF/RF lookup hashes
+		// that decide whose account a later certificate or import lands on.
+		// An auto-approved row is approved here; a reviewed one is synced by
+		// `sync_approved_profile()` when the reviewer approves it.
+		if ( 'approved' === $new_status ) {
+			self::sync_profile( $user_id, $fields, $values );
+		}
 
 		// Store the remaining (non-profile) values in usermeta for future.
 		// form pre-population on the user side.
@@ -508,6 +520,12 @@ class ReregistrationDataProcessor {
 			$pkey  = (string) $field->field_profile_key;
 			$value = $values[ (string) $field->field_key ] ?? '';
 
+			// The validator refuses this on the form; the import path and a
+			// row submitted before the check existed reach here too (#2688).
+			if ( self::identifier_held_by_another( $field, $value, $user_id ) ) {
+				continue;
+			}
+
 			// For dependent_select and working_hours we keep the JSON.
 			if ( is_array( $value ) ) {
 				$value = (string) wp_json_encode( $value );
@@ -523,6 +541,139 @@ class ReregistrationDataProcessor {
 		if ( ! empty( $payload ) ) {
 			UserManager::update_extended_profile( $user_id, $payload, $sensitive_keys );
 		}
+	}
+
+	/**
+	 * Profile keys that identify a person (#2688).
+	 *
+	 * Their hashes decide which account a certificate, an appointment or an
+	 * import row resolves to, so a reregistration never changes one the
+	 * profile already holds and never writes one another account holds.
+	 *
+	 * @var list<string>
+	 */
+	public const IDENTITY_PROFILE_KEYS = array( 'cpf', 'rf' );
+
+	/**
+	 * Sync an approved submission's profile-mapped fields to its member
+	 * (#2688).
+	 *
+	 * Called when a reviewer approves a row; an auto-approved row is synced
+	 * when it is processed. The stored values are decrypted first, because
+	 * the profile service encrypts again on its side.
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return bool Whether the submission was found and synced.
+	 */
+	public static function sync_approved_profile( int $submission_id ): bool {
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
+		if ( null === $submission || 'approved' !== (string) $submission->status ) {
+			return false;
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
+		if ( null === $rereg ) {
+			return false;
+		}
+
+		$data   = json_decode( (string) ( $submission->data ?? '' ), true );
+		$stored = is_array( $data ) && is_array( $data['fields'] ?? null ) ? $data['fields'] : array();
+		$fields = self::get_fields_for_reregistration( $rereg );
+
+		self::sync_profile( (int) $submission->user_id, $fields, RecordGenerator::decrypt_field_values( $fields, $stored ) );
+		return true;
+	}
+
+	/**
+	 * The posted values with every identifier the profile already holds put
+	 * back in place (#2688).
+	 *
+	 * The form shows such a field read-only; this is the server side of the
+	 * same rule, so a crafted POST or an import row cannot change it either.
+	 *
+	 * @param array<object>        $fields  Field definitions.
+	 * @phpstan-param list<CustomFieldRow> $fields
+	 * @param array<string, mixed> $values  field_key => posted value.
+	 * @param int                  $user_id Member.
+	 * @return array<string, mixed>
+	 */
+	public static function with_held_identifiers( array $fields, array $values, int $user_id ): array {
+		$held = self::held_identifiers( $user_id );
+		if ( array() === $held ) {
+			return $values;
+		}
+
+		foreach ( $fields as $field ) {
+			$pkey = (string) ( $field->field_profile_key ?? '' );
+			if ( isset( $held[ $pkey ] ) ) {
+				$values[ (string) $field->field_key ] = $held[ $pkey ];
+			}
+		}
+
+		return $values;
+	}
+
+	/**
+	 * The identifiers the member's profile already holds, by profile key.
+	 *
+	 * @param int $user_id Member.
+	 * @return array<string, string> Non-empty values only.
+	 */
+	public static function held_identifiers( int $user_id ): array {
+		if ( $user_id <= 0 ) {
+			return array();
+		}
+
+		// Both keys live in usermeta, encrypted (UserProfileFieldMap). They are
+		// read there rather than through the extended profile, which also loads
+		// the profile row this check does not need.
+		$held = array();
+		foreach ( self::IDENTITY_PROFILE_KEYS as $key ) {
+			$descriptor = \FreeFormCertificate\UserDashboard\UserProfileFieldMap::get( $key );
+			$meta_key   = is_array( $descriptor ) && isset( $descriptor['meta_key'] ) ? (string) $descriptor['meta_key'] : '';
+			if ( '' === $meta_key ) {
+				continue;
+			}
+			$stored = get_user_meta( $user_id, $meta_key, true );
+			if ( ! is_string( $stored ) || '' === $stored ) {
+				continue;
+			}
+			$plain = \FreeFormCertificate\Core\Encryption::looks_like_envelope( $stored )
+				? \FreeFormCertificate\Core\Encryption::decrypt( $stored )
+				: $stored;
+			if ( is_string( $plain ) && '' !== trim( $plain ) ) {
+				$held[ $key ] = trim( $plain );
+			}
+		}
+
+		return $held;
+	}
+
+	/**
+	 * Whether an identifier field's value is already another account's.
+	 *
+	 * @param object $field   Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @param mixed  $value   Posted value.
+	 * @param int    $user_id Member.
+	 * @return bool
+	 */
+	private static function identifier_held_by_another( object $field, $value, int $user_id ): bool {
+		$pkey = (string) ( $field->field_profile_key ?? '' );
+		if ( ! in_array( $pkey, self::IDENTITY_PROFILE_KEYS, true ) || ! is_scalar( $value ) || '' === trim( (string) $value ) ) {
+			return false;
+		}
+
+		$hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( $pkey, (string) $value );
+		if ( null === $hash ) {
+			return false;
+		}
+
+		$holder = 'cpf' === $pkey
+			? UserManager::resolve_existing_user( $hash, null, '' )
+			: UserManager::resolve_existing_user( null, $hash, '' );
+
+		return $holder > 0 && $holder !== $user_id;
 	}
 
 	/**

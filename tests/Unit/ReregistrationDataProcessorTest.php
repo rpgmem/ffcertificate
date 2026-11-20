@@ -44,6 +44,13 @@ class ReregistrationDataProcessorTest extends TestCase {
 	 */
 	private array $db_inserts = array();
 
+	/**
+	 * The row submission 99 reads as, when a test needs another one.
+	 *
+	 * @var object|null
+	 */
+	private ?object $submission_row = null;
+
 	/** @var int How many times a submission row was read by id. */
 	private int $submission_reads = 0;
 
@@ -98,6 +105,8 @@ class ReregistrationDataProcessorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Held identifiers are read from usermeta (#2688); none by default.
+		Functions\when( 'get_user_meta' )->justReturn( '' );
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -1045,7 +1054,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 			}
 		);
 
-		$submission = (object) array(
+		$submission = $this->submission_row ?? (object) array(
 			'id'                => 99,
 			'reregistration_id' => 1,
 			'user_id'           => '7',
@@ -1110,6 +1119,8 @@ class ReregistrationDataProcessorTest extends TestCase {
 				if ( preg_match( '/^SELECT id FROM wp_ffc_(submissions|reregistration_submissions) WHERE auth_code = \S+ LIMIT 1$/', (string) $sql )
 					|| preg_match( '/^SELECT id FROM wp_ffc_self_scheduling_appointments WHERE validation_code = \S+ LIMIT 1$/', (string) $sql )
 					|| 'SELECT id FROM wp_ffc_user_profiles WHERE user_id = 7' === $sql
+					// Who else holds an identifier the sync would write (#2688): nobody.
+					|| preg_match( '/^SELECT user_id FROM wp_ffc_(user_profiles|submissions) WHERE \((cpf|rf)_hash = \S+\) AND user_id IS NOT NULL LIMIT 1$/', (string) $sql )
 				) {
 					return null;
 				}
@@ -1235,16 +1246,10 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertArrayNotHasKey( 'auth_code', $written, 'A plain submit issues no code: approval does (#2242).' );
 		$this->assertArrayNotHasKey( 'reviewed_at', $written );
 
-		// The profile sync carried the plain CPF and treated it as sensitive:
-		// it lands encrypted in the profile meta, with its lookup hash indexed.
-		$profile_cpf = $this->meta_written( 'ffc_user_cpf' );
-		$this->assertCount( 1, $profile_cpf );
-		$this->assertNotSame( Identifiers::CPF_A, $profile_cpf[0] );
-		$this->assertSame( Identifiers::CPF_A, \FreeFormCertificate\Core\Encryption::decrypt( $profile_cpf[0] ) );
-		$this->assertSame(
-			array( array( 'wp_ffc_user_profiles', array( 'cpf_hash' => \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ), 'user_id' => 7 ) ) ),
-			$this->db_inserts
-		);
+		// A submission nobody reviewed leaves the profile alone (#2688): its
+		// CPF and lookup hash reach the profile on approval.
+		$this->assertSame( array(), $this->meta_written( 'ffc_user_cpf' ) );
+		$this->assertSame( array(), $this->db_inserts );
 
 		// The snapshot only carries the non-profile 'nickname' (keyed field_<id>).
 		$snapshots = $this->meta_written( 'ffc_custom_fields_data' );
@@ -1253,6 +1258,122 @@ class ReregistrationDataProcessorTest extends TestCase {
 
 		// And the confirmation went to the submission's owner, once.
 		$this->assertSame( array( 'owner@example.com' ), $this->mailed );
+	}
+
+	/**
+	 * The two fields of the profile-sync tests: a sensitive CPF mapped to the
+	 * profile, and a plain one that goes to the snapshot.
+	 *
+	 * @return list<object>
+	 */
+	private function cpf_and_nickname_fields(): array {
+		return array(
+			$this->make_field( array(
+				'id'                => 1,
+				'field_key'         => 'cpf',
+				'field_type'        => 'text',
+				'is_sensitive'      => 1,
+				'field_profile_key' => 'cpf',
+			) ),
+			$this->make_field( array(
+				'id'           => 2,
+				'field_key'    => 'nickname',
+				'field_type'   => 'text',
+				'is_sensitive' => 0,
+			) ),
+		);
+	}
+
+	public function test_an_auto_approved_submission_syncs_the_profile(): void {
+		// Auto-approval is an approval: the profile takes the answers now (#2688).
+		$this->stub_persistence_functions();
+		$this->persistence_database( $this->cpf_and_nickname_fields(), array( '1' ) );
+
+		$submission = (object) array( 'id' => 99 );
+		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 1 );
+		ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array( 'cpf' => Identifiers::CPF_A, 'nickname' => 'Jo' ) ), 7 );
+
+		$profile_cpf = $this->meta_written( 'ffc_user_cpf' );
+		$this->assertCount( 1, $profile_cpf );
+		$this->assertNotSame( Identifiers::CPF_A, $profile_cpf[0] );
+		$this->assertSame( Identifiers::CPF_A, \FreeFormCertificate\Core\Encryption::decrypt( $profile_cpf[0] ) );
+		$this->assertSame(
+			array( array( 'wp_ffc_user_profiles', array( 'cpf_hash' => \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A ), 'user_id' => 7 ) ) ),
+			$this->db_inserts
+		);
+	}
+
+	public function test_a_cpf_the_profile_holds_cannot_be_changed_by_a_submission(): void {
+		// The profile holds CPF_B; the POST says CPF_A (#2688).
+		$this->stub_persistence_functions();
+		$held = \FreeFormCertificate\Core\Encryption::encrypt( Identifiers::CPF_B );
+		Functions\when( 'get_user_meta' )->alias(
+			static function ( $user_id, $key = '', $single = false ) use ( $held ) {
+				return 'ffc_user_cpf' === $key ? $held : array();
+			}
+		);
+		$this->persistence_database( $this->cpf_and_nickname_fields(), array( '1' ) );
+
+		$submission = (object) array( 'id' => 99 );
+		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 0 );
+		ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array( 'cpf' => Identifiers::CPF_A, 'nickname' => 'Jo' ) ), 7 );
+
+		$stored = json_decode( (string) $this->the_submission_write()[1]['data'], true );
+		$this->assertSame( Identifiers::CPF_B, \FreeFormCertificate\Core\Encryption::decrypt( $stored['fields']['cpf'] ), 'The held CPF is what the record carries.' );
+	}
+
+	public function test_validation_refuses_a_cpf_another_account_holds(): void {
+		$this->setup_wpdb_with_fields( array(
+			$this->make_field( array(
+				'id'                => 1,
+				'field_key'         => 'cpf',
+				'field_label'       => 'CPF',
+				'field_type'        => 'text',
+				'is_sensitive'      => 1,
+				'field_profile_key' => 'cpf',
+			) ),
+		) );
+		$holder = 42;
+		$GLOBALS['wpdb']->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( &$holder ) {
+				return str_contains( (string) $sql, 'cpf_hash' ) ? (string) $holder : null;
+			}
+		);
+		$data = array( 'fields' => array( 'cpf' => Identifiers::CPF_A ) );
+
+		$errors = ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 );
+		$this->assertArrayHasKey( 'fields[cpf]', $errors, 'Another account holds it (#2688).' );
+
+		$holder = 1;
+		$this->assertSame( array(), ReregistrationDataProcessor::validate_submission( $data, $this->make_rereg(), 1 ), 'The member\'s own CPF passes.' );
+	}
+
+	public function test_an_approval_syncs_the_reviewed_answers_to_the_profile(): void {
+		// The reviewer's approval is when the profile takes the CPF (#2688).
+		$this->stub_persistence_functions();
+		$this->submission_row = (object) array(
+			'id'                => 99,
+			'reregistration_id' => 1,
+			'user_id'           => '7',
+			'status'            => 'approved',
+			'data'              => (string) json_encode( array( 'fields' => array( 'cpf' => \FreeFormCertificate\Core\Encryption::encrypt( Identifiers::CPF_A ), 'nickname' => 'Jo' ) ) ),
+		);
+		$this->persistence_database( $this->cpf_and_nickname_fields(), array( '1' ) );
+
+		$this->assertTrue( ReregistrationDataProcessor::sync_approved_profile( 99 ) );
+
+		$profile_cpf = $this->meta_written( 'ffc_user_cpf' );
+		$this->assertCount( 1, $profile_cpf );
+		$this->assertSame( Identifiers::CPF_A, \FreeFormCertificate\Core\Encryption::decrypt( $profile_cpf[0] ) );
+	}
+
+	public function test_a_row_not_approved_is_never_synced(): void {
+		$this->stub_persistence_functions();
+		$this->persistence_database( $this->cpf_and_nickname_fields(), array( '1' ) );
+
+		$this->assertFalse( ReregistrationDataProcessor::sync_approved_profile( 99 ), 'Submission 99 is only submitted.' );
+		$this->assertFalse( ReregistrationDataProcessor::sync_approved_profile( 404 ) );
+		$this->assertSame( array(), $this->meta_written( 'ffc_user_cpf' ) );
 	}
 
 	public function test_process_submission_auto_approve_sets_review_fields(): void {

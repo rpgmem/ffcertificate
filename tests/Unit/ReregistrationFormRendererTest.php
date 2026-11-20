@@ -81,6 +81,8 @@ class ReregistrationFormRendererTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Held identifiers are read from usermeta (#2688); none by default.
+		Functions\when( 'get_user_meta' )->justReturn( '' );
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -891,6 +893,30 @@ class ReregistrationFormRendererTest extends TestCase {
 			$this->queries
 		);
 		$this->assertSame( array( array( 10, 'ffc_user_cpf' ), array( 10, 'ffc_user_empty_key' ) ), $meta_reads );
+	}
+
+	public function test_a_cpf_the_profile_holds_is_rendered_read_only(): void {
+		$locked = new \ReflectionProperty( ReregistrationFormRenderer::class, 'locked_keys' );
+		$locked->setAccessible( true );
+		$field = $this->makeField( array( 'id' => 3, 'field_key' => 'cpf', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 ) );
+
+		try {
+			$locked->setValue( null, array( 'cpf' => true ) );
+			ob_start();
+			ReregistrationFormRenderer::render_input( $field, 'ffc_rereg_field_3', 'fields[cpf]', 'held', false, array() );
+			$held = (string) ob_get_clean();
+
+			$locked->setValue( null, array() );
+			ob_start();
+			ReregistrationFormRenderer::render_input( $field, 'ffc_rereg_field_3', 'fields[cpf]', '', false, array() );
+			$open = (string) ob_get_clean();
+		} finally {
+			$locked->setValue( null, array() );
+		}
+
+		$this->assertStringContainsString( ' readonly aria-describedby="ffc_rereg_field_3-locked"', $held, 'Held on the profile (#2688).' );
+		$this->assertStringContainsString( 'id="ffc_rereg_field_3-locked"', $held );
+		$this->assertStringNotContainsString( 'readonly', $open );
 	}
 
 	public function test_build_field_values_skips_the_profile_for_a_guest(): void {

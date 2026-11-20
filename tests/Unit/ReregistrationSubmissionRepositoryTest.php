@@ -63,6 +63,9 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$wpdb->prefix = 'wp_';
 		$wpdb->users = 'wp_users';
 		$wpdb->last_error = '';
+		// An approval re-reads its row to sync the profile (#2688); these
+		// writer tests have no row to give it, so the sync finds nothing.
+		$wpdb->shouldReceive('get_row')->andReturn(null)->byDefault();
 		$this->wpdb = $wpdb;
 
 		// Stub WP cache functions.
