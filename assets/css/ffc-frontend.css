@@ -1708,6 +1708,38 @@ details.ffc-consent-description > p {
     background: var(--ffc-bg-alt);
 }
 
+/* The operator dialogs' own challenge (#2341) sits between the body and the
+   actions. The security block is drawn for a form, with a rule above it and
+   a framed row, which inside a dialog doubled the body's padding and boxed
+   the widget twice. Here it is the widget alone, in the body's margins and
+   at the body's text size (#2684). */
+.ffc-shortcode .ffc-csv-action-security {
+    padding: 0 var(--ffc-spacing-3xl) var(--ffc-spacing-lg);
+}
+
+.ffc-shortcode .ffc-csv-action-security:empty {
+    display: none;
+}
+
+.ffc-shortcode .ffc-csv-action-security .ffc-security-container {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+}
+
+.ffc-shortcode .ffc-csv-action-security .ffc-altcha-row,
+.ffc-shortcode .ffc-csv-action-security .ffc-captcha-row {
+    margin-bottom: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+}
+
+.ffc-shortcode .ffc-csv-action-security .ffc-altcha-row altcha-widget {
+    font-size: var(--ffc-font-size-base);
+}
+
 /* The dialog's actions are the `.ffc-btn` family (#1881); only their
    minimum width is set here, so a short label still reads as a button. */
 .ffc-open-early-actions .ffc-btn {
