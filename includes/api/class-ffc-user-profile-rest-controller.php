@@ -349,9 +349,10 @@ class UserProfileRestController {
 				);
 			}
 
-			// Log profile update.
+			// Log profile update. Under view-as the row names who made the edit,
+			// not the account viewed (#2690).
 			if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-				\FreeFormCertificate\Core\ActivityLog::log_profile_updated( $user_id, array_keys( $data ) );
+				\FreeFormCertificate\Core\ActivityLog::log_profile_updated( $user_id, array_keys( $data ), $ctx['is_view_as'] ? get_current_user_id() : 0 );
 			}
 
 			// Return updated profile.
@@ -597,6 +598,13 @@ class UserProfileRestController {
 
 			if ( ! $user_id ) {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
+			}
+
+			// No privacy request while viewing as another account (#2690): the
+			// request is the data subject's own, and WordPress mails its
+			// confirmation to them; the dashboard does not render the buttons.
+			if ( $ctx['is_view_as'] || '' !== (string) $request->get_param( 'viewAsUserId' ) ) {
+				return new \WP_Error( 'ffc_view_as_privacy', __( 'A privacy request cannot be made while viewing as another account.', 'ffcertificate' ), array( 'status' => 403 ) );
 			}
 
 			// Rate limit: 2/hour, 3/day for privacy requests.

@@ -776,6 +776,23 @@ class UserProfileRestControllerTest extends TestCase {
 			array( array( 'update', array( 'department' => 'Ops' ), array( 'user_id' => 5 ) ) ),
 			$this->profile_writes
 		);
+		$this->assertSame( array( array( 1, 5 ) ), $this->profile_update_logs(), 'The log names the administrator, and the account edited in its context (#2690).' );
+	}
+
+	/**
+	 * Each buffered profile_updated row as [ row user_id, context target_user_id ].
+	 *
+	 * @return list<array{0: int, 1: int}>
+	 */
+	private function profile_update_logs(): array {
+		$out      = array();
+		$contexts = ActivityLogBuffer::contexts();
+		foreach ( ActivityLogBuffer::entries() as $i => $row ) {
+			if ( 'profile_updated' === $row['action'] ) {
+				$out[] = array( (int) $row['user_id'], (int) ( $contexts[ $i ]['context']['target_user_id'] ?? 0 ) );
+			}
+		}
+		return $out;
 	}
 
 	public function test_owner_save_never_writes_a_masked_phone_back(): void {
@@ -793,7 +810,7 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertSame(
 			array( array( 'update', array( 'department' => 'Ops' ), array( 'user_id' => 5 ) ) ),
 			$this->profile_writes
-		);
+		);		$this->assertSame( array( array( 5, 0 ) ), $this->profile_update_logs(), 'The owner\'s own edit names no target.' );
 	}
 
 	// ------------------------------------------------------------------
@@ -1092,6 +1109,32 @@ class UserProfileRestControllerTest extends TestCase {
 			'allowed target' => array( '5' ),
 			'refused target' => array( '999' ),
 		);
+	}
+
+	/**
+	 * #2690 — no privacy request while viewing as another account: the
+	 * request is the data subject's own, so the route refuses before it
+	 * creates one.
+	 *
+	 * @dataProvider view_as_targets
+	 */
+	public function test_privacy_request_is_refused_in_view_as( string $target ): void {
+		$this->view_as_user_five();
+		$created = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_create_user_request' );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->create_privacy_request(
+			$this->make_request(
+				array(
+					'viewAsUserId' => $target,
+					'type'         => 'remove_personal_data',
+				)
+			)
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_view_as_privacy', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+		$this->assertSame( 0, $created->count(), 'No privacy request is created.' );
 	}
 
 	public function test_change_password_always_checks_the_current_password(): void {

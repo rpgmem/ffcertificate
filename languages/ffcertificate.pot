@@ -35290,3 +35290,11 @@ msgstr ""
 #: includes/settings/views/documentation/config-advanced.php
 msgid "A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value."
 msgstr ""
+
+#: includes/api/class-ffc-user-profile-rest-controller.php
+msgid "A privacy request cannot be made while viewing as another account."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Nor can a privacy request be made there, since it is the data subject's own, and a profile edit made while viewing as someone is logged under the account that made it, naming the account edited."
+msgstr ""

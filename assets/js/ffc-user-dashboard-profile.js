@@ -503,14 +503,17 @@
             html += '<span class="ffc-notif-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
 
-            html += '<div class="ffc-profile-section ffc-lgpd-section">';
-            html += '<h3>' + (s.privacySection || 'Privacy & Data (LGPD)') + '</h3>';
-            html += '<p class="ffc-lgpd-desc">' + (s.exportDataDesc || 'Request a copy of all your personal data stored in the system.') + '</p>';
-            html += window.FFC.buttonHtml({ label: s.exportData || 'Export My Data', category: 'neutral', icon: 'download', className: 'ffc-lgpd-export-btn' });
-            html += '<p class="ffc-lgpd-desc">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
-            html += window.FFC.buttonHtml({ label: s.requestDeletion || 'Request Data Deletion', category: 'danger', icon: 'delete', className: 'ffc-lgpd-delete-btn' });
-            html += '<span class="ffc-lgpd-status ffc-status" role="status" aria-live="polite" hidden></span>';
-            html += '</div>';
+            // No privacy request while viewing as another account (#2690).
+            if (!ffcDashboard.viewAsUserId) {
+                html += '<div class="ffc-profile-section ffc-lgpd-section">';
+                html += '<h3>' + (s.privacySection || 'Privacy & Data (LGPD)') + '</h3>';
+                html += '<p class="ffc-lgpd-desc">' + (s.exportDataDesc || 'Request a copy of all your personal data stored in the system.') + '</p>';
+                html += window.FFC.buttonHtml({ label: s.exportData || 'Export My Data', category: 'neutral', icon: 'download', className: 'ffc-lgpd-export-btn' });
+                html += '<p class="ffc-lgpd-desc">' + (s.deletionDataDesc || 'Request deletion of your personal data. An administrator will review your request.') + '</p>';
+                html += window.FFC.buttonHtml({ label: s.requestDeletion || 'Request Data Deletion', category: 'danger', icon: 'delete', className: 'ffc-lgpd-delete-btn' });
+                html += '<span class="ffc-lgpd-status ffc-status" role="status" aria-live="polite" hidden></span>';
+                html += '</div>';
+            }
 
             $container.html(html);
         },
