@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<tr>
 		<th scope="row"><?php esc_html_e( 'Daily send time', 'ffcertificate' ); ?></th>
 		<td>
-			<strong><?php echo esc_html( $send_time ); ?></strong>
+			<strong><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $send_time ) ); ?></strong>
 			<p class="description">
 				<?php
 				echo esc_html(

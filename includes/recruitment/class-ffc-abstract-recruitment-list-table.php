@@ -178,7 +178,9 @@ abstract class AbstractRecruitmentListTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_created_at( $item ): string {
-		return esc_html( (string) $item['created_at'] );
+		// A DATETIME written in the site's time (#2676): shown in the plugin's
+		// format, without shifting it by the site timezone again.
+		return esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_datetime( (string) $item['created_at'] ) );
 	}
 
 	/**

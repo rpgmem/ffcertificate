@@ -50,7 +50,9 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'nocache_headers' )->justReturn( null );
-		Functions\when( 'wp_date' )->justReturn( '2023-11-14 22:13:20' );
+		// The log's instants go through DateFormatter::format_datetime() (#2676).
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_die' )->alias(
 			function ( $msg = '', $code = null ) {
 				$this->died = array( 'msg' => $msg, 'code' => $code );
@@ -180,7 +182,7 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 		$this->assertCount( 1, $rows );
 		$cpf = Identifiers::CPF_A;
 		$formatted = substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
-		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.3.4', 'audit', $formatted, 'audit_pass', '1', '' ), $rows[0] );
+		$this->assertSame( array( '14/11/2023 22:13', '1.2.3.4', 'audit', $formatted, 'audit_pass', '1', '' ), $rows[0] );
 		// A clear export is a bulk reveal, recorded once (#1863).
 		$entries = ActivityLogBuffer::entries();
 		$this->assertCount( 1, $entries );
@@ -209,7 +211,7 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 
 		$rows = iterator_to_array( ( new CsvDownloadLogExportSource( 42 ) )->rows(), false );
 
-		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.***.***', 'audit', '518.***.***-80', 'audit_pass', '1', '' ), $rows[0] );
+		$this->assertSame( array( '14/11/2023 22:13', '1.2.***.***', 'audit', '518.***.***-80', 'audit_pass', '1', '' ), $rows[0] );
 		$this->assertSame( array(), ActivityLogBuffer::entries(), 'A masked export disclosed nothing.' );
 	}
 

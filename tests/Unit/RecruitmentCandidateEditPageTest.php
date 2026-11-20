@@ -445,7 +445,7 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 			'date_to_assume'    => '2026-05-20',
 			'time_to_assume'    => '09:00:00',
 			'out_of_order'      => '1',
-			'cancelled_at'      => null,
+			'cancelled_at'      => 1700003600,
 			'notes'             => 'a note',
 		);
 		// A call on another classification must not reach this candidate.
@@ -509,7 +509,12 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		$this->assertStringContainsString( '>hist<', $html );
 		// Per-classification calls sub-table: only this candidate's call.
 		$this->assertStringContainsString( 'Calls for classification #10', $html );
-		$this->assertStringContainsString( '2026-05-20', $html );
+		// Every date in the plugin's format (#2676): the wall-clock date and
+		// time as stored, and the cancellation instant formatted, never the
+		// unix number it is stored as.
+		$this->assertStringContainsString( '<td>20/05/2026</td><td>09:00</td>', $html );
+		$this->assertStringContainsString( '<td>14/11/2023 23:13</td>', $html );
+		$this->assertStringNotContainsString( '1700003600', $html );
 		$this->assertStringNotContainsString( 'not this candidate', $html );
 		// History table row: actor resolves to System (user_id 0) and the
 		// event cell carries the service's own summary of the matching row.

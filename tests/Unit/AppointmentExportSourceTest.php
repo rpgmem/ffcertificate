@@ -52,6 +52,10 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) $v ) );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'get_userdata' )->justReturn( false );
+		// Dates go through DateFormatter, in the plugin's format (#2676).
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 
 		$ref          = new \ReflectionClass( AppointmentExportSource::class );
 		$this->source = $ref->newInstanceWithoutConstructor();
@@ -180,7 +184,12 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'Jane Doe', $result[4] );
 		$this->assertSame( 'jane@example.com', $result[5] );
 		$this->assertSame( '555-1234', $result[6] );
+		// Wall-clock date and times, and the DATETIME housekeeping columns,
+		// in the plugin's format (#2676).
+		$this->assertSame( array( '20/05/2026', '09:00', '10:00' ), array( $result[7], $result[8], $result[9] ) );
 		$this->assertSame( 'Confirmed', $result[10] );
+		$this->assertContains( '01/05/2026 08:00', $result );
+		$this->assertContains( '02/05/2026 08:00', $result );
 		$this->assertSame( '203.0.113.5', $result[25] ); // User IP column.
 		// Dynamic columns appended in key order.
 		$this->assertSame( '', $result[27], 'No session.' );

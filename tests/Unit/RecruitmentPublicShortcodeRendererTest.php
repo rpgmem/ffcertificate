@@ -216,26 +216,6 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 		$this->assertSame( 'mystery', $this->invoke( 'preview_status_label', 'mystery' ) );
 	}
 
-	public function test_format_date_br_reformats_iso_to_d_m_y(): void {
-		$this->assertSame( '20-05-2026', $this->invoke( 'format_date_br', '2026-05-20' ) );
-	}
-
-	public function test_format_date_br_returns_empty_for_empty_input(): void {
-		$this->assertSame( '', $this->invoke( 'format_date_br', '' ) );
-	}
-
-	public function test_format_date_br_passes_through_unparseable_input(): void {
-		$this->assertSame( 'not-a-date', $this->invoke( 'format_date_br', 'not-a-date' ) );
-	}
-
-	public function test_format_time_hm_strips_seconds(): void {
-		$this->assertSame( '09:30', $this->invoke( 'format_time_hm', '09:30:00' ) );
-	}
-
-	public function test_format_time_hm_returns_empty_for_empty_input(): void {
-		$this->assertSame( '', $this->invoke( 'format_time_hm', '' ) );
-	}
-
 	public function test_decrypt_field_returns_null_for_blank_or_non_string(): void {
 		$this->assertNull( $this->invoke( 'decrypt_field', '' ) );
 		$this->assertNull( $this->invoke( 'decrypt_field', null ) );
