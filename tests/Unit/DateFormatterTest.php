@@ -188,6 +188,34 @@ class DateFormatterTest extends TestCase {
 	}
 
 	/**
+	 * A stored timestamp reads as the same instant whether its column holds
+	 * UTC seconds or the site-local DATETIME it held before #2679, with the
+	 * site at UTC-3: 2026-05-20 09:00 there is 12:00 UTC.
+	 */
+	public function test_instant_helpers_read_both_shapes_in_the_site_timezone(): void {
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( '-03:00' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( '-03:00' ) )->format( $format )
+		);
+		$instant = gmmktime( 12, 0, 0, 5, 20, 2026 );
+
+		$this->assertSame( $instant, DateFormatter::instant_of( $instant ) );
+		$this->assertSame( $instant, DateFormatter::instant_of( (string) $instant ), 'The digits $wpdb returns.' );
+		$this->assertSame( $instant, DateFormatter::instant_of( '2026-05-20 09:00:00' ), 'A legacy DATETIME reads in the site timezone.' );
+		$this->assertSame( 0, DateFormatter::instant_of( null ) );
+		$this->assertSame( 0, DateFormatter::instant_of( 'not a date' ) );
+
+		$this->assertSame( '20/05/2026 09:00', DateFormatter::format_instant( $instant ) );
+		$this->assertSame( '20/05/2026 09:00', DateFormatter::format_instant( '2026-05-20 09:00:00' ) );
+		$this->assertSame( '', DateFormatter::format_instant( null ), 'An empty column renders nothing, not 1970.' );
+
+		// The REST shape integrations already read.
+		$this->assertSame( '2026-05-20 09:00:00', DateFormatter::site_mysql_datetime( $instant ) );
+		$this->assertSame( '2026-05-20 09:00:00', DateFormatter::site_mysql_datetime( '2026-05-20 09:00:00' ) );
+		$this->assertSame( '', DateFormatter::site_mysql_datetime( '' ) );
+	}
+
+	/**
 	 * The wall-clock helpers render Category B DATE/TIME strings literally —
 	 * no site-timezone shift — while the instant API (format_date/time) applies
 	 * `wp_timezone()`. Re-stubs `wp_date`/`wp_timezone` so the site sits at

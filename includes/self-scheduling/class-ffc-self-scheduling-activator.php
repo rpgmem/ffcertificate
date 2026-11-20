@@ -37,7 +37,7 @@ class SelfSchedulingActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '3';
+	public const SCHEMA_REVISION = '4';
 
 	/**
 	 * Option holding the revision last applied.
@@ -208,8 +208,8 @@ class SelfSchedulingActivator {
             consent_text text DEFAULT NULL,
             user_ip_encrypted text DEFAULT NULL,
             user_agent varchar(255) DEFAULT NULL,
-            created_at datetime NOT NULL,
-            updated_at datetime DEFAULT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned DEFAULT NULL,
             reminder_sent_at bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
             KEY calendar_id (calendar_id),
@@ -426,10 +426,43 @@ class SelfSchedulingActivator {
 
 		$healed = self::migrate_event_list_columns();
 		$healed = self::migrate_session_columns() && $healed;
+		$healed = self::migrate_appointment_instants() && $healed;
 
 		if ( $healed ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		}
+	}
+
+	/**
+	 * Move the appointments' `created_at` and `updated_at` from the site's
+	 * wall clock to UTC seconds (#2679, Category A).
+	 *
+	 * Both were written with `current_time( 'mysql' )` and are shown on the
+	 * receipt, its PDF, the verification page, the admin list and the CSV;
+	 * three of those parsed the string as UTC and showed it shifted by the
+	 * site's offset. The shared helper reads each row in `wp_timezone()`,
+	 * which is how they were written. The writer stamps `time()`; this runs
+	 * at the start of the request, before any write reaches the table.
+	 *
+	 * @return bool Whether both columns are now BIGINT, or the table does not exist yet.
+	 */
+	private static function migrate_appointment_instants(): bool {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+		if ( ! self::table_exists( $table ) ) {
+			return true;
+		}
+
+		self::migrate_datetime_column_to_unix( $table, 'created_at', false );
+		self::migrate_datetime_column_to_unix( $table, 'updated_at', true );
+
+		foreach ( array( 'created_at', 'updated_at' ) as $column ) {
+			$type = strtolower( (string) self::column_type( $table, $column ) );
+			if ( 0 !== strpos( $type, 'bigint' ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

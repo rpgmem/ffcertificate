@@ -97,11 +97,9 @@ class AppointmentVerificationLookup {
 		}
 
 		// A pseudo-submission, so the renderer's certificate helpers apply.
-		// `submission_date` on the real table is unix UTC int since 6.6.0
-		// (#249 sub-escopo a), so the appointment's `created_at` DATETIME —
-		// interpreted in the site TZ — is adapted to match.
-		$created_at_raw    = (string) ( $appointment['created_at'] ?? '' );
-		$created_at_ts     = '' !== $created_at_raw ? (int) strtotime( $created_at_raw ) : 0;
+		// `submission_date` on the real table is unix UTC int since 6.6.0, and
+		// so is the appointment's `created_at` since #2679.
+		$created_at_ts     = \FreeFormCertificate\Core\DateFormatter::instant_of( $appointment['created_at'] ?? null );
 		$pseudo_submission = array(
 			'id'              => $appointment['id'],
 			'form_id'         => 0,

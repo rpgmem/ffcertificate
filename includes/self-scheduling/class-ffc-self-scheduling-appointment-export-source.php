@@ -489,8 +489,8 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			$row['consent_text'] ?? '',
 			// DATETIME housekeeping columns: the stored clock reading, in the
 			// plugin's format, not shifted again (#2676).
-			\FreeFormCertificate\Core\DateFormatter::format_wallclock_datetime( (string) ( $row['created_at'] ?? '' ) ),
-			\FreeFormCertificate\Core\DateFormatter::format_wallclock_datetime( (string) ( $row['updated_at'] ?? '' ) ),
+			\FreeFormCertificate\Core\DateFormatter::format_instant( $row['created_at'] ?? null ),
+			\FreeFormCertificate\Core\DateFormatter::format_instant( $row['updated_at'] ?? null ),
 			! empty( $row['approved_at'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['approved_at'] ) : '',
 			$approved_by,
 			! empty( $row['cancelled_at'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['cancelled_at'] ) : '',

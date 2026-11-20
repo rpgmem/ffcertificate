@@ -282,12 +282,11 @@ class VerificationResponseRenderer {
 		}
 
 		// Format created_at.
+		// An instant (#2679); a legacy DATETIME reads in the site's timezone.
 		$formatted_created = __( 'N/A', 'ffcertificate' );
-		if ( ! empty( $appointment['created_at'] ) ) {
-			$ts = strtotime( $appointment['created_at'] );
-			if ( false !== $ts ) {
-				$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts );
-			}
+		$created_ts        = \FreeFormCertificate\Core\DateFormatter::instant_of( $appointment['created_at'] ?? null );
+		if ( $created_ts > 0 ) {
+			$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $created_ts );
 		}
 
 		// Status labels.

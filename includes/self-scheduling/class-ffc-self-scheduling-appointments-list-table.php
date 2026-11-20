@@ -453,12 +453,12 @@ class AppointmentsListTable extends \WP_List_Table {
 
 	/**
 	 * Created column, in the site's date and time formats (#2288). The value
-	 * is a housekeeping DATETIME shown as stored, so no timezone is applied.
+	 * is an instant (#2679), shown in the site's timezone.
 	 *
 	 * @param array<string, mixed> $item Row data.
 	 */
 	public function column_created_at( $item ): string {
-		$created = \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $item['created_at'] ?? '' ), 'default', ' ', new \DateTimeZone( 'UTC' ) );
+		$created = \FreeFormCertificate\Core\DateFormatter::format_instant( $item['created_at'] ?? null );
 		return esc_html( '' !== $created ? $created : '-' );
 	}
 

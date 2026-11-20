@@ -260,7 +260,8 @@ class UserAppointmentsRestController {
 					'email'                => $email_display,
 					'phone'                => $phone_display,
 					'user_notes'           => $appointment['user_notes'] ?? '',
-					'created_at'           => $appointment['created_at'] ?? '',
+					// A site-local `Y-m-d H:i:s`, as before the column stored an instant (#2679).
+					'created_at'           => \FreeFormCertificate\Core\DateFormatter::site_mysql_datetime( $appointment['created_at'] ?? null ),
 					'can_cancel'           => $can_cancel,
 					'cancel_note'          => $cancel_note,
 					'receipt_url'          => $receipt_url,

@@ -63,7 +63,7 @@ class AppointmentWriter extends AbstractRepository {
 				'cancelled_at'        => time(),
 				'cancelled_by'        => $cancelled_by,
 				'cancellation_reason' => $reason,
-				'updated_at'          => current_time( 'mysql' ),
+				'updated_at'          => time(),
 			)
 		);
 	}
@@ -131,7 +131,7 @@ class AppointmentWriter extends AbstractRepository {
 				$id,
 				array(
 					'status'     => 'pending',
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				)
 			);
 		}
@@ -142,7 +142,7 @@ class AppointmentWriter extends AbstractRepository {
 				'status'      => 'confirmed',
 				// `approved_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 				'approved_at' => time(),
-				'updated_at'  => current_time( 'mysql' ),
+				'updated_at'  => time(),
 			)
 		);
 	}
@@ -210,7 +210,7 @@ class AppointmentWriter extends AbstractRepository {
 				$fields,
 				array(
 					'status'     => $to,
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				)
 			),
 			array(
@@ -242,11 +242,11 @@ class AppointmentWriter extends AbstractRepository {
 	 */
 	public function completeConfirmedUpTo( string $cutoff, int $limit ) {
 		$sql = $this->wpdb->prepare(
-			"UPDATE %i SET status = 'completed', updated_at = %s
+			"UPDATE %i SET status = 'completed', updated_at = %d
              WHERE status = 'confirmed' AND appointment_date <= %s
              ORDER BY id LIMIT %d",
 			$this->table,
-			current_time( 'mysql' ),
+			time(),
 			$cutoff,
 			$limit
 		);
@@ -265,13 +265,13 @@ class AppointmentWriter extends AbstractRepository {
 	public function expirePendingUpTo( string $cutoff, string $reason, int $limit ) {
 		$sql = $this->wpdb->prepare(
 			"UPDATE %i SET status = 'cancelled', cancelled_at = %d, cancelled_by = NULL,
-             cancellation_reason = %s, updated_at = %s
+             cancellation_reason = %s, updated_at = %d
              WHERE status = 'pending' AND appointment_date <= %s
              ORDER BY id LIMIT %d",
 			$this->table,
 			time(),
 			$reason,
-			current_time( 'mysql' ),
+			time(),
 			$cutoff,
 			$limit
 		);
@@ -369,7 +369,7 @@ class AppointmentWriter extends AbstractRepository {
 
 		// Set timestamps.
 		if ( empty( $data['created_at'] ) ) {
-			$data['created_at'] = current_time( 'mysql' );
+			$data['created_at'] = time();
 		}
 
 		return $this->insert( $data );
