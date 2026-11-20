@@ -54,6 +54,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - pt_BR: one word per domain term across the catalogue — submissão, reserva (audience calendars), signatário, função, permissão, URL curta, registro de atividades and público-alvo — with agreement fixed in about 370 entries; `TranslationGlossaryTest` keeps the replaced words out (#2670).
 - Data Migrations: the Sign Certificates Already Issued card says how many forms on a signed QR mode it covers and how many forms and certificates on Link only it leaves out, so its 100% no longer reads as every certificate signed; a strategy can add this line through an optional `scope` status key (#2672).
 - Verification: a certificate signed later than it was issued (by the Sign Certificates Already Issued card, or after a key was first generated) now shows both dates, issue and signing, in the plugin's date format; the signature is never dated back to the issue (#2674).
+- Public operator panel: Preview Certificate is available from before the start until the form closes, beside Download CSV; once the form has closed only the download is left (#2682).
 
 ### Removed
 

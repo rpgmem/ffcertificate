@@ -592,7 +592,8 @@ class PublicCsvDownload {
 	/**
 	 * Return certificate template data for public preview.
 	 *
-	 * Only available before the form start date (before collection begins).
+	 * Available until the form's collection period ends (#2682): before it
+	 * starts and while it runs. After the end only the CSV download remains.
 	 */
 	public function ajax_cert_preview(): void {
 		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT );
@@ -612,10 +613,11 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => $error ) );
 		}
 
-		// Only available before collection starts.
-		$start_ts = Geofence::get_form_start_timestamp( $form_id );
-		if ( null === $start_ts || time() >= $start_ts ) {
-			wp_send_json_error( array( 'message' => __( 'Certificate preview is only available before the form collection period begins.', 'ffcertificate' ) ) );
+		// Available until collection ends, the same moment the info screen's
+		// `form_ended` reads.
+		$end_ts = Geofence::get_form_end_timestamp( $form_id );
+		if ( null !== $end_ts && time() > $end_ts ) {
+			wp_send_json_error( array( 'message' => __( 'Certificate preview is only available until the form collection period ends.', 'ffcertificate' ) ) );
 		}
 
 		$config = get_post_meta( $form_id, '_ffc_form_config', true );

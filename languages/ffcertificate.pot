@@ -3660,7 +3660,7 @@ msgid "The administrator turned off Preview Certificate for this form."
 msgstr ""
 
 #: includes/frontend/class-ffc-public-csv-download.php:505
-msgid "Certificate preview is only available before the form collection period begins."
+msgid "Certificate preview is only available until the form collection period ends."
 msgstr ""
 
 #: includes/frontend/submission/class-ffc-success-responder.php:60
@@ -14289,7 +14289,7 @@ msgid "Removes the reregistration campaign flow and its admin."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:38
-msgid "Render the certificate template (on by default)."
+msgid "Render the certificate template with sample data, from before the start until the form closes (on by default)."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1049
