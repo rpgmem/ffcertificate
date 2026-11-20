@@ -35238,3 +35238,7 @@ msgstr ""
 #: includes/settings/views/documentation/config-geolocation.php
 msgid "ipinfo.io, over HTTPS on its free tier; a free key raises the limit. Visitor addresses are never sent in clear text."
 msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value."
+msgstr ""

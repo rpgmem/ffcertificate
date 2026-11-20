@@ -35316,3 +35316,7 @@ msgstr "Quando um formulário é restrito pela localização da sua conexão com
 #: includes/settings/views/documentation/config-geolocation.php
 msgid "ipinfo.io, over HTTPS on its free tier; a free key raises the limit. Visitor addresses are never sent in clear text."
 msgstr "ipinfo.io, por HTTPS no plano gratuito; uma chave gratuita aumenta o limite. Os endereços dos visitantes nunca são enviados sem criptografia."
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value."
+msgstr "Um valor nesse formato é lido apenas com a chave derivada dos salts do WordPress, que é a chave com que foi gravado, então uma FFC_ENCRYPTION_KEY definida nunca o lê como outro valor."
