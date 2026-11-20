@@ -35191,8 +35191,8 @@ msgid "Generate a signing key first, under Settings → Certificates."
 msgstr "Gere uma chave de assinatura antes, em Configurações → Certificados."
 
 #: includes/settings/views/documentation/reference-qr-codes.php:77
-msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again."
-msgstr "Certificados emitidos antes de o formulário escolher um modo assinado, ou antes da primeira chave, não têm registro assinado. O cartão Certificados: Assinar os Certificados Já Emitidos, em Configurações → Migrações de Dados, os assina, apenas nos formulários em modo assinado, como cada certificado está hoje e com a data de emissão original. Um PDF já baixado mantém o link simples até ser baixado de novo."
+msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again. The verification page of such a certificate gives both dates, the issue and the later signing; the signature is never dated back to the issue."
+msgstr "Certificados emitidos antes de o formulário escolher um modo assinado, ou antes da primeira chave, não têm registro assinado. O cartão Certificados: Assinar os Certificados Já Emitidos, em Configurações → Migrações de Dados, os assina, apenas nos formulários em modo assinado, como cada certificado está hoje e com a data de emissão original. Um PDF já baixado mantém o link simples até ser baixado de novo. A página de verificação de um certificado assim mostra as duas datas, a de emissão e a da assinatura posterior; a assinatura nunca recebe a data da emissão."
 
 #: includes/settings/views/ffc-tab-certificates.php:284
 msgid "Copy public key"
@@ -35309,3 +35309,9 @@ msgstr "Direção"
 #: includes/core/class-ffc-certificate-signers.php
 msgid "School Supervision"
 msgstr "Supervisão Escolar"
+
+#. translators: 1: date the certificate was issued, 2: later date it was signed
+#: includes/frontend/class-ffc-verification-response-renderer.php
+#, php-format
+msgid "This certificate was issued on %1$s and signed by this site later, on %2$s. Its data still matches what was signed."
+msgstr "Este certificado foi emitido em %1$s e assinado por este site depois, em %2$s. Os seus dados ainda conferem com o que foi assinado."

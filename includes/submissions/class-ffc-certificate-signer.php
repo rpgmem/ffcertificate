@@ -168,7 +168,7 @@ final class CertificateSigner {
 	 * Whether a certificate still matches the record it was signed with.
 	 *
 	 * @param array<string, mixed> $submission The decrypted submission row.
-	 * @return array{state: string, changed: list<string>, key: string, signed_at: int}
+	 * @return array{state: string, changed: list<string>, key: string, signed_at: int, issued: int}
 	 */
 	public static function integrity( array $submission ): array {
 		$id = (int) ( $submission['id'] ?? 0 );
@@ -180,6 +180,7 @@ final class CertificateSigner {
 			'changed'   => array(),
 			'key'       => '',
 			'signed_at' => 0,
+			'issued'    => 0,
 		);
 		if ( null === $signed ) {
 			return $out;
@@ -189,6 +190,9 @@ final class CertificateSigner {
 		$out['signed_at'] = $signed['signed_at'];
 
 		$signed_fields = CertificateRecord::fields_of( $signed['record'] );
+		// The issue instant the record carries, so the page can tell a
+		// signature made at issue from one the backfill card made later (#2674).
+		$out['issued'] = isset( $signed_fields['issued'] ) && is_numeric( $signed_fields['issued'] ) ? (int) $signed_fields['issued'] : 0;
 		$valid         = array() !== $signed_fields
 			&& CertificateRecord::hash( $signed['record'] ) === $signed['record_hash']
 			&& SigningKeys::verify( CertificateRecord::full_payload( $signed['key_id'], $signed_fields, $signed['record_hash'] ), $signed['signature_full'], $signed['key_id'] );

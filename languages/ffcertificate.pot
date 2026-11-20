@@ -35113,7 +35113,7 @@ msgid "Generate a signing key first, under Settings → Certificates."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-qr-codes.php:77
-msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again."
+msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again. The verification page of such a certificate gives both dates, the issue and the later signing; the signature is never dated back to the issue."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-certificates.php:284
@@ -35230,4 +35230,10 @@ msgstr ""
 
 #: includes/core/class-ffc-certificate-signers.php
 msgid "School Supervision"
+msgstr ""
+
+#. translators: 1: date the certificate was issued, 2: later date it was signed
+#: includes/frontend/class-ffc-verification-response-renderer.php
+#, php-format
+msgid "This certificate was issued on %1$s and signed by this site later, on %2$s. Its data still matches what was signed."
 msgstr ""
