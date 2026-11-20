@@ -35356,3 +35356,11 @@ msgstr "Usar o logo"
 #: templates/admin/qr/design-fields.php
 msgid "Turn off to draw the code without the logo while keeping the image selected."
 msgstr "Desligue para desenhar o código sem o logo, mantendo a imagem selecionada."
+
+#: includes/frontend/class-ffc-verification-handler.php
+msgid "This appointment is awaiting approval and cannot be verified yet."
+msgstr "Este agendamento aguarda aprovação e ainda não pode ser verificado."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved."
+msgstr "Na página de verificação, um código de validação confirma um agendamento e baixa o comprovante com o CPF/RF e o e-mail mascarados. O código de validação vem impresso no comprovante, então qualquer pessoa com uma cópia pode digitá-lo. O comprovante completo e o link de cancelamento ficam no link mágico que a pessoa recebeu. Um agendamento que aguarda aprovação só pode ser verificado depois de aprovado."

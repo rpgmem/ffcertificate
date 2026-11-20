@@ -451,7 +451,20 @@ class VerificationHandler {
 			);
 		}
 
-		$pdf_data = $this->pdf_data( $result );
+		// A validation code is printed on the receipt, so whoever holds a copy
+		// can type it here. It proves the appointment exists and nothing more:
+		// a pending booking is not confirmed yet, and the receipt it downloads
+		// carries the identifiers masked and no cancellation link (#2689).
+		if ( 'appointment' === ( $result['type'] ?? '' ) && 'pending' === ( $result['appointment']['status'] ?? '' ) ) {
+			wp_send_json_error(
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array( 'message' => __( 'This appointment is awaiting approval and cannot be verified yet.', 'ffcertificate' ) ),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY
+				)
+			);
+		}
+
+		$pdf_data = $this->pdf_data( $result, true );
 
 		if ( is_wp_error( $pdf_data ) ) {
 			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $pdf_data->get_error_message() ), \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY ) );
@@ -472,13 +485,16 @@ class VerificationHandler {
 	 * The PDF data for a found document, by kind.
 	 *
 	 * @param array<string, mixed> $result A found result.
+	 * @param bool                 $by_code Whether the request named a validation code
+	 *                                      rather than a magic link. An appointment
+	 *                                      receipt is then masked (#2689).
 	 * @return array<string, mixed>|\WP_Error|null
 	 */
-	private function pdf_data( array $result ) {
+	private function pdf_data( array $result, bool $by_code = false ) {
 		$type = $result['type'] ?? '';
 
 		if ( 'appointment' === $type && ! empty( $result['appointment'] ) ) {
-			return $this->renderer->generate_appointment_verification_pdf( $result, new \FreeFormCertificate\Generators\PdfGenerator() );
+			return $this->renderer->generate_appointment_verification_pdf( $result, new \FreeFormCertificate\Generators\PdfGenerator(), $by_code );
 		}
 		// A reregistration record is downloaded only by a logged-in owner or
 		// staff member (#2242): public verification confirms it, nothing more.
