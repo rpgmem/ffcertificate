@@ -35325,6 +35325,7 @@ msgstr "Nenhum formulário em Somente link tem certificados."
 #, php-format
 msgid "Not covered: forms on Link only: %1$d, certificates: %2$d. To include a form, choose \"Signed, compact\" or \"Signed, full\" under QR code in its editor."
 msgstr "Fora: formulários em Somente link: %1$d, certificados: %2$d. Para incluir um formulário, escolha \"Assinado, compacto\" ou \"Assinado, completo\" em QR code, no editor dele."
+
 #. translators: 1: date the certificate was issued, 2: later date it was signed
 #: includes/frontend/class-ffc-verification-response-renderer.php
 #, php-format
