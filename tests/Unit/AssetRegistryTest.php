@@ -45,6 +45,8 @@ class AssetRegistryTest extends TestCase {
 		// AssetHelper runs for real: its suffix reads SCRIPT_DEBUG, which the
 		// suite leaves undefined, and the core config reads this setting.
 		Functions\when( 'get_option' )->justReturn( array() );
+		// The core config carries the date formats and the locale (#2676).
+		Functions\when( 'determine_locale' )->justReturn( 'pt_BR' );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		AssetRegistry::reset();

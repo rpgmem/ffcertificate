@@ -1721,6 +1721,127 @@
         }
     };
 
+    /**
+     * Dates the way the plugin prints them (#2676).
+     *
+     * `ffcCoreConfig.dates` carries the plugin's date and time formats
+     * (Settings → General, as DateFormatter resolves them) and the WordPress
+     * locale's month, weekday and meridiem names, so a script prints a date
+     * exactly as the server would, never in the browser's own locale. The
+     * values are wall-clock strings (`Y-m-d`, `H:i[:s]`): nothing here
+     * shifts a timezone.
+     */
+    function dateConfig() {
+        var cfg = (window.ffcCoreConfig && window.ffcCoreConfig.dates) || {};
+        return {
+            date: cfg.date || 'd/m/Y',
+            time: cfg.time || 'H:i',
+            locale: cfg.locale || undefined,
+            months: cfg.months || [],
+            monthsShort: cfg.monthsShort || [],
+            weekdays: cfg.weekdays || [],
+            weekdaysShort: cfg.weekdaysShort || [],
+            meridiem: cfg.meridiem || { am: 'am', pm: 'pm', AM: 'AM', PM: 'PM' }
+        };
+    }
+
+    function pad2(n) {
+        return (n < 10 ? '0' : '') + n;
+    }
+
+    /**
+     * Render a PHP date() format string for a wall-clock moment. Covers the
+     * tokens a date or time setting uses; a backslash escapes the next
+     * character, and any other character is printed as is.
+     *
+     * @param {string} format PHP date format.
+     * @param {{y:number,m:number,d:number,h:number,i:number,s:number}} p Parts.
+     * @return {string}
+     */
+    function formatParts(format, p) {
+        var cfg = dateConfig();
+        var weekday = new Date(p.y, p.m - 1, p.d).getDay();
+        var hour12 = p.h % 12 === 0 ? 12 : p.h % 12;
+        var out = '';
+        for (var k = 0; k < format.length; k++) {
+            var c = format.charAt(k);
+            if (c === '\\') {
+                k++;
+                out += format.charAt(k);
+                continue;
+            }
+            switch (c) {
+                case 'd': out += pad2(p.d); break;
+                case 'j': out += p.d; break;
+                case 'D': out += cfg.weekdaysShort[weekday] || ''; break;
+                case 'l': out += cfg.weekdays[weekday] || ''; break;
+                case 'N': out += weekday === 0 ? 7 : weekday; break;
+                case 'w': out += weekday; break;
+                case 'm': out += pad2(p.m); break;
+                case 'n': out += p.m; break;
+                case 'F': out += cfg.months[p.m - 1] || pad2(p.m); break;
+                case 'M': out += cfg.monthsShort[p.m - 1] || pad2(p.m); break;
+                case 'Y': out += p.y; break;
+                case 'y': out += String(p.y).slice(-2); break;
+                case 'H': out += pad2(p.h); break;
+                case 'G': out += p.h; break;
+                case 'h': out += pad2(hour12); break;
+                case 'g': out += hour12; break;
+                case 'i': out += pad2(p.i); break;
+                case 's': out += pad2(p.s); break;
+                case 'a': out += p.h < 12 ? cfg.meridiem.am : cfg.meridiem.pm; break;
+                case 'A': out += p.h < 12 ? cfg.meridiem.AM : cfg.meridiem.PM; break;
+                default: out += c;
+            }
+        }
+        return out;
+    }
+
+    /**
+     * A `Y-m-d` date in the plugin's date format; `style: 'long'` writes the
+     * month by name and `'longWeekday'` adds the weekday, in the WordPress
+     * locale (the documented exception for day headings, #2676). Returns the
+     * input unchanged when it is not a `Y-m-d` date.
+     *
+     * @param {string} ymd   Wall-clock date.
+     * @param {string} [style] '' | 'long' | 'longWeekday'.
+     * @return {string}
+     */
+    core.formatDate = function(ymd, style) {
+        var match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd || ''));
+        if (!match) {
+            return ymd ? String(ymd) : '';
+        }
+        var parts = { y: +match[1], m: +match[2], d: +match[3], h: 0, i: 0, s: 0 };
+        if (style === 'long' || style === 'longWeekday') {
+            var options = { year: 'numeric', month: 'long', day: 'numeric' };
+            if (style === 'longWeekday') {
+                options.weekday = 'long';
+            }
+            try {
+                return new Date(parts.y, parts.m - 1, parts.d).toLocaleDateString(dateConfig().locale, options);
+            } catch (e) {
+                // An unknown locale tag: fall back to the plugin's format.
+            }
+        }
+        return formatParts(dateConfig().date, parts);
+    };
+
+    /**
+     * An `H:i` or `H:i:s` time in the plugin's time format. Returns the input
+     * unchanged when it is not a time.
+     *
+     * @param {string} hms Wall-clock time.
+     * @return {string}
+     */
+    core.formatTime = function(hms) {
+        var match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(String(hms || ''));
+        if (!match) {
+            return hms ? String(hms) : '';
+        }
+        return formatParts(dateConfig().time, { y: 2000, m: 1, d: 1, h: +match[1], i: +match[2], s: +(match[3] || 0) });
+    };
+
     // A script printed before this one may already have created the
     // namespace for its own module (`window.FFC = window.FFC || {}`).
     // Keep what it put there, but always install the core API: skipping

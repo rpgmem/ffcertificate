@@ -226,6 +226,57 @@ final class DateFormatter {
 	}
 
 	/**
+	 * What a script needs to print a date the way this class does (#2676):
+	 * the plugin's date and time formats, the WordPress locale, and the month,
+	 * weekday and meridiem names of that locale. `FFC.formatDate()` and
+	 * `FFC.formatTime()` in ffc-core.js read it from `ffcCoreConfig.dates`.
+	 *
+	 * @return array{date: string, time: string, locale: string, months: list<string>, monthsShort: list<string>, weekdays: list<string>, weekdaysShort: list<string>, meridiem: array{am: string, pm: string, AM: string, PM: string}}
+	 */
+	public static function script_config(): array {
+		global $wp_locale;
+
+		$months         = array();
+		$months_short   = array();
+		$weekdays       = array();
+		$weekdays_short = array();
+		$meridiem       = array(
+			'am' => 'am',
+			'pm' => 'pm',
+			'AM' => 'AM',
+			'PM' => 'PM',
+		);
+		if ( $wp_locale instanceof \WP_Locale ) {
+			for ( $m = 1; $m <= 12; $m++ ) {
+				$name           = (string) $wp_locale->get_month( $m );
+				$months[]       = $name;
+				$months_short[] = (string) $wp_locale->get_month_abbrev( $name );
+			}
+			for ( $d = 0; $d <= 6; $d++ ) {
+				$name             = (string) $wp_locale->get_weekday( $d );
+				$weekdays[]       = $name;
+				$weekdays_short[] = (string) $wp_locale->get_weekday_abbrev( $name );
+			}
+			foreach ( array_keys( $meridiem ) as $key ) {
+				$meridiem[ $key ] = (string) $wp_locale->get_meridiem( $key );
+			}
+		}
+
+		$locale = (string) determine_locale();
+
+		return array(
+			'date'          => self::resolve_date_format(),
+			'time'          => self::resolve_time_format(),
+			'locale'        => str_replace( '_', '-', $locale ),
+			'months'        => $months,
+			'monthsShort'   => $months_short,
+			'weekdays'      => $weekdays,
+			'weekdaysShort' => $weekdays_short,
+			'meridiem'      => $meridiem,
+		);
+	}
+
+	/**
 	 * Resolve the date format for the requested context.
 	 *
 	 * @param string $context 'default' or 'pdf'.

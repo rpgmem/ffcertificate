@@ -41,6 +41,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</table>
 
 	<h4><?php esc_html_e( 'Date & time formats', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Pick from a catalog of presets (or a custom PHP date/time pattern) for how dates and times render across the plugin — the {{submission_date}} and {{print_date}} tokens, emails and PDFs. Defaults are d/m/Y and H:i. Separate optional overrides let the PDF use a different date/time format from the rest of the plugin (leave them on "Inherit" to reuse the general format).', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Pick from a catalog of presets (or a custom PHP date/time pattern) for how dates and times render across the plugin — the {{submission_date}} and {{print_date}} tokens, emails and PDFs. Defaults are d/m/Y and H:i. Separate optional overrides let the PDF use a different date/time format from the rest of the plugin (leave them on "Inherit" to reuse the general format).', 'ffcertificate' ); ?> <?php esc_html_e( 'The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language.', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'All rendering goes through the plugin\'s date helper, so changing the site timezone re-renders correctly with no data migration.', 'ffcertificate' ); ?></p>
 </div>

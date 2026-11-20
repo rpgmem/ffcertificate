@@ -244,7 +244,7 @@
             return;
         }
         check.then(function (result) {
-            var d = window.FFCSignedQr.describe(result, window.ffcSignedQr.strings, currentHash || '');
+            var d = window.FFCSignedQr.describe(result, window.ffcSignedQr.strings, currentHash || '', window.ffcSignedQr.dates);
             $container.find('[data-ffc-notice="signed-qr"]').remove();
             $container.prepend(FFC.notice(d.tone, d.icon, d.lines, d.title, { role: 'note', hook: 'signed-qr' }));
         });

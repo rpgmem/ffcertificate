@@ -35253,3 +35253,7 @@ msgstr ""
 #, php-format
 msgid "This certificate was issued on %1$s and signed by this site later, on %2$s. Its data still matches what was signed."
 msgstr ""
+
+#: includes/settings/views/documentation/config-general.php:44
+msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
+msgstr ""

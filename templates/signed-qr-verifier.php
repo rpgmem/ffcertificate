@@ -89,7 +89,7 @@ echo $verifier_script; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNot
 			return;
 		}
 		window.FFCSignedQr.verify(signed, data.keys).then(function (result) {
-			var d = window.FFCSignedQr.describe(result, data.strings, '');
+			var d = window.FFCSignedQr.describe(result, data.strings, '', data.dates);
 			show(d.tone, d.title, d.lines);
 		});
 	});

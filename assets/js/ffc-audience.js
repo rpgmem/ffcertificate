@@ -396,11 +396,11 @@
         },
 
         /**
-         * Format time (HH:MM:SS to HH:MM)
+         * A wall-clock time in the plugin's time format (#2676).
          */
         formatTime: function(time) {
             if (!time) return '';
-            return time.substring(0, 5);
+            return window.FFC && window.FFC.formatTime ? window.FFC.formatTime(time) : time.substring(0, 5);
         },
 
         /**

@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\DateMessages;
 
+use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\DocumentFormatter;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -74,7 +75,7 @@ final class RecipientPreview {
 						// shows who falls in the range.
 						'name'     => DocumentFormatter::mask_name( $row['name'] ),
 						'email'    => DocumentFormatter::mask_email( $row['email'] ),
-						'date'     => $day->format( 'Y-m-d' ),
+						'date'     => DateFormatter::format_wallclock_date( $day->format( 'Y-m-d' ) ),
 						'decision' => $row['decision'],
 					);
 				}

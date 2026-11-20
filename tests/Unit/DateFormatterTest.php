@@ -46,6 +46,7 @@ class DateFormatterTest extends TestCase {
 		Functions\when( 'wp_timezone' )->alias( static function () {
 			return new \DateTimeZone( 'UTC' );
 		} );
+		Functions\when( 'determine_locale' )->justReturn( 'pt_BR' );
 	}
 
 	protected function tearDown(): void {
@@ -56,6 +57,21 @@ class DateFormatterTest extends TestCase {
 	// ──────────────────────────────────────────────────────────────.
 	// Defaults
 	// ──────────────────────────────────────────────────────────────.
+
+	public function test_script_config_carries_the_plugin_formats(): void {
+		$this->ffc_settings = array(
+			'date_format' => 'Y-m-d',
+			'time_format' => 'g:i A',
+		);
+
+		$config = DateFormatter::script_config();
+
+		$this->assertSame( 'Y-m-d', $config['date'] );
+		$this->assertSame( 'g:i A', $config['time'] );
+		$this->assertSame( 'pt-BR', $config['locale'], 'A BCP 47 tag, as toLocaleDateString() reads it.' );
+		// Without WP_Locale the names stay empty and the script falls back to digits.
+		$this->assertSame( array( 'am' => 'am', 'pm' => 'pm', 'AM' => 'AM', 'PM' => 'PM' ), $config['meridiem'] );
+	}
 
 	public function test_format_date_uses_default_when_settings_unset(): void {
 		// 2026-01-04 15:30:00 UTC.

@@ -35331,3 +35331,7 @@ msgstr "Fora: formulários em Somente link: %1$d, certificados: %2$d. Para inclu
 #, php-format
 msgid "This certificate was issued on %1$s and signed by this site later, on %2$s. Its data still matches what was signed."
 msgstr "Este certificado foi emitido em %1$s e assinado por este site depois, em %2$s. Os seus dados ainda conferem com o que foi assinado."
+
+#: includes/settings/views/documentation/config-general.php:44
+msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
+msgstr "Os mesmos formatos valem nas telas do admin, nas exportações CSV, no painel do usuário, nos calendários de público-alvo e no verificador do QR code assinado, inclusive offline. Os títulos de dia dos calendários são a única exceção: escrevem o mês por extenso, no idioma do site."
