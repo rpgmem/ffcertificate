@@ -6,7 +6,7 @@ Crie formulários dinâmicos, gere certificados em PDF e valide a autenticidade 
 
 O Free Form Certificate é um plugin de WordPress para emitir certificados em PDF a partir de formulários dinâmicos e verificar sua autenticidade. Ele também cobre agendamento de atendimentos, agendamentos de grupos, campanhas de recadastramento, filas de candidatos de concursos públicos, URLs curtas, QR codes e e-mails por data. Cada módulo, inclusive o de certificados, pode ser ligado ou desligado em Configurações → Módulos.
 
-A referência completa (cada token, shortcode, capacidade e configuração) vem dentro do plugin, em Configurações → Documentação.
+A referência completa (cada token, shortcode, permissão e configuração) vem dentro do plugin, em Configurações → Documentação.
 
 = Certificados =
 
@@ -25,7 +25,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 
 = Encurtador de URLs =
 
-* **Links curtos** - Um domínio próprio de links curtos para os endereços gerados pelo plugin, com um QR code por link e limpeza dos links que nunca foram clicados.
+* **URLs curtas** - Um domínio próprio de URLs curtas para os endereços gerados pelo plugin, com um QR code por URL e limpeza das URLs que nunca foram clicadas.
 * **Integração com o WordPress** - Disponível como o shortlink do WordPress e como um campo REST `ffc_shortlink` nos tipos de post habilitados.
 
 = Autoagendamento (Calendários Pessoais) =
@@ -54,7 +54,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Campos personalizados** - Campos personalizados por público (texto, área de texto, número, data, seleção, caixa de seleção) com validação, além de um conjunto padrão de campos de identificação, contato e vínculo funcional.
 * **Notificações por e-mail** - E-mails de convite, lembrete e confirmação com modelos editáveis. Com a campanha ativa, a execução diária do recadastramento envia os convites em lotes.
 * **Fluxo de aprovação** - Aprovação manual ou automática, com uma tela de análise para o administrador.
-* **Ficha em PDF** - Uma ficha em PDF de cada envio, a partir de um modelo personalizável.
+* **Ficha em PDF** - Uma ficha em PDF de cada submissão, a partir de um modelo personalizável.
 * **Integração com o painel** - Os usuários veem os avisos de recadastramento, enviam o formulário e baixam a ficha pelo painel.
 
 = Recrutamento (filas de candidatos de concursos públicos) =
@@ -73,7 +73,7 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 * **Comunicados** - Uma mensagem para todos de um público escolhido, enviada agora ou uma vez num horário definido. Cada comunicado tem sua própria categoria de descadastro: desligar os e-mails de aniversário não silencia os comunicados, e o operador pode enviar também a quem se descadastrou, marcado como forçado.
 * **Prévia e Enviar agora** - Veja quem receberia uma regra, e por que alguém seria pulado, antes de qualquer envio. Rode um intervalo de datas à mão ou envie a si mesmo um teste com dados de exemplo.
 * **Resumo para gestores** - Um e-mail opcional de resumo para usuários escolhidos, 24 horas depois de cada execução.
-* **Próximas datas** - Um painel com os próximos aniversários (só dia e mês), protegido por uma capacidade própria.
+* **Próximas datas** - Um painel com os próximos aniversários (só dia e mês), protegido por uma permissão própria.
 * **Descadastro com um clique** - Cada mensagem traz um link de descadastro assinado que confirma por POST, e os usuários também podem se descadastrar pelo painel.
 
 = Segurança e restrições =
@@ -90,14 +90,14 @@ A referência completa (cada token, shortcode, capacidade e configuração) vem 
 
 * **Registro de Atividades** - Trilha de auditoria das ações de administradores e usuários, cada uma com um nome legível.
 * **Painel do usuário** - Painel pessoal no site, com certificados, agendamentos, agendamentos de grupo, recadastramento e perfil. Ele segue a paleta do plugin, o Modo Escuro e o Design Público.
-* **Exportação em CSV** - Exportações em lotes, à prova de tempo limite, de envios, agendamentos e outros dados.
+* **Exportação em CSV** - Exportações em lotes, à prova de tempo limite, de submissões, agendamentos e outros dados.
 * **Migrações de dados** - Configurações → Migrações roda migrações em lotes com acompanhamento do progresso.
-* **Ferramentas de manutenção** - Limpe URLs curtas obsoletas, desligue o Acesso Público de Operador nos formulários que já terminaram e audite como os envios estão ligados aos usuários do WordPress. A auditoria só gera relatório.
+* **Ferramentas de manutenção** - Limpe URLs curtas obsoletas, desligue o Acesso Público de Operador nos formulários que já terminaram e audite como as submissões estão ligadas aos usuários do WordPress. A auditoria só gera relatório.
 * **Tarefas Agendadas** - Uma tela que lista cada tarefa em segundo plano com sua próxima e última execução, define os horários diários e gera a linha de cron do servidor a instalar.
 * **Resolução de identidade** - Uma auditoria de registros de identidade conflitantes (CPF/RF e e-mails compartilhados ou inválidos) entre os armazenamentos do plugin, com ações de aceitar e resolver.
 * **E-mail** - Configurações de SMTP próprias, um layout de e-mail configurável compartilhado por todas as mensagens e uma chave geral para desligar todos os e-mails.
 * **API REST** - Endpoints REST para integrações externas.
-* **Capacidades e funções** - Permissões granulares e delegáveis, com três estados por área (oculto / só visualiza / visualiza e edita), funções dedicadas (entre elas uma função de administrador, que pode revelar dados pessoais, em cada módulo que os guarda) e editores por usuário e por função, para delegar o plugin sem conceder o papel de administrador do WordPress.
+* **Permissões e funções** - Permissões granulares e delegáveis, com três estados por área (oculto / só visualiza / visualiza e edita), funções dedicadas (entre elas uma função de administrador, que pode revelar dados pessoais, em cada módulo que os guarda) e editores por usuário e por função, para delegar o plugin sem conceder a função de administrador do WordPress.
 * **Modo Escuro** - Um tema escuro para as telas do administrador e as páginas públicas (desligado, ligado ou seguindo o sistema operacional).
 * **Design Público** - Configurações → Design Público dá a todas as telas públicas as cores de destaque, de campo, de dica e de erro do site, os cantos dos campos e dos cartões, a largura do formulário e a fonte. O painel do usuário também o segue. Vem desligado, vale só para o tema claro e avisa quando um par de cores fica abaixo do contraste mínimo da WCAG.
 
@@ -131,7 +131,7 @@ O Free Form Certificate é software livre (AGPLv3 ou posterior), desenvolvido e 
 
 = O que são links mágicos? =
 
-Links mágicos são endereços únicos, enviados por e-mail, que deixam o destinatário abrir e baixar o certificado com um clique. Cada link traz um token aleatório de 32 caracteres. Apagar o envio invalida o link.
+Links mágicos são endereços únicos, enviados por e-mail, que deixam o destinatário abrir e baixar o certificado com um clique. Cada link traz um token aleatório de 32 caracteres. Apagar a submissão invalida o link.
 
 = Como configuro a página de verificação? =
 
@@ -157,7 +157,7 @@ Sim. O plugin tem compatibilidade com cache embutida:
 
 * **Formulários (captcha e nonces):** Um sistema de "Fragmentos dinâmicos" renova os desafios do captcha e os nonces de segurança por AJAX depois que a página carrega, então os formulários funcionam mesmo quando o HTML vem de um cache de página inteira.
 * **Páginas do painel:** O shortcode `[user_dashboard_personal]` define a constante `DONOTCACHEPAGE`, envia os cabeçalhos padrão de não armazenar em cache e aciona os ganchos de exclusão do LiteSpeed, para que dados específicos do usuário nunca fiquem em cache.
-* **Endpoints AJAX:** Os envios de formulário e as buscas de dados usam o `admin-ajax.php`, que os principais plugins de cache já excluem por padrão.
+* **Endpoints AJAX:** As submissões de formulário e as buscas de dados usam o `admin-ajax.php`, que os principais plugins de cache já excluem por padrão.
 * **Diagnóstico:** Configurações → Cache mostra um cartão "Compatibilidade do Cache de Página" com o estado de cada recurso ligado ao cache e o plugin de cache detectado.
 
 Não é preciso criar regras manuais de exclusão do cache.
@@ -172,7 +172,7 @@ O arquivo temporário já tem vida curta (nome aleatório, apagado logo depois d
 
 = Funciona no WordPress Multisite? =
 
-Sim, site a site. Cada tabela, configuração e papel pertence a um site, assim como a desinstalação, então o plugin recusa a ativação em rede: ative-o pela tela de Plugins de cada site que o usa. Excluí-lo remove os dados do site em que foi excluído.
+Sim, site a site. Cada tabela, configuração e função pertence a um site, assim como a desinstalação, então o plugin recusa a ativação em rede: ative-o pela tela de Plugins de cada site que o usa. Excluí-lo remove os dados do site em que foi excluído.
 
 = Como traduzo o plugin? =
 
@@ -182,10 +182,10 @@ O plugin está pronto para tradução, com o text domain `ffcertificate`. Use o 
 
 As imagens ficam na pasta `docs/screenshots/` do repositório e aparecem no README.
 
-1. Painel de certificados: formulários por data, com os envios de hoje e da semana
+1. Painel de certificados: formulários por data, com as submissões de hoje e da semana
 2. Construtor de formulários
 3. Prévia do layout do certificado com dados de exemplo
-4. Lista de envios com download do PDF
+4. Lista de submissões com download do PDF
 5. Formulário público de certificado
 6. Página de verificação de certificados
 7. Agendamento em um calendário pessoal no site
@@ -212,7 +212,7 @@ Mostra a interface de verificação de certificados. Reconhece links mágicos pe
 Exemplo: `[ffc_verification]`
 
 = [ffc_csv_download] =
-Mostra a página pública do operador, onde operadores de confiança podem baixar o CSV de envios de um formulário, abrir um formulário antes da hora ou adiar seu encerramento. O acesso exige o ID do formulário e o hash de acesso gerado por "Acesso Público de Operador" no editor do formulário.
+Mostra a página pública do operador, onde operadores de confiança podem baixar o CSV de submissões de um formulário, abrir um formulário antes da hora ou adiar seu encerramento. O acesso exige o ID do formulário e o hash de acesso gerado por "Acesso Público de Operador" no editor do formulário.
 
 * `title` (opcional) - Título da página.
 
@@ -257,7 +257,7 @@ Em um modelo de certificado, use estas marcações dinâmicas. A lista completa,
 * `{{form_title}}` - Título do formulário
 * `{{submission_date}}` - Data de emissão, no formato de data configurado no plugin (`{{date}}` e `{{fill_date}}` são sinônimos)
 * `{{print_date}}` - Data em que o PDF é gerado
-* `{{submission_id}}` - ID numérico do envio
+* `{{submission_id}}` - ID numérico da submissão
 * `{{validation_url}}` - Endereço da página de verificação
 * `{{qr_code}}` - QR code que leva à página de verificação
 * `{{site_name}}`, `{{main_address}}`, `{{logo_gov}}`, `{{logo_org}}` - Identidade visual definida em Configurações → Geral
@@ -280,13 +280,13 @@ Esta seção resume só a versão oferecida — o atualizador nunca oferece uma 
 == Privacidade e tratamento de dados ==
 
 = Dados coletados =
-* Envios de formulário (nome, e-mail, CPF/RF e campos personalizados)
+* Submissões de formulário (nome, e-mail, CPF/RF e campos personalizados)
 * Campos do perfil do usuário (contato, endereço, vínculo funcional, data de nascimento) quando o painel ou o recadastramento os coletam
 * Endereços IP (para limite de taxa, geofencing e trilha de auditoria)
 * Agendamentos e agendamentos de grupo (data, horário, dados de contato)
-* Datas e horários dos envios e das ações
-* Respostas e notas de quiz, guardadas com o envio
-* Sinais do dispositivo e um identificador guardado no navegador, registrados a cada envio para limitar envios repetidos ou automatizados
+* Datas e horários das submissões e das ações
+* Respostas e notas de quiz, guardadas com a submissão
+* Sinais do dispositivo e um identificador guardado no navegador, registrados a cada submissão para limitar submissões repetidas ou automatizadas
 * A localização do dispositivo, quando um formulário ou um check-in só vale em certos lugares: comparada com as áreas permitidas e não armazenada
 * No navegador: um cookie de uma hora ao definir a senha por um convite, um cookie para uma exceção de prazo aprovada, o identificador do dispositivo e a lista de formulários já enviados daquele navegador
 
@@ -297,7 +297,7 @@ Esta seção resume só a versão oferecida — o atualizador nunca oferece uma 
 = Armazenamento =
 Todos os dados ficam nas tabelas próprias do plugin, `wp_ffc_*`, e em user meta e opções com o prefixo `ffc_`. As principais tabelas:
 
-* Envios: `wp_ffc_submissions`, com os campos sensíveis criptografados
+* Submissões: `wp_ffc_submissions`, com os campos sensíveis criptografados
 * Agendamentos: `wp_ffc_self_scheduling_appointments`
 * Limite de taxa: `wp_ffc_rate_limits` e `wp_ffc_rate_limit_logs`
 * Registro de atividades: `wp_ffc_activity_log`
@@ -306,9 +306,9 @@ Todos os dados ficam nas tabelas próprias do plugin, `wp_ffc_*`, e em user meta
 Excluir o plugin remove suas tabelas, opções e user meta só quando a opção de apagar todos os dados do plugin na desinstalação está ligada em Configurações → Avançado.
 
 = Retenção =
-* Exclusão automática opcional dos envios antigos (desligada por padrão, configurável em dias)
+* Exclusão automática opcional das submissões antigas (desligada por padrão, configurável em dias)
 * As entradas do registro de atividades são apagadas após um número configurável de dias (90 por padrão)
 * Os sinais do dispositivo são apagados após um número configurável de dias (90 por padrão); o registro de limite de taxa guarda só as entradas mais recentes
 * Exclusão manual no painel do administrador
 * Os exportadores e apagadores de dados pessoais do WordPress são registrados
-* Apagar um envio invalida seu link mágico e seu QR code
+* Apagar uma submissão invalida seu link mágico e seu QR code

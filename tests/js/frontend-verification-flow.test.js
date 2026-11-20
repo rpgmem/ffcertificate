@@ -78,7 +78,13 @@ beforeEach(() => {
 	window.location.hash = '';
 });
 
-afterEach(() => {
+afterEach(async () => {
+	// Every loadScript() of ffc-frontend.js queues the magic-link check
+	// behind setTimeout(100). A test that resolves sooner leaves it pending:
+	// it then fires inside the next test, against that test's spies, or after
+	// the file's jsdom is torn down ("window is not defined"). Let it fire
+	// here, while this test's window and mocks still stand.
+	await new Promise((r) => setTimeout(r, 150));
 	vi.restoreAllMocks();
 });
 
