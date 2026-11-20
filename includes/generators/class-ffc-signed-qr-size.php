@@ -86,9 +86,10 @@ final class SignedQrSize {
 	 * course: what the minimum is measured on.
 	 *
 	 * @param string $mode One of the CertificateSigner modes.
+	 * @param string $link The verification link to sign, '' for an example one.
 	 */
-	public static function sample( string $mode ): string {
-		$link = 'https://www.exemplo.sp.gov.br/valid/#token=' . str_repeat( 'a', 32 );
+	public static function sample( string $mode, string $link = '' ): string {
+		$link = '' !== $link ? $link : 'https://www.exemplo.sp.gov.br/valid/#token=' . str_repeat( 'a', 32 );
 		if ( 'compact' !== $mode && 'full' !== $mode ) {
 			return $link;
 		}

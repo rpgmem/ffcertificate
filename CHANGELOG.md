@@ -50,6 +50,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **QR codes take the highest error correction that keeps their size** (#2648). Certificates (SVG and PNG), magic links and short-URL codes are drawn at the highest level whose grid is no larger than the level set, so they survive more damage at no cost in size; the QR Code Generator keeps the level the user picks.
 - **A migration card waiting on a prerequisite links to where it is met** (#2656): signing issued certificates links to the Integrity signature card on Settings → Certificates, and the identity index backfill to the canonicalisation card it waits for. The button shows only to a user who may open that screen.
 - **The QR generator offers a way out when the content is too long** (#2662): a button to use the lower error correction that holds it, to remove the logo that forces H, or to use a short URL for an address. Each one changes its own control, so the level in use stays visible.
+- **The form editor says when a certificate's QR code is printed at another error correction** (#2664): above the level the layout asks for when the link leaves room, below it when the link does not fit, and when the logo is left out or the link is printed as text.
 
 ### Removed
 

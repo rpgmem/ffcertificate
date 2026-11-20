@@ -156,10 +156,11 @@ class QRCodeGenerator {
 			// damage survived. A logo forces H inside the renderer, so when the
 			// link does not fit at H the logo goes and the level may drop
 			// (#2660) -- a plain code that scans beats a branded one that does not.
-			if ( '' !== $design->logo && ! QrCapacity::fits( $url, 'H' ) ) {
+			$plan = self::plan( $url, $params['error_level'], '' !== $design->logo );
+			if ( '' !== $design->logo && ! $plan['logo'] ) {
 				$design = $design->without_logo();
 			}
-			$level = QrCapacity::fit_level( $url, $design->error_level( $params['error_level'] ) );
+			$level = $plan['level'];
 			$drawn = null === $level ? array( 'svg' => '' ) : QrSvgRenderer::render_sized( $url, $design, $level, $params['margin'], $params['size'] );
 			if ( '' === $drawn['svg'] ) {
 				/** This filter is documented below. */
@@ -320,7 +321,7 @@ class QRCodeGenerator {
 		// (#2660). Checked before the library runs: on overflow it draws
 		// nothing, says why only in a log of its own and leaves an output
 		// buffer open.
-		$level = QrCapacity::fit_level( $url, $params['error_level'] );
+		$level = self::plan( $url, $params['error_level'], false )['level'];
 		if ( null === $level ) {
 			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'QR Code: content exceeds the capacity of a QR code',
@@ -460,6 +461,33 @@ class QRCodeGenerator {
 			esc_attr__( 'QR Code', 'ffcertificate' ),
 			$size,
 			$height > 0 ? $height : $size
+		);
+	}
+
+	/**
+	 * The level a code is drawn at, and whether its logo stays (#2664).
+	 *
+	 * The one place that decides it, so the form editor's note and the code
+	 * a certificate prints cannot disagree. A logo forces H; when H cannot
+	 * hold the text the logo goes. The level is then the one asked for,
+	 * raised where the grid has room or lowered until the text fits
+	 * ({@see QrCapacity::fit_level()}), or null when nothing holds it.
+	 *
+	 * @param string $text      Text to encode.
+	 * @param string $requested The level asked for.
+	 * @param bool   $logo      Whether the design carries a logo.
+	 * @return array{level: string|null, logo: bool}
+	 */
+	public static function plan( string $text, string $requested, bool $logo ): array {
+		if ( $logo && QrCapacity::fits( $text, 'H' ) ) {
+			return array(
+				'level' => QrCapacity::fit_level( $text, 'H' ),
+				'logo'  => true,
+			);
+		}
+		return array(
+			'level' => QrCapacity::fit_level( $text, $requested ),
+			'logo'  => false,
 		);
 	}
 

@@ -280,9 +280,24 @@ class FormEditorLayoutMetabox {
 		if ( \FreeFormCertificate\Settings\SettingsReader::get_int( 'qr_design_logo_id', 0 ) > 0 ) {
 			$notes[] = __( 'The global QR design has a logo, which the signed modes do not print: it would force a much larger code.', 'ffcertificate' );
 		}
+		$placement = $this->qr_placements( $form_id )[0] ?? null;
+		$link      = null === $placement ? '' : \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( str_repeat( 'a', 32 ) );
+		if ( null !== $placement ) {
+			// The link mode draws the design's logo; the signed modes never do.
+			$logo       = \FreeFormCertificate\Generators\QrDesign::applies_to( 'certificate' )
+				&& \FreeFormCertificate\Settings\SettingsReader::get_int( 'qr_design_logo_id', 0 ) > 0;
+			$level_note = $this->qr_level_note( $link, $placement['error_level'], $logo );
+			if ( '' !== $level_note ) {
+				$descriptions[ $signer::MODE_LINK ] .= ' ' . $level_note;
+			}
+		}
 		foreach ( array( $signer::MODE_COMPACT, $signer::MODE_FULL ) as $signed ) {
 			$size_note = $this->qr_size_note( $form_id, $signed );
-			$extra     = array_filter( array_merge( array( $size_note ), $notes ) );
+			// The level is only worth saying of a code the layout can print.
+			$level_note = '' === $size_note && null !== $placement
+				? $this->qr_level_note( \FreeFormCertificate\Generators\SignedQrSize::sample( $signed, $link ), $placement['error_level'], false )
+				: '';
+			$extra      = array_filter( array_merge( array( $size_note, $level_note ), $notes ) );
 			if ( array() !== $extra ) {
 				$descriptions[ $signed ] .= ' ' . implode( ' ', $extra );
 			}
@@ -312,17 +327,9 @@ class FormEditorLayoutMetabox {
 	 * @param string $mode    A signed mode.
 	 */
 	private function qr_size_note( int $form_id, string $mode ): string {
-		$link        = \FreeFormCertificate\Core\CertificateTemplateLink::class;
-		$template_id = $link::template_id( $form_id );
-		if ( $template_id > 0 ) {
-			$layout = $link::layout( $template_id, $link::values( $form_id ) );
-		} else {
-			$config = get_post_meta( $form_id, '_ffc_form_config', true );
-			$layout = is_array( $config ) && is_string( $config['pdf_layout'] ?? null ) ? $config['pdf_layout'] : '';
-		}
-		$placements = ( new \FreeFormCertificate\Generators\QRCodeGenerator() )->placements( $layout );
+		$placements = $this->qr_placements( $form_id );
 		if ( array() === $placements ) {
-			return '' === trim( $layout ) ? '' : __( 'The layout prints no QR code, so the signature has nowhere to go.', 'ffcertificate' );
+			return '' === trim( $this->qr_layout( $form_id ) ) ? '' : __( 'The layout prints no QR code, so the signature has nowhere to go.', 'ffcertificate' );
 		}
 		$size    = \FreeFormCertificate\Generators\SignedQrSize::class;
 		$modules = $size::modules( $size::sample( $mode ) );
@@ -339,6 +346,66 @@ class FormEditorLayoutMetabox {
 			}
 		}
 		return '';
+	}
+
+	/**
+	 * The layout the form prints: its template's, or its own.
+	 *
+	 * @param int $form_id Form post id.
+	 */
+	private function qr_layout( int $form_id ): string {
+		$link        = \FreeFormCertificate\Core\CertificateTemplateLink::class;
+		$template_id = $link::template_id( $form_id );
+		if ( $template_id > 0 ) {
+			return $link::layout( $template_id, $link::values( $form_id ) );
+		}
+		$config = get_post_meta( $form_id, '_ffc_form_config', true );
+		return is_array( $config ) && is_string( $config['pdf_layout'] ?? null ) ? $config['pdf_layout'] : '';
+	}
+
+	/**
+	 * The QR codes the form's layout prints, each with its size, margin and
+	 * error level.
+	 *
+	 * @param int $form_id Form post id.
+	 * @return list<array{size: int, margin: int, error_level: string}>
+	 */
+	private function qr_placements( int $form_id ): array {
+		return ( new \FreeFormCertificate\Generators\QRCodeGenerator() )->placements( $this->qr_layout( $form_id ) );
+	}
+
+	/**
+	 * What the editor says when a certificate's QR code is drawn at a level
+	 * other than the one asked for (#2664), '' when it is the same.
+	 *
+	 * Generation raises the level where the grid has room and lowers it when
+	 * the link does not fit ({@see QRCodeGenerator::plan()}); without this
+	 * line both happen out of sight. The link measured has the length of the
+	 * real one: this site's verification page and a token.
+	 *
+	 * @param string $link      The link the code carries.
+	 * @param string $requested The level the layout asks for.
+	 * @param bool   $logo      Whether the design's logo applies.
+	 */
+	private function qr_level_note( string $link, string $requested, bool $logo ): string {
+		$plan = \FreeFormCertificate\Generators\QRCodeGenerator::plan( $link, $requested, $logo );
+		if ( null === $plan['level'] ) {
+			return __( 'The link does not fit in a QR code at any error correction: the certificate prints it as text instead.', 'ffcertificate' );
+		}
+		$notes = array();
+		if ( $logo && ! $plan['logo'] ) {
+			$notes[] = __( 'The logo is left out: the link does not fit at error correction H, which the logo needs.', 'ffcertificate' );
+		}
+		$asked = $plan['logo'] ? 'H' : $requested;
+		$order = array_flip( array( 'L', 'M', 'Q', 'H' ) );
+		if ( ( $order[ $plan['level'] ] ?? 0 ) > ( $order[ $asked ] ?? 0 ) ) {
+			/* translators: 1: error correction level printed, 2: level asked for (L, M, Q or H) */
+			$notes[] = sprintf( __( 'The QR code is printed at error correction %1$s, above the %2$s asked for: the link leaves room, so it survives more damage at the same size.', 'ffcertificate' ), $plan['level'], $asked );
+		} elseif ( ( $order[ $plan['level'] ] ?? 0 ) < ( $order[ $asked ] ?? 0 ) ) {
+			/* translators: 1: error correction level printed, 2: level asked for (L, M, Q or H) */
+			$notes[] = sprintf( __( 'The QR code is printed at error correction %1$s, below the %2$s asked for: the link does not fit at %2$s.', 'ffcertificate' ), $plan['level'], $asked );
+		}
+		return implode( ' ', $notes );
 	}
 
 	/**
