@@ -16,6 +16,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 $ffc_qr_design    = \FreeFormCertificate\Generators\QrDesign::from_settings();
 $ffc_qr_state     = \FreeFormCertificate\Generators\QrDesign::form_state();
 $ffc_qr_logo_id   = $ffc_qr_state['logo_id'];
+$ffc_qr_logo_on   = $ffc_qr_state['logo_enabled'];
 $ffc_qr_gradient  = $ffc_qr_state['gradient'];
 $ffc_qr_color_end = $ffc_qr_state['color_end'];
 $ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key . ']';

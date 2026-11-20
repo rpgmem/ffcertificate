@@ -203,6 +203,7 @@ class QrGeneratorPage {
 		$ffc_qr_state     = QrGeneratorDesignMemory::state( get_current_user_id() );
 		$ffc_qr_design    = QrGeneratorDesignMemory::design( $ffc_qr_state );
 		$ffc_qr_logo_id   = (int) $ffc_qr_state['qr_design_logo_id'];
+		$ffc_qr_logo_on   = (bool) $ffc_qr_state['qr_design_logo_enabled'];
 		$ffc_qr_gradient  = (bool) $ffc_qr_state['qr_design_gradient'];
 		$ffc_qr_color_end = (string) $ffc_qr_state['qr_design_color_end'];
 		$ffc_qr_margin    = (int) $ffc_qr_state['margin'];

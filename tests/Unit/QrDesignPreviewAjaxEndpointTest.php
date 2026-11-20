@@ -142,10 +142,13 @@ class QrDesignPreviewAjaxEndpointTest extends TestCase {
 		$with  = $this->payload();
 		$_POST = array( 'logo_id' => '4' );
 		$other = $this->payload();
+		$_POST = array( 'logo_id' => '3', 'logo_on' => '' );
+		$off   = $this->payload();
 
 		@unlink( $file );
 		\FreeFormCertificate\Generators\QrLogo::reset();
 		$this->assertStringContainsString( '<image href="data:image/png;base64,' . base64_encode( 'PNG' ) . '"', $with['svg'] );
 		$this->assertStringNotContainsString( '<image', $other['svg'], 'An attachment the user cannot read is not embedded.' );
+		$this->assertStringNotContainsString( '<image', $off['svg'], 'The switch off draws the same readable logo away (#2686).' );
 	}
 }

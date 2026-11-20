@@ -10,6 +10,7 @@
  *
  * @var \FreeFormCertificate\Generators\QrDesign $ffc_qr_design    Starting design (the global one).
  * @var int                                      $ffc_qr_logo_id   Logo attachment id.
+ * @var bool                                     $ffc_qr_logo_on   Whether the logo is drawn.
  * @var bool                                     $ffc_qr_gradient  Gradient on.
  * @var string                                   $ffc_qr_color_end Gradient end colour.
  * @var callable(string): string                 $ffc_qr_name      Field name for a design key.

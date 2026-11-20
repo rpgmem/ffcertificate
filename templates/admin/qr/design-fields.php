@@ -13,6 +13,7 @@
  * @var \FreeFormCertificate\Generators\QrDesign $ffc_qr_design    Values to show.
  * @var callable(string): string                  $ffc_qr_name      Field name for a key.
  * @var int                                       $ffc_qr_logo_id   Logo attachment id, 0 for none.
+ * @var bool                                      $ffc_qr_logo_on   Whether the logo is drawn; the image is kept while off.
  * @var bool                                      $ffc_qr_gradient  Whether the gradient is on.
  * @var string                                    $ffc_qr_color_end Gradient end colour, kept while off.
  *
@@ -218,6 +219,20 @@ $ffc_qr_tiles( 'qr_design_eye_ball', 'eye_ball', __( 'Corner centre', 'ffcertifi
 	</details>
 
 <?php $ffc_qr_section( 'logo', __( 'Logo', 'ffcertificate' ), __( 'An image in the centre of the code.', 'ffcertificate' ) ); ?>
+			<div class="ffc-qr-field">
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'        => $ffc_qr_name( 'qr_design_logo_enabled' ),
+						'id'          => 'qr_design_logo_enabled',
+						'checked'     => $ffc_qr_logo_on,
+						'label'       => __( 'Use the logo', 'ffcertificate' ),
+						'description' => __( 'Turn off to draw the code without the logo while keeping the image selected.', 'ffcertificate' ),
+						'data'        => array( 'ffc-qr-design' => 'qr_design_logo_enabled' ),
+					)
+				);
+				?>
+			</div>
 			<div class="ffc-qr-field">
 				<img id="ffc-qr-logo-thumb" class="ffc-qr-logo-thumb" src="<?php echo esc_url( $ffc_qr_logo_thumb ); ?>" alt="" <?php echo '' === $ffc_qr_logo_thumb ? 'hidden' : ''; ?>>
 				<input type="hidden" name="<?php echo esc_attr( $ffc_qr_name( 'qr_design_logo_id' ) ); ?>" id="qr_design_logo_id" value="<?php echo esc_attr( (string) $ffc_qr_logo_id ); ?>" data-ffc-qr-design="qr_design_logo_id">

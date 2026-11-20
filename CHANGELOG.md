@@ -34,6 +34,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Signed QR codes.** On a form in a signed QR mode the certificate's QR code carries its signed record, full or compact as its printed size allows and without the logo. The verification page checks it in the browser, even offline, and flags a QR code issued for an earlier version; an offline verifier file is downloadable from the key card (#2639).
 - **Certificates issued before their form chose a signed QR mode can be signed** (#2639): a card on Settings → Data Migrations signs the published certificates of forms on Compact or Full that have no signed record, as each reads today with its original issue date. Link-only forms are never touched; it needs a signing key.
 - **The signing key card copies the public key, and the visual editor says which QR modes fit** (#2639): a Copy public key button beside the key, and a line in the QR code panel naming the modes the selected code's size prints readably on paper.
+- QR design: the Logo section has a Use the logo switch, on the generator and on Settings → QR Code. Off draws the code without the logo, so error correction is no longer forced to H, and keeps the image selected; the generator's too-long fix turns it off instead of clearing the image (#2686).
 
 ### Changed
 

@@ -182,6 +182,13 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->caps[] = 'read_post';
 		$this->run_handler( 'handle_remember' );
 		$this->assertSame( 42, $this->meta['ffc_qr_generator_design']['qr_design_logo_id'] );
+		$this->assertTrue( $this->meta['ffc_qr_generator_design']['qr_design_logo_enabled'], 'A request without the switch keeps the logo on.' );
+
+		// Off keeps the image (#2686).
+		$_POST['logo_on'] = '';
+		$this->run_handler( 'handle_remember' );
+		$this->assertSame( 42, $this->meta['ffc_qr_generator_design']['qr_design_logo_id'] );
+		$this->assertFalse( $this->meta['ffc_qr_generator_design']['qr_design_logo_enabled'] );
 	}
 
 	public function test_reset_forgets_and_answers_with_the_global_design(): void {
@@ -302,6 +309,30 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 
 		$this->assertTrue( $data['usage']['forced'] );
 		$this->assertSame( array( 'logo' ), array_column( $data['fixes'], 'action' ), 'Lowering the level cannot help while the logo forces H.' );
+	}
+
+	public function test_a_logo_switched_off_is_not_drawn_and_forces_nothing(): void {
+		// The same logo and content as above, with the switch off (#2686).
+		$this->caps[] = 'read_post';
+		$memo         = new \ReflectionProperty( \FreeFormCertificate\Generators\QrLogo::class, 'memo' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, array( 7 => 'data:image/png;base64,iVBORw0KGgo=' ) );
+		$_POST = array(
+			'type'        => 'text',
+			'fields'      => array( 'text' => 'hello' ),
+			'error_level' => 'M',
+			'logo_id'     => '7',
+			'logo_on'     => '',
+		);
+
+		try {
+			list( , $data ) = $this->run_handler( 'handle_generate' );
+		} finally {
+			$memo->setValue( null, array() );
+		}
+
+		$this->assertFalse( $data['usage']['forced'] );
+		$this->assertStringNotContainsString( '<image', (string) $data['svg'] );
 	}
 
 	public function test_content_no_level_holds_offers_nothing_but_shortening_it(): void {

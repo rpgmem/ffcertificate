@@ -123,6 +123,27 @@ class QrDesignTest extends TestCase {
 		);
 	}
 
+	public function test_the_settings_logo_is_drawn_only_while_its_switch_is_on(): void {
+		$memo = new \ReflectionProperty( \FreeFormCertificate\Generators\QrLogo::class, 'memo' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, array( 9 => 'data:image/png;base64,iVBORw0KGgo=' ) );
+		$settings = array( 'qr_design_logo_id' => 9 );
+		Functions\when( 'get_option' )->alias( static function () use ( &$settings ) { return $settings; } );
+
+		try {
+			// A site saved before the switch existed (#2686): on.
+			$this->assertSame( 'data:image/png;base64,iVBORw0KGgo=', QrDesign::from_settings()->logo );
+			$this->assertTrue( QrDesign::form_state()['logo_enabled'] );
+
+			$settings['qr_design_logo_enabled'] = 0;
+			$this->assertSame( '', QrDesign::from_settings()->logo );
+			$this->assertFalse( QrDesign::form_state()['logo_enabled'] );
+			$this->assertSame( 9, QrDesign::form_state()['logo_id'], 'The image is kept while the switch is off.' );
+		} finally {
+			$memo->setValue( null, array() );
+		}
+	}
+
 	public function test_applies_to_reads_one_switch_per_surface(): void {
 		Functions\when( 'get_option' )->justReturn(
 			array(

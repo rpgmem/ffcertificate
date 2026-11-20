@@ -219,7 +219,7 @@ final class QrDesign {
 				'background'      => SettingsReader::get_string( 'qr_design_background', '#ffffff' ),
 				'eye_frame_color' => SettingsReader::get_string( 'qr_design_eye_frame_color', '#000000' ),
 				'eye_ball_color'  => SettingsReader::get_string( 'qr_design_eye_ball_color', '#000000' ),
-				'logo'            => QrLogo::data_uri( SettingsReader::get_int( 'qr_design_logo_id', 0 ) ),
+				'logo'            => SettingsReader::get_bool( 'qr_design_logo_enabled', true ) ? QrLogo::data_uri( SettingsReader::get_int( 'qr_design_logo_id', 0 ) ) : '',
 				'frame'           => SettingsReader::get_string( 'qr_design_frame', 'none' ),
 				'frame_text'      => SettingsReader::get_string( 'qr_design_frame_text', '' ),
 				'frame_color'     => SettingsReader::get_string( 'qr_design_frame_color', '#1d2327' ),
@@ -231,24 +231,26 @@ final class QrDesign {
 
 	/**
 	 * What a design form starts from, beyond the design itself: the stored
-	 * logo id (the design only holds its embedded image), the gradient switch
-	 * and its end colour -- kept while the switch is off, so turning it back
-	 * on restores the colour -- and the generation defaults.
+	 * logo id (the design only holds its embedded image) and its switch, the
+	 * gradient switch and its end colour -- the logo and the colour are kept
+	 * while their switch is off, so turning it back on restores them (#2686)
+	 * -- and the generation defaults.
 	 *
 	 * Shared by Settings → QR Code and the manual generator, which start from
 	 * the same values.
 	 *
-	 * @return array{logo_id: int, gradient: bool, color_end: string, margin: int, error_level: string}
+	 * @return array{logo_id: int, logo_enabled: bool, gradient: bool, color_end: string, margin: int, error_level: string}
 	 */
 	public static function form_state(): array {
 		$level = strtoupper( SettingsReader::get_string( 'qr_default_error_level', 'M' ) );
 
 		return array(
-			'logo_id'     => SettingsReader::get_int( 'qr_design_logo_id', 0 ),
-			'gradient'    => SettingsReader::get_bool( 'qr_design_gradient' ),
-			'color_end'   => self::hex( SettingsReader::get_string( 'qr_design_color_end', '#2271b1' ), '#2271b1' ),
-			'margin'      => max( 0, min( 10, SettingsReader::get_int( 'qr_default_margin', 2 ) ) ),
-			'error_level' => in_array( $level, array( 'L', 'M', 'Q', 'H' ), true ) ? $level : 'M',
+			'logo_id'      => SettingsReader::get_int( 'qr_design_logo_id', 0 ),
+			'logo_enabled' => SettingsReader::get_bool( 'qr_design_logo_enabled', true ),
+			'gradient'     => SettingsReader::get_bool( 'qr_design_gradient' ),
+			'color_end'    => self::hex( SettingsReader::get_string( 'qr_design_color_end', '#2271b1' ), '#2271b1' ),
+			'margin'       => max( 0, min( 10, SettingsReader::get_int( 'qr_default_margin', 2 ) ) ),
+			'error_level'  => in_array( $level, array( 'L', 'M', 'Q', 'H' ), true ) ? $level : 'M',
 		);
 	}
 
