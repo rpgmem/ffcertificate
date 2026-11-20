@@ -106,6 +106,25 @@ class VerificationResponseRenderer {
 
 		switch ( $integrity['state'] ) {
 			case \FreeFormCertificate\Submissions\CertificateSigner::STATE_INTACT:
+				// A certificate signed later than it was issued (the backfill
+				// card, or a key generated after the form switched) says both
+				// dates (#2674). Dating the signature to the issue would claim
+				// an attestation that did not exist then, and could predate
+				// the key that made it.
+				if ( $integrity['issued'] > 0 && \FreeFormCertificate\Core\CertificateRecord::date( $integrity['signed_at'] ) > \FreeFormCertificate\Core\CertificateRecord::date( $integrity['issued'] ) ) {
+					return \FreeFormCertificate\Core\Notice::render(
+						'success',
+						'shield',
+						sprintf(
+							/* translators: 1: date the certificate was issued, 2: later date it was signed */
+							__( 'This certificate was issued on %1$s and signed by this site later, on %2$s. Its data still matches what was signed.', 'ffcertificate' ),
+							\FreeFormCertificate\Core\DateFormatter::format_date( $integrity['issued'] ),
+							\FreeFormCertificate\Core\DateFormatter::format_date( $integrity['signed_at'] )
+						),
+						__( 'Integrity confirmed', 'ffcertificate' ),
+						array( 'role' => 'note' )
+					);
+				}
 				return \FreeFormCertificate\Core\Notice::render(
 					'success',
 					'shield',

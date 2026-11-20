@@ -50,7 +50,7 @@ $ffc_closed_appointments = $pending['appointments'] ?? array();
 			<?php foreach ( $pending['bookings'] as $ffc_closed_booking ) : ?>
 				<?php $ffc_closed_times = \FreeFormCertificate\Audience\AudienceBookingRules::stored_day_times( $ffc_closed_booking, $pending['date'] ); ?>
 				<tr>
-					<td><?php echo esc_html( $ffc_closed_times['start_time'] . '–' . $ffc_closed_times['end_time'] ); ?></td>
+					<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $ffc_closed_times['start_time'] ) . '–' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $ffc_closed_times['end_time'] ) ); ?></td>
 					<td><?php echo esc_html( (string) ( $ffc_closed_booking->environment_name ?? '' ) ); ?></td>
 					<td><?php echo esc_html( (string) ( $ffc_closed_booking->description ?? '' ) ); ?></td>
 				</tr>
@@ -89,7 +89,7 @@ $ffc_closed_appointments = $pending['appointments'] ?? array();
 			<tbody>
 				<?php foreach ( $ffc_closed_appointments as $ffc_closed_appointment ) : ?>
 					<tr>
-						<td><?php echo esc_html( substr( (string) ( $ffc_closed_appointment['start_time'] ?? '' ), 0, 5 ) . '–' . substr( (string) ( $ffc_closed_appointment['end_time'] ?? '' ), 0, 5 ) ); ?></td>
+						<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $ffc_closed_appointment['start_time'] ?? '' ) ) . '–' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $ffc_closed_appointment['end_time'] ?? '' ) ) ); ?></td>
 						<td><?php echo esc_html( (string) ( $ffc_closed_appointment['calendar_title'] ?? '' ) ); ?></td>
 					</tr>
 				<?php endforeach; ?>

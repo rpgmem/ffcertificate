@@ -475,9 +475,10 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			$row['name'] ?? '',
 			$email,
 			$phone,
-			$row['appointment_date'] ?? '',
-			$row['start_time'] ?? '',
-			$row['end_time'] ?? '',
+			// Wall-clock values, in the plugin's format (#2676).
+			\FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) ( $row['appointment_date'] ?? '' ) ),
+			\FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $row['start_time'] ?? '' ) ),
+			\FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $row['end_time'] ?? '' ) ),
 			$status,
 			$row['user_notes'] ?? '',
 			$row['admin_notes'] ?? '',
@@ -486,8 +487,10 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			! empty( $row['consent_date'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['consent_date'] ) : '',
 			$user_ip,
 			$row['consent_text'] ?? '',
-			$row['created_at'] ?? '',
-			$row['updated_at'] ?? '',
+			// DATETIME housekeeping columns: the stored clock reading, in the
+			// plugin's format, not shifted again (#2676).
+			\FreeFormCertificate\Core\DateFormatter::format_wallclock_datetime( (string) ( $row['created_at'] ?? '' ) ),
+			\FreeFormCertificate\Core\DateFormatter::format_wallclock_datetime( (string) ( $row['updated_at'] ?? '' ) ),
 			! empty( $row['approved_at'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['approved_at'] ) : '',
 			$approved_by,
 			! empty( $row['cancelled_at'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['cancelled_at'] ) : '',

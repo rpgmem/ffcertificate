@@ -292,4 +292,52 @@ final class CertificateSignerTest extends TestCase {
 	public function test_the_verification_page_says_nothing_about_an_unsigned_certificate(): void {
 		$this->assertSame( '', $this->notice( $this->submission() ) );
 	}
+
+	/**
+	 * A certificate signed later than its issue says both dates (#2674): the
+	 * signature is not dated back to the issue, and the issue is not lost.
+	 */
+	public function test_a_certificate_signed_after_issue_names_both_dates(): void {
+		SigningKeys::rotate();
+		// Issued 2023-11-14; signed now, by the backfill card.
+		$issued = $this->submission( array( 'submission_date' => 1700000000 ) );
+		CertificateSigner::sign( 345, $issued );
+
+		$this->assertSame( 1700000000, CertificateSigner::integrity( $issued )['issued'] );
+		$html = $this->notice( $issued );
+
+		$this->assertStringContainsString( 'Integrity confirmed', $html );
+		// The signing day is read by the code, not here: a run that crosses
+		// midnight must not fail, so the shape is asserted, not the date.
+		$this->assertMatchesRegularExpression( '#issued on 14/11/2023 and signed by this site later, on \\d{2}/\\d{2}/\\d{4}\\.#', $html );
+	}
+
+	/**
+	 * Both dates follow the plugin's own date format (Settings → General),
+	 * not WordPress's: the notice must read like every other date the
+	 * plugin prints.
+	 */
+	public function test_both_dates_follow_the_plugin_date_format(): void {
+		SigningKeys::rotate();
+		$issued = $this->submission( array( 'submission_date' => 1700000000 ) );
+		CertificateSigner::sign( 345, $issued );
+		$this->options['ffc_settings']['date_format'] = 'Y-m-d';
+
+		$html = $this->notice( $issued );
+
+		$this->assertMatchesRegularExpression( '#issued on 2023-11-14 and signed by this site later, on \\d{4}-\\d{2}-\\d{2}\\.#', $html );
+	}
+
+	public function test_a_certificate_signed_on_its_issue_day_keeps_the_single_date(): void {
+		SigningKeys::rotate();
+		// Issued a moment after the signature is taken, so the signing day can
+		// never fall after the issue day, whatever the clock does in between.
+		$today = $this->submission( array( 'submission_date' => time() + 120 ) );
+		CertificateSigner::sign( 345, $today );
+
+		$html = $this->notice( $today );
+
+		$this->assertMatchesRegularExpression( '#This certificate was signed by this site on \\d{2}/\\d{2}/\\d{4}, and its data#', $html );
+		$this->assertStringNotContainsString( 'signed by this site later', $html );
+	}
 }

@@ -53,6 +53,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The form editor says when a certificate's QR code is printed at another error correction** (#2664): above the level the layout asks for when the link leaves room, below it when the link does not fit, and when the logo is left out or the link is printed as text.
 - pt_BR: one word per domain term across the catalogue — submissão, reserva (audience calendars), signatário, função, permissão, URL curta, registro de atividades and público-alvo — with agreement fixed in about 370 entries; `TranslationGlossaryTest` keeps the replaced words out (#2670).
 - Data Migrations: the Sign Certificates Already Issued card says how many forms on a signed QR mode it covers and how many forms and certificates on Link only it leaves out, so its 100% no longer reads as every certificate signed; a strategy can add this line through an optional `scope` status key (#2672).
+- Verification: a certificate signed later than it was issued (by the Sign Certificates Already Issued card, or after a key was first generated) now shows both dates, issue and signing, in the plugin's date format; the signature is never dated back to the issue (#2674).
 
 ### Removed
 
@@ -79,6 +80,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A QR code that does not fit draws at a lower level instead of failing** (#2660). Content too long for the requested error correction is drawn at the highest level that holds it, a logo goes when only that blocks it, and a certificate whose code still cannot be drawn prints its verification link instead of a blank square. The QR library no longer writes `errors.txt` into the plugin folder.
 - **Text that reached the screen in the wrong language is in English with a pt_BR translation** (#2666): the certificate preview's sample texts and signer roles, a documentation template example, a mixed heading, an untranslated Data Migrations column and a notice that still named version 6.3.2.
 - pt_BR: fixed a wrong bypass description and fifteen labels the translation changed the meaning of, restored placeholders the translation had renamed (`{{reference}}`, `{{tag}}`, `{{model:…}}`, `{{token}}`), dropped 111 final periods the source does not have, and the audience overlap warning is now one sentence per count instead of a number before a fragment (#2668).
+- Dates: the recruitment public table, candidate call history (whose cancellation date printed as a unix number) and list "Created at" columns, the personal-data export, the close-a-day confirmation, the Date Messages send time and the download-log, appointments and audience-bookings CSVs now show dates and times in the plugin's format (#2676).
 - Dates and times built in the browser follow the plugin's date and time formats too: the certificates dashboard, the audience calendars, the audience booking details and conflicts, the Date Messages preview and send confirmation, and the signed QR code verifier, which carries the format offline. `FFC.formatDate()` and `FFC.formatTime()` read it from `ffcCoreConfig.dates` (#2676).
 
 ## [6.44.1] (2026-11-08) — `513f0c4`

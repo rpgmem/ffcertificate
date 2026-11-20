@@ -513,7 +513,7 @@ class PrivacyExporters {
 		foreach ( $bookings as $booking ) {
 			$time = ! empty( $booking['is_all_day'] )
 				? __( 'All Day', 'ffcertificate' )
-				: ( $booking['start_time'] ?? '' ) . ' - ' . ( $booking['end_time'] ?? '' );
+				: \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $booking['start_time'] ?? '' ) ) . ' - ' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $booking['end_time'] ?? '' ) );
 
 			$data = array(
 				array(
@@ -522,9 +522,11 @@ class PrivacyExporters {
 				),
 				array(
 					'name'  => __( 'Date', 'ffcertificate' ),
+					// Wall-clock dates, in the plugin's format (#2676).
 					'value' => \FreeFormCertificate\Audience\AudienceBookingRules::date_label(
 						(string) ( $booking['booking_date'] ?? '' ),
-						$booking['end_date'] ?? null
+						$booking['end_date'] ?? null,
+						static fn( string $date ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date )
 					),
 				),
 				array(
