@@ -48,7 +48,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><strong><?php esc_html_e( 'Status', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'ok / weak / placeholder / missing, taken across the secrets that actually feed the key + salt.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Key / salt source', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the WordPress keys, or the FFC constants once decoupled. An FFC_HASH_SALT defined as empty is used as it is, so it reads as a missing secret.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Active key fingerprint', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a non-reversible fingerprint (the key itself is never displayed) so you can confirm which key is live and detect a rotation.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Unauthenticated (legacy) reads', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'how many requests read a value stored in the oldest format, which carries no integrity check, and when the last did. Once nothing has been counted for a long while, that format can be refused.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Unauthenticated (legacy) reads', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'how many requests read a value stored in the oldest format, which carries no integrity check, and when the last did. Once nothing has been counted for a long while, that format can be refused.', 'ffcertificate' ); ?> <?php esc_html_e( 'A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value.', 'ffcertificate' ); ?></li>
 	</ul>
 
 	<p>
