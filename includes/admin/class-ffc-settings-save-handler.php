@@ -617,6 +617,7 @@ class SettingsSaveHandler {
 		$clean['qr_design_eye_frame_color'] = $design->eye_frame_color;
 		$clean['qr_design_eye_ball_color']  = $design->eye_ball_color;
 		$clean['qr_design_logo_id']         = $logo_id;
+		$clean['qr_design_logo_enabled']    = isset( $new['qr_design_logo_enabled'] ) ? 1 : 0;
 		$clean['qr_design_frame']           = $design->frame;
 		$clean['qr_design_frame_text']      = $design->frame_text;
 		$clean['qr_design_frame_color']     = $design->frame_color;

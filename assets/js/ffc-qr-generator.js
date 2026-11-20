@@ -493,7 +493,8 @@
 		if (action === 'level' && /^[LMQH]$/.test(value)) {
 			$form.find('#qr_default_error_level').val(value).trigger('change');
 		} else if (action === 'logo') {
-			$form.find('.ffc-media-clear[data-ffc-media-target="#qr_design_logo_id"]').first().trigger('click');
+			// Off, not cleared: the image stays for when the content is shortened (#2686).
+			$form.find('[data-ffc-qr-design="qr_design_logo_enabled"]').prop('checked', false).trigger('change');
 		} else if (action === 'short') {
 			$form.find('#ffc-qr-short').prop('checked', true).trigger('change');
 		}

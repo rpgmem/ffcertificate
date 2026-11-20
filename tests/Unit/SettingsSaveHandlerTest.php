@@ -811,6 +811,9 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( '#2271b1', $result['qr_design_color_end'] );
 		$this->assertSame( 0, $result['qr_design_on_certificate'] );
 		$this->assertSame( 1, $result['qr_design_on_short_urls'] );
+		// An unticked logo switch is absent from the POST: off (#2686).
+		$this->assertSame( 0, $result['qr_design_logo_enabled'] );
+		$this->assertSame( 1, $this->invoke( 'save_qrcode_settings', array( array(), $new + array( 'qr_design_logo_enabled' => '1' ) ) )['qr_design_logo_enabled'] );
 		// Absent from the POST: the default icon, and an opaque ground.
 		$this->assertSame( 'scan', $result['qr_design_frame_icon'] );
 		$this->assertSame( 0, $result['qr_design_transparent'] );

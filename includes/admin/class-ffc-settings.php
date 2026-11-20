@@ -346,6 +346,8 @@ class Settings {
 			'qr_design_eye_frame_color'         => '#000000',
 			'qr_design_eye_ball_color'          => '#000000',
 			'qr_design_logo_id'                 => 0,
+			// On by default, so a logo already set keeps being drawn (#2686).
+			'qr_design_logo_enabled'            => 1,
 			'qr_design_frame'                   => 'none',
 			'qr_design_frame_text'              => '',
 			'qr_design_frame_color'             => '#1d2327',

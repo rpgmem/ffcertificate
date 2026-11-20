@@ -91,8 +91,9 @@ class QrGeneratorAjaxEndpoint {
 			unset( $short['drawn'] );
 		}
 
+		// The logo's switch off keeps the image selected and draws without it (#2686).
 		$input         = RequestInput::get_post_array( 'design' );
-		$logo_id       = RequestInput::get_post_int( 'logo_id', 0 );
+		$logo_id       = '1' === RequestInput::get_post_string( 'logo_on', '1' ) ? RequestInput::get_post_int( 'logo_id', 0 ) : 0;
 		$input['logo'] = $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? QrLogo::data_uri( $logo_id ) : '';
 		$design        = new QrDesign( $input );
 
@@ -355,6 +356,7 @@ class QrGeneratorAjaxEndpoint {
 				// A logo the user cannot read is not remembered: the page would
 				// otherwise embed it on the next visit.
 				'qr_design_logo_id'         => $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? $logo_id : 0,
+				'qr_design_logo_enabled'    => '1' === RequestInput::get_post_string( 'logo_on', '1' ),
 				'margin'                    => RequestInput::get_post_int( 'margin', 2 ),
 				'error_level'               => RequestInput::get_post_string( 'error_level', 'M' ),
 			)
@@ -428,7 +430,7 @@ class QrGeneratorAjaxEndpoint {
 			$fixes[] = array(
 				'action' => 'logo',
 				'value'  => '',
-				'label'  => __( 'Remove the logo', 'ffcertificate' ),
+				'label'  => __( 'Turn off the logo', 'ffcertificate' ),
 			);
 		}
 		if ( null === $short && in_array( $type, self::SHORTENABLE, true ) ) {

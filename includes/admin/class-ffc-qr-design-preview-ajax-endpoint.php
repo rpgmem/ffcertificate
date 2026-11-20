@@ -53,7 +53,7 @@ class QrDesignPreviewAjaxEndpoint {
 
 		// The logo travels as an attachment id and is embedded here, so a
 		// preview can only draw an image the user may already read.
-		$logo_id       = RequestInput::get_post_int( 'logo_id', 0 );
+		$logo_id       = '1' === RequestInput::get_post_string( 'logo_on', '1' ) ? RequestInput::get_post_int( 'logo_id', 0 ) : 0;
 		$input['logo'] = $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? QrLogo::data_uri( $logo_id ) : '';
 
 		$design = new QrDesign( $input );
