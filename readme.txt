@@ -113,7 +113,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 
 * **Total Mail Queue** - When the Total Mail Queue plugin is active, every e-mail is queued through it and labelled with the plugin feature that sent it.
 * **Cloudflare** - In the opt-in "secure" client-IP mode (Settings → IP Diagnostics), Cloudflare is detected and its IP ranges are refreshed daily, so limits and geofencing use the real visitor IP.
-* **IP Geolocation** - IP-based geofencing through ip-api.com or ipinfo.io (API key required for ipinfo.io).
+* **IP Geolocation** - IP-based geofencing through ipinfo.io, over HTTPS (a free key raises the limit).
 * **Updates from GitHub** - Plugin updates come from the project's GitHub Releases through the native WordPress update screen, and each package's SHA-256 is verified before install.
 
 = Free software, free forever =
@@ -306,7 +306,7 @@ each change references, see [CHANGELOG.md](CHANGELOG.md).
 
 = Third-party services =
 * Address lookup by CEP (off by default): when on, each CEP typed in a form is sent from the server to ViaCEP or BrasilAPI to find its address. Only the eight digits travel, never who typed them, and each answer is cached for 30 days.
-* IP geolocation (off by default): when a form is limited by the location of the visitor's connection, the IP address is sent to ip-api.com (over plain HTTP on its free plan) or to ipinfo.io.
+* IP geolocation (off by default): when a form is limited by the location of the visitor's connection, the IP address is sent to ipinfo.io over HTTPS.
 
 = Data Storage =
 All data lives in the plugin's own `wp_ffc_*` tables and in `ffc_`-prefixed user meta and options. The main tables:

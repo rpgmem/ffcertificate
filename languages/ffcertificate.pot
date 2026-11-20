@@ -6452,10 +6452,6 @@ msgstr ""
 msgid "Enable browser-environment diagnostic log"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:255
-msgid "Enable cascade: if primary fails, try the other service"
-msgstr ""
-
 #: includes/settings/views/documentation/forms-schedule.php:32
 msgid "Enable date/time restriction"
 msgstr ""
@@ -9749,10 +9745,6 @@ msgstr ""
 msgid "ID/CPF/RF entered by user"
 msgstr ""
 
-#: includes/settings/views/documentation/config-geolocation.php:36
-msgid "If the primary provider fails, try the other one."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-advanced.php:30
 msgid "If this option is disabled, debug logging will also be disabled."
 msgstr ""
@@ -10156,10 +10148,6 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-frontend.php:52 includes/reregistration/class-ffc-reregistration-frontend.php:90 includes/reregistration/class-ffc-reregistration-frontend.php:143
 msgid "Invalid request."
-msgstr ""
-
-#: includes/integrations/class-ffc-ip-geolocation.php:155
-msgid "Invalid response from ip-api.com"
 msgstr ""
 
 #: includes/integrations/class-ffc-ip-geolocation.php:211
@@ -13457,14 +13445,6 @@ msgstr ""
 msgid "previously reopened — hired/withdrew/not_shown classifications are frozen"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:227
-msgid "Primary Service"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:35
-msgid "Primary service"
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:399
 msgid "Print"
 msgstr ""
@@ -15658,14 +15638,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:268
 msgid "Service"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:247
-msgid "Service Cascade"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:36
-msgid "Service cascade"
 msgstr ""
 
 #: includes/admin/class-ffc-activity-log-export-source.php:98 includes/admin/class-ffc-activity-log-export-source.php:116 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:132 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:150 includes/reregistration/class-ffc-reregistration-export-source.php:92 includes/reregistration/class-ffc-reregistration-export-source.php:110 includes/url-shortener/class-ffc-url-shortener-export-source.php:112 includes/url-shortener/class-ffc-url-shortener-export-source.php:130 includes/audience/class-ffc-audience-booking-export-source.php:97 includes/audience/class-ffc-audience-booking-export-source.php:115 includes/frontend/class-ffc-public-forms-export-source.php:154 includes/frontend/class-ffc-public-forms-export-source.php:170
@@ -18340,10 +18312,6 @@ msgstr ""
 msgid "Unknown Calendar"
 msgstr ""
 
-#: includes/integrations/class-ffc-ip-geolocation.php:159
-msgid "Unknown error from ip-api.com"
-msgstr ""
-
 #: includes/integrations/class-ffc-ip-geolocation.php:216
 msgid "Unknown error from ipinfo.io"
 msgstr ""
@@ -18358,10 +18326,6 @@ msgstr ""
 
 #: includes/api/class-ffc-user-certificates-rest-controller.php:137
 msgid "Unknown Form"
-msgstr ""
-
-#: includes/integrations/class-ffc-ip-geolocation.php:123
-msgid "Unknown geolocation service."
 msgstr ""
 
 #: includes/admin/class-ffc-migration-actions-ajax-endpoint.php:82
@@ -19360,10 +19324,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:24
 msgid "When enabled, each form gets its own secret hash. The operator opens a page carrying the"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:261
-msgid "When enabled, if the primary service fails, automatically try the alternative service."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php:58
@@ -32055,40 +32015,20 @@ msgstr ""
 msgid "Optional. Without a key ipinfo.io answers a limited number of lookups a day; a free key raises that to 50,000 a month."
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:63
-msgid "Says the site has ip-api.com's paid HTTPS plan, so ip-api.com may be asked; without it ipinfo.io is asked instead, since visitor addresses are never sent in clear text — args ( false )."
-msgstr ""
-
 #: includes/integrations/class-ffc-ip-geolocation.php:82
 msgid "The IP geolocation service failed a moment ago. It will be asked again in a few minutes."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:263
-msgid "Visitor addresses are sent over HTTPS only. ip-api.com serves HTTPS on its paid plan, so it is asked only when the ffc_ipapi_use_https filter says the site has one; otherwise ipinfo.io is asked instead. A failed lookup is not repeated for 5 minutes."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:211
 msgid "Visitor addresses leave this site:"
 msgstr ""
 
-#: includes/privacy/class-ffc-privacy-handler.php:99
-msgid "When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io, or ip-api.com on its paid plan) to find its approximate region."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:209
 msgid "When this is on, the IP address of each visitor who submits a geofenced form is sent, over HTTPS, to the service chosen below, which answers with its approximate location. The site's privacy policy should say so; the text the plugin suggests for it does."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:259
-msgid "ip-api.com (HTTPS on its paid plan only)"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:256
 msgid "ipinfo.io (HTTPS on the free tier; a free key raises the limit)"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:36
-msgid "ipinfo.io (the default, HTTPS on its free tier; a free key raises the limit) or ip-api.com, which serves HTTPS only on its paid plan and is asked only when the ffc_ipapi_use_https filter says the site has one. Visitor addresses are never sent in clear text."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-geolocation.php:38
@@ -35285,6 +35225,18 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php
+msgid "Visitor addresses are sent over HTTPS only. A failed lookup is not repeated for 5 minutes."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php
+msgid "When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io) to find its approximate region."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php
+msgid "ipinfo.io, over HTTPS on its free tier; a free key raises the limit. Visitor addresses are never sent in clear text."
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php

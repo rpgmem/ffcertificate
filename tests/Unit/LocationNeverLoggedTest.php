@@ -103,19 +103,15 @@ class LocationNeverLoggedTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn(
 			(string) json_encode(
 				array(
-					'status'      => 'success',
-					'country'     => 'Brazil',
-					'countryCode' => 'BR',
-					'regionName'  => 'São Paulo',
-					'region'      => 'SP',
-					'city'        => 'São Paulo',
-					'lat'         => self::LAT,
-					'lon'         => self::LNG,
+					'country' => 'BR',
+					'region'  => 'São Paulo',
+					'city'    => 'São Paulo',
+					'loc'     => self::LAT . ',' . self::LNG,
 				)
 			)
 		);
-		$fetch    = new \ReflectionMethod( IpGeolocation::class, 'fetch_from_ipapi' );
-		$location = $fetch->invoke( null, '203.0.113.5' );
+		$fetch    = new \ReflectionMethod( IpGeolocation::class, 'fetch_from_ipinfo' );
+		$location = $fetch->invoke( null, '203.0.113.5', '' );
 
 		// The lookup still returns the position; only the log copy drops it.
 		$this->assertSame( self::LAT, $location['latitude'] );

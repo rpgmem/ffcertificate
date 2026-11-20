@@ -4,9 +4,9 @@
  *
  * Handles IP-based geolocation using external APIs
  *
- * Supported services:
- * - ip-api.com (free, 45 req/min, no API key)
- * - ipinfo.io (50k/month free, requires API key)
+ * Service: ipinfo.io, over HTTPS (a free key raises the limit). ip-api.com
+ * was removed in #2690: its free host refuses HTTPS and its paid plan
+ * answers on another host with a key, so it could never be asked.
  *
  * @package FreeFormCertificate\Integrations
  * @version 3.3.0 - Added strict types and type hints
@@ -28,13 +28,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Ip Geolocation.
  */
 class IpGeolocation {
-
-	/**
-	 * The ip-api.com service, asked only over its paid HTTPS plan.
-	 *
-	 * @var string
-	 */
-	public const SERVICE_IPAPI = 'ip-api';
 
 	/**
 	 * The ipinfo.io service, HTTPS on its free tier: the default.
@@ -97,24 +90,7 @@ class IpGeolocation {
 			}
 		}
 
-		// Try primary service.
-		$primary_service = self::effective_service( (string) ( $settings['ip_api_service'] ?? self::SERVICE_IPINFO ) );
-		$location        = self::fetch_from_service( $ip, $primary_service, $settings );
-
-		// If primary failed and cascade is enabled, try alternative — only
-		// when the alternative can also be asked over HTTPS.
-		$alternative_service = self::SERVICE_IPAPI === $primary_service ? self::SERVICE_IPINFO : self::SERVICE_IPAPI;
-		if ( is_wp_error( $location ) && ! empty( $settings['ip_api_cascade'] ) && self::effective_service( $alternative_service ) === $alternative_service ) {
-			self::debug_log(
-				'Primary service failed, trying alternative',
-				array(
-					'primary'     => $primary_service,
-					'alternative' => $alternative_service,
-					'error'       => $location->get_error_message(),
-				)
-			);
-			$location = self::fetch_from_service( $ip, $alternative_service, $settings );
-		}
+		$location = self::fetch_from_ipinfo( $ip, (string) ( $settings['ipinfo_api_key'] ?? '' ) );
 
 		// Cache successful result.
 		if ( ! is_wp_error( $location ) && $use_cache && ! empty( $settings['ip_cache_enabled'] ) ) {
@@ -125,122 +101,6 @@ class IpGeolocation {
 			self::remember_failure( $ip );
 		}
 
-		return $location;
-	}
-
-	/**
-	 * The service actually asked, given the one configured (#2339).
-	 *
-	 * Visitor addresses are never sent in clear text. ip-api.com serves HTTPS
-	 * only on its paid plan, so it is asked only when the `ffc_ipapi_use_https`
-	 * filter says the site has one; otherwise ipinfo.io, which serves HTTPS on
-	 * its free tier, is asked instead.
-	 *
-	 * @since 6.44.0
-	 * @param string $service Configured service id.
-	 * @return string `ip-api` or `ipinfo`.
-	 */
-	public static function effective_service( string $service ): string {
-		if ( self::SERVICE_IPAPI === $service && self::ipapi_over_https() ) {
-			return self::SERVICE_IPAPI;
-		}
-
-		return self::SERVICE_IPINFO;
-	}
-
-	/**
-	 * Whether the site has ip-api.com's HTTPS (paid) plan.
-	 *
-	 * @return bool
-	 */
-	private static function ipapi_over_https(): bool {
-		/**
-		 * Whether ip-api.com may be asked, over HTTPS (its paid plan).
-		 *
-		 * @since 3.0.0
-		 * @param bool $https Default false.
-		 */
-		return (bool) apply_filters( 'ffc_ipapi_use_https', false );
-	}
-
-	/**
-	 * Fetch location from specific service
-	 *
-	 * @param string               $ip IP address.
-	 * @param string               $service Service name ('ip-api' or 'ipinfo').
-	 * @param array<string, mixed> $settings Plugin settings.
-	 * @return array<string, mixed>|\WP_Error Location data or WP_Error on failure
-	 */
-	private static function fetch_from_service( string $ip, string $service, array $settings ) {
-		// Hash the IP in debug logs so that debug-mode logging never stores raw PII per LGPD/GDPR.
-		self::debug_log(
-			'Fetching from service',
-			array(
-				'service' => $service,
-				'ip_hash' => self::hash_ip( $ip ),
-			)
-		);
-
-		if ( self::SERVICE_IPAPI === $service ) {
-			return self::fetch_from_ipapi( $ip );
-		} elseif ( self::SERVICE_IPINFO === $service ) {
-			$api_key = $settings['ipinfo_api_key'] ?? '';
-			return self::fetch_from_ipinfo( $ip, $api_key );
-		}
-
-		return new WP_Error( 'unknown_service', __( 'Unknown geolocation service.', 'ffcertificate' ) );
-	}
-
-	/**
-	 * Fetch location from ip-api.com
-	 *
-	 * @param string $ip IP address.
-	 * @return array<string, mixed>|\WP_Error
-	 */
-	private static function fetch_from_ipapi( string $ip ) {
-		// HTTPS only (#2339): this is reached only when effective_service()
-		// allowed ip-api, i.e. the site has its HTTPS plan.
-		$url = sprintf( 'https://ip-api.com/json/%s?fields=status,message,country,countryCode,region,regionName,city,lat,lon', $ip );
-
-		$response = wp_remote_get(
-			$url,
-			array(
-				'timeout'   => 5,
-				'sslverify' => true,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			self::debug_log( 'ip-api request failed', array( 'error' => $response->get_error_message() ) );
-			return $response;
-		}
-
-		$body = wp_remote_retrieve_body( $response );
-		$data = json_decode( $body, true );
-
-		if ( empty( $data ) || ! is_array( $data ) ) {
-			return new WP_Error( 'invalid_response', __( 'Invalid response from ip-api.com', 'ffcertificate' ) );
-		}
-
-		if ( 'success' !== $data['status'] ) {
-			return new WP_Error( 'api_error', $data['message'] ?? __( 'Unknown error from ip-api.com', 'ffcertificate' ) );
-		}
-
-		// Normalize response format.
-		$location = array(
-			'ip'           => $ip,
-			'country'      => $data['country'] ?? '',
-			'country_code' => $data['countryCode'] ?? '',
-			'region'       => $data['regionName'] ?? '',
-			'region_code'  => $data['region'] ?? '',
-			'city'         => $data['city'] ?? '',
-			'latitude'     => floatval( $data['lat'] ?? 0 ),
-			'longitude'    => floatval( $data['lon'] ?? 0 ),
-			'service'      => 'ip-api',
-			'timestamp'    => time(),
-		);
-
-		self::debug_log( 'ip-api success', self::redact_location_ip( $location ) );
 		return $location;
 	}
 
