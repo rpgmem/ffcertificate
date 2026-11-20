@@ -23054,7 +23054,7 @@ msgstr ""
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
 msgstr ""
 
-msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
+msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically); its Use the logo switch draws the code without it while keeping the image selected. A frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
 msgstr ""
 
 msgid "With the design applied to certificates, the {{qr_code}} placeholder is drawn as an SVG and is not cached; without it, a PNG is generated and may be served from the QR Code cache."
@@ -35155,7 +35155,7 @@ msgid "Use error correction %s"
 msgstr ""
 
 #: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
-msgid "Remove the logo"
+msgid "Turn off the logo"
 msgstr ""
 
 #: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
@@ -35163,7 +35163,7 @@ msgid "Use a short URL"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-qr-generator.php
-msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, removing the logo that forces H, or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
+msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, turning off the logo that forces H (the image stays selected), or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-layout-metabox.php
@@ -35256,4 +35256,12 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-general.php:44
 msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
+msgstr ""
+
+#: templates/admin/qr/design-fields.php
+msgid "Use the logo"
+msgstr ""
+
+#: templates/admin/qr/design-fields.php
+msgid "Turn off to draw the code without the logo while keeping the image selected."
 msgstr ""

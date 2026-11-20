@@ -23133,8 +23133,8 @@ msgstr "Cada participante deve apresentar um código de uso único de um conjunt
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
 msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados (AES-256-CBC com um IV aleatório por registro e uma verificação de integridade encrypt-then-HMAC), nunca armazenados em texto puro. As submissões de certificado também criptografam o IP do cliente e os dados extras do formulário."
 
-msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
-msgstr "Um logotipo da Biblioteca de Mídia pode ser desenhado no centro (a correção de erros é elevada para H automaticamente), e uma moldura (banner, badge, bubble, pill, speech, circle, brackets ou double) pode trazer uma legenda curta como \"Escaneie para verificar\", opcionalmente com um ícone. Uma moldura deixa a imagem mais alta do que larga; os certificados mantêm a largura pedida pelo placeholder e crescem em altura."
+msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically); its Use the logo switch draws the code without it while keeping the image selected. A frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
+msgstr "Um logotipo da Biblioteca de Mídia pode ser desenhado no centro (a correção de erros é elevada para H automaticamente); a chave Usar o logo desenha o código sem ele, mantendo a imagem selecionada. Uma moldura (banner, badge, bubble, pill, speech, circle, brackets ou double) pode trazer uma legenda curta como \"Escaneie para verificar\", opcionalmente com um ícone. Uma moldura deixa a imagem mais alta do que larga; os certificados mantêm a largura pedida pelo placeholder e crescem em altura."
 
 msgid "With the design applied to certificates, the {{qr_code}} placeholder is drawn as an SVG and is not cached; without it, a PNG is generated and may be served from the QR Code cache."
 msgstr "Com o design aplicado aos certificados, o placeholder {{qr_code}} é desenhado como SVG e não é armazenado em cache; sem ele, é gerado um PNG que pode ser servido pelo cache de QR Code."
@@ -35233,16 +35233,16 @@ msgid "Use error correction %s"
 msgstr "Usar correção de erro %s"
 
 #: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
-msgid "Remove the logo"
-msgstr "Remover o logo"
+msgid "Turn off the logo"
+msgstr "Desligar o logo"
 
 #: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
 msgid "Use a short URL"
 msgstr "Usar uma URL curta"
 
 #: includes/settings/views/documentation/feature-qr-generator.php
-msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, removing the logo that forces H, or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
-msgstr "Quando o conteúdo é longo demais para a correção de erros escolhida, a mensagem diz quanto remover e oferece um botão para cada saída: o nível mais baixo que o comporta, remover o logo que força H, ou uma URL curta para um site ou perfil social. Um botão só altera o próprio controle, então o formulário sempre mostra com o que o código é desenhado; o gerador nunca muda o nível sozinho."
+msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, turning off the logo that forces H (the image stays selected), or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
+msgstr "Quando o conteúdo é longo demais para a correção de erros escolhida, a mensagem diz quanto remover e oferece um botão para cada saída: o nível mais baixo que o comporta, desligar o logo que força H (a imagem continua selecionada), ou uma URL curta para um site ou perfil social. Um botão só altera o próprio controle, então o formulário sempre mostra com o que o código é desenhado; o gerador nunca muda o nível sozinho."
 
 #: includes/admin/class-ffc-form-editor-layout-metabox.php
 msgid "The link does not fit in a QR code at any error correction: the certificate prints it as text instead."
@@ -35335,3 +35335,11 @@ msgstr "Este certificado foi emitido em %1$s e assinado por este site depois, em
 #: includes/settings/views/documentation/config-general.php:44
 msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
 msgstr "Os mesmos formatos valem nas telas do admin, nas exportações CSV, no painel do usuário, nos calendários de público-alvo e no verificador do QR code assinado, inclusive offline. Os títulos de dia dos calendários são a única exceção: escrevem o mês por extenso, no idioma do site."
+
+#: templates/admin/qr/design-fields.php
+msgid "Use the logo"
+msgstr "Usar o logo"
+
+#: templates/admin/qr/design-fields.php
+msgid "Turn off to draw the code without the logo while keeping the image selected."
+msgstr "Desligue para desenhar o código sem o logo, mantendo a imagem selecionada."
