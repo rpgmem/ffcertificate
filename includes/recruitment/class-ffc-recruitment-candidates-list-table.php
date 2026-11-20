@@ -239,9 +239,9 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 	 * @return string
 	 */
 	protected function column_created_at( $item ): string {
-		// A DATETIME written in the site's time (#2676): shown in the plugin's
-		// format, without shifting it by the site timezone again.
-		return esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_datetime( (string) $item['created_at'] ) );
+		// An instant (#2679), in the plugin's format and the site timezone; a
+		// row not converted yet reads its DATETIME in that timezone too.
+		return esc_html( \FreeFormCertificate\Core\DateFormatter::format_instant( $item['created_at'] ?? null ) );
 	}
 
 	/**

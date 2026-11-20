@@ -1818,9 +1818,13 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 
 		$this->assertNotInstanceOf( \WP_Error::class, $response );
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( $this->rows[ self::T_CLASSIFICATION ][5], $response->get_data() );
+		$stored = $this->rows[ self::T_CLASSIFICATION ][5];
+		$this->assertSame( $stored->id, $response->get_data()->id );
 		$this->assertSame( 'granted', $response->get_data()->preview_status );
 		$this->assertSame( 8, $response->get_data()->preview_reason_id );
+		// The column stores an instant; the response keeps the site-local text (#2679).
+		$this->assertIsInt( $stored->updated_at );
+		$this->assertSame( gmdate( 'Y-m-d H:i:s', $stored->updated_at ), $response->get_data()->updated_at );
 	}
 
 	public function test_preview_status_empty_clears_reason_and_succeeds(): void {

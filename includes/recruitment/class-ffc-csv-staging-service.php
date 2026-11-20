@@ -153,7 +153,7 @@ final class CsvStagingService {
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
 		$job_id = wp_generate_uuid4();
-		$now    = current_time( 'mysql' );
+		$now    = time();
 		$user   = (int) get_current_user_id();
 
 		// Job row first so a partially-ingested staging set without an
@@ -172,7 +172,7 @@ final class CsvStagingService {
 				'created_at'      => $now,
 				'updated_at'      => $now,
 			),
-			array( '%s', '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
+			array( '%s', '%d', '%s', '%s', '%d', '%d', '%d', '%d', '%d' )
 		);
 		if ( false === $inserted ) {
 			return array(
@@ -282,21 +282,20 @@ final class CsvStagingService {
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
-		// `created_at` is written with current_time( 'mysql' ), the site's
-		// time zone, so the cutoff is computed in that zone too; the
-		// database's NOW() is in the server's, and the two can be hours
-		// apart (#2245).
-		$cutoff = wp_date( 'Y-m-d H:i:s', time() - self::STAGING_JOB_TTL_SECONDS );
+		// `created_at` is an instant (#2679), so the cutoff is UTC seconds and
+		// no timezone enters the comparison; the database's NOW() would be in
+		// the server's zone (#2245).
+		$cutoff = time() - self::STAGING_JOB_TTL_SECONDS;
 
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
+				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
 				$cutoff
 			)
 		);
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$jobs_table} WHERE created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
+				"DELETE FROM {$jobs_table} WHERE created_at < %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 				$cutoff
 			)
 		);
@@ -513,10 +512,10 @@ final class CsvStagingService {
 			$jobs_table,
 			array(
 				'status'     => $next_status,
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			),
 			array( 'job_id' => $job_id ),
-			array( '%s', '%s' ),
+			array( '%s', '%d' ),
 			array( '%s' )
 		);
 
@@ -614,10 +613,10 @@ final class CsvStagingService {
 				$jobs_table,
 				array(
 					'status'     => 'promoting',
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				),
 				array( 'job_id' => $job_id ),
-				array( '%s', '%s' ),
+				array( '%s', '%d' ),
 				array( '%s' )
 			);
 		}
@@ -665,9 +664,9 @@ final class CsvStagingService {
 		// with a concurrent retry from a frantic JS retry loop.
 		$wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$jobs_table} SET processed_count = processed_count + %d, updated_at = %s WHERE job_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
+				"UPDATE {$jobs_table} SET processed_count = processed_count + %d, updated_at = %d WHERE job_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$processed_now,
-				current_time( 'mysql' ),
+				time(),
 				$job_id
 			)
 		);
@@ -804,15 +803,15 @@ final class CsvStagingService {
 				$wpdb->prepare(
 					'INSERT INTO %i
 						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, pcd_hash, status, created_at, updated_at)
-					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, pcd_hash, %s, %s, %s
+					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, pcd_hash, %s, %d, %d
 					 FROM %i
 					 WHERE job_id = %s AND processed = 1
 					 ORDER BY row_no',
 					$classification_table,
 					(string) $job->list_type,
 					'empty',
-					current_time( 'mysql' ),
-					current_time( 'mysql' ),
+					time(),
+					time(),
 					$staging_table,
 					$job_id
 				)
@@ -850,10 +849,10 @@ final class CsvStagingService {
 				$jobs_table,
 				array(
 					'status'     => 'committed',
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				),
 				array( 'job_id' => $job_id ),
-				array( '%s', '%s' ),
+				array( '%s', '%d' ),
 				array( '%s' )
 			);
 

@@ -236,7 +236,7 @@ class CandidacyMerge {
 		$gains = $this->gains( $source, $target );
 
 		if ( array() !== $gains ) {
-			$gains['updated_at'] = current_time( 'mysql' );
+			$gains['updated_at'] = time();
 
 			if ( false === $wpdb->update( $candidates, $gains, array( 'id' => $into ), null, array( '%d' ) ) ) {
 				return $this->failed( $candidates );

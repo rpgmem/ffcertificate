@@ -628,8 +628,10 @@ final class RecruitmentCandidateEditPage {
 	private static function build_delete_consequences( object $candidate ): array {
 		$context = array();
 
-		$created_at = (string) $candidate->created_at;
-		if ( '' !== $created_at ) {
+		// Instants (#2679); a row not converted yet reads its DATETIME in the
+		// site timezone, which is how it was written.
+		$created_at = DateFormatter::instant_of( $candidate->created_at ?? null );
+		if ( $created_at > 0 ) {
 			$context[] = sprintf(
 				/* translators: %s — formatted datetime when the candidate row was created */
 				__( 'Created on %s.', 'ffcertificate' ),
@@ -637,8 +639,8 @@ final class RecruitmentCandidateEditPage {
 			);
 		}
 
-		$updated_at = (string) $candidate->updated_at;
-		if ( '' !== $updated_at && $updated_at !== $created_at ) {
+		$updated_at = DateFormatter::instant_of( $candidate->updated_at ?? null );
+		if ( $updated_at > 0 && $updated_at !== $created_at ) {
 			$context[] = sprintf(
 				/* translators: %s — formatted datetime when the candidate row was last touched */
 				__( 'Last updated on %s.', 'ffcertificate' ),

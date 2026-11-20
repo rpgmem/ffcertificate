@@ -522,18 +522,18 @@ class CsvStagingServiceTest extends TestCase {
 		);
 		$this->assertCount( 1, $staged );
 
-		// The sweep binds a cutoff computed in the site's zone, a day back,
-		// rather than comparing with the database's NOW() (#2245).
+		// The sweep binds a cutoff a day back, in UTC seconds like the
+		// instant it compares with (#2679), never the database's NOW() (#2245).
 		$sweeps = array_values(
 			array_filter(
 				$this->queries,
-				static fn( array $q ): bool => 0 === strpos( $q[0], 'DELETE FROM ' . self::JOBS . ' WHERE created_at < %s' )
+				static fn( array $q ): bool => 0 === strpos( $q[0], 'DELETE FROM ' . self::JOBS . ' WHERE created_at < %d' )
 			)
 		);
 		$this->assertCount( 1, $sweeps );
 		$this->assertStringNotContainsString( 'NOW()', $sweeps[0][0] );
-		$cutoff = strtotime( (string) $sweeps[0][1][0] . ' UTC' );
-		$this->assertEqualsWithDelta( time() - DAY_IN_SECONDS, $cutoff, 5 );
+		$this->assertIsInt( $sweeps[0][1][0] );
+		$this->assertEqualsWithDelta( time() - DAY_IN_SECONDS, $sweeps[0][1][0], 5 );
 
 		$values = $staged[0][1];
 		$this->assertCount( 32, $values, 'Sixteen columns per row, two rows.' );

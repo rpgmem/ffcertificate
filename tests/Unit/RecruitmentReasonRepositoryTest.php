@@ -138,8 +138,10 @@ class RecruitmentReasonRepositoryTest extends TestCase {
 		$this->assertSame( 'denied', $captured['slug'] );
 		$this->assertSame( 'Denied', $captured['label'] );
 		$this->assertSame( 'denied,appeal_denied', $captured['applies_to'] );
-		$this->assertSame( '2026-05-18 10:00:00', $captured['created_at'] );
-		$this->assertSame( '2026-05-18 10:00:00', $captured['updated_at'] );
+		// Instants since #2679, from `time()`.
+		$this->assertIsInt( $captured['created_at'] );
+		$this->assertGreaterThan( time() - 10, $captured['created_at'] );
+		$this->assertSame( $captured['created_at'], $captured['updated_at'] );
 	}
 
 	public function test_create_returns_false_when_insert_fails(): void {
@@ -194,7 +196,8 @@ class RecruitmentReasonRepositoryTest extends TestCase {
 		$this->assertTrue( $ok );
 		$this->assertSame( 7, $captured['where']['id'] );
 		$this->assertSame( 'New Label', $captured['data']['label'] );
-		$this->assertSame( '2026-05-18 10:00:00', $captured['data']['updated_at'] );
+		$this->assertIsInt( $captured['data']['updated_at'], 'An instant since #2679.' );
+		$this->assertGreaterThan( time() - 10, $captured['data']['updated_at'] );
 		$this->assertContains( 'id_7', $cache_deletes );
 	}
 

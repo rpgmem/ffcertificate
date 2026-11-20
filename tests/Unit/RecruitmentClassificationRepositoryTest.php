@@ -339,9 +339,10 @@ class RecruitmentClassificationRepositoryTest extends TestCase {
 	public function test_set_preview_status_writes_and_dirties_the_public_cache(): void {
 		$this->wpdb->shouldReceive( 'update' )->once()->with(
 			'wp_ffc_recruitment_classification',
-			array( 'preview_status' => 'denied', 'preview_reason_id' => 6, 'updated_at' => '2026-05-01 10:00:00' ),
+			// `updated_at` is an instant since #2679, from `time()`.
+			Mockery::on( static fn( $data ) => 'denied' === $data['preview_status'] && 6 === $data['preview_reason_id'] && is_int( $data['updated_at'] ) ),
 			array( 'id' => 4 ),
-			array( '%s', '%d', '%s' ),
+			array( '%s', '%d', '%d' ),
 			array( '%d' )
 		)->andReturn( 1 );
 		\Brain\Monkey\Actions\expectDone( 'ffc_recruitment_public_cache_dirty' )->once();

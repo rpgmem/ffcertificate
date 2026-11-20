@@ -141,7 +141,7 @@ class RecruitmentAccountLinkerTest extends TestCase {
 		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
 			function ( $query ) {
 				[ $sql, $args ] = $this->statement( $query );
-				if ( 0 === strpos( $sql, 'UPDATE %i SET user_id = %d, updated_at = %s WHERE id = %d AND user_id IS NULL' ) ) {
+				if ( 0 === strpos( $sql, 'UPDATE %i SET user_id = %d, updated_at = %d WHERE id = %d AND user_id IS NULL' ) ) {
 					$this->links[] = array( (int) $args[1], (int) $args[3] );
 					return $this->claimed;
 				}
