@@ -508,12 +508,30 @@ class VerificationResponseRendererTest extends TestCase {
 		$pdf_generator = Mockery::mock( 'FreeFormCertificate\Generators\PdfGenerator' );
 		$pdf_generator->shouldReceive( 'generate_appointment_pdf_data' )
 			->once()
-			->with( $result['appointment'], array( 'title' => 'Event Title' ) )
+			->with( $result['appointment'], array( 'title' => 'Event Title' ), false )
 			->andReturn( array( 'pdf' => 'data' ) );
 
 		$pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
 
 		$this->assertSame( array( 'pdf' => 'data' ), $pdf_data );
+	}
+
+	public function test_generate_appointment_verification_pdf_passes_the_mask_through(): void {
+		$result = array(
+			'data'        => array( 'calendar_title' => 'Event Title' ),
+			'appointment' => array(
+				'calendar_id'     => 0,
+				'validation_code' => 'V123',
+			),
+		);
+
+		$pdf_generator = Mockery::mock( 'FreeFormCertificate\Generators\PdfGenerator' );
+		$pdf_generator->shouldReceive( 'generate_appointment_pdf_data' )
+			->once()
+			->with( $result['appointment'], array( 'title' => 'Event Title' ), true )
+			->andReturn( array( 'pdf' => 'masked' ) );
+
+		$this->assertSame( array( 'pdf' => 'masked' ), $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator, true ) );
 	}
 
 	// ==================================================================
@@ -661,7 +679,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$pdf_generator = Mockery::mock( 'FreeFormCertificate\Generators\PdfGenerator' );
 		$pdf_generator->shouldReceive( 'generate_appointment_pdf_data' )
 			->once()
-			->with( $result['appointment'], $calendar_data )
+			->with( $result['appointment'], $calendar_data, false )
 			->andReturn( array( 'pdf' => 'calendar_data' ) );
 
 		$pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );

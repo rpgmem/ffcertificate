@@ -407,9 +407,12 @@ class VerificationResponseRenderer {
 	 *
 	 * @param array<string, mixed>                         $result Search result array.
 	 * @param \FreeFormCertificate\Generators\PdfGenerator $pdf_generator PDF generator instance.
+	 * @param bool                                         $masked        Mask CPF/RF and e-mail and leave the
+	 *                                                                    magic token out: the receipt reached
+	 *                                                                    by a validation code (#2689).
 	 * @return array<string, mixed> PDF data array
 	 */
-	public function generate_appointment_verification_pdf( array $result, \FreeFormCertificate\Generators\PdfGenerator $pdf_generator ): array {
+	public function generate_appointment_verification_pdf( array $result, \FreeFormCertificate\Generators\PdfGenerator $pdf_generator, bool $masked = false ): array {
 		$appointment = $result['appointment'];
 		$calendar    = array( 'title' => $result['data']['calendar_title'] ?? __( 'N/A', 'ffcertificate' ) );
 
@@ -421,7 +424,7 @@ class VerificationResponseRenderer {
 			}
 		}
 
-		return $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
+		return $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar, $masked );
 	}
 
 	/**
