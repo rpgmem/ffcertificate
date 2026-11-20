@@ -910,7 +910,9 @@
         var peopleBookings = conflicts.type === 'user' ? conflicts.bookings : conflicts.user_bookings;
         if (peopleBookings && peopleBookings.length > 0) {
             var count = conflicts.affected_users ? conflicts.affected_users.length : 0;
-            lines.push(count + ' ' + (s.membersOverlapping || 'member(s) have overlapping bookings.'));
+            // One sentence per count, never a number glued to a fragment (#2668).
+            var overlap = 1 === count ? (s.memberOverlapping || '%d member has overlapping bookings.') : (s.membersOverlapping || '%d members have overlapping bookings.');
+            lines.push(overlap.replace('%d', count));
             var names = conflicts.affected_names || [];
             if (names.length > 0) {
                 var list = names.join(', ');

@@ -1073,7 +1073,10 @@ class AudienceShortcode {
 						'descriptionRequired'    => __( 'Description is required (15-300 characters).', 'ffcertificate' ),
 						'conflictWarning'        => __( 'Warning: Conflicts detected with existing bookings.', 'ffcertificate' ),
 						'audienceSameDayWarning' => __( 'Warning: The following groups already have bookings on this day:', 'ffcertificate' ),
-						'membersOverlapping'     => __( 'member(s) have overlapping bookings.', 'ffcertificate' ),
+						/* translators: %d: always 1. */
+						'memberOverlapping'      => __( '%d member has overlapping bookings.', 'ffcertificate' ),
+						/* translators: %d: number of members, 2 or more. */
+						'membersOverlapping'     => __( '%d members have overlapping bookings.', 'ffcertificate' ),
 						/* translators: %d: number of further people not named */
 						'andMore'                => __( 'and %d more', 'ffcertificate' ),
 						'hardConflict'           => __( 'This time slot is already booked for this environment. You cannot create a booking at this time.', 'ffcertificate' ),
