@@ -22650,9 +22650,6 @@ msgstr "As funções a manter fora; a função FFC Usuário Final vem selecionad
 msgid "On by default: an administrator is never redirected, even when holding a blocked role."
 msgstr "Ativado por padrão: um administrador nunca é redirecionado, mesmo tendo uma função bloqueada."
 
-msgid "Where blocked users land — by default the site's /dashboard page."
-msgstr "Para onde os usuários bloqueados vão — por padrão, a página /dashboard do site."
-
 msgid "The notice shown on the dashboard page after a redirect."
 msgstr "O aviso exibido na página do painel após um redirecionamento."
 
@@ -35320,3 +35317,11 @@ msgstr "ipinfo.io, por HTTPS no plano gratuito; uma chave gratuita aumenta o lim
 #: includes/settings/views/documentation/config-advanced.php
 msgid "A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value."
 msgstr "Um valor nesse formato é lido apenas com a chave derivada dos salts do WordPress, que é a chave com que foi gravado, então uma FFC_ENCRYPTION_KEY definida nunca o lê como outro valor."
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "A page already at either address is used only when it is published and holds that shortcode; any other page there, a draft or one of the site's own, is left alone and the plugin's page is created beside it under the address WordPress gives it."
+msgstr "Uma página que já está em um desses endereços só é usada se estiver publicada e tiver esse shortcode; qualquer outra página ali, um rascunho ou uma página do próprio site, é deixada como está, e a página do plugin é criada ao lado dela, no endereço que o WordPress lhe der."
+
+#: includes/settings/views/documentation/config-user-access.php
+msgid "Where blocked users land — by default the dashboard page the plugin manages, wherever its address ended up."
+msgstr "Para onde vão os usuários bloqueados — por padrão, a página do painel gerenciada pelo plugin, qualquer que seja o endereço dela."

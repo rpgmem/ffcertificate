@@ -17,7 +17,7 @@ $ffcertificate_current_settings = get_option( 'ffc_user_access_settings', array(
 $ffcertificate_defaults = array(
 	'block_wp_admin'    => false,
 	'blocked_roles'     => array( 'ffc_end_user' ),
-	'redirect_url'      => home_url( '/dashboard' ),
+	'redirect_url'      => \FreeFormCertificate\Core\PasswordInvite::dashboard_url(),
 	'redirect_message'  => __( 'You were redirected from the admin panel. Use this dashboard to access your certificates.', 'ffcertificate' ),
 	'allow_admin_bar'   => false,
 	'bypass_for_admins' => true,
@@ -31,7 +31,7 @@ $ffcertificate_available_roles = $ffcertificate_wp_roles->get_names();
 
 // Get dashboard page URL.
 $ffcertificate_dashboard_page_id = get_option( 'ffc_dashboard_page_id' );
-$ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permalink( $ffcertificate_dashboard_page_id ) : home_url( '/dashboard' );
+$ffcertificate_dashboard_url     = \FreeFormCertificate\Core\PasswordInvite::dashboard_url();
 ?>
 
 <div class="ffc-settings-page">
