@@ -59,9 +59,10 @@ final class CertificateSigningBackfillMigrationStrategyTest extends TestCase {
 	 * @param array<int, int>  $certificates Submission id => form id.
 	 * @param list<int>        $forms        Forms on a signed mode.
 	 * @param list<int>        $unsignable   Ids whose signing fails.
+	 * @param array{forms: int, certificates: int} $link_only Forms on Link only with certificates.
 	 */
-	private function card( array $certificates, array $forms, array $unsignable = array() ): object {
-		return new class( $certificates, $forms, $unsignable ) extends CertificateSigningBackfillMigrationStrategy {
+	private function card( array $certificates, array $forms, array $unsignable = array(), array $link_only = array( 'forms' => 0, 'certificates' => 0 ) ): object {
+		return new class( $certificates, $forms, $unsignable, $link_only ) extends CertificateSigningBackfillMigrationStrategy {
 
 			/** @var array<int, bool> Submission id => signed. */
 			public array $signed = array();
@@ -73,11 +74,16 @@ final class CertificateSigningBackfillMigrationStrategyTest extends TestCase {
 			 * @param array<int, int> $certificates Submission id => form id.
 			 * @param list<int>       $forms        Forms on a signed mode.
 			 * @param list<int>       $unsignable   Ids whose signing fails.
+			 * @param array{forms: int, certificates: int} $link_only Forms on Link only with certificates.
 			 */
-			public function __construct( public array $certificates, public array $forms, public array $unsignable ) {}
+			public function __construct( public array $certificates, public array $forms, public array $unsignable, public array $link_only ) {}
 
 			protected function signed_forms(): array {
 				return $this->forms;
+			}
+
+			protected function link_only_summary(): array {
+				return $this->link_only;
 			}
 
 			protected function sign( int $submission_id ): bool {
@@ -253,6 +259,13 @@ final class CertificateSigningBackfillMigrationStrategyTest extends TestCase {
 				return array( 7, 9 );
 			}
 
+			protected function link_only_summary(): array {
+				return array(
+					'forms'        => 0,
+					'certificates' => 0,
+				);
+			}
+
 			/** @var list<int> */
 			public array $attempts = array();
 
@@ -279,5 +292,91 @@ final class CertificateSigningBackfillMigrationStrategyTest extends TestCase {
 		$this->assertSame( 5, end( $next['args'] ) );
 		$this->assertStringContainsString( 's.form_id IN (%d,%d)', $next['sql'], 'One placeholder per form.' );
 		$this->assertSame( 12, $this->options['ffc_certificate_signing_backfill_state']['cursor'] );
+	}
+
+	/**
+	 * The card says what it covers and what Link only leaves out (#2672):
+	 * a 100% over two certificates must not read as "every certificate".
+	 */
+	public function test_the_scope_names_the_certificates_left_on_link_only(): void {
+		$card = $this->card( array( 1 => 7, 2 => 7 ), array( 7 ), array(), array( 'forms' => 3, 'certificates' => 40 ) );
+
+		$scope = $card->calculate_status( 'certificate_signing_backfill', array() )['scope'];
+
+		$this->assertStringContainsString( 'Covered: forms on a signed QR mode: 1, certificates: 2.', $scope );
+		$this->assertStringContainsString( 'Not covered: forms on Link only: 3, certificates: 40.', $scope );
+	}
+
+	public function test_the_scope_says_so_when_nothing_is_left_out(): void {
+		$card = $this->card( array( 1 => 7 ), array( 7 ) );
+
+		$scope = $card->calculate_status( 'certificate_signing_backfill', array() )['scope'];
+
+		$this->assertStringContainsString( 'No form on Link only has certificates.', $scope );
+		$this->assertStringNotContainsString( 'Not covered', $scope );
+	}
+
+	/**
+	 * The Link only count reads the published rows of the forms whose mode is
+	 * Link only, and runs no query when there is none.
+	 */
+	public function test_the_link_only_count_reads_published_rows_of_the_link_only_forms(): void {
+		global $wpdb;
+		$wpdb = new class() {
+			public string $prefix = 'wp_';
+
+			/** @var array<int, array{sql: string, args: array<int, mixed>}> */
+			public array $log = array();
+
+			public function prepare( string $sql, ...$args ): string {
+				$this->log[] = array(
+					'sql'  => $sql,
+					'args' => $args,
+				);
+				return $sql;
+			}
+
+			/** @return array<string, string> */
+			public function get_row( string $sql, $output = null ): array {
+				return array(
+					'forms'        => '2',
+					'certificates' => '9',
+				);
+			}
+		};
+		// Form 7 is on Full, 8 and 9 on Link only (9 by default: no mode stored).
+		Functions\when( 'get_posts' )->justReturn( array( 7, 8, 9 ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( int $id ): array => 7 === $id ? array( 'qr_mode' => 'full' ) : ( 8 === $id ? array( 'qr_mode' => 'link' ) : array() )
+		);
+		$card = new class() extends CertificateSigningBackfillMigrationStrategy {
+			/** @return array{forms: int, certificates: int} */
+			public function summary(): array {
+				return $this->link_only_summary();
+			}
+		};
+
+		$this->assertSame(
+			array(
+				'forms'        => 2,
+				'certificates' => 9,
+			),
+			$card->summary()
+		);
+		$this->assertCount( 1, $wpdb->log );
+		$this->assertStringContainsString( 's.form_id IN (%d,%d)', $wpdb->log[0]['sql'] );
+		$this->assertSame( array( 'wp_ffc_submissions', 'publish', 8, 9 ), $wpdb->log[0]['args'] );
+
+		// Every form on a signed mode: nothing to count, no query.
+		Functions\when( 'get_post_meta' )->justReturn( array( 'qr_mode' => 'compact' ) );
+		$wpdb->log = array();
+		$this->assertSame(
+			array(
+				'forms'        => 0,
+				'certificates' => 0,
+			),
+			$card->summary()
+		);
+		$this->assertSame( array(), $wpdb->log );
 	}
 }

@@ -236,6 +236,14 @@ try {
 				<?php echo esc_html( $ffcertificate_migration['description'] ); ?>
 			</p>
 
+			<?php
+			// What the card covers, counted (#2672): a strategy may say how much
+			// of the population falls outside it, which the description cannot.
+			if ( ! is_wp_error( $ffcertificate_status ) && ! empty( $ffcertificate_status['scope'] ) && is_string( $ffcertificate_status['scope'] ) ) :
+				?>
+				<p class="description ffc-icon-info ffc-migration-scope"><?php echo esc_html( $ffcertificate_status['scope'] ); ?></p>
+			<?php endif; ?>
+
 			<?php if ( ! empty( $ffcertificate_status_error ) ) : ?>
 				<?php
 				\FreeFormCertificate\Core\AdminNotice::callout(
