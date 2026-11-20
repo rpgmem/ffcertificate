@@ -52,6 +52,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The QR generator offers a way out when the content is too long** (#2662): a button to use the lower error correction that holds it, to remove the logo that forces H, or to use a short URL for an address. Each one changes its own control, so the level in use stays visible.
 - **The form editor says when a certificate's QR code is printed at another error correction** (#2664): above the level the layout asks for when the link leaves room, below it when the link does not fit, and when the logo is left out or the link is printed as text.
 - pt_BR: one word per domain term across the catalogue — submissão, reserva (audience calendars), signatário, função, permissão, URL curta, registro de atividades and público-alvo — with agreement fixed in about 370 entries; `TranslationGlossaryTest` keeps the replaced words out (#2670).
+- Data Migrations: the Sign Certificates Already Issued card says how many forms on a signed QR mode it covers and how many forms and certificates on Link only it leaves out, so its 100% no longer reads as every certificate signed; a strategy can add this line through an optional `scope` status key (#2672).
 
 ### Removed
 

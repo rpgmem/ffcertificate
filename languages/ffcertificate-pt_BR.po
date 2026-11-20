@@ -35191,8 +35191,8 @@ msgid "Generate a signing key first, under Settings → Certificates."
 msgstr "Gere uma chave de assinatura antes, em Configurações → Certificados."
 
 #: includes/settings/views/documentation/reference-qr-codes.php:77
-msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again."
-msgstr "Certificados emitidos antes de o formulário escolher um modo assinado, ou antes da primeira chave, não têm registro assinado. O cartão Certificados: Assinar os Certificados Já Emitidos, em Configurações → Migrações de Dados, os assina, apenas nos formulários em modo assinado, como cada certificado está hoje e com a data de emissão original. Um PDF já baixado mantém o link simples até ser baixado de novo."
+msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again. The card counts the forms on a signed mode and their certificates, and the forms on Link only it leaves out, so a 100% over a few forms is not read as every certificate signed."
+msgstr "Certificados emitidos antes de o formulário escolher um modo assinado, ou antes da primeira chave, não têm registro assinado. O cartão Certificados: Assinar os Certificados Já Emitidos, em Configurações → Migrações de Dados, os assina, apenas nos formulários em modo assinado, como cada certificado está hoje e com a data de emissão original. Um PDF já baixado mantém o link simples até ser baixado de novo. O cartão conta os formulários em modo assinado e os certificados deles, e os formulários em Somente link que ficam de fora, para que um 100% sobre poucos formulários não seja lido como todos os certificados assinados."
 
 #: includes/settings/views/ffc-tab-certificates.php:284
 msgid "Copy public key"
@@ -35309,3 +35309,19 @@ msgstr "Direção"
 #: includes/core/class-ffc-certificate-signers.php
 msgid "School Supervision"
 msgstr "Supervisão Escolar"
+
+#. translators: 1: number of forms on a signed QR mode, 2: number of their published certificates.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+#, php-format
+msgid "Covered: forms on a signed QR mode: %1$d, certificates: %2$d."
+msgstr "Cobertos: formulários em modo de QR assinado: %1$d, certificados: %2$d."
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+msgid "No form on Link only has certificates."
+msgstr "Nenhum formulário em Somente link tem certificados."
+
+#. translators: 1: number of forms on Link only, 2: number of their published certificates.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+#, php-format
+msgid "Not covered: forms on Link only: %1$d, certificates: %2$d. To include a form, choose \"Signed, compact\" or \"Signed, full\" under QR code in its editor."
+msgstr "Fora: formulários em Somente link: %1$d, certificados: %2$d. Para incluir um formulário, escolha \"Assinado, compacto\" ou \"Assinado, completo\" em QR code, no editor dele."
