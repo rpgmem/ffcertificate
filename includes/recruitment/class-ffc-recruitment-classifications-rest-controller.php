@@ -337,7 +337,7 @@ final class RecruitmentClassificationsRestController {
 			is_int( $adjutancy_id ) && $adjutancy_id > 0 ? $adjutancy_id : null
 		);
 
-		return new \WP_REST_Response( $rows, 200 );
+		return new \WP_REST_Response( self::with_site_times( $rows ), 200 );
 	}
 
 	/**
@@ -941,7 +941,7 @@ final class RecruitmentClassificationsRestController {
 			return new \WP_Error( 'recruitment_preview_status_update_failed', RecruitmentErrorMessages::translate( 'recruitment_preview_status_update_failed' ), array( 'status' => 400 ) );
 		}
 
-		return new \WP_REST_Response( RecruitmentClassificationRepository::get_by_id( $id ), 200 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentClassificationRepository::get_by_id( $id ) ), 200 );
 	}
 
 	/**

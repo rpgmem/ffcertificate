@@ -268,20 +268,6 @@ final class DateFormatter {
 	}
 
 	/**
-	 * Format a wall-clock DATETIME string (`Y-m-d H:i:s`, already in the site's
-	 * time, such as a column written with `current_time( 'mysql' )`) in the
-	 * configured date and time formats, WITHOUT applying the site timezone a
-	 * second time (#2676). See {@see format_wallclock_date()}.
-	 *
-	 * @param string|null $wallclock Literal DATETIME string, may be empty/null.
-	 * @param string      $context   'default' or 'pdf'.
-	 * @return string Formatted date and time, or '' on unparseable input.
-	 */
-	public static function format_wallclock_datetime( ?string $wallclock, string $context = 'default' ): string {
-		return self::format_datetime( $wallclock, $context, ' ', new \DateTimeZone( 'UTC' ) );
-	}
-
-	/**
 	 * What a script needs to print a date the way this class does (#2676):
 	 * the plugin's date and time formats, the WordPress locale, and the month,
 	 * weekday and meridiem names of that locale. `FFC.formatDate()` and
@@ -443,7 +429,6 @@ final class DateFormatter {
 	private static function settings(): array {
 		return \FreeFormCertificate\Settings\SettingsReader::all();
 	}
-
 
 	/**
 	 * Render a `start–end` schedule range as a compact human-readable

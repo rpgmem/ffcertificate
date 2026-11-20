@@ -145,6 +145,39 @@ trait RecruitmentRestSupport {
 	}
 
 	/**
+	 * A row, or a list of rows, with its timestamps in the site-local
+	 * `Y-m-d H:i:s` shape the responses carried before the columns stored
+	 * instants (#2679), so an integration reads what it always read.
+	 *
+	 * Only the columns that changed type are rewritten; `called_at` and
+	 * `cancelled_at` were instants before and stay unix seconds.
+	 *
+	 * @param mixed $data A row (object or array), a list of rows, or anything else.
+	 * @return mixed The same shape, with those timestamps rewritten.
+	 */
+	private static function with_site_times( $data ) {
+		if ( is_array( $data ) && array_is_list( $data ) ) {
+			return array_map( array( self::class, 'with_site_times' ), $data );
+		}
+		if ( ! is_object( $data ) && ! is_array( $data ) ) {
+			return $data;
+		}
+		$is_object = is_object( $data );
+		$row       = $is_object ? get_object_vars( $data ) : $data;
+		$changed   = false;
+		foreach ( array( 'created_at', 'updated_at', 'opened_at', 'closed_at' ) as $key ) {
+			if ( array_key_exists( $key, $row ) && null !== $row[ $key ] ) {
+				$row[ $key ] = \FreeFormCertificate\Core\DateFormatter::site_mysql_datetime( $row[ $key ] );
+				$changed     = true;
+			}
+		}
+		// A copy, never the row itself: a reader may hand back the object
+		// its cache holds, and rewriting that would change what the next
+		// read in this request sees.
+		return $changed && $is_object ? (object) $row : ( $changed ? $row : $data );
+	}
+
+	/**
 	 * Convert an envelope-style errors array into a `\WP_Error`.
 	 *
 	 * @param array<int, string> $errors  Error codes.

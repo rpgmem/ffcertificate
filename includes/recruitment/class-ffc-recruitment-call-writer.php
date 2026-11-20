@@ -82,7 +82,7 @@ class RecruitmentCallWriter {
 			return false;
 		}
 
-		$now = current_time( 'mysql' );
+		$now = time();
 		// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c). The
 		// caller may still pass a DATETIME string via legacy code paths;
 		// normalise to int here so the repository is the single conversion
@@ -109,7 +109,7 @@ class RecruitmentCallWriter {
 			'created_at'          => $now,
 			'updated_at'          => $now,
 		);
-		$format = array( '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' );
+		$format = array( '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d' );
 
 		$result = $wpdb->insert( $table, $insert, $format );
 
@@ -146,11 +146,11 @@ class RecruitmentCallWriter {
 		$table = self::get_table_name();
 
 		// `cancelled_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
-		$now          = current_time( 'mysql' );
+		$now          = time();
 		$cancelled_at = time();
 
 		$prepared = $wpdb->prepare(
-			'UPDATE %i SET cancellation_reason = %s, cancelled_at = %d, cancelled_by = %d, updated_at = %s
+			'UPDATE %i SET cancellation_reason = %s, cancelled_at = %d, cancelled_by = %d, updated_at = %d
               WHERE id = %d AND cancelled_at IS NULL',
 			$table,
 			$reason,
@@ -205,8 +205,8 @@ class RecruitmentCallWriter {
 			return false;
 		}
 
-		$update['updated_at'] = current_time( 'mysql' );
-		$format[]             = '%s';
+		$update['updated_at'] = time();
+		$format[]             = '%d';
 
 		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
 

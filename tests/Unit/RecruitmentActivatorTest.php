@@ -384,15 +384,17 @@ class RecruitmentActivatorTest extends TestCase {
 				$queries[] = $query;
 				$log['queries'] = $queries;
 				$columns   = $log['columns'];
-				if ( false !== strpos( $query, "ADD COLUMN 'called_at_ts'" ) ) {
-					$columns['called_at_ts'] = 'bigint(20) unsigned';
+				// Any `<col>_ts` staging column: added, the old one dropped,
+				// the staging one renamed over it (the v7 and V13 swaps).
+				if ( preg_match( "/ADD COLUMN '([a-z_]+_ts)'/", $query, $m ) ) {
+					$columns[ $m[1] ] = 'bigint(20) unsigned';
 				}
-				if ( false !== strpos( $query, "DROP COLUMN 'called_at'" ) ) {
-					unset( $columns['called_at'] );
+				if ( preg_match( "/DROP COLUMN '([a-z_]+)'/", $query, $m ) ) {
+					unset( $columns[ $m[1] ] );
 				}
-				if ( false !== strpos( $query, "CHANGE 'called_at_ts' 'called_at'" ) ) {
-					$columns['called_at'] = $columns['called_at_ts'];
-					unset( $columns['called_at_ts'] );
+				if ( preg_match( "/CHANGE '([a-z_]+_ts)' '([a-z_]+)'/", $query, $m ) && isset( $columns[ $m[1] ] ) ) {
+					$columns[ $m[2] ] = $columns[ $m[1] ];
+					unset( $columns[ $m[1] ] );
 				}
 				$log['columns'] = $columns;
 				return 1;
@@ -495,13 +497,56 @@ class RecruitmentActivatorTest extends TestCase {
 		$this->assertSame( array(), $log['dbdelta'] );
 	}
 
+	/**
+	 * V13 (#2679): every timestamp of the module leaves DATETIME for an
+	 * instant, required columns staged NOT NULL, the notice's open and close
+	 * stamps nullable, and the counter moves once they all read as BIGINT.
+	 */
+	public function test_v13_converts_the_timestamps_and_then_records_itself(): void {
+		$writes = $this->record_schema_versions( 12 );
+		$log    = $this->stub_schema(
+			true,
+			array(
+				'created_at' => 'datetime',
+				'updated_at' => 'datetime',
+				'opened_at'  => 'datetime',
+				'closed_at'  => 'datetime',
+			)
+		);
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertNotEmpty( $this->queries_matching( $log, "ADD COLUMN 'created_at_ts' BIGINT UNSIGNED NOT NULL DEFAULT 0" ) );
+		$this->assertNotEmpty( $this->queries_matching( $log, "ADD COLUMN 'opened_at_ts' BIGINT UNSIGNED DEFAULT NULL" ) );
+		$this->assertNotEmpty( $this->queries_matching( $log, "CHANGE 'created_at_ts' 'created_at' BIGINT" ) );
+		foreach ( array( 'created_at', 'updated_at', 'opened_at', 'closed_at' ) as $column ) {
+			$this->assertSame( 'bigint(20) unsigned', $log['columns'][ $column ], $column . ' is an instant.' );
+		}
+		$this->assertSame( array( 13 ), $writes->getArrayCopy() );
+	}
+
+	/**
+	 * A V13 that leaves a column DATETIME does not record itself, so the
+	 * next request tries again.
+	 */
+	public function test_v13_waits_while_a_column_is_still_a_datetime(): void {
+		$writes = $this->record_schema_versions( 12 );
+		// A staging column of the wrong type is swapped in, so `created_at`
+		// ends up neither DATETIME nor BIGINT.
+		$this->stub_schema( true, array( 'created_at' => 'datetime', 'created_at_ts' => 'varchar(1)' ) );
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertSame( array(), $writes->getArrayCopy() );
+	}
+
 	public function test_maybe_migrate_on_a_bare_database_only_creates_the_late_tables(): void {
 		$writes = $this->record_schema_versions( array() );
 		$log    = $this->stub_schema( false, array() );
 
 		RecruitmentActivator::maybe_migrate();
 
-		$this->assertSame( array( 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ), $writes->getArrayCopy(), 'An unusable stored value reads as 0.' );
+		$this->assertSame( array( 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ), $writes->getArrayCopy(), 'An unusable stored value reads as 0.' );
 		$this->assertSame(
 			array( 'DROP TABLE IF EXISTS `wp_ffc_recruitment_import_staging`' ),
 			$log['queries'],

@@ -252,9 +252,11 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 		// No plugin settings stored: DateFormatter falls back to its defaults (d/m/Y, H:i).
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
 		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
-		$out = $this->call_protected( 'column_created_at', array( array( 'created_at' => '2026-01-01 12:00:00' ) ) );
-		// A DATETIME in the site's time, in the plugin's format, unshifted (#2676).
-		$this->assertSame( '01/01/2026 12:00', $out );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		// An instant (#2679), in the plugin's format and the site timezone.
+		$this->assertSame( '01/01/2026 12:00', $this->call_protected( 'column_created_at', array( array( 'created_at' => '1767268800' ) ) ) );
+		// A row not converted yet reads its DATETIME in that timezone too.
+		$this->assertSame( '01/01/2026 12:00', $this->call_protected( 'column_created_at', array( array( 'created_at' => '2026-01-01 12:00:00' ) ) ) );
 	}
 
 	// ------------------------------------------------------------------

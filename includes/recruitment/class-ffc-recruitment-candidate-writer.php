@@ -76,7 +76,7 @@ class RecruitmentCandidateWriter {
 			return false;
 		}
 
-		$now = current_time( 'mysql' );
+		$now = time();
 
 		$insert = array(
 			'name'       => $data['name'],
@@ -84,7 +84,7 @@ class RecruitmentCandidateWriter {
 			'created_at' => $now,
 			'updated_at' => $now,
 		);
-		$format = array( '%s', '%s', '%s', '%s' );
+		$format = array( '%s', '%s', '%d', '%d' );
 
 		$optional_columns = array(
 			'user_id'         => '%d',
@@ -165,8 +165,8 @@ class RecruitmentCandidateWriter {
 			return false;
 		}
 
-		$update['updated_at'] = current_time( 'mysql' );
-		$format[]             = '%s';
+		$update['updated_at'] = time();
+		$format[]             = '%d';
 
 		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
 
@@ -197,10 +197,10 @@ class RecruitmentCandidateWriter {
 			$table,
 			array(
 				'user_id'    => $user_id,
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			),
 			array( 'id' => $id ),
-			array( '%d', '%s' ),
+			array( '%d', '%d' ),
 			array( '%d' )
 		);
 
@@ -225,10 +225,10 @@ class RecruitmentCandidateWriter {
 		$wpdb = self::db();
 
 		$sql = $wpdb->prepare(
-			'UPDATE %i SET user_id = %d, updated_at = %s WHERE id = %d AND user_id IS NULL',
+			'UPDATE %i SET user_id = %d, updated_at = %d WHERE id = %d AND user_id IS NULL',
 			self::get_table_name(),
 			$user_id,
-			current_time( 'mysql' ),
+			time(),
 			$id
 		);
 		if ( ! is_string( $sql ) ) {
@@ -334,10 +334,10 @@ class RecruitmentCandidateWriter {
 		// `prepare()` answers null when its placeholders and values disagree,
 		// and `query( null )` would be a silent no-op wearing a success.
 		$sql = $wpdb->prepare(
-			"UPDATE %i SET user_id = %d, updated_at = %s WHERE ({$clause}) AND user_id IS NULL",
+			"UPDATE %i SET user_id = %d, updated_at = %d WHERE ({$clause}) AND user_id IS NULL",
 			$table,
 			$user_id,
-			current_time( 'mysql' ),
+			time(),
 			...$values
 		);
 

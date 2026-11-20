@@ -308,7 +308,7 @@ class RecruitmentClassificationRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$now = current_time( 'mysql' );
+		$now = time();
 
 		$result = $wpdb->insert(
 			$table,
@@ -329,7 +329,7 @@ class RecruitmentClassificationRepository {
 				'created_at'   => $now,
 				'updated_at'   => $now,
 			),
-			array( '%d', '%d', '%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
+			array( '%d', '%d', '%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%d' )
 		);
 
 		if ( ! $result ) {
@@ -370,12 +370,12 @@ class RecruitmentClassificationRepository {
 			array(
 				'preview_status'    => $preview_status,
 				'preview_reason_id' => $preview_reason_id,
-				'updated_at'        => current_time( 'mysql' ),
+				'updated_at'        => time(),
 			),
 			array( 'id' => $id ),
 			// `wpdb` emits NULL for null values regardless of format — the
 			// '%d' placeholder only kicks in when $preview_reason_id is set.
-			array( '%s', '%d', '%s' ),
+			array( '%s', '%d', '%d' ),
 			array( '%d' )
 		);
 
@@ -406,10 +406,10 @@ class RecruitmentClassificationRepository {
 		$table = self::get_table_name();
 
 		$prepared = $wpdb->prepare(
-			'UPDATE %i SET status = %s, updated_at = %s WHERE id = %d AND status = %s',
+			'UPDATE %i SET status = %s, updated_at = %d WHERE id = %d AND status = %s',
 			$table,
 			$new_status,
-			current_time( 'mysql' ),
+			time(),
 			$id,
 			$expected_current
 		);

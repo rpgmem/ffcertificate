@@ -65,6 +65,8 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Timestamps leave in the site-local shape, read at UTC here (#2679).
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -272,7 +274,14 @@ class RecruitmentNoticesRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $response );
 		$this->assertSame( 201, $response->get_status() );
-		$this->assertSame( $this->notices[5], $response->get_data(), 'The response carries the row read back by the new id.' );
+		$stored = $this->notices[5];
+		$data   = $response->get_data();
+		$this->assertSame( $stored->id, $data->id, 'The response carries the row read back by the new id.' );
+		$this->assertSame( 'NEW', $data->code );
+		// The columns store instants; the response keeps the site-local text (#2679).
+		$this->assertIsInt( $stored->created_at );
+		$this->assertSame( gmdate( 'Y-m-d H:i:s', $stored->created_at ), $data->created_at );
+		$this->assertSame( gmdate( 'Y-m-d H:i:s', $stored->updated_at ), $data->updated_at );
 	}
 
 	public function test_create_notice_returns_wp_error_with_409_on_duplicate(): void {
