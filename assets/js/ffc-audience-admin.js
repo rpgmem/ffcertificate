@@ -343,7 +343,8 @@
                         var statusClass = b.status === 'active' ? 'ffc-booking-status-active' : 'ffc-booking-status-cancelled';
 
                         var html = '<table class="widefat fixed"><tbody>';
-                        var dateLabel = b.end_date && b.end_date !== b.booking_date ? b.booking_date + ' – ' + b.end_date : b.booking_date;
+                        // The server formats the date in the plugin's format (#2676).
+                        var dateLabel = b.date_label || (b.end_date && b.end_date !== b.booking_date ? b.booking_date + ' – ' + b.end_date : b.booking_date);
                         html += '<tr><th>' + esc(strings.date || 'Date') + '</th><td>' + esc(dateLabel) + '</td></tr>';
                         html += '<tr><th>' + esc(strings.time || 'Time') + '</th><td>' + esc(timeDisplay) + '</td></tr>';
                         html += '<tr><th>' + esc(strings.environmentLabel || 'Environment') + '</th><td>' + esc(b.environment_name) + '</td></tr>';

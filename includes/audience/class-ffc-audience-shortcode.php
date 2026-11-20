@@ -1048,8 +1048,6 @@ class AudienceShortcode {
 				'nonce'                  => wp_create_nonce( 'wp_rest' ),
 				'searchUsersNonce'       => wp_create_nonce( 'ffc_search_users' ),
 				'locale'                 => get_locale(),
-				'dateFormat'             => \FreeFormCertificate\Core\DateFormatter::resolve_date_format(),
-				'timeFormat'             => \FreeFormCertificate\Core\DateFormatter::resolve_time_format(),
 				'firstDayOfWeek'         => (int) get_option( 'start_of_week', 0 ),
 				'multipleAudiencesColor' => get_option( 'ffc_aud_multiple_audiences_color', '' ),
 				'seriesMaxWeeks'         => AudienceBookingRules::SERIES_MAX_WEEKS,

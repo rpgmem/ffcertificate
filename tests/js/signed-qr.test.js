@@ -141,3 +141,27 @@ describe('FFCSignedQr.describe', () => {
 		expect(d.lines).toEqual(['unsupported text']);
 	});
 });
+
+describe('FFCSignedQr.formatDate', () => {
+	const dates = {
+		date: 'j \\d\\e F \\d\\e Y',
+		months: ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'],
+	};
+
+	it('prints the payload date in the plugin format, offline (#2676)', () => {
+		expect(window.FFCSignedQr.formatDate('2026-03-05', { date: 'd/m/Y' })).toBe('05/03/2026');
+		expect(window.FFCSignedQr.formatDate('2026-03-05', dates)).toBe('5 de março de 2026');
+	});
+
+	it('keeps the canonical date when there is no format or it is not a date', () => {
+		expect(window.FFCSignedQr.formatDate('2026-03-05')).toBe('2026-03-05');
+		expect(window.FFCSignedQr.formatDate('soon', { date: 'd/m/Y' })).toBe('soon');
+	});
+
+	it('is what the result lists as the issue date', async () => {
+		const result = await window.FFCSignedQr.verify(vector.full.s, keys);
+		const d = window.FFCSignedQr.describe(result, strings, vector.hash, { date: 'Y.m.d' });
+
+		expect(d.lines).toContain('Issued on: ' + result.fields.date.replace(/-/g, '.'));
+	});
+});

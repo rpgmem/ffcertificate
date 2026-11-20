@@ -47,14 +47,17 @@ final class SignedQrVerifier {
 	}
 
 	/**
-	 * Public keys and strings, as the script reads them.
+	 * Public keys, strings and the plugin's date format, as the script
+	 * reads them. The date format travels so the payload's canonical date
+	 * prints the way the rest of the plugin prints dates, offline too (#2676).
 	 *
-	 * @return array{keys: array<string, string>, strings: array<string, string>}
+	 * @return array{keys: array<string, string>, strings: array<string, string>, dates: array<string, mixed>}
 	 */
 	public static function data(): array {
 		return array(
 			'keys'    => SigningKeys::public_keys(),
 			'strings' => self::strings(),
+			'dates'   => \FreeFormCertificate\Core\DateFormatter::script_config(),
 		);
 	}
 

@@ -35247,3 +35247,7 @@ msgstr ""
 #, php-format
 msgid "Not covered: forms on Link only: %1$d, certificates: %2$d. To include a form, choose \"Signed, compact\" or \"Signed, full\" under QR code in its editor."
 msgstr ""
+
+#: includes/settings/views/documentation/config-general.php:44
+msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
+msgstr ""

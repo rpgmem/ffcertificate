@@ -163,21 +163,77 @@
             });
     }
 
+    function pad2(n) {
+        return (n < 10 ? '0' : '') + n;
+    }
+
+    /**
+     * A payload's `Y-m-d` date in the plugin's date format (#2676). The
+     * payload carries the date canonical, so it is formatted here; this file
+     * cannot reach ffc-core (the standalone verifier inlines it alone), so it
+     * reads the date tokens of `FFC.formatDate` itself. Returns the input when
+     * there is no format or it is not a `Y-m-d` date.
+     *
+     * @param {string} ymd Date as the payload carries it.
+     * @param {Object} [dates] `DateFormatter::script_config()`.
+     * @return {string}
+     */
+    function formatDate(ymd, dates) {
+        var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ''));
+        var cfg = dates || {};
+        if (!match || typeof cfg.date !== 'string' || cfg.date === '') {
+            return ymd ? String(ymd) : '';
+        }
+        var y = +match[1];
+        var m = +match[2];
+        var d = +match[3];
+        var weekday = new Date(y, m - 1, d).getDay();
+        var pick = function (list, i, fallback) {
+            return (Array.isArray(list) && list[i]) ? list[i] : fallback;
+        };
+        var out = '';
+        for (var k = 0; k < cfg.date.length; k++) {
+            var c = cfg.date.charAt(k);
+            if (c === '\\') {
+                k++;
+                out += cfg.date.charAt(k);
+                continue;
+            }
+            switch (c) {
+                case 'd': out += pad2(d); break;
+                case 'j': out += d; break;
+                case 'D': out += pick(cfg.weekdaysShort, weekday, ''); break;
+                case 'l': out += pick(cfg.weekdays, weekday, ''); break;
+                case 'N': out += weekday === 0 ? 7 : weekday; break;
+                case 'w': out += weekday; break;
+                case 'm': out += pad2(m); break;
+                case 'n': out += m; break;
+                case 'F': out += pick(cfg.months, m - 1, pad2(m)); break;
+                case 'M': out += pick(cfg.monthsShort, m - 1, pad2(m)); break;
+                case 'Y': out += y; break;
+                case 'y': out += String(y).slice(-2); break;
+                default: out += c;
+            }
+        }
+        return out;
+    }
+
     /**
      * What to show for a result: a notice's tone, icon, title and lines.
      *
      * @param {{state: string, fields: (Object|null)}} result From verify().
      * @param {Object<string, string>} strings Translated strings.
      * @param {string} [currentHash] The record hash the site holds now, when it answered.
+     * @param {Object} [dates] The plugin's date format, as `formatDate()` reads it.
      * @return {{tone: string, icon: string, title: string, lines: string[]}}
      */
-    function describe(result, strings, currentHash) {
+    function describe(result, strings, currentHash, dates) {
         var s = strings || {};
         var f = result.fields || {};
         if (result.state === 'valid') {
             var lines = [
                 s.code + ' ' + f.code,
-                s.issued + ' ' + f.date
+                s.issued + ' ' + formatDate(f.date, dates)
             ];
             if (f.mode === 'full') {
                 lines.push(s.name + ' ' + f.name);
@@ -206,6 +262,7 @@
         signedFrom: signedFrom,
         supported: supported,
         verify: verify,
+        formatDate: formatDate,
         describe: describe
     };
 })(typeof window !== 'undefined' ? window : this);

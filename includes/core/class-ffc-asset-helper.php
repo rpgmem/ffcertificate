@@ -159,6 +159,8 @@ final class AssetHelper {
 			 * @param array{url: string, action: string, nonce: string}|null $config
 			 */
 			'cepLookup'    => apply_filters( 'ffcertificate_cep_lookup_script_config', null ),
+			// The plugin's date and time formats for FFC.formatDate() (#2676).
+			'dates'        => DateFormatter::script_config(),
 		);
 	}
 

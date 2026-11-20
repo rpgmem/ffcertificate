@@ -35,23 +35,9 @@
         var calendarInstance = null;
 
         function formatDateLabel(dateStr) {
-            // dateStr is Y-m-d. Build a Date in the *local* TZ to avoid a
-            // one-day drift when toLocaleDateString interprets a UTC string.
-            var parts = dateStr.split('-');
-            var date = new Date(
-                parseInt(parts[0], 10),
-                parseInt(parts[1], 10) - 1,
-                parseInt(parts[2], 10)
-            );
-            try {
-                return date.toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            } catch (e) {
-                return dateStr;
-            }
+            // A day heading: the long form, in the WordPress locale rather
+            // than the browser's (#2676).
+            return window.FFC && window.FFC.formatDate ? window.FFC.formatDate(dateStr, 'long') : dateStr;
         }
 
         function fetchMonth(year, month) {

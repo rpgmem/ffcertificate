@@ -16,6 +16,17 @@
     var parseDate  = api.parseDate;
     var escapeHtml = api.escapeHtml;
     var trapFocus  = api.trapFocus;
+    var formatTime = api.formatTime;
+
+    /**
+     * A conflicting booking's hours in the plugin's time format (#2676).
+     *
+     * @param {Object} b Booking row with start_time and end_time.
+     * @return {string}
+     */
+    function bookingHours(b) {
+        return formatTime(b.start_time) + '–' + formatTime(b.end_time);
+    }
 
     /**
      * Open booking modal
@@ -899,7 +910,7 @@
                 if (!grouped[b.audience_name]) {
                     grouped[b.audience_name] = [];
                 }
-                grouped[b.audience_name].push(b.start_time + '–' + b.end_time);
+                grouped[b.audience_name].push(bookingHours(b));
             });
             lines.push(s.audienceSameDayWarning || 'This audience group already has a booking on this day:');
             for (var name in grouped) {
@@ -967,7 +978,7 @@
                         if (isHardConflict && conflicts.can_override) {
                             // HARD CONFLICT the person may override (#1859):
                             // offer the booking; the warning lists it again.
-                            var overrideTimes = conflicts.bookings.map(function(b) { return b.start_time + '–' + b.end_time; }).join(', ');
+                            var overrideTimes = conflicts.bookings.map(bookingHours).join(', ');
                             $('#ffc-conflict-error')
                                 .empty()
                                 .append(FFC.notice('warning', 'warning', [overrideTimes].concat(softWarnings), ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.', { role: 'status', hook: 'conflict-error' }))
@@ -976,7 +987,7 @@
                         } else if (isHardConflict) {
                             // HARD CONFLICT — block booking
                             var errorMsg = ffcAudience.strings.hardConflict || 'This time slot is already booked for this environment.';
-                            var times = conflicts.bookings.map(function(b) { return b.start_time + '–' + b.end_time; }).join(', ');
+                            var times = conflicts.bookings.map(bookingHours).join(', ');
 
                             $('#ffc-conflict-error')
                                 .empty()

@@ -230,7 +230,19 @@ final class AudienceAjaxController {
 					'end_date'         => $booking->end_date ?? null,
 					'time_mode'        => $booking->time_mode ?? null,
 					'days'             => AudienceBookingRules::booked_days( (string) $booking->booking_date, $booking->end_date ?? null, $booking->skipped_dates ?? null ),
-					'time_label'       => AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, AudienceBookingRules::is_span( $booking ) ),
+					// Date and hours in the plugin's format, as the REST
+					// controller sends them (#2676).
+					'date_label'       => AudienceBookingRules::date_label(
+						(string) $booking->booking_date,
+						$booking->end_date ?? null,
+						static fn( string $date ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date )
+					),
+					'time_label'       => AudienceBookingRules::time_label(
+						(string) $booking->start_time,
+						(string) $booking->end_time,
+						AudienceBookingRules::is_span( $booking ),
+						static fn( string $time ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $time )
+					),
 					'start_time'       => $booking->start_time,
 					'end_time'         => $booking->end_time,
 					'is_all_day'       => (int) ( $booking->is_all_day ?? 0 ),

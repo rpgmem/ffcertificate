@@ -35325,3 +35325,7 @@ msgstr "Nenhum formulário em Somente link tem certificados."
 #, php-format
 msgid "Not covered: forms on Link only: %1$d, certificates: %2$d. To include a form, choose \"Signed, compact\" or \"Signed, full\" under QR code in its editor."
 msgstr "Fora: formulários em Somente link: %1$d, certificados: %2$d. Para incluir um formulário, escolha \"Assinado, compacto\" ou \"Assinado, completo\" em QR code, no editor dele."
+
+#: includes/settings/views/documentation/config-general.php:44
+msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
+msgstr "Os mesmos formatos valem nas telas do admin, nas exportações CSV, no painel do usuário, nos calendários de público-alvo e no verificador do QR code assinado, inclusive offline. Os títulos de dia dos calendários são a única exceção: escrevem o mês por extenso, no idioma do site."

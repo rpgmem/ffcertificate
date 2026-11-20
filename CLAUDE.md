@@ -1021,6 +1021,7 @@ Existing examples: `appointment_date` (DATE), `start_time` / `end_time` (TIME), 
 #### Always
 
 - Display goes through `DateFormatter::format_*()`. No `gmdate()`, no `date_i18n()`, no `wp_date()` outside the helper unless there's a documented reason (e.g. building an iCal `DTSTAMP` per RFC 5545).
+- **In the browser, the same rule holds through `FFC.formatDate()` / `FFC.formatTime()`** (#2676), which read the plugin's formats from `ffcCoreConfig.dates` (`DateFormatter::script_config()`). Prefer sending the value already formatted from PHP when the server builds it; format in JS only what JS builds. Two exceptions, both deliberate: a calendar day heading writes the month by name in the WordPress locale (`FFC.formatDate( ymd, 'long' )`), and `ffc-signed-qr.js` carries its own date-token reader, because the standalone verifier inlines that file alone and cannot reach `ffc-core`.
 - Filenames / log keys / API contracts that need a stable ISO format may use `gmdate('Y-m-d\TH:i:s\Z', $ts)` — but the column those filenames represent should still follow Category A or B.
 
 ### Settings reads

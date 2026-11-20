@@ -668,6 +668,9 @@ class AudienceAjaxControllerTest extends TestCase {
 		// UTC seconds, rendered in the site's zone and format (#2243).
 		$this->assertSame( gmdate( 'd/m/Y H:i', 1777629600 ), $data['created_at'] );
 		$this->assertSame( 1, $data['is_all_day'] );
+		// The day and hours in the plugin's formats (#2676).
+		$this->assertSame( '20/05/2026', $data['date_label'] );
+		$this->assertSame( '09:00 - 10:00', $data['time_label'] );
 		$this->assertSame( array( array( 'id' => 2, 'name' => 'Aud2' ) ), $data['audiences'] );
 		$this->assertSame( 7, $data['users'][0]['id'] );
 		// The address never travels in clear to someone who is not its owner (#2243).

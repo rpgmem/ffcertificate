@@ -41,6 +41,7 @@ final class SignedQrVerifierTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( static fn( $value ) => json_encode( $value ) );
 		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'determine_locale' )->justReturn( 'pt_BR' );
 	}
 
 	protected function tearDown(): void {
@@ -53,6 +54,12 @@ final class SignedQrVerifierTest extends TestCase {
 		preg_match_all( '/\bs\.(\w+)/', $script, $read );
 
 		$this->assertEqualsCanonicalizing( array_unique( $read[1] ), array_keys( SignedQrVerifier::strings() ), 'Every string the script reads is published, and nothing else.' );
+	}
+
+	public function test_the_data_carries_the_plugin_date_format(): void {
+		$this->options['ffc_settings'] = array( 'date_format' => 'Y.m.d' );
+
+		$this->assertSame( 'Y.m.d', SignedQrVerifier::data()['dates']['date'], 'The payload date prints in the plugin format, offline too (#2676).' );
 	}
 
 	public function test_nothing_loads_before_a_key_exists(): void {

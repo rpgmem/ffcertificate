@@ -450,7 +450,7 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 		// Names are masked too (#1863); the upcoming dates reveal them, audited.
 		$this->assertSame( array( 'P*** 1*', 'P*** 2*' ), array_slice( array_column( $r->data['rows'], 'name' ), 0, 2 ) );
 		$this->assertStringNotContainsString( 'person1@example.org', (string) json_encode( $r->data ), 'The address is masked.' );
-		$this->assertSame( '2026-10-01', $r->data['rows'][0]['date'] );
+		$this->assertSame( '01/10/2026', $r->data['rows'][0]['date'], 'The date is in the plugin format (#2676).' );
 		$this->assertSame( Runner::BATCH_SIZE + 1, $r->data['rows'][ Runner::BATCH_SIZE ]['user_id'], 'The second page is listed.' );
 	}
 
