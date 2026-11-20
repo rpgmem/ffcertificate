@@ -1357,9 +1357,6 @@ msgstr "Informações Adicionais"
 msgid "Address"
 msgstr "Endereço"
 
-#: includes/settings/views/documentation/feature-record.php:78
-msgid "Address (Endereço)"
-msgstr "Endereço"
 
 #: includes/settings/views/documentation/feature-record.php:89
 msgid "Address complement"
@@ -9008,9 +9005,6 @@ msgstr "Quatro novos sinais de impressão digital de dispositivo estão agora at
 msgid "Free Form Certificate"
 msgstr "Free Form Certificate"
 
-#: includes/admin/class-ffc-device-threshold-upgrade-notice.php:93
-msgid "Free Form Certificate v6.3.2"
-msgstr "Free Form Certificate v6.3.2"
 
 #: includes/admin/class-ffc-captcha-mode-notice.php:95
 msgid "Free Form Certificate — captcha"
@@ -19692,7 +19686,7 @@ msgstr "Possível desativar"
 
 #: includes/settings/views/ffc-tab-migrations.php:453
 msgid "Would remove"
-msgstr "Would remove"
+msgstr "Seria removido"
 
 #: includes/settings/views/ffc-tab-smtp.php:130
 msgid "WP Default (PHPMail)"
@@ -35265,3 +35259,45 @@ msgstr "O QR code é impresso na correção de erros %1$s, abaixo da %2$s pedida
 #: includes/settings/views/documentation/reference-qr-codes.php
 msgid "Each option of the form editor's QR code row says when the certificate's code is printed at another error correction than the layout asks for: above it when the link leaves room in the grid, below it when the link does not fit, and when the logo is left out or the link is printed as text instead."
 msgstr "Cada opção da linha QR code do editor do formulário diz quando o código do certificado é impresso numa correção de erros diferente da que o layout pede: acima dela quando o link deixa espaço na grade, abaixo quando o link não cabe, e quando o logo fica de fora ou o link é impresso como texto."
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Permanent"
+msgstr "Efetivo"
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Basic Education Teacher"
+msgstr "Professor de Educação Básica"
+
+#. translators: sample work hours on a certificate preview.
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "08:00 to 17:00"
+msgstr "08:00 às 17:00"
+
+#. translators: sample work hours on a certificate preview.
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "18:00 to 22:00"
+msgstr "18:00 às 22:00"
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Pedagogical Sector"
+msgstr "Setor Pedagógico"
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Sample Program"
+msgstr "Programa de Exemplo"
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Certificate Title"
+msgstr "Título do Certificado"
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "Pedagogical Coordination"
+msgstr "Coordenação Pedagógica"
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "School Principal"
+msgstr "Direção"
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "School Supervision"
+msgstr "Supervisão Escolar"

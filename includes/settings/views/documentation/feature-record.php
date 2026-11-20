@@ -90,7 +90,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tbody>
 		</table>
 
-		<h5><?php esc_html_e( 'Address (Endereço)', 'ffcertificate' ); ?></h5>
+		<h5><?php esc_html_e( 'Address', 'ffcertificate' ); ?></h5>
 		<table class="widefat striped">
 			<thead>
 				<tr>

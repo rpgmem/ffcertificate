@@ -68,8 +68,8 @@ class CertificatePreviewSamples {
 			'rf'                       => '1234567-8',
 			'rg'                       => '12.345.678-9',
 			'data_nascimento'          => $today,
-			'sexo'                     => 'Masculino',
-			'estado_civil'             => 'Solteiro(a)',
+			'sexo'                     => __( 'Male', 'ffcertificate' ),
+			'estado_civil'             => __( 'Single', 'ffcertificate' ),
 
 			// Contact.
 			'phone'                    => '(11) 98765-4321',
@@ -88,19 +88,21 @@ class CertificatePreviewSamples {
 			'main_address'             => 'Rua Exemplo, 123 - Centro, São Paulo/SP',
 
 			// Employment / school context (record / atestado).
-			'vinculo'                  => 'Efetivo',
-			'cargo_funcao_acumulo'     => 'Professor de Educação Básica',
-			'acumulo_cargos'           => 'Não',
+			'vinculo'                  => __( 'Permanent', 'ffcertificate' ),
+			'cargo_funcao_acumulo'     => __( 'Basic Education Teacher', 'ffcertificate' ),
+			'acumulo_cargos'           => __( 'I do not hold', 'ffcertificate' ),
 			'jornada'                  => 'JEIF (40h)',
 			'jornada_acumulo'          => 'J-30',
-			'horario_trabalho'         => '08:00 às 17:00',
-			'horario_trabalho_acumulo' => '18:00 às 22:00',
+			/* translators: sample work hours on a certificate preview. */
+			'horario_trabalho'         => __( '08:00 to 17:00', 'ffcertificate' ),
+			/* translators: sample work hours on a certificate preview. */
+			'horario_trabalho_acumulo' => __( '18:00 to 22:00', 'ffcertificate' ),
 			'unidade_lotacao'          => 'EMEF Exemplo',
 			'unidade_exercicio'        => 'EMEF Exemplo',
 			'divisao'                  => 'DRE Exemplo',
-			'setor'                    => 'Setor Pedagógico',
+			'setor'                    => __( 'Pedagogical Sector', 'ffcertificate' ),
 			'sindicato'                => 'SINPEEM',
-			'program'                  => 'Programa de Exemplo',
+			'program'                  => __( 'Sample Program', 'ffcertificate' ),
 
 			// Authentication / validation.
 			'auth_code'                => 'A1B2-C3D4-E5F6',
@@ -109,7 +111,7 @@ class CertificatePreviewSamples {
 			'ticket'                   => 'TK01-AB2C-3D4E',
 
 			// Form / submission metadata.
-			'form_title'               => 'Título do Certificado',
+			'form_title'               => __( 'Certificate Title', 'ffcertificate' ),
 			'site_name'                => get_bloginfo( 'name' ),
 
 			// Site branding logos (#865 / #903): mirror the URLs the real

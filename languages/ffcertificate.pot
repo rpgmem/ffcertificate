@@ -1357,9 +1357,6 @@ msgstr ""
 msgid "Address"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-record.php:78
-msgid "Address (Endereço)"
-msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:89
 msgid "Address complement"
@@ -9012,9 +9009,6 @@ msgstr ""
 msgid "Free Form Certificate"
 msgstr ""
 
-#: includes/admin/class-ffc-device-threshold-upgrade-notice.php:93
-msgid "Free Form Certificate v6.3.2"
-msgstr ""
 
 #: includes/admin/class-ffc-captcha-mode-notice.php:95
 msgid "Free Form Certificate — captcha"
@@ -35186,4 +35180,46 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-qr-codes.php
 msgid "Each option of the form editor's QR code row says when the certificate's code is printed at another error correction than the layout asks for: above it when the link leaves room in the grid, below it when the link does not fit, and when the logo is left out or the link is printed as text instead."
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Permanent"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Basic Education Teacher"
+msgstr ""
+
+#. translators: sample work hours on a certificate preview.
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "08:00 to 17:00"
+msgstr ""
+
+#. translators: sample work hours on a certificate preview.
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "18:00 to 22:00"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Pedagogical Sector"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Sample Program"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Certificate Title"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "Pedagogical Coordination"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "School Principal"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "School Supervision"
 msgstr ""

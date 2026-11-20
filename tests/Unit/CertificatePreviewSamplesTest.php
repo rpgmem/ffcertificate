@@ -22,6 +22,8 @@ class CertificatePreviewSamplesTest extends TestCase {
 
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		// The sample texts are translatable (#2666).
+		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_date' )->alias( static fn( $fmt, $ts = null, $tz = null ) => '01/01/2026' );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 	}

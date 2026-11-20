@@ -90,7 +90,7 @@ class DeviceThresholdUpgradeNotice extends AbstractDismissibleNotice {
 		$rate_limit_url = admin_url( 'admin.php?page=ffc-settings&tab=rate_limit' );
 
 		return '<p><strong>'
-			. esc_html__( 'Free Form Certificate v6.3.2', 'ffcertificate' )
+			. esc_html__( 'Free Form Certificate', 'ffcertificate' )
 			. '</strong> — '
 			. wp_kses(
 				sprintf(

@@ -75,9 +75,9 @@ final class CertificateSigners {
 	 * so a template preview shows distinct names in each column.
 	 */
 	private const SAMPLES = array(
-		1 => array( 'Maria Souza', 'Coordenação Pedagógica', 'default_assinagture_2.png' ),
-		2 => array( 'João Lima', 'Direção', 'default_assinagture_1.png' ),
-		3 => array( 'Ana Ribeiro', 'Supervisão Escolar', 'default_assinagture_1.png' ),
+		1 => array( 'Maria Souza', 'default_assinagture_2.png' ),
+		2 => array( 'João Lima', 'default_assinagture_1.png' ),
+		3 => array( 'Ana Ribeiro', 'default_assinagture_1.png' ),
 	);
 
 	/** Where the sample signature images ship, relative to the plugin root. */
@@ -365,8 +365,8 @@ final class CertificateSigners {
 			$prefix                           = self::prefix( $position );
 			$values[ $prefix . ':name' ]      = $sample[0];
 			$values[ $prefix . ':rf' ]        = DocumentFormatter::mask_placeholder( DocumentFormatter::MASK_RF );
-			$values[ $prefix . ':role' ]      = $sample[1];
-			$values[ $prefix . ':signature' ] = FFC_PLUGIN_URL . self::SAMPLE_SIGNATURE_DIR . $sample[2];
+			$values[ $prefix . ':role' ]      = self::sample_role( $position );
+			$values[ $prefix . ':signature' ] = FFC_PLUGIN_URL . self::SAMPLE_SIGNATURE_DIR . $sample[1];
 			if ( 1 === $position ) {
 				foreach ( self::TOKENS as $token ) {
 					$values[ 'signer:' . $token ] = $values[ $prefix . ':' . $token ];
@@ -374,6 +374,22 @@ final class CertificateSigners {
 			}
 		}
 		return $values;
+	}
+
+	/**
+	 * The role a sample signer shows in a preview, translated (#2666).
+	 *
+	 * @param int $position Signer position, 1 to 3.
+	 */
+	private static function sample_role( int $position ): string {
+		switch ( $position ) {
+			case 1:
+				return __( 'Pedagogical Coordination', 'ffcertificate' );
+			case 2:
+				return __( 'School Principal', 'ffcertificate' );
+			default:
+				return __( 'School Supervision', 'ffcertificate' );
+		}
 	}
 
 	/**
