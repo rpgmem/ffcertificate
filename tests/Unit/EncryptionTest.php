@@ -423,6 +423,40 @@ class EncryptionTest extends TestCase {
 		$this->assertSame( 'legacy-value', Encryption::decrypt( base64_encode( $iv . $cipher ) ) );
 	}
 
+	/**
+	 * A v1 value is read with the WordPress-derived key only (#2690). With
+	 * FFC_ENCRYPTION_KEY defined, trying the active key first returned garbage
+	 * for about one IV in 256, because CBC without a MAC accepts any key whose
+	 * last block happens to pad correctly. Across 2,000 IVs that is a near
+	 * certainty, so every one must come back as the original value. Separate
+	 * process so the define does not leak.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_a_legacy_v1_value_is_read_with_the_wordpress_key_only(): void {
+		$wp_key = new \ReflectionMethod( Encryption::class, 'wp_derived_encryption_key' );
+		$wp_key->setAccessible( true );
+		$key = (string) $wp_key->invoke( null );
+
+		define( 'FFC_ENCRYPTION_KEY', self::DISTINCT_KEY );
+		$this->assertNotSame( $key, $this->active_key(), 'The fixture needs an active key different from the WordPress one.' );
+
+		$wrong = 0;
+		for ( $i = 0; $i < 2000; $i++ ) {
+			$iv     = hash( 'sha256', 'iv-' . $i, true );
+			$iv     = substr( $iv, 0, 16 );
+			$value  = 'legacy-value-' . $i;
+			$cipher = openssl_encrypt( $value, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv );
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- building a legacy fixture.
+			if ( Encryption::decrypt( base64_encode( $iv . $cipher ) ) !== $value ) {
+				++$wrong;
+			}
+		}
+
+		$this->assertSame( 0, $wrong, 'A v1 value must never decrypt to anything but its original under a defined FFC_ENCRYPTION_KEY.' );
+	}
+
 	public function test_a_legacy_v1_read_is_counted_once_per_request(): void {
 		// #2339: the evidence that decides when the unauthenticated format can
 		// be refused. A v2 read counts nothing.

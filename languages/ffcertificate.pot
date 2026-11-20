@@ -35286,3 +35286,7 @@ msgstr ""
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved."
 msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value."
+msgstr ""

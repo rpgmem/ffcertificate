@@ -15,7 +15,7 @@ return array(
 	'CsvDownloadValidatorTest.php' => 1,
 	'DashboardShortcodeTest.php' => 1,
 	'EncryptionKeyHealthNoticeTest.php' => 1,
-	'EncryptionTest.php' => 8,
+	'EncryptionTest.php' => 9,
 	'FormCacheThirdPartyPurgeTest.php' => 7,
 	'IdentityIndexBackfillMigrationStrategyTest.php' => 1,
 	'KeyRotationMigrationStrategyTest.php' => 1,

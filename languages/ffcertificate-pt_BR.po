@@ -35364,3 +35364,7 @@ msgstr "Este agendamento aguarda aprovação e ainda não pode ser verificado."
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved."
 msgstr "Na página de verificação, um código de validação confirma um agendamento e baixa o comprovante com o CPF/RF e o e-mail mascarados. O código de validação vem impresso no comprovante, então qualquer pessoa com uma cópia pode digitá-lo. O comprovante completo e o link de cancelamento ficam no link mágico que a pessoa recebeu. Um agendamento que aguarda aprovação só pode ser verificado depois de aprovado."
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value."
+msgstr "Um valor nesse formato é lido apenas com a chave derivada dos salts do WordPress, que é a chave com que foi gravado, então uma FFC_ENCRYPTION_KEY definida nunca o lê como outro valor."
