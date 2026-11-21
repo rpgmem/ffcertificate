@@ -35301,5 +35301,13 @@ msgid "The confirmation, approval and promotion e-mails of a confirmed appointme
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php
+msgid "The answer that declares a second post is the third option of the Position Accumulation field, whatever its text and whatever language it was saved in, so rewording the options keeps the second post's fields working as long as that answer stays third."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "A required checkbox has to be ticked: the form and the import both refuse one left unticked, whether it arrives as 0 or as No."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
 msgid "Someone who leaves the campaign's audiences, or whose audience is taken off the campaign, no longer receives its invitation or reminder, even when sent by hand, and can no longer open the form. The daily run removes their submission if it was never started; one with answers stays as a record."
 msgstr ""

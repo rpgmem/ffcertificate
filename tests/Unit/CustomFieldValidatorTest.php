@@ -57,6 +57,47 @@ class CustomFieldValidatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// A required checkbox (#2688)
+	// ==================================================================
+
+	/**
+	 * @dataProvider unticked_answers
+	 */
+	public function test_a_required_checkbox_left_unticked_is_refused( $answer ): void {
+		$field  = $this->make_field( array( 'field_type' => 'checkbox', 'is_required' => 1 ) );
+		$result = CustomFieldValidator::validate( $field, $answer );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'field_required', $result->get_error_code() );
+	}
+
+	/**
+	 * @return array<string, array{mixed}>
+	 */
+	public static function unticked_answers(): array {
+		return array(
+			'form posts 0'  => array( '0' ),
+			'import "No"'   => array( 'No' ),
+			'import "nao"'  => array( 'nao' ),
+			'import "false"' => array( 'FALSE' ),
+			'empty'         => array( '' ),
+		);
+	}
+
+	public function test_a_required_checkbox_ticked_passes(): void {
+		$field = $this->make_field( array( 'field_type' => 'checkbox', 'is_required' => 1 ) );
+
+		$this->assertTrue( CustomFieldValidator::validate( $field, '1' ) );
+	}
+
+	public function test_zero_is_an_answer_for_any_other_field(): void {
+		$field = $this->make_field( array( 'field_type' => 'number', 'is_required' => 1 ) );
+
+		$this->assertTrue( CustomFieldValidator::validate( $field, '0' ), 'Only a checkbox reads 0 as unticked.' );
+		$this->assertFalse( CustomFieldValidator::is_missing( $field, '0' ) );
+	}
+
+	// ==================================================================
 	// is_empty_value()
 	// ==================================================================
 

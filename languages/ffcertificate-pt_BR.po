@@ -35379,5 +35379,13 @@ msgid "The confirmation, approval and promotion e-mails of a confirmed appointme
 msgstr "Os e-mails de confirmação, aprovação e promoção de um agendamento confirmado levam um arquivo de calendário (.ics), e o de cancelamento leva um que tira o agendamento do calendário. Todo arquivo de calendário que o plugin gera, estes e o do painel do usuário, é escrito no fuso horário definido no WordPress."
 
 #: includes/settings/views/documentation/feature-reregistration.php
+msgid "The answer that declares a second post is the third option of the Position Accumulation field, whatever its text and whatever language it was saved in, so rewording the options keeps the second post's fields working as long as that answer stays third."
+msgstr "A resposta que declara um segundo cargo é a terceira opção do campo Acúmulo de Cargo, qualquer que seja o texto e o idioma em que foi salva, então reescrever as opções mantém os campos do segundo cargo funcionando enquanto essa resposta continuar em terceiro lugar."
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "A required checkbox has to be ticked: the form and the import both refuse one left unticked, whether it arrives as 0 or as No."
+msgstr "Uma caixa de seleção obrigatória precisa ser marcada: o formulário e a importação recusam uma deixada desmarcada, venha ela como 0 ou como Não."
+
+#: includes/settings/views/documentation/feature-reregistration.php
 msgid "Someone who leaves the campaign's audiences, or whose audience is taken off the campaign, no longer receives its invitation or reminder, even when sent by hand, and can no longer open the form. The daily run removes their submission if it was never started; one with answers stays as a record."
 msgstr "Quem sai dos públicos da campanha, ou tem o seu público retirado da campanha, deixa de receber o convite e o lembrete, mesmo enviados manualmente, e não consegue mais abrir o formulário. A rotina diária remove a resposta dessa pessoa se ela nunca foi iniciada; uma com respostas fica como registro."
