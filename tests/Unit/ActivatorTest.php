@@ -246,8 +246,12 @@ class ActivatorTest extends TestCase {
 	}
 
 	public function test_activate_uses_existing_verification_page(): void {
-		$existing_page     = new \WP_Post();
-		$existing_page->ID = 99;
+		// A published page that already hosts both shortcodes is adopted (#2690).
+		$existing_page               = new \WP_Post();
+		$existing_page->ID           = 99;
+		$existing_page->post_status  = 'publish';
+		$existing_page->post_content = '[ffc_verification] [user_dashboard_personal]';
+		Functions\when( 'has_shortcode' )->alias( static fn( $content, $tag ) => false !== strpos( (string) $content, '[' . $tag ) );
 		Functions\when( 'get_page_by_path' )->alias( function ( $path ) use ( $existing_page ) {
 			if ( $path === 'valid' || $path === 'dashboard' ) {
 				return $existing_page;

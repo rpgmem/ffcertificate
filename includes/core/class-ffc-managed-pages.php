@@ -35,11 +35,14 @@ final class ManagedPages {
 	public const META = '_ffc_managed_page';
 
 	/**
-	 * Create the page at `$slug` unless one exists.
+	 * Create the page at `$slug` unless one already hosts the shortcode.
 	 *
-	 * An existing page at the slug is adopted as it is: its id is returned
-	 * and nothing about it changes. The caller stores the id under its own
-	 * option, written as a literal so the option-write guard sees it.
+	 * A published page at the slug that holds the shortcode is adopted as it
+	 * is: its id is returned and nothing about it changes. Any other page at
+	 * the slug (a draft, or a page of the site's own that happens to be called
+	 * `dashboard`) is left alone, and a new page is created beside it under
+	 * the slug WordPress gives it (#2690). The caller stores the id under its
+	 * own option, written as a literal so the option-write guard sees it.
 	 *
 	 * @param string $slug      Page slug, e.g. `valid`.
 	 * @param string $title     Translated page title.
@@ -48,7 +51,7 @@ final class ManagedPages {
 	 */
 	public static function ensure( string $slug, string $title, string $shortcode ): int {
 		$existing = get_page_by_path( $slug );
-		if ( $existing instanceof \WP_Post ) {
+		if ( $existing instanceof \WP_Post && self::hosts( $existing, $shortcode ) ) {
 			return (int) $existing->ID;
 		}
 
@@ -77,6 +80,23 @@ final class ManagedPages {
 		self::record( $page_id );
 
 		return $page_id;
+	}
+
+	/**
+	 * Whether a page is published and holds the shortcode `$shortcode` names.
+	 *
+	 * @param \WP_Post $page      Existing page at the slug.
+	 * @param string   $shortcode The page body the caller would create, e.g. `[ffc_verification]`.
+	 * @return bool
+	 */
+	private static function hosts( \WP_Post $page, string $shortcode ): bool {
+		if ( 'publish' !== $page->post_status ) {
+			return false;
+		}
+		if ( ! preg_match( '/^\[([A-Za-z0-9_-]+)/', $shortcode, $m ) ) {
+			return false;
+		}
+		return has_shortcode( (string) $page->post_content, $m[1] );
 	}
 
 	/**
