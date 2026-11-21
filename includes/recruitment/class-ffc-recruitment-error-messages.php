@@ -178,6 +178,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_candidate_update_no_writable_fields' => __( 'No writable fields were supplied for this candidate update.', 'ffcertificate' ),
 			'recruitment_candidate_identifier_not_editable' => __( 'A candidate\'s CPF and RF cannot be edited. They identify the candidate in every notice.', 'ffcertificate' ),
 			'recruitment_candidate_email_not_editable'     => __( 'You may not change this candidate\'s e-mail without the capability to reveal it.', 'ffcertificate' ),
+			'recruitment_candidate_email_invalid'          => __( 'The e-mail is not a valid address. Correct it, or send it empty to clear it.', 'ffcertificate' ),
 			'recruitment_candidate_delete_failed'          => __( 'Could not delete the candidate. Please try again.', 'ffcertificate' ),
 			'recruitment_candidate_has_classifications'    => __( 'This candidate has classifications attached and cannot be deleted directly. Remove the classifications first.', 'ffcertificate' ),
 			'recruitment_candidate_list_requires_filter'   => __( 'A filter (notice / adjutancy / search) is required to list candidates.', 'ffcertificate' ),

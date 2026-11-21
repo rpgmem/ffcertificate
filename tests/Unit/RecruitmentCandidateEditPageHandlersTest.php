@@ -105,6 +105,7 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'sanitize_email' )->returnArg();
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== strpos( (string) $e, '@' ) ? $e : false );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'admin_url' )->returnArg();
 		// Every capability is held unless a test takes one away.
@@ -318,6 +319,21 @@ class RecruitmentCandidateEditPageHandlersTest extends TestCase {
 		$captured = $this->the_update();
 		$this->assertSame( 'new@example.test', Encryption::decrypt( (string) $captured['email_encrypted'] ) );
 		$this->assertSame( Encryption::hash( 'new@example.test' ), $captured['email_hash'] );
+	}
+
+	public function test_handle_save_refuses_an_invalid_email_and_says_so(): void {
+		// #2694 — an address that is not one used to be stored as a cleared
+		// e-mail while the screen said "Saved".
+		$_POST['candidate_id'] = '5';
+		$_POST['name']         = 'Old Name';
+		$_POST['email']        = 'not-an-address';
+		$_POST['phone']        = '111';
+		$_POST['notes']        = '';
+
+		$msg = $this->capture( array( RecruitmentCandidateEditPage::class, 'handle_save' ) );
+
+		$this->assertStringContainsString( 'ffc_msg=email-invalid', $msg );
+		$this->assertSame( array(), $this->updates, 'Nothing is written.' );
 	}
 
 	public function test_handle_save_preserves_email_for_masked_tier(): void {

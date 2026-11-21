@@ -114,11 +114,12 @@ final class RecruitmentEmailDispatcher {
 	 *
 	 * Caller (sprint 6's `RecruitmentCallService`) invokes this after
 	 * `COMMIT`; failures here do NOT roll the call back. Returns `false`
-	 * when the candidate has no email on file (so the admin can show a
-	 * "no email — contact candidate manually" warning).
+	 * when the message did not go out — no e-mail on file, e-mails switched
+	 * off, or a refused send — so the admin can show a "contact the
+	 * candidate manually" warning (#2694).
 	 *
 	 * @param int $call_id Newly created call row ID.
-	 * @return bool True on send attempted; false on missing email.
+	 * @return bool True when the message went out.
 	 */
 	public static function send_for_call( int $call_id ): bool {
 		return self::send( $call_id, 'recruitment-convocation', true );
@@ -132,7 +133,7 @@ final class RecruitmentEmailDispatcher {
 	 * typed.
 	 *
 	 * @param int $call_id Cancelled call row ID.
-	 * @return bool True on send attempted; false on missing email.
+	 * @return bool True when the message went out.
 	 */
 	public static function send_for_cancellation( int $call_id ): bool {
 		return self::send( $call_id, 'recruitment-cancellation' );
@@ -146,7 +147,8 @@ final class RecruitmentEmailDispatcher {
 	 * @param bool   $convocation Whether this is the call itself, which
 	 *                            issues the password-set link and attaches
 	 *                            the `.ics`; a cancellation does neither.
-	 * @return bool True on send attempted; false when anything is missing.
+	 * @return bool True when the message went out; false when anything is
+	 *              missing, e-mails are switched off or the send failed.
 	 */
 	private static function send( int $call_id, string $template, bool $convocation = false ): bool {
 		$call = RecruitmentCallReader::get_by_id( $call_id );
@@ -173,6 +175,13 @@ final class RecruitmentEmailDispatcher {
 		$email_plain = self::decrypt_email( $candidate->email_encrypted );
 		if ( null === $email_plain || '' === $email_plain ) {
 			// No email on file — admin handles externally per §7.
+			return false;
+		}
+
+		// Checked before the password link is issued: issuing rotates the
+		// key, so a message that will not go out must not invalidate the
+		// link an earlier e-mail carried (#2694).
+		if ( self::ffc_emails_disabled() ) {
 			return false;
 		}
 
@@ -224,8 +233,9 @@ final class RecruitmentEmailDispatcher {
 		add_filter( 'wp_mail_alternative_text', $plain_filter );
 
 		$ics_file = $convocation ? self::write_ics( $call, $classification ) : '';
+		$sent     = false;
 		try {
-			\FreeFormCertificate\Core\EmailService::send( $email_plain, $subject, $body, $headers, '' === $ics_file ? array() : array( $ics_file ), \FreeFormCertificate\Core\EmailSource::RECRUITMENT );
+			$sent = \FreeFormCertificate\Core\EmailService::send( $email_plain, $subject, $body, $headers, '' === $ics_file ? array() : array( $ics_file ), \FreeFormCertificate\Core\EmailSource::RECRUITMENT );
 		} finally {
 			remove_filter( 'wp_mail_alternative_text', $plain_filter );
 			if ( '' !== $ics_file && file_exists( $ics_file ) ) {
@@ -234,7 +244,7 @@ final class RecruitmentEmailDispatcher {
 			}
 		}
 
-		return true;
+		return $sent;
 	}
 
 	/**

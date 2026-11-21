@@ -507,7 +507,7 @@ final class RecruitmentClassificationsRestController {
 	public function import_job_validate( \WP_REST_Request $request ) {
 		$job_id = (string) $request->get_param( 'job_id' );
 
-		$result = RecruitmentCsvImporter::validate_job( $job_id );
+		$result = RecruitmentCsvImporter::validate_job( $job_id, (int) $request->get_param( 'id' ) );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -538,7 +538,7 @@ final class RecruitmentClassificationsRestController {
 			$size = RecruitmentCsvImporter::BATCH_SIZE_DEFAULT;
 		}
 
-		$result = RecruitmentCsvImporter::promote_batch( $job_id, $size, $this->acknowledged_identity( $request ) );
+		$result = RecruitmentCsvImporter::promote_batch( $job_id, (int) $request->get_param( 'id' ), $size, $this->acknowledged_identity( $request ) );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -560,7 +560,7 @@ final class RecruitmentClassificationsRestController {
 	public function import_job_commit( \WP_REST_Request $request ) {
 		$job_id = (string) $request->get_param( 'job_id' );
 
-		$result = RecruitmentCsvImporter::commit_job( $job_id, $this->confirmed_reimport( $request ) );
+		$result = RecruitmentCsvImporter::commit_job( $job_id, (int) $request->get_param( 'id' ), $this->confirmed_reimport( $request ) );
 		if ( ! $result['ok'] && isset( $result['diff'] ) ) {
 			return $this->reimport_diff_error( $result['diff'] );
 		}
