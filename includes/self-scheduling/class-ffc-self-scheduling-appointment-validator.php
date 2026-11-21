@@ -233,6 +233,14 @@ class AppointmentValidator {
 			return new \WP_Error( 'invalid_session', __( 'Choose one of this calendar\'s sessions.', 'ffcertificate' ) );
 		}
 
+		// 8a'. One person, one place on a slot (#2689): a second active booking
+		// for the same slot and session by the same person is refused on any
+		// calendar, inside the transaction that holds the slot's rows. No
+		// bypass lifts it: two places for one person is a mistake, not a rule.
+		if ( $this->already_on_slot( $data, $session, $use_lock ) ) {
+			return new \WP_Error( 'already_on_slot', __( 'You already have an appointment at this time.', 'ffcertificate' ) );
+		}
+
 		// 8b. Per-user block cap (#941 phase 3) — custom mode only. Counts the
 		// user's active + waitlisted bookings in this calendar; bypass confirms.
 		if ( $is_custom ) {
@@ -300,17 +308,9 @@ class AppointmentValidator {
 
 		// 11. Check minimum interval between bookings — bypass confirms.
 		if ( ! empty( $calendar['minimum_interval_between_bookings'] ) && $calendar['minimum_interval_between_bookings'] > 0 ) {
-			$user_identifier = null;
+			$user_identifier = $this->resolve_user_identifier( $data );
 
-			if ( ! empty( $data['user_id'] ) ) {
-				$user_identifier = $data['user_id'];
-			} elseif ( ! empty( $data['email'] ) ) {
-				$user_identifier = $data['email'];
-			} elseif ( ! empty( $data['cpf_rf'] ) ) {
-				$user_identifier = $data['cpf_rf'];
-			}
-
-			if ( $user_identifier ) {
+			if ( null !== $user_identifier ) {
 				$interval_hours = (int) $calendar['minimum_interval_between_bookings'];
 				$interval_check = $this->check_booking_interval( $user_identifier, (int) $data['calendar_id'], $interval_hours, (string) $data['appointment_date'], (string) $data['start_time'] );
 
@@ -512,10 +512,12 @@ class AppointmentValidator {
 	}
 
 	/**
-	 * Resolve the booking user's identifier for per-user checks (#941 phase 3).
+	 * Resolve the booking user's identifier for the per-user checks: the
+	 * block cap and the minimum interval.
 	 *
-	 * Prefers the WP user id, then email, then CPF/RF — mirroring the
-	 * minimum-interval check's precedence.
+	 * Prefers the WP user id, then the CPF/RF, then the e-mail. The document
+	 * comes before the address because a visitor can type a new address at
+	 * will, and keying on it let a second address reset both limits (#2689).
 	 *
 	 * @param array<string, mixed> $data Appointment data.
 	 * @return int|string|null
@@ -524,13 +526,64 @@ class AppointmentValidator {
 		if ( ! empty( $data['user_id'] ) ) {
 			return (int) $data['user_id'];
 		}
-		if ( ! empty( $data['email'] ) ) {
-			return $data['email'];
-		}
-		if ( ! empty( $data['cpf_rf'] ) ) {
+		if ( ! empty( $data['cpf_rf'] ) && is_string( $data['cpf_rf'] ) ) {
 			return $data['cpf_rf'];
 		}
+		if ( ! empty( $data['email'] ) && is_string( $data['email'] ) ) {
+			return $data['email'];
+		}
 		return null;
+	}
+
+	/**
+	 * Whether the person already holds an active place on the requested
+	 * slot (#2689): pending, confirmed or on the waitlist, same start time and
+	 * session.
+	 *
+	 * The person is the account when the booking has one, else the CPF/RF,
+	 * else the e-mail, compared by their stored hashes. With `$use_lock` the
+	 * read takes the same row locks as the capacity count, so two requests
+	 * from one person cannot both pass.
+	 *
+	 * @param array<string, mixed> $data     Appointment data.
+	 * @param int|null             $session  Session the booking names, or null.
+	 * @param bool                 $use_lock Use FOR UPDATE (requires an active transaction).
+	 * @return bool
+	 */
+	private function already_on_slot( array $data, ?int $session, bool $use_lock ): bool {
+		$user_id  = (int) ( $data['user_id'] ?? 0 );
+		$doc_hash = null;
+		if ( ! empty( $data['cpf_rf'] ) && is_string( $data['cpf_rf'] ) ) {
+			$doc_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $data['cpf_rf'] ) );
+		}
+		$email_hash = null;
+		if ( 0 === $user_id && null === $doc_hash && ! empty( $data['email'] ) && is_string( $data['email'] ) ) {
+			$email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $data['email'] );
+		}
+		if ( 0 === $user_id && null === $doc_hash && null === $email_hash ) {
+			return false;
+		}
+
+		$start = substr( (string) $data['start_time'], 0, 5 );
+		$rows  = $this->appointment_repository->getAppointmentsByDate( (int) $data['calendar_id'], (string) $data['appointment_date'], array( 'pending', 'confirmed', 'waitlist' ), $use_lock );
+		foreach ( $rows as $row ) {
+			if ( substr( (string) ( $row['start_time'] ?? '' ), 0, 5 ) !== $start ) {
+				continue;
+			}
+			if ( null !== $session && (int) ( $row['session_id'] ?? 0 ) !== $session ) {
+				continue;
+			}
+			if ( $user_id > 0 && (int) ( $row['user_id'] ?? 0 ) === $user_id ) {
+				return true;
+			}
+			if ( null !== $doc_hash && in_array( $doc_hash, array( $row['cpf_hash'] ?? null, $row['rf_hash'] ?? null ), true ) ) {
+				return true;
+			}
+			if ( null !== $email_hash && ( $row['email_hash'] ?? null ) === $email_hash ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -574,10 +627,9 @@ class AppointmentValidator {
 	/**
 	 * Check minimum interval between bookings for a user (#2244).
 	 *
-	 * The requested slot is compared with the person's last booked
-	 * appointment on the calendar, the one booked most recently that is not
-	 * cancelled: a new booking less than the interval before or after it is
-	 * refused. A cancelled appointment does not count, so cancelling and
+	 * The requested slot is compared with the person's appointment on the
+	 * calendar nearest to it in time that is not cancelled: a new booking
+	 * less than the interval before or after it is refused. A cancelled appointment does not count, so cancelling and
 	 * booking again (a reschedule) is never held up by the one cancelled.
 	 * Without a requested slot the check compares with now, as before.
 	 *
@@ -599,30 +651,32 @@ class AppointmentValidator {
 			$appointments = $this->appointment_repository->findByCpfRf( $user_identifier );
 		}
 
-		$last = null;
+		// The booking nearest in time decides (#2689): the one booked most
+		// recently can sit far from the requested slot while another sits
+		// right beside it.
+		$nearest    = null;
+		$nearest_ts = 0;
 		foreach ( $appointments as $appointment ) {
 			if ( 'cancelled' === $appointment['status'] || (int) $appointment['calendar_id'] !== $calendar_id ) {
 				continue;
 			}
-			if ( null === $last || (int) ( $appointment['id'] ?? 0 ) > (int) ( $last['id'] ?? 0 ) ) {
-				$last = $appointment;
+			$ts  = self::wall_clock_to_timestamp( (string) $appointment['appointment_date'], (string) $appointment['start_time'] );
+			$gap = abs( $requested - $ts );
+			if ( null === $nearest || $gap < $nearest ) {
+				$nearest    = $gap;
+				$nearest_ts = $ts;
 			}
 		}
-		if ( null === $last ) {
-			return true;
-		}
-
-		$last_ts = self::wall_clock_to_timestamp( (string) $last['appointment_date'], (string) $last['start_time'] );
-		if ( abs( $requested - $last_ts ) >= $interval_hours * 3600 ) {
+		if ( null === $nearest || $nearest >= $interval_hours * 3600 ) {
 			return true;
 		}
 
 		return new \WP_Error(
 			'booking_too_soon',
 			sprintf(
-				/* translators: %1$s: date and time of the last appointment, %2$d: number of hours */
-				__( 'Your last appointment on this calendar is on %1$s. A new one must be at least %2$d hours before or after it.', 'ffcertificate' ),
-				\FreeFormCertificate\Core\DateFormatter::format_datetime( $last_ts ),
+				/* translators: %1$s: date and time of the person's nearest appointment, %2$d: number of hours */
+				__( 'You have an appointment on this calendar on %1$s. A new one must be at least %2$d hours before or after it.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\DateFormatter::format_datetime( $nearest_ts ),
 				$interval_hours
 			)
 		);

@@ -30506,15 +30506,6 @@ msgstr ""
 msgid "This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else."
 msgstr ""
 
-#. translators: 1: date and time of the last appointment, 2: minimum hours between appointments.
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:607
-msgid "Your last appointment on this calendar is on %1$s. A new one must be at least %2$d hours before or after it."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:46
-msgid "A new booking must start at least this many hours before or after the person's last booking on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:64
 msgid "Mark as no-show in the bulk actions does the same for several rows at once; a selected row that is not confirmed, or whose date has not come, is skipped and counted in the notice."
 msgstr ""
@@ -35272,4 +35263,17 @@ msgstr ""
 #: includes/self-scheduling/views/appointments-list.php
 #, php-format
 msgid "Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending or waitlisted (will be cancelled). The daily run closes them; you can close them now."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "A new booking must start at least this many hours before or after the person's booking nearest to it on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time. The person is the account, else the CPF/RF, so a new e-mail address resets neither this nor the block cap; and on any calendar one person may hold only one place on a slot."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php
+msgid "You already have an appointment at this time."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php
+#, php-format
+msgid "You have an appointment on this calendar on %1$s. A new one must be at least %2$d hours before or after it."
 msgstr ""
