@@ -47,6 +47,24 @@ class AudienceFormInviteScanner {
 	public const PER_RUN = 200;
 
 	/**
+	 * The single event that sends the Attendance screen's *Send to everyone
+	 * who has not answered*, one batch at a time (#2691).
+	 *
+	 * Registered in `Loader` beside {@see self::CRON_HOOK}. Its arguments are
+	 * the booking and a cursor: the last user ID the previous batch reached.
+	 *
+	 * @var string
+	 */
+	public const INVITE_ALL_HOOK = 'ffc_audience_invite_all_batch';
+
+	/**
+	 * Seconds between two batches of that send.
+	 *
+	 * @var int
+	 */
+	public const INVITE_ALL_DELAY = 60;
+
+	/**
 	 * Schedule the hourly run when it is not scheduled.
 	 *
 	 * @return void
@@ -113,11 +131,12 @@ class AudienceFormInviteScanner {
 	 * @return int How many were sent.
 	 */
 	public static function invite_booking( object $booking, int $now, int $limit ): int {
-		$booking_id = (int) ( $booking->id ?? 0 );
-		$invited    = AudienceFormInviteReader::for_booking( $booking_id );
+		$booking_id   = (int) ( $booking->id ?? 0 );
+		$invited      = AudienceFormInviteReader::for_booking( $booking_id );
+		$participants = AudiencePostEventForm::participants( $booking_id );
 
 		$sent = 0;
-		foreach ( AudiencePostEventForm::participants( $booking_id ) as $user_id ) {
+		foreach ( $participants as $user_id ) {
 			if ( $sent >= $limit ) {
 				break;
 			}
@@ -125,7 +144,7 @@ class AudienceFormInviteScanner {
 				continue;
 			}
 
-			$eligible = AudiencePostEventForm::eligibility( $booking, $user_id, $now );
+			$eligible = AudiencePostEventForm::eligibility( $booking, $user_id, $now, $participants );
 			if ( $eligible instanceof \WP_Error ) {
 				if ( in_array( $eligible->get_error_code(), array( 'no_form', 'not_open', 'closed', 'cancelled' ), true ) ) {
 					// A refusal about the booking holds for everyone on it.
@@ -139,6 +158,75 @@ class AudienceFormInviteScanner {
 				++$sent;
 			} elseif ( 'no_page' === $result->get_error_code() ) {
 				// Nothing to link to until an operator embeds the form.
+				break;
+			}
+		}
+
+		return $sent;
+	}
+
+	/**
+	 * Queue the operator's *Send to everyone who has not answered* for a booking.
+	 *
+	 * The sending happens on cron, {@see self::PER_RUN} people at a time, so a
+	 * booking of thousands does not hold the operator's request open while
+	 * the mailer runs. A second click while the first batch is still waiting
+	 * queues nothing.
+	 *
+	 * @param int $booking_id Booking ID.
+	 * @return void
+	 */
+	public static function queue_invite_all( int $booking_id ): void {
+		$args = array( $booking_id, 0 );
+		if ( false === wp_next_scheduled( self::INVITE_ALL_HOOK, $args ) ) {
+			wp_schedule_single_event( time(), self::INVITE_ALL_HOOK, $args );
+		}
+	}
+
+	/**
+	 * One batch of a send to everyone: everyone eligible who has not answered,
+	 * invited before or not, in user ID order after the cursor; then the next
+	 * batch when this one stopped at the cap.
+	 *
+	 * @param int      $booking_id Booking ID.
+	 * @param int      $after      Cursor: only user IDs greater than this.
+	 * @param int|null $now        Unix time; now when omitted, as cron calls it.
+	 * @return int How many were sent.
+	 */
+	public static function invite_all_batch( int $booking_id, int $after = 0, ?int $now = null ): int {
+		$booking = AudienceBookingReader::get_by_id( $booking_id );
+		$now     = $now ?? time();
+		if ( null === $booking || ! AudiencePostEventForm::is_open( $booking, $now ) ) {
+			return 0;
+		}
+
+		$participants = AudiencePostEventForm::participants( $booking_id );
+		sort( $participants );
+		$answers = AudienceFormInviteReader::answers( $booking_id );
+
+		$sent = 0;
+		foreach ( $participants as $user_id ) {
+			if ( $user_id <= $after || isset( $answers[ $user_id ] ) ) {
+				continue;
+			}
+			if ( $sent >= self::PER_RUN ) {
+				$args = array( $booking_id, $after );
+				if ( false === wp_next_scheduled( self::INVITE_ALL_HOOK, $args ) ) {
+					wp_schedule_single_event( $now + self::INVITE_ALL_DELAY, self::INVITE_ALL_HOOK, $args );
+				}
+				break;
+			}
+
+			$after = $user_id;
+			if ( true !== AudiencePostEventForm::eligibility( $booking, $user_id, $now, $participants ) ) {
+				continue;
+			}
+
+			$result = AudienceFormInviteMailer::send( $booking, $user_id, $now );
+			if ( true === $result ) {
+				++$sent;
+			} elseif ( 'no_page' === $result->get_error_code() ) {
+				// Nothing to link to: the rest would fail the same way.
 				break;
 			}
 		}

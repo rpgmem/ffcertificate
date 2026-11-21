@@ -1434,6 +1434,7 @@ class Loader {
 		}
 		if ( SettingsReader::module_enabled( 'audiences' ) ) {
 			add_action( \FreeFormCertificate\Audience\AudienceFormInviteScanner::CRON_HOOK, array( \FreeFormCertificate\Audience\AudienceFormInviteScanner::class, 'run' ) );
+			add_action( \FreeFormCertificate\Audience\AudienceFormInviteScanner::INVITE_ALL_HOOK, array( \FreeFormCertificate\Audience\AudienceFormInviteScanner::class, 'invite_all_batch' ), 10, 2 );
 		}
 		if ( SettingsReader::module_enabled( 'date_messages' ) ) {
 			\FreeFormCertificate\DateMessages\DateMessagesCron::init();

@@ -147,6 +147,10 @@ final class ScheduledTasks {
 			'recurrence' => self::SINGLE,
 			'module'     => 'audiences',
 		),
+		'ffc_audience_invite_all_batch'       => array(
+			'recurrence' => self::SINGLE,
+			'module'     => 'audiences',
+		),
 		'ffc_date_messages_daily'             => array(
 			'recurrence' => 'daily',
 			'module'     => 'date_messages',
@@ -227,6 +231,8 @@ final class ScheduledTasks {
 				return __( 'Recruitment: candidate accounts (one per batch)', 'ffcertificate' );
 			case 'ffc_audience_notification_batch':
 				return __( 'Audience booking e-mails (one per batch)', 'ffcertificate' );
+			case 'ffc_audience_invite_all_batch':
+				return __( 'Audience post-event invitations to everyone who has not answered (one per batch)', 'ffcertificate' );
 			case 'ffc_date_messages_daily':
 				return __( 'Date messages (birthdays and other dates)', 'ffcertificate' );
 			case 'ffc_date_messages_start':

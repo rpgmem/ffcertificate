@@ -47,6 +47,7 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
 		wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
+		wp_unschedule_hook( 'ffc_audience_invite_all_batch' );
 		wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
 		// The names these hooks had before #2323. The relay that moved their
 		// events is gone, so an install that skipped the releases carrying it
