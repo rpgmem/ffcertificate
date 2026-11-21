@@ -305,6 +305,7 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		$repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( [
 			'id'         => 5,
 			'short_code' => 'abc123',
+			'status'     => 'active',
 		] );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 		$this->service->shouldReceive( 'get_short_url' )->with( 'abc123' )->andReturn( 'https://example.com/go/abc123' );
@@ -313,6 +314,29 @@ class UrlShortenerQrHandlerTest extends TestCase {
 
 		$this->assertSame( 'https://example.com/go/abc123', $result['url'] );
 		$this->assertSame( 'qr-abc123', $result['prefix'] );
+	}
+
+	public function test_resolve_qr_target_refuses_a_link_that_is_not_active(): void {
+		// A disabled link from the list cannot be printed (#2693).
+		$_POST['code'] = 'off123';
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'off123' )->andReturn( [
+			'id'         => 6,
+			'short_code' => 'off123',
+			'status'     => 'disabled',
+		] );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldNotReceive( 'get_short_url' );
+
+		Functions\when( 'wp_send_json_error' )->alias( function ( $data ) {
+			throw new \RuntimeException( 'json_error:' . $data['message'] );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'json_error:This short URL is not active, so it has no QR code.' );
+
+		$this->invoke_resolve_qr_target();
 	}
 
 	public function test_resolve_qr_target_code_not_found_sends_error(): void {

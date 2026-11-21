@@ -98,6 +98,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 					esc_html__( 'Short URL permanently deleted.', 'ffcertificate' )
 				);
 				?>
+			<?php elseif ( 'action_failed' === $msg ) : ?>
+				<?php
+				\FreeFormCertificate\Core\AdminNotice::render(
+					'error',
+					esc_html__( 'The short URL could not be changed. It may have been changed or deleted in the meantime; reload the list and try again.', 'ffcertificate' )
+				);
+				?>
 			<?php elseif ( 'emptied' === $msg ) : ?>
 				<?php
 				\FreeFormCertificate\Core\AdminNotice::render(
