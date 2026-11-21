@@ -239,6 +239,8 @@ class SelfSchedulingShortcode {
 						/* translators: %s: month and year, e.g. "March 2027". */
 						'panelHeading'         => __( 'Free Slots — %s', 'ffcertificate' ),
 						'panelMine'            => __( 'Your bookings', 'ffcertificate' ),
+						// The visitor's bookings already held, collapsed (#2728).
+						'alreadyHeld'          => __( 'Already held', 'ffcertificate' ),
 						'panelNone'            => __( 'No free slots this month.', 'ffcertificate' ),
 						'panelFreeOne'         => __( '1 free place', 'ffcertificate' ),
 						/* translators: %d: number of free places, two or more. */

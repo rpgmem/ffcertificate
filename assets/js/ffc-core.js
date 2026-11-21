@@ -929,6 +929,51 @@
         },
 
         /**
+         * Today as `YYYY-MM-DD`, read the way the month grids read it: the
+         * visitor's own calendar day (#2728).
+         *
+         * @param {Date} [now]  The moment to read; defaults to now.
+         * @return {string}
+         */
+        todayYmd: function(now) {
+            var d = now instanceof Date ? now : new Date();
+            var m = d.getMonth() + 1;
+            var day = d.getDate();
+            return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+        },
+
+        /**
+         * The collapsed group a calendar's side panel puts the month's past
+         * days in (#2728): a native `<details>`, so the keyboard and screen
+         * readers get the toggle for free. It always starts closed.
+         *
+         * Callers append the past items to the `.ffc-past-days-items` child.
+         * Every string lands through `textContent`.
+         *
+         * @param {string} label  The summary text ("Earlier days").
+         * @param {string} count  What is inside ("7 events").
+         * @return {HTMLElement}
+         */
+        pastDaysGroup: function(label, count) {
+            var details = document.createElement('details');
+            details.className = 'ffc-past-days';
+            var summary = document.createElement('summary');
+            summary.className = 'ffc-past-days-summary ffc-icon-chevron-right';
+            var text = document.createElement('span');
+            text.textContent = label;
+            var badge = document.createElement('span');
+            badge.className = 'ffc-past-days-count';
+            badge.textContent = count;
+            summary.appendChild(text);
+            summary.appendChild(badge);
+            var items = document.createElement('div');
+            items.className = 'ffc-past-days-items';
+            details.appendChild(summary);
+            details.appendChild(items);
+            return details;
+        },
+
+        /**
          * Build a system notice (#1842): the JS twin of `Core\Notice::render()`,
          * printing the same markup, so no script hand-writes it.
          *

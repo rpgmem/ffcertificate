@@ -1113,6 +1113,9 @@ class AudienceShortcode {
 						'allDay'                 => __( 'All Day', 'ffcertificate' ),
 						'events'                 => __( 'Events', 'ffcertificate' ),
 						'noEvents'               => __( 'No events this month.', 'ffcertificate' ),
+						// The side panel's collapsed past days and today's mark (#2728).
+						'earlierDays'            => __( 'Earlier days', 'ffcertificate' ),
+						'today'                  => __( 'Today', 'ffcertificate' ),
 						'multipleAudiences'      => __( 'Multiple audiences', 'ffcertificate' ),
 						// The "all spaces" option of the filter (#1859): "All" before
 						// the calendar's own plural label.
