@@ -29859,9 +29859,6 @@ msgstr "Filtre por status, por \"não concluídos\" (pendentes ou em andamento: 
 msgid "Each status card links to the list filtered by that status; the Total card clears every filter."
 msgstr "Cada cartão de status leva à lista filtrada por aquele status; o cartão Total limpa todos os filtros."
 
-msgid "Export CSV exports what the list shows: the same filters, every page."
-msgstr "Exportar CSV exporta o que a lista mostra: os mesmos filtros, todas as páginas."
-
 msgid "Draft saved automatically."
 msgstr "Rascunho salvo automaticamente."
 
@@ -35411,3 +35408,11 @@ msgstr "Submissão de Recadastramento Aprovada"
 #: includes/admin/class-ffc-admin-activity-log-page.php:313
 msgid "Reregistration Campaign Deleted"
 msgstr "Campanha de Recadastramento Excluída"
+
+#: includes/settings/views/documentation/feature-reregistration.php:111
+msgid "Export CSV exports what the list shows: the same filters, every page, with each status written as the list names it."
+msgstr "Exportar CSV exporta o que a lista mostra: os mesmos filtros, todas as páginas, com cada status escrito como a lista o nomeia."
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:635
+msgid "Choose a valid campaign status. Nothing was saved."
+msgstr "Escolha um status de campanha válido. Nada foi salvo."
