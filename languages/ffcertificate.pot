@@ -28074,10 +28074,6 @@ msgid "Invitations go out on their own once the event ends, and can be sent agai
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Invitations sent to everyone eligible who has not answered."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Invited"
 msgstr ""
 
@@ -28090,15 +28086,7 @@ msgid "No published page embeds the post-event form. Add the form to a page, the
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Nobody was sent an invitation: everyone eligible has answered, or the form is not open."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Not yet"
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
 msgstr ""
 
 #: templates/emails/audience-post-event-invite.php
@@ -35251,6 +35239,22 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Nor can a privacy request be made there, since it is the data subject's own, and a profile edit made while viewing as someone is logged under the account that made it, naming the account edited."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person at once, or to everyone who has not answered in the background, in batches of 200 a minute apart; this needs ffc_checkin_audiences."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations are being sent to everyone eligible who has not answered. A large booking takes a few minutes."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Nobody can be invited: the form is not open."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Audience post-event invitations to everyone who has not answered (one per batch)"
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php

@@ -166,12 +166,18 @@ class AudiencePostEventForm {
 	 * booking must stand, the person must be on it, the window must be open,
 	 * and under *attendees only* the booking's attendance rule must be met.
 	 *
-	 * @param object $booking Booking row, as {@see AudienceBookingReader::get_by_id()} returns it.
-	 * @param int    $user_id User ID.
-	 * @param int    $now     Unix time.
+	 * A caller that judges every person on a booking passes the list it read
+	 * once from {@see self::participants()}; otherwise each call reads it again,
+	 * and a loop over the booking's people grows with the square of their
+	 * number (#2691).
+	 *
+	 * @param object         $booking      Booking row, as {@see AudienceBookingReader::get_by_id()} returns it.
+	 * @param int            $user_id      User ID.
+	 * @param int            $now          Unix time.
+	 * @param list<int>|null $participants The booking's people, when the caller holds them.
 	 * @return true|\WP_Error An error whose code says which check failed.
 	 */
-	public static function eligibility( object $booking, int $user_id, int $now ) {
+	public static function eligibility( object $booking, int $user_id, int $now, ?array $participants = null ) {
 		$settings = self::settings( $booking );
 		if ( ! self::is_form( $settings['form_id'] ) ) {
 			return self::error( 'no_form' );
@@ -182,7 +188,7 @@ class AudiencePostEventForm {
 		}
 
 		$booking_id = (int) ( $booking->id ?? 0 );
-		if ( $user_id <= 0 || ! in_array( $user_id, self::participants( $booking_id ), true ) ) {
+		if ( $user_id <= 0 || ! in_array( $user_id, $participants ?? self::participants( $booking_id ), true ) ) {
 			return self::error( 'not_participant' );
 		}
 
@@ -200,6 +206,28 @@ class AudiencePostEventForm {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether a booking's form is taking answers at a moment: a form applies,
+	 * the booking stands, and the moment falls inside its window.
+	 *
+	 * The part of {@see self::eligibility()} that holds for everyone on the
+	 * booking, so a caller can stop before judging anybody.
+	 *
+	 * @param object $booking Booking row.
+	 * @param int    $now     Unix time.
+	 * @return bool
+	 */
+	public static function is_open( object $booking, int $now ): bool {
+		$settings = self::settings( $booking );
+		if ( ! self::is_form( $settings['form_id'] ) || 'cancelled' === ( $booking->status ?? '' ) ) {
+			return false;
+		}
+
+		$opens = self::opens_at( $booking );
+
+		return 0 !== $opens && $now >= $opens && $now < self::closes_at( $booking, $settings['window_days'] );
 	}
 
 	/**

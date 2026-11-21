@@ -95,6 +95,7 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffc_reregistration_reminder_batch', $cleared );
 		$this->assertContains( 'ffc_reregistration_invitation_batch', $cleared );
 		$this->assertContains( 'ffc_audience_notification_batch', $cleared );
+		$this->assertContains( 'ffc_audience_invite_all_batch', $cleared );
 		// The date-messages daily send and its pending batches (#1538).
 		$this->assertContains( 'ffc_date_messages_daily', $cleared );
 		$this->assertContains( 'ffc_date_messages_batch', $cleared );
@@ -120,7 +121,7 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffcertificate_process_submission_hook', $cleared );
 		// The follow-up run of a cleanup its budget cut short (#2340).
 		$this->assertContains( 'ffc_activity_log_cleanup_continue', $cleared );
-		$this->assertCount( 26, $cleared );
+		$this->assertCount( 27, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

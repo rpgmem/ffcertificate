@@ -28153,10 +28153,6 @@ msgid "Invitations go out on their own once the event ends, and can be sent agai
 msgstr "Os convites saem sozinhos quando o evento termina, e podem ser reenviados aqui enquanto o formulário estiver aberto."
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Invitations sent to everyone eligible who has not answered."
-msgstr "Convites enviados a todos os elegíveis que ainda não responderam."
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Invited"
 msgstr "Convidado"
 
@@ -28169,16 +28165,8 @@ msgid "No published page embeds the post-event form. Add the form to a page, the
 msgstr "Nenhuma página publicada contém o formulário pós-evento. Adicione o formulário a uma página e envie de novo."
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Nobody was sent an invitation: everyone eligible has answered, or the form is not open."
-msgstr "Nenhum convite foi enviado: todos os elegíveis já responderam, ou o formulário não está aberto."
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Not yet"
 msgstr "Ainda não"
-
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
-msgstr "Uma vez por hora o plugin envia por e-mail a cada participante elegível de uma reserva cujo formulário abriu o link pessoal, uma única vez. O e-mail é \"Convite para o formulário pós-evento de público\" em Configurações → Textos dos e-mails. É preciso uma página publicada que contenha o formulário, pois o link aponta para ela; sem ela nada é enviado. A tela de Presença mostra quem foi convidado e quando, quem respondeu e de quem o certificado foi emitido, e enquanto o formulário estiver aberto reenvia a uma pessoa ou a todos que ainda não responderam; isso exige ffc_checkin_audiences."
 
 #: templates/emails/audience-post-event-invite.php
 msgid "Open the form"
@@ -35330,6 +35318,22 @@ msgstr "Não é possível fazer um pedido de privacidade enquanto se vê como ou
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Nor can a privacy request be made there, since it is the data subject's own, and a profile edit made while viewing as someone is logged under the account that made it, naming the account edited."
 msgstr "Também não é possível fazer um pedido de privacidade ali, porque ele pertence ao titular dos dados, e uma edição de perfil feita enquanto se vê como alguém é registrada no log em nome da conta que a fez, indicando a conta editada."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person at once, or to everyone who has not answered in the background, in batches of 200 a minute apart; this needs ffc_checkin_audiences."
+msgstr "Uma vez por hora o plugin envia por e-mail a cada participante elegível de uma reserva cujo formulário abriu o link pessoal, uma única vez. O e-mail é \"Convite para o formulário pós-evento de público\" em Configurações → Textos dos e-mails. É preciso uma página publicada que contenha o formulário, pois o link aponta para ela; sem ela nada é enviado. A tela de Presença mostra quem foi convidado e quando, quem respondeu e de quem o certificado foi emitido, e enquanto o formulário estiver aberto reenvia na hora a uma pessoa, ou em segundo plano a todos que ainda não responderam, em lotes de 200 a cada minuto; isso exige ffc_checkin_audiences."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations are being sent to everyone eligible who has not answered. A large booking takes a few minutes."
+msgstr "Os convites estão sendo enviados a todos os elegíveis que ainda não responderam. Uma reserva grande leva alguns minutos."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Nobody can be invited: the form is not open."
+msgstr "Ninguém pode ser convidado: o formulário não está aberto."
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Audience post-event invitations to everyone who has not answered (one per batch)"
+msgstr "Convites pós-evento de público a todos que ainda não responderam (um por lote)"
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "The names reach only someone who may book people by name; anyone else is told how many."

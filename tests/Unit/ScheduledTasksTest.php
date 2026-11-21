@@ -333,6 +333,7 @@ class ScheduledTasksTest extends TestCase {
 				'ffc_reregistration_invitation_batch' => 0,
 				'ffc_recruitment_account_link_batch'  => 0,
 				'ffc_audience_notification_batch'     => 0,
+				'ffc_audience_invite_all_batch'       => 0,
 				'ffc_date_messages_start'             => 0,
 				'ffc_date_messages_batch'             => 0,
 				'ffc_date_messages_digest'            => 0,
