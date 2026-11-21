@@ -254,19 +254,21 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
-	 * Cancel one batch of pending appointments dated on or before $cutoff:
-	 * nobody approved them, and their date has gone.
+	 * Cancel one batch of pending and waitlisted appointments dated on or
+	 * before $cutoff: nobody approved them or gave them a place, and their
+	 * date has gone. A waitlist row left open counted against the person's
+	 * limit for ever (#2689).
 	 *
 	 * @param string $cutoff Last appointment date to close, `Y-m-d` (wall-clock).
 	 * @param string $reason Cancellation reason stored on each row.
 	 * @param int    $limit  Rows per batch.
 	 * @return int|false Rows changed, or false on a database error.
 	 */
-	public function expirePendingUpTo( string $cutoff, string $reason, int $limit ) {
+	public function expireUnconfirmedUpTo( string $cutoff, string $reason, int $limit ) {
 		$sql = $this->wpdb->prepare(
 			"UPDATE %i SET status = 'cancelled', cancelled_at = %d, cancelled_by = NULL,
              cancellation_reason = %s, updated_at = %d
-             WHERE status = 'pending' AND appointment_date <= %s
+             WHERE status IN ('pending', 'waitlist') AND appointment_date <= %s
              ORDER BY id LIMIT %d",
 			$this->table,
 			time(),

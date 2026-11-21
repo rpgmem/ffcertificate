@@ -46,8 +46,8 @@ if ( 'close_old' === $ffcertificate_action ) {
 			: array(
 				'type'    => 'success',
 				'message' => sprintf(
-					/* translators: 1: appointments marked completed, 2: appointments cancelled */
-					__( 'Old appointments closed: %1$d marked completed, %2$d pending cancelled.', 'ffcertificate' ),
+					/* translators: 1: appointments marked completed, 2: pending or waitlisted appointments cancelled */
+					__( 'Old appointments closed: %1$d marked completed, %2$d pending or waitlisted cancelled.', 'ffcertificate' ),
 					$ffcertificate_closed['completed'],
 					$ffcertificate_closed['cancelled']
 				),
@@ -479,8 +479,8 @@ $ffcertificate_table->prepare_items();
 		if ( $ffc_closeout_total > 0 ) :
 			$ffc_closeout_days    = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::days();
 			$ffc_closeout_message = sprintf(
-				/* translators: 1: number of days, 2: confirmed appointments, 3: pending appointments */
-				__( 'Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending (will be cancelled). The daily run closes them; you can close them now.', 'ffcertificate' ),
+				/* translators: 1: number of days, 2: confirmed appointments, 3: pending or waitlisted appointments */
+				__( 'Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending or waitlisted (will be cancelled). The daily run closes them; you can close them now.', 'ffcertificate' ),
 				$ffc_closeout_days,
 				$ffc_closeout_due['confirmed'],
 				$ffc_closeout_due['pending']

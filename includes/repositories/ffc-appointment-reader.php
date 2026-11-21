@@ -408,8 +408,9 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
-	 * Count the appointments the close-out would change: confirmed and
-	 * pending ones dated on or before $cutoff.
+	 * Count the appointments the close-out would change: confirmed ones, and
+	 * pending or waitlisted ones (counted together as `pending`), dated on or
+	 * before $cutoff.
 	 *
 	 * @param string $cutoff Last appointment date, `Y-m-d` (wall-clock).
 	 * @return array{confirmed: int, pending: int}
@@ -422,7 +423,7 @@ class AppointmentReader extends AbstractRepository {
 		$rows   = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				"SELECT status, COUNT(*) AS total FROM %i
-                 WHERE status IN ('confirmed', 'pending') AND appointment_date <= %s
+                 WHERE status IN ('confirmed', 'pending', 'waitlist') AND appointment_date <= %s
                  GROUP BY status",
 				$this->table,
 				$cutoff
@@ -431,8 +432,9 @@ class AppointmentReader extends AbstractRepository {
 		);
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 			$status = isset( $row['status'] ) && is_string( $row['status'] ) ? $row['status'] : '';
+			$status = 'waitlist' === $status ? 'pending' : $status;
 			if ( isset( $counts[ $status ] ) ) {
-				$counts[ $status ] = is_numeric( $row['total'] ?? null ) ? (int) $row['total'] : 0;
+				$counts[ $status ] += is_numeric( $row['total'] ?? null ) ? (int) $row['total'] : 0;
 			}
 		}
 		return $counts;
