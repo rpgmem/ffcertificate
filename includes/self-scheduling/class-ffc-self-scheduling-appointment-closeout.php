@@ -127,7 +127,7 @@ final class AppointmentCloseout {
 
 		$repo   = new AppointmentRepository();
 		$cutoff = self::cutoff( $days );
-		$reason = __( 'Closed automatically: the date passed without approval.', 'ffcertificate' );
+		$reason = __( 'Closed automatically: the date passed before the appointment was confirmed.', 'ffcertificate' );
 
 		do {
 			$rows = $repo->completeConfirmedUpTo( $cutoff, self::BATCH );
@@ -139,7 +139,7 @@ final class AppointmentCloseout {
 		} while ( self::BATCH === $rows );
 
 		do {
-			$rows = $repo->expirePendingUpTo( $cutoff, $reason, self::BATCH );
+			$rows = $repo->expireUnconfirmedUpTo( $cutoff, $reason, self::BATCH );
 			if ( false === $rows ) {
 				$result['failed'] = true;
 				break;

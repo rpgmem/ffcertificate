@@ -12313,10 +12313,6 @@ msgstr ""
 msgid "On by default, but only unlocks after the form's end date has passed and while download quota remains."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:41
-msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block's live booked / capacity, occupancy % and waitlist length."
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:713
 msgid "On desktop: click the padlock in the address bar → Site Settings → Location → Allow."
 msgstr ""
@@ -30180,10 +30176,6 @@ msgstr ""
 msgid "Undo attendance"
 msgstr ""
 
-#: includes/self-scheduling/views/appointments-list.php:457
-msgid "Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending (will be cancelled). The daily run closes them; you can close them now."
-msgstr ""
-
 #: templates/admin/audience/self-scheduling-tab.php:187
 msgid "Close Old Appointments"
 msgstr ""
@@ -30194,10 +30186,6 @@ msgstr ""
 
 #: includes/self-scheduling/views/appointments-list.php:464
 msgid "Close old appointments now"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-closeout.php:130
-msgid "Closed automatically: the date passed without approval."
 msgstr ""
 
 #: templates/admin/audience/self-scheduling-tab.php:195
@@ -30218,14 +30206,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-settings.php:274
 msgid "Old appointment close-out saved."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:61
-msgid "Old appointments close themselves: once a day, an appointment whose date passed the number of days set under Close Old Appointments on the Personal Calendars tab of the Scheduling settings (default 7, 0 turns it off) and that is still confirmed is marked completed, and one still pending is cancelled with a reason saying nobody approved it in time. No e-mail is sent. When any are due, the Appointments list says how many and offers Close old appointments now, which runs the same close-out at once; each run that changed something leaves one Activity Log entry."
-msgstr ""
-
-#: includes/self-scheduling/views/appointments-list.php:49
-msgid "Old appointments closed: %1$d marked completed, %2$d pending cancelled."
 msgstr ""
 
 #: templates/admin/audience/self-scheduling-tab.php:189
@@ -35270,4 +35250,26 @@ msgstr ""
 #: includes/audience/class-ffc-audience-rest-controller.php
 #, php-format
 msgid "Write a cancellation reason of at least %d characters."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings whose slot has not started; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block's live booked / capacity, occupancy % and waitlist length."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Old appointments close themselves: once a day, an appointment whose date passed the number of days set under Close Old Appointments on the Personal Calendars tab of the Scheduling settings (default 7, 0 turns it off) and that is still confirmed is marked completed, and one still pending or on the waitlist is cancelled with a reason saying it was never confirmed. No e-mail is sent. When any are due, the Appointments list says how many and offers Close old appointments now, which runs the same close-out at once; each run that changed something leaves one Activity Log entry."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-closeout.php
+msgid "Closed automatically: the date passed before the appointment was confirmed."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php
+#, php-format
+msgid "Old appointments closed: %1$d marked completed, %2$d pending or waitlisted cancelled."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php
+#, php-format
+msgid "Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending or waitlisted (will be cancelled). The daily run closes them; you can close them now."
 msgstr ""

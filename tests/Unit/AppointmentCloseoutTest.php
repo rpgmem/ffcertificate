@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @covers \FreeFormCertificate\SelfScheduling\AppointmentCloseout
  * @covers \FreeFormCertificate\Repositories\AppointmentWriter::completeConfirmedUpTo
- * @covers \FreeFormCertificate\Repositories\AppointmentWriter::expirePendingUpTo
+ * @covers \FreeFormCertificate\Repositories\AppointmentWriter::expireUnconfirmedUpTo
  * @covers \FreeFormCertificate\Repositories\AppointmentReader::countDueForCloseout
  */
 class AppointmentCloseoutTest extends TestCase {
@@ -120,8 +120,9 @@ class AppointmentCloseoutTest extends TestCase {
 		}
 		$this->assertStringContainsString( "SET status = 'cancelled'", $this->ran[2] );
 		$this->assertStringContainsString( 'cancelled_by = NULL', $this->ran[2] );
-		$this->assertStringContainsString( "cancellation_reason = 'Closed automatically: the date passed without approval.'", $this->ran[2] );
-		$this->assertStringContainsString( "WHERE status = 'pending' AND appointment_date <= '{$cutoff}'", $this->ran[2] );
+		$this->assertStringContainsString( "cancellation_reason = 'Closed automatically: the date passed before the appointment was confirmed.'", $this->ran[2] );
+		// A waitlist row past its date closes too, or it counts against the person for ever (#2689).
+		$this->assertStringContainsString( "WHERE status IN ('pending', 'waitlist') AND appointment_date <= '{$cutoff}'", $this->ran[2] );
 	}
 
 	public function test_run_does_nothing_when_the_setting_is_zero(): void {
@@ -148,9 +149,10 @@ class AppointmentCloseoutTest extends TestCase {
 			array(
 				array( 'status' => 'confirmed', 'total' => '4' ),
 				array( 'status' => 'pending', 'total' => '2' ),
+				array( 'status' => 'waitlist', 'total' => '3' ),
 			)
 		);
-		$this->assertSame( array( 'confirmed' => 4, 'pending' => 2 ), AppointmentCloseout::due() );
+		$this->assertSame( array( 'confirmed' => 4, 'pending' => 5 ), AppointmentCloseout::due(), 'Waitlisted rows are closed with the pending ones, and counted with them.' );
 
 		$this->days = 0;
 		$this->assertSame( array( 'confirmed' => 0, 'pending' => 0 ), AppointmentCloseout::due() );

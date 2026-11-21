@@ -537,7 +537,10 @@ class AppointmentValidator {
 	 * Count a user's active (+ waitlisted) bookings in a calendar (#941 phase 3).
 	 *
 	 * Used to enforce the per-user block cap. `cancelled`/`completed`/`no_show`
-	 * rows don't count; `waitlist` does (queuing counts toward the cap).
+	 * rows don't count; `waitlist` does (queuing counts toward the cap). Only
+	 * a slot that has not started counts (#2689): a past one holds nobody's
+	 * place, and a waitlist row the close-out has not reached yet, or never
+	 * will when it is switched off, would otherwise bar the person for good.
 	 *
 	 * @param int|string $user_identifier User id, email, or CPF/RF.
 	 * @param int        $calendar_id Calendar ID.
@@ -557,9 +560,13 @@ class AppointmentValidator {
 			if ( (int) $appointment['calendar_id'] !== $calendar_id ) {
 				continue;
 			}
-			if ( in_array( $appointment['status'], array( 'pending', 'confirmed', 'waitlist' ), true ) ) {
-				++$count;
+			if ( ! in_array( $appointment['status'], array( 'pending', 'confirmed', 'waitlist' ), true ) ) {
+				continue;
 			}
+			if ( self::wall_clock_to_timestamp( (string) ( $appointment['appointment_date'] ?? '' ), (string) ( $appointment['start_time'] ?? '00:00' ) ) < time() ) {
+				continue;
+			}
+			++$count;
 		}
 		return $count;
 	}

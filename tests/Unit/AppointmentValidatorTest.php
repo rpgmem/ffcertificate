@@ -18,6 +18,9 @@ class AppointmentValidatorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** A date still ahead whenever the suite runs: an upcoming slot counts toward the cap. */
+	private const UPCOMING = '2030-01-14';
+
 	/** @var AppointmentValidator */
 	private $validator;
 
@@ -430,14 +433,26 @@ class AppointmentValidatorTest extends TestCase {
 		// The user (user_id=1) already holds two blocks in this calendar — one
 		// confirmed, one waitlisted (waitlist counts toward the cap).
 		$this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
-			array( 'calendar_id' => 1, 'status' => 'confirmed' ),
-			array( 'calendar_id' => 1, 'status' => 'waitlist' ),
+			array( 'calendar_id' => 1, 'status' => 'confirmed', 'appointment_date' => self::UPCOMING, 'start_time' => '09:00:00' ),
+			array( 'calendar_id' => 1, 'status' => 'waitlist', 'appointment_date' => self::UPCOMING, 'start_time' => '10:00:00' ),
 		) );
 
 		$result = $this->validator->validate( $this->valid_data(), $calendar );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'block_limit', $result->get_error_code() );
+	}
+
+	public function test_validate_block_cap_ignores_slots_that_have_already_started(): void {
+		// A waitlist row whose slot went by holds nobody's place, so it no
+		// longer bars the person; nor does a past confirmed one (#2689).
+		$calendar = array_merge( $this->custom_calendar(), array( 'max_blocks_per_user' => 1 ) );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
+			array( 'calendar_id' => 1, 'status' => 'waitlist', 'appointment_date' => '2020-01-06', 'start_time' => '09:00:00' ),
+			array( 'calendar_id' => 1, 'status' => 'confirmed', 'appointment_date' => '2020-01-07', 'start_time' => '09:00:00' ),
+		) );
+
+		$this->assertTrue( $this->validator->validate( $this->valid_data(), $calendar ) );
 	}
 
 	public function test_validate_block_cap_allows_user_below_limit(): void {
