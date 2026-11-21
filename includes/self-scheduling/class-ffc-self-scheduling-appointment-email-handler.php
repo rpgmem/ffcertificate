@@ -23,6 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class AppointmentEmailHandler {
 
+	/**
+	 * Outcome of each reminder sent in this request, by appointment ID.
+	 *
+	 * @var array<int, bool>
+	 */
+	private static array $reminder_outcomes = array();
+
 	use \FreeFormCertificate\Core\EmailHelperTrait;
 
 	/**
@@ -282,9 +289,9 @@ class AppointmentEmailHandler {
 	 * @param array<string, mixed>  $appointment Appointment data.
 	 * @param array<string, mixed>  $calendar    Calendar data.
 	 * @param array<string, string> $extra       Pre-rendered HTML tokens.
-	 * @return void
+	 * @return bool Whether the e-mail was handed to the mailer.
 	 */
-	private function send_lifecycle_email( string $name, string $email, array $appointment, array $calendar, array $extra ): void {
+	private function send_lifecycle_email( string $name, string $email, array $appointment, array $calendar, array $extra ): bool {
 		$subject = $this->render_confirmation_template(
 			\FreeFormCertificate\Core\EmailTemplates::effective_body( $name, 'subject' ),
 			$appointment,
@@ -298,7 +305,7 @@ class AppointmentEmailHandler {
 			$extra
 		);
 
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
+		return $this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
 	}
 
 	/**
@@ -549,7 +556,25 @@ class AppointmentEmailHandler {
 			),
 		);
 
-		$this->send_lifecycle_email( 'appointment-reminder', $email, $appointment, $calendar, $extra );
+		self::$reminder_outcomes[ (int) ( $appointment['id'] ?? 0 ) ] = $this->send_lifecycle_email( 'appointment-reminder', $email, $appointment, $calendar, $extra );
+	}
+
+	/**
+	 * Whether the last reminder for an appointment went out, read once.
+	 *
+	 * The reminder runs on an action, which returns nothing, so the scanner
+	 * asks here after firing it: a failed send leaves the appointment
+	 * unmarked and the next hourly scan tries again (#2689).
+	 *
+	 * @param int $appointment_id Appointment ID.
+	 * @return bool|null True when sent, false when the mailer refused it,
+	 *                   null when no reminder was attempted (no handler, or no
+	 *                   valid address to send to).
+	 */
+	public static function take_reminder_outcome( int $appointment_id ): ?bool {
+		$outcome = self::$reminder_outcomes[ $appointment_id ] ?? null;
+		unset( self::$reminder_outcomes[ $appointment_id ] );
+		return $outcome;
 	}
 
 	/**

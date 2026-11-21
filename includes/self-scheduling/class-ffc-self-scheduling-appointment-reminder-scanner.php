@@ -90,6 +90,13 @@ final class AppointmentReminderScanner {
 					continue;
 				}
 
+				// Booked or approved inside the window: the confirmation e-mail
+				// went out moments ago, so a reminder now repeats it (#2689).
+				if ( self::confirmed_inside_window( $appointment, (int) $hours ) ) {
+					$repo->markReminderSent( (int) ( $appointment['id'] ?? 0 ) );
+					continue;
+				}
+
 				$calendar = array(
 					'id'           => $calendar_id,
 					'title'        => (string) ( $appointment['calendar_title'] ?? '' ),
@@ -97,9 +104,40 @@ final class AppointmentReminderScanner {
 				);
 
 				do_action( 'ffcertificate_self_scheduling_appointment_reminder_email', $appointment, $calendar );
+
+				// A send the mailer refused stays unmarked, so the next hourly
+				// scan tries again while the slot is still ahead (#2689).
+				if ( false === AppointmentEmailHandler::take_reminder_outcome( (int) ( $appointment['id'] ?? 0 ) ) ) {
+					continue;
+				}
 				$repo->markReminderSent( (int) ( $appointment['id'] ?? 0 ) );
 			}
 		}
+	}
+
+	/**
+	 * Whether the appointment was booked or approved inside its reminder window.
+	 *
+	 * The later of `created_at` and `approved_at` (both instants) is when the
+	 * person was told the appointment holds. When that falls less than
+	 * `$hours` before the slot starts, the reminder would arrive right after
+	 * that message.
+	 *
+	 * @param array<string, mixed> $appointment Appointment row.
+	 * @param int                  $hours       Reminder window, in hours.
+	 * @return bool
+	 */
+	private static function confirmed_inside_window( array $appointment, int $hours ): bool {
+		$told_at = max( (int) ( $appointment['created_at'] ?? 0 ), (int) ( $appointment['approved_at'] ?? 0 ) );
+		if ( $told_at <= 0 ) {
+			return false;
+		}
+		try {
+			$start = new \DateTimeImmutable( (string) ( $appointment['appointment_date'] ?? '' ) . ' ' . (string) ( $appointment['start_time'] ?? '' ), wp_timezone() );
+		} catch ( \Exception $e ) {
+			return false;
+		}
+		return $told_at > $start->getTimestamp() - $hours * HOUR_IN_SECONDS;
 	}
 
 	/**
