@@ -35381,3 +35381,44 @@ msgstr ""
 #: includes/settings/views/ffc-tab-certificates.php:298
 msgid "The private key cannot be read with the current encryption key, so new certificates are issued unsigned. Restore the previous encryption key and run the key rotation under Settings → Migrations, or generate a new signing key."
 msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "The title, the workload and the event dates belong to the form, and every signed certificate of the form carries them. While signed certificates exist, the QR code row of the form editor says so before you save. After a save that changed them, the form screen offers \"Re-sign with current data\", which signs those certificates again, a hundred per click, and records it in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:95
+msgid "Continue signing again"
+msgstr ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:95
+msgid "Re-sign with current data"
+msgstr ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:102
+msgid "Signing this form's certificates again stopped before the end. Continue to sign the rest."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:318
+msgid "Certificates Signed Again"
+msgstr ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:78
+#, php-format
+msgid "%d certificate was signed again with the current data."
+msgid_plural "%d certificates were signed again with the current data."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:104
+#, php-format
+msgid "The title, workload or event dates of this form changed after its %d signed certificate was signed, so its verification page says it changed after signing. Signing it again attests the data as it is now, and is recorded in the activity log."
+msgid_plural "The title, workload or event dates of this form changed after its %d signed certificates were signed, so their verification pages say they changed after signing. Signing them again attests the data as it is now, and is recorded in the activity log."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:178
+#, php-format
+msgid "%d certificate of this form is signed. Changing the title, workload or event dates makes it read as changed after signing, until it is signed again from the notice the save shows."
+msgid_plural "%d certificates of this form are signed. Changing the title, workload or event dates makes them read as changed after signing, until they are signed again from the notice the save shows."
+msgstr[0] ""
+msgstr[1] ""

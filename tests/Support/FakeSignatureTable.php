@@ -27,6 +27,14 @@ final class FakeSignatureTable {
 	 */
 	public array $rows = array();
 
+	/**
+	 * The form each submission belongs to, standing in for `ffc_submissions`
+	 * in the per-form statements (#2696).
+	 *
+	 * @var array<int, int>
+	 */
+	public array $forms = array();
+
 	/** @var int */
 	private int $next = 1;
 
@@ -81,6 +89,58 @@ final class FakeSignatureTable {
 		foreach ( $counts as $key => $total ) {
 			$out[] = array( 'key_id' => $key, 'total' => $total );
 		}
+		return $out;
+	}
+
+	/**
+	 * The per-form count and the newest signed certificate (#2696).
+	 *
+	 * @param array{0: string, 1: list<mixed>} $prepared Prepared statement.
+	 * @return string|null
+	 */
+	public function get_var( array $prepared ) {
+		list( $query, $args ) = $prepared;
+		$ids                  = $this->current_of_form( (int) $args[2] );
+		if ( 0 === strpos( $query, 'SELECT COUNT(*) FROM %i g INNER JOIN' ) ) {
+			return (string) count( $ids );
+		}
+		if ( 0 === strpos( $query, 'SELECT g.submission_id FROM %i g INNER JOIN' ) && false !== strpos( $query, 'ORDER BY g.id DESC LIMIT 1' ) ) {
+			return array() === $ids ? null : (string) end( $ids );
+		}
+		throw new \LogicException( 'Unknown query: ' . $query );
+	}
+
+	/**
+	 * A form's signed certificates past a cursor (#2696).
+	 *
+	 * @param array{0: string, 1: list<mixed>} $prepared Prepared statement.
+	 * @return list<string>
+	 */
+	public function get_col( array $prepared ): array {
+		list( $query, $args ) = $prepared;
+		if ( 0 !== strpos( $query, 'SELECT g.submission_id FROM %i g INNER JOIN' ) || false === strpos( $query, 'g.submission_id > %d' ) ) {
+			throw new \LogicException( 'Unknown query: ' . $query );
+		}
+		$ids = array_values( array_unique( array_filter( $this->current_of_form( (int) $args[2] ), static fn( int $id ): bool => $id > (int) $args[3] ) ) );
+		sort( $ids );
+		return array_map( 'strval', array_slice( $ids, 0, (int) $args[4] ) );
+	}
+
+	/**
+	 * Submission ids of a form with a current row, keyed by row id.
+	 *
+	 * @param int $form_id Form id.
+	 * @return array<int, int>
+	 */
+	private function current_of_form( int $form_id ): array {
+		$out = array();
+		foreach ( $this->rows as $id => $row ) {
+			$submission = (int) $row['submission_id'];
+			if ( null === $row['superseded_at'] && ( $this->forms[ $submission ] ?? 0 ) === $form_id ) {
+				$out[ $id ] = $submission;
+			}
+		}
+		ksort( $out );
 		return $out;
 	}
 

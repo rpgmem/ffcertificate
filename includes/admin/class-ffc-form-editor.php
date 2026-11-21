@@ -46,6 +46,7 @@ class FormEditor {
 		add_action( 'add_meta_boxes', array( $this, 'add_custom_metaboxes' ), 20 );
 		add_action( 'save_post', array( $this->save_handler, 'save_form_data' ) );
 		add_action( 'admin_notices', array( $this->save_handler, 'display_save_errors' ) );
+		FormResignNotice::init();
 		// Priority 20 so we run AFTER AdminAssetsManager (default 10) has
 		// registered `ffc-admin-js`. The `wp_localize_script` call below
 		// attaches `ffcFormMetaAutosave` to that handle; calling localize

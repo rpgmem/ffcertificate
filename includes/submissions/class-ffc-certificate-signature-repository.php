@@ -136,6 +136,67 @@ final class CertificateSignatureRepository {
 	}
 
 	/**
+	 * How many of a form's certificates carry a current signed record.
+	 *
+	 * @param int $form_id Form id.
+	 */
+	public static function count_for_form( int $form_id ): int {
+		global $wpdb;
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i g INNER JOIN %i s ON s.id = g.submission_id WHERE g.superseded_at IS NULL AND s.form_id = %d',
+				CertificateSignatureActivator::table(),
+				$wpdb->prefix . 'ffc_submissions',
+				$form_id
+			)
+		);
+	}
+
+	/**
+	 * A form's certificates with a current signed record, past a cursor, in
+	 * id order.
+	 *
+	 * @param int $form_id Form id.
+	 * @param int $after   Only submission ids greater than this.
+	 * @param int $limit   How many.
+	 * @return list<int> Submission ids.
+	 */
+	public static function signed_for_form( int $form_id, int $after, int $limit ): array {
+		global $wpdb;
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT g.submission_id FROM %i g INNER JOIN %i s ON s.id = g.submission_id WHERE g.superseded_at IS NULL AND s.form_id = %d AND g.submission_id > %d ORDER BY g.submission_id ASC LIMIT %d',
+				CertificateSignatureActivator::table(),
+				$wpdb->prefix . 'ffc_submissions',
+				$form_id,
+				$after,
+				$limit
+			)
+		);
+		return array_values( array_map( 'intval', is_array( $ids ) ? $ids : array() ) );
+	}
+
+	/**
+	 * The most recently signed current record among a form's certificates,
+	 * or null when none is signed.
+	 *
+	 * @param int $form_id Form id.
+	 * @return array{id: int, submission_id: int, key_id: string, record: string, record_hash: string, signature_full: string, signature_compact: string, signed_at: int}|null
+	 */
+	public static function latest_for_form( int $form_id ): ?array {
+		global $wpdb;
+		$submission_id = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT g.submission_id FROM %i g INNER JOIN %i s ON s.id = g.submission_id WHERE g.superseded_at IS NULL AND s.form_id = %d ORDER BY g.id DESC LIMIT 1',
+				CertificateSignatureActivator::table(),
+				$wpdb->prefix . 'ffc_submissions',
+				$form_id
+			)
+		);
+		return $submission_id > 0 ? self::current( $submission_id ) : null;
+	}
+
+	/**
 	 * How many certificates carry a current signed record, by key.
 	 *
 	 * @return array<string, int>

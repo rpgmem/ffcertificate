@@ -297,10 +297,8 @@ final class CertificateSigner {
 	 * @return array<string, string>
 	 */
 	public static function fields( array $submission, string $key_id ): array {
-		$form_id             = (int) ( $submission['form_id'] ?? 0 );
-		$data                = SubmissionHandler::submission_data( $submission );
-		list( $start, $end ) = EventDate::range( $form_id );
-		$values              = CertificateTemplateLink::values( $form_id );
+		$form_id = (int) ( $submission['form_id'] ?? 0 );
+		$data    = SubmissionHandler::submission_data( $submission );
 
 		return array(
 			'form_id'       => (string) $form_id,
@@ -310,10 +308,25 @@ final class CertificateSigner {
 			// The form's own name field, whatever its key (#2696).
 			'name'          => SubmitterName::from( $data ),
 			'identifier'    => SigningKeys::identifier_mac( (string) ( $submission['cpf_rf'] ?? '' ), $key_id ),
-			'course'        => self::form_title( $form_id ),
-			'workload'      => (string) ( $values['workload'] ?? '' ),
-			'event_start'   => $start,
-			'event_end'     => $end,
+		) + self::form_fields( $form_id );
+	}
+
+	/**
+	 * The record fields a form gives every one of its certificates: what an
+	 * edit to the form, rather than to one certificate, changes (#2696).
+	 *
+	 * @param int $form_id Form id.
+	 * @return array{course: string, workload: string, event_start: string, event_end: string}
+	 */
+	public static function form_fields( int $form_id ): array {
+		list( $start, $end ) = EventDate::range( $form_id );
+		$values              = CertificateTemplateLink::values( $form_id );
+
+		return array(
+			'course'      => self::form_title( $form_id ),
+			'workload'    => (string) ( $values['workload'] ?? '' ),
+			'event_start' => $start,
+			'event_end'   => $end,
 		);
 	}
 
