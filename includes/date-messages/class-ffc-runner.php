@@ -282,13 +282,23 @@ final class Runner {
 		// What follows, queued before anything is sent (#2336): the next page,
 		// or the next day, and a retry of this batch that only a completed
 		// batch removes.
-		$last = false;
+		//
+		// A retry queues no follow-up (#2692). The first attempt queued it
+		// before it queued the retry, so it is already there or has already
+		// run; queuing it again after it ran would resolve the rest of the run
+		// a second time.
+		$last  = false;
+		$first = 0 === $attempt;
 		if ( ! $page['complete'] ) {
-			self::schedule( $run_id, $target, $page['cursor'] );
+			if ( $first ) {
+				self::schedule( $run_id, $target, $page['cursor'] );
+			}
 		} else {
 			$next = $day->modify( '+1 day' )->format( 'Y-m-d' );
 			if ( $next <= (string) $run['target_to'] ) {
-				self::schedule( $run_id, $next, 0 );
+				if ( $first ) {
+					self::schedule( $run_id, $next, 0 );
+				}
 			} else {
 				$last = true;
 			}
@@ -368,6 +378,9 @@ final class Runner {
 
 		if ( $sent ) {
 			DeliveryLog::bump( $run_id, 'sent' );
+			// A send that failed earlier in this run and went out on a retry
+			// is one person, not a failure and a delivery (#2692).
+			DeliveryLog::uncount( $run_id, $rule->id, $row['user_id'], $occurrence, 'failed' );
 			if ( $row['forced'] ) {
 				DeliveryLog::bump( $run_id, 'forced' );
 			}

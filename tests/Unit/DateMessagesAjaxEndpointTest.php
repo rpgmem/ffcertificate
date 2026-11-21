@@ -88,6 +88,8 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A single site: every account is a member (#2692 restricts a network).
+		Functions\when( 'is_multisite' )->justReturn( false );
 
 		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
 		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;

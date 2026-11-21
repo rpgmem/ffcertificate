@@ -24171,9 +24171,6 @@ msgstr ""
 msgid "The history keeps the last %d days. Older runs and their deliveries are removed automatically by the daily run."
 msgstr ""
 
-msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year."
-msgstr ""
-
 msgid "A person receives the message when they belong to any audience on the right; members of sub-audiences are included. With none selected, the rule reaches everyone."
 msgstr ""
 
@@ -35337,4 +35334,12 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-admin.php:635
 msgid "Choose a valid campaign status. Nothing was saved."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:83
+msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a dated delivery is recorded per date including its year, and an announcement's deliveries are kept when their run goes, so a later Send now does not reach the same people again."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:84
+msgid "On a multisite network a rule reaches only the members of this site, whether it follows a date or is an announcement without an audience. A batch that stops halfway is retried; the retry does not send the rest of the run a second time, and a message that failed and then went out on the retry is counted once, as sent."
 msgstr ""

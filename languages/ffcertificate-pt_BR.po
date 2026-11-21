@@ -24250,9 +24250,6 @@ msgstr "sem edital, um seletor com todos os editais em lista prévia ou definiti
 msgid "The history keeps the last %d days. Older runs and their deliveries are removed automatically by the daily run."
 msgstr "O histórico guarda os últimos %d dias. Execuções mais antigas e as entregas delas são apagadas automaticamente pela execução diária."
 
-msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year."
-msgstr "O histórico guarda os últimos 365 dias: cada execução diária apaga as execuções mais antigas junto com as entregas delas, mesmo com os e-mails desativados. Isso nunca faz uma mensagem sair duas vezes, porque cada entrega é registrada por data, incluindo o ano."
-
 msgid "A person receives the message when they belong to any audience on the right; members of sub-audiences are included. With none selected, the rule reaches everyone."
 msgstr "A pessoa recebe a mensagem quando pertence a qualquer público da direita; membros de sub-públicos estão incluídos. Sem nenhum selecionado, a regra alcança todos."
 
@@ -35416,3 +35413,11 @@ msgstr "Exportar CSV exporta o que a lista mostra: os mesmos filtros, todas as p
 #: includes/reregistration/class-ffc-reregistration-admin.php:635
 msgid "Choose a valid campaign status. Nothing was saved."
 msgstr "Escolha um status de campanha válido. Nada foi salvo."
+
+#: includes/settings/views/documentation/feature-date-messages.php:83
+msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a dated delivery is recorded per date including its year, and an announcement's deliveries are kept when their run goes, so a later Send now does not reach the same people again."
+msgstr "O histórico guarda os últimos 365 dias: cada execução diária apaga as execuções mais antigas junto com as entregas delas, mesmo com os e-mails desativados. Isso nunca faz uma mensagem sair duas vezes, porque cada entrega com data é registrada por data, incluindo o ano, e as entregas de um comunicado são mantidas quando a execução delas sai, para que um Enviar agora posterior não chegue de novo às mesmas pessoas."
+
+#: includes/settings/views/documentation/feature-date-messages.php:84
+msgid "On a multisite network a rule reaches only the members of this site, whether it follows a date or is an announcement without an audience. A batch that stops halfway is retried; the retry does not send the rest of the run a second time, and a message that failed and then went out on the retry is counted once, as sent."
+msgstr "Numa rede multisite, uma regra alcança só os membros deste site, seja ela por data ou um comunicado sem público. Um lote que para no meio é refeito; a nova tentativa não envia o resto da execução uma segunda vez, e uma mensagem que falhou e depois saiu na nova tentativa é contada uma vez, como enviada."

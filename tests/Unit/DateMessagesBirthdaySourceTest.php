@@ -22,6 +22,8 @@ class DateMessagesBirthdaySourceTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A single site: every account is a member (#2692 restricts a network).
+		Functions\when( 'is_multisite' )->justReturn( false );
 		Functions\when( '__' )->returnArg();
 	}
 
@@ -52,6 +54,30 @@ class DateMessagesBirthdaySourceTest extends TestCase {
 			'29 Feb, leap year'     => array( '2028-02-29', array() ),
 			'1 Mar, common year'    => array( '2027-03-01', array( '03-01' ) ),
 		);
+	}
+
+	public function test_on_a_network_due_reads_only_this_sites_members(): void {
+		// wp_users holds every site's accounts; a birthday rule here reaches
+		// only the people this site added (#2692).
+		Functions\when( 'is_multisite' )->justReturn( true );
+		global $wpdb;
+		$wpdb           = Mockery::mock( 'wpdb' );
+		$wpdb->users    = 'wp_users';
+		$wpdb->usermeta = 'wp_usermeta';
+		$wpdb->shouldReceive( 'get_blog_prefix' )->andReturn( 'wp_3_' );
+		$bound = null;
+		$wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			static function ( $sql, $args ) use ( &$bound ) {
+				$bound = array( $sql, $args );
+				return 'SQL';
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		( new BirthdaySource() )->due( new \DateTimeImmutable( '2026-10-10' ), 0, 200 );
+
+		$this->assertStringContainsString( 'INNER JOIN wp_usermeta ffc_site ON ffc_site.user_id = u.ID AND ffc_site.meta_key = %s', $bound[0] );
+		$this->assertSame( array( 'ffc_user_birth_md', 'wp_3_capabilities', '10-10', 0, 200 ), $bound[1], 'The membership key binds in the order its placeholder appears.' );
 	}
 
 	public function test_due_queries_the_month_day_mirror_by_keyset_and_maps_rows(): void {

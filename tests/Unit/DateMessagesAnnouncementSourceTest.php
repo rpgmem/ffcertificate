@@ -22,6 +22,8 @@ class DateMessagesAnnouncementSourceTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A single site: every account is a member (#2692 restricts a network).
+		Functions\when( 'is_multisite' )->justReturn( false );
 		Functions\when( '__' )->returnArg();
 	}
 
@@ -84,6 +86,27 @@ class DateMessagesAnnouncementSourceTest extends TestCase {
 			),
 			$rows
 		);
+	}
+
+	public function test_on_a_network_both_reads_keep_to_this_sites_members(): void {
+		// An announcement with no audience, or an audience member who is not
+		// on this site, must not reach the rest of the network (#2692).
+		Functions\when( 'is_multisite' )->justReturn( true );
+		foreach ( array( 'due', 'due_among' ) as $method ) {
+			$bound = null;
+			$this->wpdb( array(), $bound );
+			global $wpdb;
+			$wpdb->usermeta = 'wp_usermeta';
+			$wpdb->shouldReceive( 'get_blog_prefix' )->andReturn( 'wp_3_' );
+
+			$source = new AnnouncementSource();
+			'due' === $method
+				? $source->due( new \DateTimeImmutable( '2026-10-22' ), 3, 200 )
+				: $source->due_among( new \DateTimeImmutable( '2026-10-22' ), array( 7 ) );
+
+			$this->assertStringContainsString( 'FROM wp_users INNER JOIN wp_usermeta ffc_site ON ffc_site.user_id = ID AND ffc_site.meta_key = %s WHERE', $bound[0], $method );
+			$this->assertSame( 'wp_3_capabilities', $bound[1][0], $method );
+		}
 	}
 
 	public function test_due_among_with_no_ids_never_queries(): void {

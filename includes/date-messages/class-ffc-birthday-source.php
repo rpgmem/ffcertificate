@@ -88,13 +88,16 @@ final class BirthdaySource implements DateSourceInterface {
 			return array();
 		}
 		$placeholders = implode( ', ', array_fill( 0, count( $days ), '%s' ) );
-		$args         = array_merge( array( UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY ), $days, array( max( 0, $after_user_id ), max( 1, $limit ) ) );
+		// On a network, only this site's members (#2692).
+		$site = SiteMembership::join( 'u.ID' );
+		$args = array_merge( array( UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY ), $site['args'], $days, array( max( 0, $after_user_id ), max( 1, $limit ) ) );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Core `wp_users` / `wp_usermeta`, named per line rather than under a file-level disable: the only interpolation is the core `$wpdb->users` / `$wpdb->usermeta` properties and a list of `%s` placeholders, and every value is bound. A scheduled send must see the live rows, never a cache. The arguments arrive as one array, which the placeholder-count sniff cannot read.
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Core tables, annotated per line; see above.
 			$wpdb->prepare(
 				'SELECT u.ID AS user_id, u.user_email AS email, u.display_name AS name FROM ' . $wpdb->users . ' u'
 				. ' INNER JOIN ' . $wpdb->usermeta . ' m ON m.user_id = u.ID AND m.meta_key = %s'
+				. $site['sql']
 				. " WHERE m.meta_value IN ({$placeholders}) AND u.ID > %d"
 				. ' ORDER BY u.ID ASC LIMIT %d',
 				$args

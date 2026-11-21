@@ -180,6 +180,8 @@ class DateMessagesAdminPageTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A single site: every account is a member (#2692 restricts a network).
+		Functions\when( 'is_multisite' )->justReturn( false );
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
