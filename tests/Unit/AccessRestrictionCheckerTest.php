@@ -33,6 +33,9 @@ class AccessRestrictionCheckerTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// No database unless a test installs one: a `$wpdb` an earlier test
+		// left would answer the config lock (#2695).
+		unset( $GLOBALS['wpdb'] );
 	}
 
 	protected function tearDown(): void {

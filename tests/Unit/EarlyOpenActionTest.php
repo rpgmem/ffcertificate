@@ -41,6 +41,9 @@ class EarlyOpenActionTest extends TestCase {
 		parent::setUp();
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+		// No database unless a test installs one: a `$wpdb` an earlier test
+		// left would answer the form's lock (#2695).
+		unset( $GLOBALS['wpdb'] );
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
