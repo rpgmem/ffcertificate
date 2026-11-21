@@ -410,6 +410,16 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('2 members overlap.');
 	});
 
+	it('reports how many clash when only the count is sent (#2691)', async () => {
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: { type: 'user', bookings: [{}], affected_users: [], affected_count: 3 },
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('3 members overlap.');
+	});
+
 	it('names the people who clash, and how many more (#2243)', async () => {
 		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
 			success: true,
