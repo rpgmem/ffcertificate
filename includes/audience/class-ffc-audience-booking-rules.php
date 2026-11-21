@@ -63,6 +63,12 @@ final class AudienceBookingRules {
 	public const MAX_RANGE_LIMIT = 365;
 
 	/**
+	 * Fewest characters of the reason a participant gives when cancelling a
+	 * booking from the calendar (#2691); the dialog asks for the same.
+	 */
+	public const CANCEL_REASON_MIN = 5;
+
+	/**
 	 * Fewest characters of the reason an override gives the people who lose
 	 * days to it (#2243).
 	 */

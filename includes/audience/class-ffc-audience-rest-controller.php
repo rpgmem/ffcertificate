@@ -545,13 +545,15 @@ class AudienceRestController {
 		// Get user info for each booking.
 		$user_id      = get_current_user_id();
 		$is_logged_in = is_user_logged_in();
-		// Whether the caller cancels others' bookings, per calendar: the
-		// bypass counts only where the calendar's switch allows it (#2243).
+		// Whether the caller cancels others' bookings, per calendar, by the
+		// rule the cancel route applies: the bypass where the calendar's
+		// switch allows it (#2243), or the cancel-others permission (#2691).
 		$cancels_others = array();
 		$has_bypass     = static function ( $booking ) use ( &$cancels_others, $user_id ): bool {
 			$schedule_id = (int) ( $booking->schedule_id ?? 0 );
 			if ( ! isset( $cancels_others[ $schedule_id ] ) ) {
-				$cancels_others[ $schedule_id ] = $user_id > 0 && AudienceScheduleRepository::user_has_bypass( $schedule_id );
+				$cancels_others[ $schedule_id ] = $user_id > 0
+					&& ( AudienceScheduleRepository::user_has_bypass( $schedule_id ) || AudienceScheduleRepository::user_can_cancel_others( $schedule_id, $user_id ) );
 			}
 			return $cancels_others[ $schedule_id ];
 		};
@@ -1615,11 +1617,15 @@ class AudienceRestController {
 		$reason     = $request->get_param( 'reason' );
 
 		// Validate reason.
-		if ( empty( $reason ) || mb_strlen( $reason ) < 5 ) {
+		if ( ! is_string( $reason ) || mb_strlen( trim( $reason ) ) < AudienceBookingRules::CANCEL_REASON_MIN ) {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
-					'message' => __( 'Cancellation reason is required.', 'ffcertificate' ),
+					'message' => sprintf(
+						/* translators: %d: fewest characters */
+						__( 'Write a cancellation reason of at least %d characters.', 'ffcertificate' ),
+						AudienceBookingRules::CANCEL_REASON_MIN
+					),
 				),
 				400
 			);

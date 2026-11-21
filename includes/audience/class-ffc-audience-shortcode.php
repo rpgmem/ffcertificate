@@ -1051,6 +1051,7 @@ class AudienceShortcode {
 				'firstDayOfWeek'         => (int) get_option( 'start_of_week', 0 ),
 				'multipleAudiencesColor' => get_option( 'ffc_aud_multiple_audiences_color', '' ),
 				'seriesMaxWeeks'         => AudienceBookingRules::SERIES_MAX_WEEKS,
+				'cancelReasonMin'        => AudienceBookingRules::CANCEL_REASON_MIN,
 				'strings'                => array_merge(
 					// The state names (#2215): the calendar's own (#2223), else the general ones, else the translated default.
 					\FreeFormCertificate\Scheduling\CalendarAppearance::strings( self::names_override( $schedules ) ),
