@@ -42,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<?php ob_start(); ?>
 		<p>
-			<?php esc_html_e( 'Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. One check reports both kinds together, and names up to ten of the people who are booked elsewhere at that time, with how many more there are. Each booking needs a short description (15–300 characters).', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. One check reports both kinds together, and names up to ten of the people who are booked elsewhere at that time, with how many more there are. Each booking needs a short description (15–300 characters).', 'ffcertificate' ); ?> <?php esc_html_e( 'The names reach only someone who may book people by name; anyone else is told how many.', 'ffcertificate' ); ?>
 		</p>
 	<?php
 	\FreeFormCertificate\Core\AdminNotice::callout(

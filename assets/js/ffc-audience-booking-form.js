@@ -920,7 +920,8 @@
 
         var peopleBookings = conflicts.type === 'user' ? conflicts.bookings : conflicts.user_bookings;
         if (peopleBookings && peopleBookings.length > 0) {
-            var count = conflicts.affected_users ? conflicts.affected_users.length : 0;
+            // The count comes alone to a caller who may not see names (#2691).
+            var count = typeof conflicts.affected_count === 'number' ? conflicts.affected_count : (conflicts.affected_users ? conflicts.affected_users.length : 0);
             // One sentence per count, never a number glued to a fragment (#2668).
             var overlap = 1 === count ? (s.memberOverlapping || '%d member has overlapping bookings.') : (s.membersOverlapping || '%d members have overlapping bookings.');
             lines.push(overlap.replace('%d', count));
