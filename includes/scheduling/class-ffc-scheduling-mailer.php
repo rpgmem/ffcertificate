@@ -117,15 +117,17 @@ class SchedulingMailer {
 		$attachments = array();
 		$temp        = '';
 		if ( null !== $ics && '' !== $ics ) {
-			$reserved = function_exists( 'wp_tempnam' ) ? wp_tempnam( 'ffc-ics-' ) : tempnam( sys_get_temp_dir(), 'ffc-ics-' );
+			// PHP's own tempnam(), not wp_tempnam(): that one lives in an admin
+			// include a cron or front-end send has not loaded.
+			$reserved = tempnam( sys_get_temp_dir(), 'ffc-ics-' );
 			if ( is_string( $reserved ) && '' !== $reserved ) {
 				$temp = $reserved . '.ics';
-                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes the generated .ics beside a wp_tempnam() path for the mail attachment; WP_Filesystem would need credentials on a mail-send path.
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes the generated .ics beside a tempnam() path for the mail attachment; WP_Filesystem would need credentials on a mail-send path.
 				if ( false !== file_put_contents( $temp, $ics ) ) {
 					$attachments[] = $temp;
 				}
 				if ( file_exists( $reserved ) ) {
-                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the empty placeholder wp_tempnam() created.
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the empty placeholder tempnam() created.
 					unlink( $reserved );
 				}
 			}

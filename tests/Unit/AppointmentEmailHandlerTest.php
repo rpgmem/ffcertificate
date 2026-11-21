@@ -248,7 +248,7 @@ class AppointmentEmailHandlerTest extends TestCase {
 
 		$this->assertCount( 1, $paths );
 		$this->assertFileDoesNotExist( $paths[0] );
-		$this->assertFileDoesNotExist( substr( $paths[0], 0, -4 ), 'The wp_tempnam() placeholder is gone too.' );
+		$this->assertFileDoesNotExist( substr( $paths[0], 0, -4 ), 'The tempnam() placeholder is gone too.' );
 	}
 
 	// ==================================================================
