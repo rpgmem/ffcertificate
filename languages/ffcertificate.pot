@@ -35485,3 +35485,19 @@ msgstr ""
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:265
 msgid "This person appears on another line with different details (name, RF, e-mail, phone or PCD). The lines of one candidate must agree."
 msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php:1117
+msgid "Earlier days"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:243
+msgid "Already held"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:55
+msgid "In the month that holds today, the visitor's bookings already held wait in a collapsed group, and today's date carries a Today mark."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:82
+msgid "In the event list, the past days of the month that holds today wait in a collapsed group at the top, with their count, and today's date carries a Today mark; a past or future month lists every day open."
+msgstr ""

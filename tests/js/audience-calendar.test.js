@@ -567,6 +567,75 @@ describe('ffc-audience-calendar — renderEventList', () => {
 		await flush();
 	}
 
+	// The month's past days wait in a collapsed group; only the month that
+	// holds today splits (#2728).
+	describe('past days of the current month (#2728)', () => {
+		const booking = (date, hour) => ({ booking_date: date, status: 'active', is_all_day: 0, start_time: hour + ':00:00', end_time: hour + ':30:00', environment_id: 10, environment_name: 'Env A', description: '', audiences: [] });
+		const payload = { bookings: [booking('2026-06-03', '09'), booking('2026-06-08', '10'), booking('2026-06-11', '11'), booking('2026-06-20', '12')], holidays: [], closed_weekdays: [] };
+
+		beforeEach(() => {
+			window.ffcAudience.strings.earlierDays = 'Dias anteriores';
+			window.ffcAudience.strings.today = 'Hoje';
+		});
+
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('collapses the days before today into a closed group at the top, with the count', async () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 5, 11, 15, 0, 0));
+			await renderWith(payload);
+
+			const $content = window.$('#ffc-event-list-content');
+			const $group = $content.children().first();
+			expect($group.is('details.ffc-past-days')).toBe(true);
+			expect($group.prop('open')).toBe(false);
+			expect($group.find('.ffc-past-days-summary').text()).toBe('Dias anteriores2');
+			expect($group.find('.ffc-event-list-item').length).toBe(2);
+			expect($content.children('.ffc-event-list-item').length).toBe(2);
+		});
+
+		it("marks today's header", async () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 5, 11, 15, 0, 0));
+			await renderWith(payload);
+
+			const $today = window.$('#ffc-event-list-content .ffc-event-list-today');
+			expect($today.length).toBe(1);
+			expect($today.text()).toBe('Hoje');
+			expect($today.closest('.ffc-past-days').length).toBe(0);
+		});
+
+		it('leaves a past month open', async () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 7, 11, 15, 0, 0));
+			await renderWith(payload);
+
+			expect(window.$('#ffc-event-list-content .ffc-past-days').length).toBe(0);
+			expect(window.$('#ffc-event-list-content .ffc-event-list-item').length).toBe(4);
+		});
+
+		it('leaves a future month open', async () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 3, 11, 15, 0, 0));
+			await renderWith(payload);
+
+			expect(window.$('#ffc-event-list-content .ffc-past-days').length).toBe(0);
+			expect(window.$('#ffc-event-list-content .ffc-event-list-today').length).toBe(0);
+		});
+
+		it('still opens the day when a collapsed item is clicked', async () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 5, 11, 15, 0, 0));
+			const spy = vi.spyOn(api, 'openDayModal').mockImplementation(() => {});
+			await renderWith(payload);
+
+			window.$('#ffc-event-list-content .ffc-past-days .ffc-event-list-item').first().trigger('click');
+			expect(spy).toHaveBeenCalledWith('2026-06-03');
+		});
+	});
+
 	it('shows the no-events message for an empty month', async () => {
 		await renderWith({ bookings: [], holidays: [], closed_weekdays: [] });
 		expect(window.$('#ffc-event-list-content .ffc-no-events').text()).toBe('No events this month.');
