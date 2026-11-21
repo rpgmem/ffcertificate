@@ -197,11 +197,11 @@ class DateMessagesDeliveryLogTest extends TestCase {
 		$this->assertSame( 2, DeliveryLog::purge( 1000 ) );
 		$this->assertSame(
 			array(
-				'DELETE FROM %i WHERE run_id IN (%d,%d) | wp_ffc_date_message_log,4,9',
+				'DELETE FROM %i WHERE run_id IN (%d,%d) AND NOT (occurrence_key = %s AND channel = %s) | wp_ffc_date_message_log,4,9,once,user',
 				'DELETE FROM %i WHERE id IN (%d,%d) | wp_ffc_date_message_runs,4,9',
 			),
 			$order,
-			'Deliveries go before their run, so an interrupted purge never orphans one.'
+			'Deliveries go before their run, and an announcement\'s stay: a Send now after the purge must not reach the same people again (#2692).'
 		);
 	}
 

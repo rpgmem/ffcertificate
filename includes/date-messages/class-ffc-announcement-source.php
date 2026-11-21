@@ -61,16 +61,17 @@ final class AnnouncementSource implements MemberScopedSourceInterface {
 	public function due( \DateTimeImmutable $target, int $after_user_id, int $limit ): array {
 		global $wpdb;
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Core `wp_users`, named per line: the only interpolation is the core `$wpdb->users` property, and every value is bound. A send must see the live rows.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Core `wp_users`, named per line: the only interpolation is the core `$wpdb->users` property and this site's membership join, and every value is bound. A send must see the live rows. The arguments arrive as one array, which the placeholder-count sniff cannot read.
+		// On a network, only this site's members (#2692).
+		$site = SiteMembership::join( 'ID' );
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Core table, annotated per line; see above.
 			$wpdb->prepare(
-				'SELECT ID AS user_id, user_email AS email, display_name AS name FROM ' . $wpdb->users . ' WHERE ID > %d ORDER BY ID ASC LIMIT %d',
-				max( 0, $after_user_id ),
-				max( 1, $limit )
+				'SELECT ID AS user_id, user_email AS email, display_name AS name FROM ' . $wpdb->users . $site['sql'] . ' WHERE ID > %d ORDER BY ID ASC LIMIT %d',
+				array_merge( $site['args'], array( max( 0, $after_user_id ), max( 1, $limit ) ) )
 			),
 			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		return self::rows( $rows );
 	}
@@ -93,10 +94,12 @@ final class AnnouncementSource implements MemberScopedSourceInterface {
 		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Core `wp_users`, named per line: the only interpolation is the core `$wpdb->users` property and a list of `%d` placeholders, and every value is bound. The placeholders arrive in a variable and the arguments as one array, which the placeholder sniffs cannot read.
+		// An audience member who is not on this site is not reached (#2692).
+		$site = SiteMembership::join( 'ID' );
 		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Core table, annotated per line; see above.
 			$wpdb->prepare(
-				'SELECT ID AS user_id, user_email AS email, display_name AS name FROM ' . $wpdb->users . " WHERE ID IN ({$placeholders}) ORDER BY ID ASC",
-				$ids
+				'SELECT ID AS user_id, user_email AS email, display_name AS name FROM ' . $wpdb->users . $site['sql'] . " WHERE ID IN ({$placeholders}) ORDER BY ID ASC",
+				array_merge( $site['args'], $ids )
 			),
 			ARRAY_A
 		);

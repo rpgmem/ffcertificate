@@ -40,9 +40,12 @@ class DeliveryLog {
 	/**
 	 * Days the history keeps a run and its deliveries (#1647).
 	 *
-	 * Removing a delivery cannot let a message go out twice: its key carries
-	 * the target date WITH the year, and the furthest a send reaches back is
-	 * the manual range plus the largest offset -- a few months, never a year.
+	 * Removing a dated delivery cannot let a message go out twice: its key
+	 * carries the target date WITH the year, and the furthest a send reaches
+	 * back is the manual range plus the largest offset -- a few months, never
+	 * a year. An announcement's key has no date, so its delivery is kept
+	 * when its run goes: it is what stops a later Send now from reaching the
+	 * same people again (#2692).
 	 */
 	public const RETENTION_DAYS = 365;
 
@@ -285,8 +288,11 @@ class DeliveryLog {
 				break;
 			}
 
-			$in         = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-			$deliveries = $wpdb->prepare( "DELETE FROM %i WHERE run_id IN ({$in})", array_merge( array( DateMessagesActivator::log_table() ), $ids ) );
+			$in = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+			// An announcement's deliveries stay: they are its only record of
+			// who already has it (#2692).
+			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The table, the ids and the two kept values arrive as one array, which the placeholder-count sniff cannot read.
+			$deliveries = $wpdb->prepare( "DELETE FROM %i WHERE run_id IN ({$in}) AND NOT (occurrence_key = %s AND channel = %s)", array_merge( array( DateMessagesActivator::log_table() ), $ids, array( Rule::ANNOUNCEMENT_OCCURRENCE, 'user' ) ) );
 			if ( null === $deliveries || false === $wpdb->query( $deliveries ) ) {
 				break;
 			}
@@ -374,6 +380,44 @@ class DeliveryLog {
 		// `x`, the decision and the run: at most 20 characters, the column's width.
 		if ( self::claim( $run_id, $rule_id, $user_id, $occurrence, 'x' . $codes[ $counter ] . $run_id ) ) {
 			self::bump( $run_id, $counter );
+		}
+	}
+
+	/**
+	 * Take back one decision {@see self::count_once()} counted (#2692).
+	 *
+	 * A send that failed and then went out on a retry of the same batch was
+	 * counted as a failure first; the delivery replaces it. Only a decision
+	 * that was counted is taken back, so a second call does nothing.
+	 *
+	 * @param int    $run_id     Run.
+	 * @param int    $rule_id    Rule.
+	 * @param int    $user_id    Person.
+	 * @param string $occurrence Occurrence key.
+	 * @param string $counter    `failed`.
+	 * @return void
+	 */
+	public static function uncount( int $run_id, int $rule_id, int $user_id, string $occurrence, string $counter ): void {
+		if ( 'failed' !== $counter ) {
+			return;
+		}
+		$wpdb    = self::db();
+		$deleted = $wpdb->delete(
+			DateMessagesActivator::log_table(),
+			array(
+				'rule_id'        => $rule_id,
+				'user_id'        => $user_id,
+				'occurrence_key' => $occurrence,
+				'channel'        => 'xf' . $run_id,
+			),
+			array( '%d', '%d', '%s', '%s' )
+		);
+		if ( 1 !== $deleted ) {
+			return;
+		}
+		$sql = $wpdb->prepare( 'UPDATE %i SET %i = GREATEST(%i - 1, 0) WHERE id = %d', DateMessagesActivator::runs_table(), $counter, $counter, $run_id );
+		if ( null !== $sql ) {
+			$wpdb->query( $sql );
 		}
 	}
 
