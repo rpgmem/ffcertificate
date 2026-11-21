@@ -3347,10 +3347,6 @@ msgstr ""
 msgid "Cancellation Reason"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-rest-controller.php:683
-msgid "Cancellation reason is required."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:204
 msgid "Cancellation Reason:"
 msgstr ""
@@ -24060,9 +24056,6 @@ msgstr ""
 msgid "Requires JavaScript and HTTPS. A visitor with JavaScript disabled cannot submit the form at all — acceptable when the audience is known, such as staff filling in forms on a workstation."
 msgstr ""
 
-msgid "schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin's REST API and can target one or more audiences or an individual, and are cancelled with a required reason."
-msgstr ""
-
 msgid "See Audience Calendars"
 msgstr ""
 
@@ -35268,4 +35261,13 @@ msgstr ""
 #: includes/audience/class-ffc-audience-rest-controller.php
 #, php-format
 msgid "A booking can name at most %d people or audiences."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin's REST API and can target one or more audiences or an individual, and are cancelled with a reason of at least 5 characters. The day's list draws Edit and Cancel only on a booking the person may cancel: their own, any booking when their User access row carries Cancel Others, or any booking for a bypass holder where the calendar allows it."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+#, php-format
+msgid "Write a cancellation reason of at least %d characters."
 msgstr ""

@@ -955,6 +955,28 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertFalse( ( new AudienceRestController() )->get_bookings( $request )->get_data()['bookings'][0]['can_cancel'] );
 	}
 
+	public function test_get_bookings_offers_cancel_to_a_holder_of_the_cancel_others_permission(): void {
+		// The list follows the cancel route, which accepts that permission (#2691).
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 99 );
+		$this->schedules[20]->visibility = 'public';
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'created_by' => 5 ) );
+		$request = $this->make_request(
+			array(
+				'start_date'     => '2026-04-01',
+				'end_date'       => '2026-04-30',
+				'schedule_id'    => null,
+				'environment_id' => null,
+			)
+		);
+
+		$this->assertFalse( ( new AudienceRestController() )->get_bookings( $request )->get_data()['bookings'][0]['can_cancel'], 'Someone else\'s booking, no permission.' );
+
+		$this->permit( 20, 99, array( 'can_cancel_others' => 1 ) );
+		$this->assertTrue( ( new AudienceRestController() )->get_bookings( $request )->get_data()['bookings'][0]['can_cancel'] );
+	}
+
 	public function test_get_bookings_filters_out_bookings_from_unreadable_schedules(): void {
 		// Anonymous caller: only active public schedules are readable.
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
@@ -1495,7 +1517,11 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $result );
 		$this->assertSame( 400, $result->get_status() );
-		$this->assertStringContainsString( 'reason', strtolower( $result->get_data()['message'] ) );
+		$this->assertStringContainsString( 'at least 5 characters', $result->get_data()['message'], 'The refusal names the minimum the dialog asks for (#2691).' );
+
+		// Spaces do not count towards it.
+		$padded = $ctrl->cancel_booking( $this->make_request( array( 'id' => 1, 'reason' => '  ab   ' ) ) );
+		$this->assertSame( 400, $padded->get_status() );
 	}
 
 	public function test_cancel_booking_returns_404_when_not_found(): void {
