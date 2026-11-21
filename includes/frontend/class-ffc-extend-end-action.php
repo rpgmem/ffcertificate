@@ -206,6 +206,38 @@ final class ExtendEndAction {
 	 * @return ExtendEndRefusal|array{ok: true, original_end_iso: string, new_end_iso: string}
 	 */
 	public static function execute( int $form_id, string $hash, string $new_time_end, array $audit_meta = array(), string $cpf_digits = '' ): array {
+		// Two tabs could both read "not postponed yet" and both write
+		// (#2695): the check and the write run under one lock per form.
+		$lock = 'ffc_form_window_' . $form_id;
+		$held = \FreeFormCertificate\Core\NamedLock::acquire( $lock, 5 );
+		if ( false === $held ) {
+			return array(
+				'ok'     => false,
+				'reason' => 'already_postponed',
+			);
+		}
+		try {
+			return self::execute_locked( $form_id, $hash, $new_time_end, $audit_meta, $cpf_digits );
+		} finally {
+			if ( true === $held ) {
+				\FreeFormCertificate\Core\NamedLock::release( $lock );
+			}
+		}
+	}
+
+	/**
+	 * The check and the write, once the form's lock is held.
+	 *
+	 * @param int                  $form_id      Form ID.
+	 * @param string               $hash         The public hash.
+	 * @param string               $new_time_end New close time (HH:MM).
+	 * @param array<string, mixed> $audit_meta   Audit metadata.
+	 * @param string               $cpf_digits   CPF digits for the audit ring.
+	 * @return ExtendEndRefusal|array{ok: true, original_end_iso: string, new_end_iso: string}
+	 */
+	private static function execute_locked( int $form_id, string $hash, string $new_time_end, array $audit_meta, string $cpf_digits ): array {
+		// Read what another request wrote while this one waited.
+		wp_cache_delete( $form_id, 'post_meta' );
 		$eligibility = self::is_eligible( $form_id, $hash );
 		if ( ! $eligibility['ok'] ) {
 			return $eligibility;

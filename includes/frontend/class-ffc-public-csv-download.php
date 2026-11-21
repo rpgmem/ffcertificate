@@ -608,9 +608,22 @@ class PublicCsvDownload {
 		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 
+		// The panel's gates, in its order (#2695): the preview posts the
+		// panel's own form, so it carries the same challenge and CPF. The
+		// challenge is peeked, not spent — the download spends it.
+		$security_check = \FreeFormCertificate\Core\SecurityService::peek_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
+		if ( true !== $security_check ) {
+			wp_send_json_error( array( 'message' => (string) $security_check ) );
+		}
+
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
 			wp_send_json_error( array( 'message' => $error ) );
+		}
+
+		$cpf_error = $this->validate_cpf_requirement( $form_id, RequestInput::get_post_string( 'cpf' ) );
+		if ( null !== $cpf_error ) {
+			wp_send_json_error( array( 'message' => $cpf_error ) );
 		}
 
 		// Available until collection ends, the same moment the info screen's

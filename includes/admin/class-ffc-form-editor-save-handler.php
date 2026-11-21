@@ -450,12 +450,18 @@ class FormEditorSaveHandler {
 				set_transient( 'ffc_html_lint_' . get_current_user_id(), array_values( array_unique( $html_refs ) ), 45 );
 			}
 
-			$current_config = get_post_meta( $post_id, '_ffc_form_config', true );
-			if ( ! is_array( $current_config ) ) {
-				$current_config = array();
-			}
-
-			update_post_meta( $post_id, '_ffc_form_config', array_merge( $current_config, $clean_config ) );
+			// Under the lock a submission takes to remove a used ticket, so
+			// neither write drops the other (#2695).
+			\FreeFormCertificate\Core\NamedLock::with_form_config(
+				$post_id,
+				static function () use ( $post_id, $clean_config ): void {
+					$current_config = get_post_meta( $post_id, '_ffc_form_config', true );
+					if ( ! is_array( $current_config ) ) {
+						$current_config = array();
+					}
+					update_post_meta( $post_id, '_ffc_form_config', array_merge( $current_config, $clean_config ) );
+				}
+			);
 		}
 	}
 
