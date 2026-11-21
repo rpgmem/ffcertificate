@@ -11372,10 +11372,6 @@ msgstr ""
 msgid "Minimum log level"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:44
-msgid "Minimum notice (hours) and how far ahead bookings are allowed (default 30 days)."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
 msgid "Minimum notice required to cancel (e.g., 24 hours)"
 msgstr ""
@@ -35263,6 +35259,10 @@ msgstr ""
 #: includes/self-scheduling/views/appointments-list.php
 #, php-format
 msgid "Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending or waitlisted (will be cancelled). The daily run closes them; you can close them now."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Minimum notice (hours) and how far ahead bookings are allowed (default 30 days; 0 = no limit). How far ahead applies to regular calendars only: a custom calendar's blocks are bookable whatever their date, and the free slots panel follows the same rule."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php

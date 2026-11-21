@@ -11386,10 +11386,6 @@ msgstr "Nível mínimo"
 msgid "Minimum log level"
 msgstr "Nível mínimo de registro"
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:44
-msgid "Minimum notice (hours) and how far ahead bookings are allowed (default 30 days)."
-msgstr "Antecedência mínima (em horas) e prazo máximo de antecedência para reservas (padrão: 30 dias)."
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
 msgid "Minimum notice required to cancel (e.g., 24 hours)"
 msgstr "Aviso mínimo necessário para cancelar (ex: 24 horas)"
@@ -35342,6 +35338,10 @@ msgstr "Agendamentos antigos fechados: %1$d marcados como concluídos, %2$d pend
 #, php-format
 msgid "Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending or waitlisted (will be cancelled). The daily run closes them; you can close them now."
 msgstr "Agendamentos com data de %1$d dias atrás ou mais ainda estão abertos: %2$d confirmados (serão marcados como concluídos) e %3$d pendentes ou na lista de espera (serão cancelados). A rotina diária os fecha; você pode fechá-los agora."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Minimum notice (hours) and how far ahead bookings are allowed (default 30 days; 0 = no limit). How far ahead applies to regular calendars only: a custom calendar's blocks are bookable whatever their date, and the free slots panel follows the same rule."
+msgstr "Antecedência mínima (em horas) e prazo máximo de antecedência para reservas (padrão: 30 dias; 0 = sem limite). O prazo máximo vale só para calendários regulares: os blocos de um calendário personalizado podem ser reservados qualquer que seja a data, e o painel de horários livres segue a mesma regra."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "A new booking must start at least this many hours before or after the person's booking nearest to it on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time. The person is the account, else the CPF/RF, so a new e-mail address resets neither this nor the block cap; and on any calendar one person may hold only one place on a slot."
