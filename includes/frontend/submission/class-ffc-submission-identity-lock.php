@@ -53,7 +53,7 @@ class SubmissionIdentityLock {
 	public function apply( SubmissionContext $ctx ): void {
 		$identity = '' !== $ctx->val_cpf
 			? 'cpf:' . \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $ctx->val_cpf )
-			: 'email:' . strtolower( trim( $ctx->user_email ) );
+			: 'email:' . \FreeFormCertificate\Core\DataSanitizer::normalize_email( $ctx->user_email );
 		if ( 'email:' === $identity ) {
 			return;
 		}

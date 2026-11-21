@@ -35450,4 +35450,4 @@ msgstr "Último: %s"
 
 #: includes/frontend/submission/class-ffc-submission-identity-lock.php:69
 msgid "Another submission with these details is still being processed. Wait a moment and try again."
-msgstr "Outro envio com estes dados ainda está sendo processado. Aguarde um momento e tente novamente."
+msgstr "Outra submissão com estes dados ainda está sendo processada. Aguarde um momento e tente novamente."
