@@ -120,7 +120,7 @@ class SchedulingMailer {
 			// PHP's own tempnam(), not wp_tempnam(): that one lives in an admin
 			// include a cron or front-end send has not loaded.
 			$reserved = tempnam( sys_get_temp_dir(), 'ffc-ics-' );
-			if ( is_string( $reserved ) && '' !== $reserved ) {
+			if ( false !== $reserved ) {
 				$temp = $reserved . '.ics';
                 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes the generated .ics beside a tempnam() path for the mail attachment; WP_Filesystem would need credentials on a mail-send path.
 				if ( false !== file_put_contents( $temp, $ics ) ) {
