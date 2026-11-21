@@ -101,6 +101,12 @@ class ReregistrationFrontend {
 	private static function submission_for( int $reregistration_id, int $user_id ): ?object {
 		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
 		if ( $submission ) {
+			// A row left from before the person left the campaign's audiences
+			// is not theirs to fill any more (#2688). A delivered one is still
+			// shown, as the record of what they sent.
+			if ( in_array( (string) $submission->status, ReregistrationSubmissionReader::NOT_FINISHED_STATUSES, true ) && ! self::user_may_reregister( $reregistration_id, $user_id ) ) {
+				return null;
+			}
 			return $submission;
 		}
 

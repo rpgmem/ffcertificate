@@ -35299,3 +35299,7 @@ msgstr ""
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "The confirmation, approval and promotion e-mails of a confirmed appointment carry a calendar file (.ics), and the cancellation carries one that takes the appointment off the calendar. Every calendar file the plugin makes, these and the one on the user dashboard, is written in the time zone set in WordPress."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Someone who leaves the campaign's audiences, or whose audience is taken off the campaign, no longer receives its invitation or reminder, even when sent by hand, and can no longer open the form. The daily run removes their submission if it was never started; one with answers stays as a record."
+msgstr ""

@@ -197,6 +197,14 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 					}
 					return array_map( 'strval', array_values( array_unique( $users ) ) );
 				}
+				// ReregistrationRepository::members_among() (#2688).
+				if ( preg_match( '/FROM wp_ffc_audience_members WHERE audience_id IN \(([\d,]+)\) AND user_id IN \(([\d,]+)\)/', $sql, $m ) ) {
+					$members = array();
+					foreach ( array_map( 'intval', explode( ',', $m[1] ) ) as $id ) {
+						$members = array_merge( $members, array_map( 'intval', $this->members[ $id ] ?? array() ) );
+					}
+					return array_map( 'strval', array_values( array_intersect( array_map( 'intval', explode( ',', $m[2] ) ), $members ) ) );
+				}
 				$this->fail( 'Unexpected get_col: ' . $sql );
 			}
 		);
@@ -685,6 +693,10 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 			'start_date'               => '2026-02-15',
 			'end_date'                 => '2026-03-15',
 		);
+		// The three are members of the campaign's audience (#2688).
+		$this->campaign_audiences[9] = array( 5 );
+		$this->audiences[5]          = (object) array( 'id' => 5, 'parent_id' => null, 'name' => 'Five' );
+		$this->members[5]            = array( 21, 22, 23 );
 		foreach ( array( 31 => 21, 32 => 22, 33 => 23 ) as $id => $user ) {
 			$this->submissions[ $id ] = (object) array(
 				'id'                => $id,

@@ -68,6 +68,9 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign's audiences are expanded to their descendants (#2688).
+		Functions\when( 'wp_parse_args' )->alias( static fn ( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		// The campaign window is read on the site's clock (#2242); pin it
 		// inside the fixtures' campaigns.
 		Functions\when( 'current_time' )->alias(
@@ -148,7 +151,27 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$wpdb->users  = 'wp_users';
 		// An approval syncs the reviewed answers to the profile (#2688); the
 		// campaign here has no fields, so there is nothing to sync.
-		$wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
+		// The campaign's audience has no children (#2688).
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) {
+				if ( str_contains( (string) $sql, 'FROM wp_ffc_audiences' ) && str_contains( (string) $sql, 'parent_id' ) ) {
+					return array();
+				}
+				throw new \LogicException( 'Unexpected get_results: ' . $sql );
+			}
+		)->byDefault();
+		// The membership read (#2688) finds user 50 in the campaign's audience.
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			static function ( $sql ) {
+				if ( str_contains( (string) $sql, 'SELECT audience_id FROM wp_ffc_reregistration_audiences' ) ) {
+					return array( '1' );
+				}
+				if ( preg_match( '/FROM wp_ffc_audience_members WHERE audience_id IN \([\d,]+\) AND user_id IN \(([\d,]+)\)/', (string) $sql, $m ) ) {
+					return explode( ',', $m[1] );
+				}
+				return array();
+			}
+		)->byDefault();
 
 		// Interpolates, so the reads below can dispatch on the query's intent.
 		// A conditional UPDATE (#2242) is kept as its parsed parts instead,
