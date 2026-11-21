@@ -81,7 +81,9 @@ class RecruitmentErrorCodeCoverageTest extends TestCase {
 	 * @var array<int, string>
 	 */
 	private const RENDERED_SHAPES = array(
-		'/line_error\([^;]*?\x27(recruitment_csv_[a-z0-9_]+)(?::\s*)?\x27/s',
+		// A code may carry a detail after its colon (`code: matches line %d`),
+		// which `translate()` renders after the code's label (#2694).
+		'/line_error\([^;]*?\x27(recruitment_csv_[a-z0-9_]+)(?::[^\x27]*)?\x27/s',
 		'/\x27errors\x27\s*=>\s*array\(\s*\x27(recruitment_csv_[a-z0-9_]+)(?::\s*)?\x27/s',
 	);
 
