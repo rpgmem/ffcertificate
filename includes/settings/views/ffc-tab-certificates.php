@@ -295,7 +295,7 @@ $ffcertificate_rotate_url = wp_nonce_url( add_query_arg( 'action', \FreeFormCert
 		</dl>
 		<?php
 		if ( ! \FreeFormCertificate\Core\SigningKeys::secret_is_readable() ) {
-			\FreeFormCertificate\Core\AdminNotice::callout( 'error', '<p>' . esc_html__( 'The private key cannot be read with the current encryption key, so new certificates are issued unsigned. Restore the previous encryption key and run the key rotation under Settings → Migrations, or generate a new signing key.', 'ffcertificate' ) . '</p>', array( 'classes' => array( 'inline' ) ) );
+			\FreeFormCertificate\Core\AdminNotice::callout( 'error', '<p>' . esc_html__( 'The private key cannot be read with the current encryption key, so new certificates are issued unsigned. Restore the previous encryption key and run the key rotation under Settings → Data Migrations, or generate a new signing key.', 'ffcertificate' ) . '</p>', array( 'classes' => array( 'inline' ) ) );
 		} elseif ( ! \FreeFormCertificate\Core\SigningKeys::secret_is_encrypted() ) {
 			\FreeFormCertificate\Core\AdminNotice::callout( 'warning', '<p>' . esc_html__( 'The private key is stored unencrypted, because this site has no encryption key. Configure one under Settings → Advanced and generate a new signing key.', 'ffcertificate' ) . '</p>', array( 'classes' => array( 'inline' ) ) );
 		}
