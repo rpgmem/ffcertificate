@@ -176,6 +176,84 @@ final class CertificateSignerTest extends TestCase {
 		$this->assertSame( array( 'k1' => 1 ), CertificateSignatureRepository::count_by_key() );
 	}
 
+	/**
+	 * A timezone change after signing leaves the signature valid: the
+	 * payload's day is checked against every day the issue instant falls on
+	 * (#2696). The instant is midnight UTC, so UTC-3 and UTC+9 name
+	 * different days.
+	 */
+	public function test_a_timezone_change_after_signing_keeps_the_signature_valid(): void {
+		SigningKeys::rotate();
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts - 3 * 3600 ) );
+		CertificateSigner::sign( 345, $this->submission() );
+
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts + 9 * 3600 ) );
+		$integrity = CertificateSigner::integrity( $this->submission() );
+
+		$this->assertSame( CertificateSigner::STATE_INTACT, $integrity['state'] );
+	}
+
+	/**
+	 * A signature over a day the instant cannot fall on in any timezone is
+	 * still refused.
+	 */
+	public function test_a_payload_day_the_instant_cannot_reach_is_refused(): void {
+		SigningKeys::rotate();
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts + 3 * 86400 ) );
+		CertificateSigner::sign( 345, $this->submission() );
+
+		$this->assertSame( CertificateSigner::STATE_INVALID, CertificateSigner::integrity( $this->submission() )['state'] );
+	}
+
+	/**
+	 * A form whose name field is not keyed `name` signs the name it asked
+	 * for (#2696).
+	 */
+	public function test_the_name_is_read_from_the_forms_own_name_field(): void {
+		SigningKeys::rotate();
+		$submission = $this->submission( array( 'data' => self::json( array( 'nome' => 'João Pereira' ) ) ) );
+		CertificateSigner::sign( 345, $submission );
+
+		$this->assertStringContainsString( 'João Pereira', CertificateSignatureRepository::current( 345 )['record'] );
+		$this->assertSame( CertificateSigner::STATE_INTACT, CertificateSigner::integrity( $submission )['state'] );
+	}
+
+	/**
+	 * A certificate signed with the old reading, an empty name, does not
+	 * read as changed now that the name is found.
+	 */
+	public function test_a_record_signed_with_the_old_empty_name_still_reads_intact(): void {
+		SigningKeys::rotate();
+		$submission = $this->submission( array( 'data' => self::json( array( 'nome' => 'João Pereira' ) ) ) );
+		$fields     = CertificateSigner::fields( $submission, 'k1' );
+		$fields['name'] = '';
+		$record     = \FreeFormCertificate\Core\CertificateRecord::record( $fields );
+		$hash       = \FreeFormCertificate\Core\CertificateRecord::hash( $record );
+		$full       = SigningKeys::sign( \FreeFormCertificate\Core\CertificateRecord::full_payload( 'k1', $fields, $hash ) );
+		$compact    = SigningKeys::sign( \FreeFormCertificate\Core\CertificateRecord::compact_payload( 'k1', $fields, $hash ) );
+		CertificateSignatureRepository::store( 345, 'k1', $record, $hash, $full['signature'], $compact['signature'] );
+
+		$this->assertSame( CertificateSigner::STATE_INTACT, CertificateSigner::integrity( $submission )['state'] );
+		$this->assertSame( CertificateSigner::STATE_CHANGED, CertificateSigner::integrity( $this->submission( array( 'data' => self::json( array( 'name' => 'Outra Pessoa' ) ) ) ) )['state'] );
+	}
+
+	/**
+	 * An edit that changes nothing the record covers does not sign again,
+	 * so the hash a printed QR code carries stays current (#2696).
+	 */
+	public function test_an_edit_that_changes_nothing_signed_keeps_the_record(): void {
+		SigningKeys::rotate();
+		CertificateSigner::sign( 345, $this->submission() );
+		SigningKeys::rotate();
+
+		$this->assertFalse( CertificateSigner::sign_if_changed( 345, $this->submission( array( 'email' => 'other@example.test' ) ) ) );
+		$this->assertCount( 1, $this->table->rows );
+		$this->assertSame( 'k1', CertificateSignatureRepository::current( 345 )['key_id'] );
+
+		$this->assertTrue( CertificateSigner::sign_if_changed( 345, $this->submission( array( 'data' => self::json( array( 'name' => 'Maria A. Santos' ) ) ) ) ) );
+		$this->assertSame( 'k2', CertificateSignatureRepository::current( 345 )['key_id'] );
+	}
+
 	public function test_an_unsigned_certificate_reads_as_unsigned(): void {
 		$this->assertSame( CertificateSigner::STATE_UNSIGNED, CertificateSigner::integrity( $this->submission() )['state'] );
 	}

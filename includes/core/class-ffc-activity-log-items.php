@@ -276,6 +276,7 @@ final class ActivityLogItems {
 		'submission_updated'                      => 'cert_changes',
 		'certificate_signer_added'                => 'cert_changes',
 		'certificate_signing_failed'              => 'cert_changes',
+		'certificates_resigned'                   => 'cert_changes',
 		'submission_trashed'                      => 'cert_changes',
 		'submission_restored'                     => 'cert_changes',
 		'submission_moved'                        => 'cert_changes',

@@ -243,6 +243,11 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 			);
 		}
 
+		// The certificate signing secrets are encrypted too, and an option
+		// the table walk below never reaches (#2696). A handful of keys, so
+		// every batch rewrites them; the outcome does not depend on order.
+		\FreeFormCertificate\Core\SigningKeys::reencrypt_secrets();
+
 		$total_processed = 0;
 		$all_errors      = array();
 

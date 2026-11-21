@@ -207,6 +207,51 @@ final class SigningKeys {
 	}
 
 	/**
+	 * Whether the active key's secret can be read, so the site can still sign.
+	 *
+	 * A secret encrypted under an encryption key that was since removed reads
+	 * as nothing, and new certificates then go unsigned (#2696).
+	 */
+	public static function secret_is_readable(): bool {
+		$active = self::active_id();
+		return '' !== $active && null !== self::secret( $active );
+	}
+
+	/**
+	 * Encrypt every readable secret again under the active encryption key.
+	 *
+	 * The key-rotation migration calls this, so a secret written under the
+	 * previous encryption key stays readable once that key is removed
+	 * (#2696). A secret that cannot be read is left as it is; the key card
+	 * says so.
+	 *
+	 * @return int Secrets rewritten.
+	 */
+	public static function reencrypt_secrets(): int {
+		$state     = self::all();
+		$rewritten = 0;
+		foreach ( $state['keys'] as $id => $key ) {
+			if ( 0 !== strpos( $key['secret'], Encryption::V2_PREFIX ) ) {
+				continue;
+			}
+			$raw = self::secret( (string) $id );
+			if ( null === $raw ) {
+				continue;
+			}
+			$stored = self::store_secret( $raw );
+			if ( 0 !== strpos( $stored, Encryption::V2_PREFIX ) ) {
+				continue;
+			}
+			$state['keys'][ $id ]['secret'] = $stored;
+			++$rewritten;
+		}
+		if ( $rewritten > 0 ) {
+			update_option( self::OPTION, $state, false );
+		}
+		return $rewritten;
+	}
+
+	/**
 	 * Every public key by id, base64url, for a verifier.
 	 *
 	 * @return array<string, string>

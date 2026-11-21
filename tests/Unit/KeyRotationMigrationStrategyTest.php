@@ -307,6 +307,22 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 		$this->assertSame( Encryption::key_fingerprint(), $state['fingerprint'] );
 	}
 
+	/**
+	 * The certificate signing secrets are re-encrypted with the rows, so a
+	 * key written under the previous encryption key still signs once that
+	 * key is removed (#2696).
+	 */
+	public function test_execute_reencrypts_the_signing_secrets(): void {
+		\FreeFormCertificate\Core\SigningKeys::rotate();
+		$before = $this->options[ \FreeFormCertificate\Core\SigningKeys::OPTION ]['keys']['k1']['secret'];
+
+		$this->strategy->execute( 'key_rotation', array( 'batch_size' => 100 ) );
+
+		$after = $this->options[ \FreeFormCertificate\Core\SigningKeys::OPTION ]['keys']['k1']['secret'];
+		$this->assertNotSame( $before, $after );
+		$this->assertTrue( \FreeFormCertificate\Core\SigningKeys::secret_is_readable() );
+	}
+
 	public function test_execute_short_circuits_when_already_completed(): void {
 		$this->options['ffc_key_rotation_state'] = array(
 			'fingerprint' => Encryption::key_fingerprint(),

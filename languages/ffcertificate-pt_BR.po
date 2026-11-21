@@ -34821,10 +34821,6 @@ msgstr "A chave de assinatura %1$s agora está ativa. A chave %2$s foi aposentad
 msgid "Signing key %s generated. Forms with a signed QR mode now sign every certificate they issue."
 msgstr "Chave de assinatura %s gerada. Formulários com um modo de QR assinado agora assinam todo certificado que emitem."
 
-#: includes/settings/views/documentation/reference-qr-codes.php:75
-msgid "Signing needs a key, generated once on Settings → Certificates, in the Integrity signature card, by someone with the Danger Zone capability. Rotating it retires the old key, which keeps verifying what it signed. Until a key exists, forms with a signed mode print the link only, and each certificate that could not be signed is recorded in the activity log."
-msgstr "Assinar exige uma chave, gerada uma vez em Configurações → Certificados, no cartão Assinatura de integridade, por alguém com a permissão da Zona de Perigo. Trocá-la aposenta a chave antiga, que continua verificando o que assinou. Enquanto não houver chave, formulários com um modo assinado imprimem somente o link, e cada certificado que não pôde ser assinado é registrado no Registro de Atividades."
-
 #: includes/admin/class-ffc-form-editor-layout-metabox.php:273
 msgid "The QR code carries the link and a signature over the code, the date, the name, the course and the workload. Without internet it shows them to compare with the paper; a name or course too long for the template's QR falls back to compact."
 msgstr "O QR code carrega o link e uma assinatura sobre o código, a data, o nome, o curso e a carga horária. Sem internet, ele os mostra para comparar com o papel; um nome ou curso longo demais para o QR do modelo recai no modo compacto."
@@ -34861,10 +34857,6 @@ msgstr "A assinatura armazenada para este certificado não confere, então esta 
 #: includes/admin/class-ffc-signing-key-handler.php:89
 msgid "The signing key could not be generated: this server cannot create Ed25519 keys."
 msgstr "Não foi possível gerar a chave de assinatura: este servidor não consegue criar chaves Ed25519."
-
-#: includes/settings/views/documentation/reference-qr-codes.php:74
-msgid "The verification page checks the certificate against its signed record and says one of three things: integrity confirmed, changed after signing (naming the fields that changed), or signature not valid. Editing a signed certificate signs it again."
-msgstr "A página de verificação confere o certificado com o seu registro assinado e diz uma de três coisas: integridade confirmada, alterado após a assinatura (citando os campos alterados) ou assinatura inválida. Editar um certificado assinado o assina de novo."
 
 #: includes/frontend/class-ffc-verification-response-renderer.php:117
 #, php-format
@@ -35451,6 +35443,59 @@ msgstr "Último clique"
 #, php-format
 msgid "Last: %s"
 msgstr "Último: %s"
+
+#: includes/settings/views/documentation/reference-qr-codes.php:76
+msgid "The verification page checks the certificate against its signed record and says one of three things: integrity confirmed, changed after signing (naming the fields that changed), or signature not valid. Editing a signed certificate signs it again only when something the record covers changed. Changing the site's timezone does not affect signatures already made."
+msgstr "A página de verificação confere o certificado com o seu registro assinado e diz uma de três coisas: integridade confirmada, alterado após a assinatura (citando os campos alterados) ou assinatura inválida. Editar um certificado assinado o assina de novo só quando algo que o registro cobre mudou. Mudar o fuso horário do site não afeta assinaturas já feitas."
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "Signing needs a key, generated once on Settings → Certificates, in the Integrity signature card, by someone with the Danger Zone capability. Rotating it retires the old key, which keeps verifying what it signed. Until a key exists, forms with a signed mode print the link only, and each certificate that could not be signed is recorded in the activity log. The private key is stored encrypted: rotating the site's encryption key re-encrypts it with the records, and the card warns when it can no longer be read."
+msgstr "Assinar exige uma chave, gerada uma vez em Configurações → Certificados, no cartão Assinatura de integridade, por alguém com a permissão da Zona de Perigo. Trocá-la aposenta a chave antiga, que continua verificando o que assinou. Enquanto não houver chave, formulários com um modo assinado imprimem somente o link, e cada certificado que não pôde ser assinado é registrado no registro de atividades. A chave privada é guardada criptografada: trocar a chave de criptografia do site a criptografa de novo junto com os registros, e o cartão avisa quando ela não pode mais ser lida."
+
+#: includes/settings/views/ffc-tab-certificates.php:298
+msgid "The private key cannot be read with the current encryption key, so new certificates are issued unsigned. Restore the previous encryption key and run the key rotation under Settings → Data Migrations, or generate a new signing key."
+msgstr "A chave privada não pode ser lida com a chave de criptografia atual, então novos certificados são emitidos sem assinatura. Restaure a chave de criptografia anterior e execute a troca de chave em Configurações → Migrações de Dados, ou gere uma nova chave de assinatura."
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "The title, the workload and the event dates belong to the form, and every signed certificate of the form carries them. While signed certificates exist, the QR code row of the form editor says so before you save. After a save that changed them, the form screen offers \"Re-sign with current data\", which signs those certificates again, a hundred per click, and records it in the activity log."
+msgstr "O título, a carga horária e as datas do evento pertencem ao formulário, e todo certificado assinado do formulário os carrega. Enquanto houver certificados assinados, a linha do código QR no editor do formulário avisa antes de salvar. Depois de um salvamento que os alterou, a tela do formulário oferece \"Assinar de novo com os dados atuais\", que assina esses certificados de novo, cem por clique, e registra isso no registro de atividades."
+
+#: includes/admin/class-ffc-form-resign-notice.php:95
+msgid "Continue signing again"
+msgstr "Continuar assinando de novo"
+
+#: includes/admin/class-ffc-form-resign-notice.php:95
+msgid "Re-sign with current data"
+msgstr "Assinar de novo com os dados atuais"
+
+#: includes/admin/class-ffc-form-resign-notice.php:102
+msgid "Signing this form's certificates again stopped before the end. Continue to sign the rest."
+msgstr "A nova assinatura dos certificados deste formulário parou antes do fim. Continue para assinar o restante."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:318
+msgid "Certificates Signed Again"
+msgstr "Certificados assinados de novo"
+
+#: includes/admin/class-ffc-form-resign-notice.php:78
+#, php-format
+msgid "%d certificate was signed again with the current data."
+msgid_plural "%d certificates were signed again with the current data."
+msgstr[0] "%d certificado foi assinado de novo com os dados atuais."
+msgstr[1] "%d certificados foram assinados de novo com os dados atuais."
+
+#: includes/admin/class-ffc-form-resign-notice.php:104
+#, php-format
+msgid "The title, workload or event dates of this form changed after its %d signed certificate was signed, so its verification page says it changed after signing. Signing it again attests the data as it is now, and is recorded in the activity log."
+msgid_plural "The title, workload or event dates of this form changed after its %d signed certificates were signed, so their verification pages say they changed after signing. Signing them again attests the data as it is now, and is recorded in the activity log."
+msgstr[0] "O título, a carga horária ou as datas do evento deste formulário mudaram depois que o seu %d certificado assinado foi assinado, então a página de verificação dele diz que ele foi alterado após a assinatura. Assiná-lo de novo atesta os dados como estão agora, e isso é registrado no registro de atividades."
+msgstr[1] "O título, a carga horária ou as datas do evento deste formulário mudaram depois que os seus %d certificados assinados foram assinados, então as páginas de verificação deles dizem que foram alterados após a assinatura. Assiná-los de novo atesta os dados como estão agora, e isso é registrado no registro de atividades."
+
+#: includes/admin/class-ffc-form-resign-notice.php:178
+#, php-format
+msgid "%d certificate of this form is signed. Changing the title, workload or event dates makes it read as changed after signing, until it is signed again from the notice the save shows."
+msgid_plural "%d certificates of this form are signed. Changing the title, workload or event dates makes them read as changed after signing, until they are signed again from the notice the save shows."
+msgstr[0] "%d certificado deste formulário está assinado. Mudar o título, a carga horária ou as datas do evento faz com que ele apareça como alterado após a assinatura, até ser assinado de novo pelo aviso que o salvamento mostra."
+msgstr[1] "%d certificados deste formulário estão assinados. Mudar o título, a carga horária ou as datas do evento faz com que apareçam como alterados após a assinatura, até serem assinados de novo pelo aviso que o salvamento mostra."
 
 #: includes/frontend/submission/class-ffc-submission-identity-lock.php:69
 msgid "Another submission with these details is still being processed. Wait a moment and try again."

@@ -274,6 +274,14 @@ class FormEditorLayoutMetabox {
 		);
 
 		$notes = array();
+		// Said before the save, on every option: a form-level edit flags
+		// every signed certificate of the form, whatever the mode now (#2696).
+		$signed_warning = FormResignNotice::editing_warning( $form_id );
+		if ( '' !== $signed_warning ) {
+			foreach ( array_keys( $descriptions ) as $option ) {
+				$descriptions[ $option ] .= ' ' . $signed_warning;
+			}
+		}
 		if ( ! \FreeFormCertificate\Core\SigningKeys::has_active() ) {
 			$notes[] = __( 'No signing key exists yet: until one is generated under Settings → Certificates, this form prints the link only.', 'ffcertificate' );
 		}
