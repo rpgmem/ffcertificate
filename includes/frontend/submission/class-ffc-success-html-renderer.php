@@ -32,9 +32,8 @@ final class SuccessHtmlRenderer {
 	 *
 	 * @param array<string, mixed> $submission_data Submission data.
 	 * @param int                  $form_id Form ID.
-	 * @param int|string           $submission_date Submission date — unix UTC int (since 6.6.0, reprint flow)
-	 *                                              or MySQL `Y-m-d H:i:s` string (fresh submission via `current_time('mysql')`).
-	 *                                              DateFormatter::format_datetime accepts both.
+	 * @param int|string           $submission_date Submission date — unix UTC seconds, as an int or a numeric
+	 *                                              string (every flow since #2695).
 	 * @param string               $success_message Success message.
 	 * @param int                  $submission_id Submission ID (used to surface the magic link in the success card; 0 to skip).
 	 * @param object|null          $submission_handler Handler that knows how to ensure/load the submission's magic token.

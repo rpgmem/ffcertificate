@@ -420,12 +420,26 @@ class RecruitmentCallServiceTest extends TestCase {
 				}
 			);
 
+		$scheduled = array();
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->alias(
+			static function ( $ts, $hook ) use ( &$scheduled ) {
+				$scheduled[] = $hook;
+				return true;
+			}
+		);
+
 		$result = RecruitmentCallService::call_bulk( array( 10, 11 ), self::future(), '08:00', 1 );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertCount( 2, $result['call_ids'] );
 		$this->assertContains( 'COMMIT', $query_log );
-		$this->assertSame( array( 10, 11 ), $result['unreached'], 'Each row whose e-mail went nowhere is named by its classification.' );
+		// #2694: nothing is sent inside the request; the calls are queued
+		// for the background batch, which records each delivery.
+		$this->assertSame( array(), $result['unreached'] );
+		$this->assertSame( 1, $result['queued'], 'The double answers every UPDATE with 1.' );
+		$this->assertSame( array( 'ffc_recruitment_call_mail_batch' ), $scheduled );
+		$this->assertNotEmpty( array_filter( $query_log, static fn( $q ) => false !== strpos( (string) $q, 'email_status' ) ), 'The calls are marked queued.' );
 	}
 
 	public function test_call_bulk_rolls_back_when_one_row_fails(): void {

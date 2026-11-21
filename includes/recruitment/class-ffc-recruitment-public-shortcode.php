@@ -85,6 +85,14 @@ final class RecruitmentPublicShortcode {
 	/** Cache transient key prefix (matches `uninstall.php` cleanup). */
 	private const CACHE_PREFIX = 'ffc_recruitment_public_cache_';
 
+	/**
+	 * Highest page of either section a render is cached for (#2694).
+	 *
+	 * The page numbers come from the address, so without a bound every
+	 * number a visitor types is cached for the TTL as its own entry.
+	 */
+	private const MAX_CACHED_PAGE = 20;
+
 	/** Rate-limit transient key prefix. */
 	private const RATE_PREFIX = 'ffc_recruitment_public_rate_';
 
@@ -236,8 +244,17 @@ final class RecruitmentPublicShortcode {
 		$subscription_raw = RequestInput::get_get_key( 'subscription' );
 		$subscription     = in_array( $subscription_raw, array( 'pcd', 'geral' ), true ) ? $subscription_raw : '';
 
+		// Only the bounded views are cached (#2694): a typed name and an
+		// adjutancy from the address take any value a visitor sends, and so
+		// does a page number past the bound, so each would be stored as an
+		// entry of its own and fill the options table.
+		$cacheable = '' === $name_query
+			&& ( $filter_locked || '' === $slug_filter )
+			&& $page_top <= self::MAX_CACHED_PAGE
+			&& $page_bottom <= self::MAX_CACHED_PAGE;
+
 		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription, $selector, $wanted_list );
-		$cached    = get_transient( $cache_key );
+		$cached    = $cacheable ? get_transient( $cache_key ) : false;
 		if ( is_string( $cached ) ) {
 			return $cached;
 		}
@@ -249,7 +266,7 @@ final class RecruitmentPublicShortcode {
 
 		$settings = RecruitmentSettings::all();
 		$ttl      = (int) $settings['public_cache_seconds'];
-		if ( $ttl > 0 ) {
+		if ( $cacheable && $ttl > 0 ) {
 			set_transient( $cache_key, $html, $ttl );
 		}
 

@@ -62,7 +62,7 @@ class Frontend {
 	public function __construct( SubmissionHandler $submission_handler ) {
 		$this->verification_handler = new VerificationHandler( $submission_handler );
 		$this->form_processor       = new FormProcessor( $submission_handler );
-		$this->shortcodes           = new Shortcodes();
+		$this->shortcodes           = new Shortcodes( $this->verification_handler );
 		$this->public_csv_download  = new PublicCsvDownload();
 
 		// DynamicFragments registers AJAX hooks in its constructor; WP holds the reference.

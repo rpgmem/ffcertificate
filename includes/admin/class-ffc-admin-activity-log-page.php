@@ -326,6 +326,7 @@ class AdminActivityLogPage {
 			'recruitment_call_created'                     => __( 'Recruitment Call Created', 'ffcertificate' ),
 			'recruitment_bulk_call_created'                => __( 'Recruitment Bulk Call Created', 'ffcertificate' ),
 			'recruitment_call_cancelled'                   => __( 'Recruitment Call Cancelled', 'ffcertificate' ),
+			'recruitment_call_email_resent'                => __( 'Recruitment Call E-mail Sent Again', 'ffcertificate' ),
 			'recruitment_candidate_promoted'               => __( 'Candidate Promoted', 'ffcertificate' ),
 			'recruitment_candidate_deleted'                => __( 'Candidate Deleted', 'ffcertificate' ),
 			'recruitment_candidate_account_linked'         => __( 'Candidate Linked to an Account', 'ffcertificate' ),

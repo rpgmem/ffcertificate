@@ -24142,9 +24142,6 @@ msgstr ""
 msgid "shows a selector of every notice in its preliminary or definitive list (drafts and closed notices are left out); the visitor picks one and its list appears below. With a single notice on offer it opens directly. The notice edit screen has the shortcode ready to copy."
 msgstr ""
 
-msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy."
-msgstr ""
-
 msgid "without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice's list appears below it. Add list=\"preliminary\" or list=\"definitive\" to offer only one kind."
 msgstr ""
 
@@ -30693,10 +30690,6 @@ msgid "Module-wide options: convocation email, public-queue tuning and status co
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
-msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
 msgid "The REST API edits a candidate under the edit screen's rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate's own API answer carries the score only when the notice shows it, never the staff fields of a call."
 msgstr ""
 
@@ -30714,10 +30707,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php
 msgid "The file is not UTF-8. Excel often saves CSV as Windows-1252: in Excel choose \"CSV UTF-8\", or re-save the file as UTF-8 in your editor, and import it again."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
-msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
 msgstr ""
 
 #: templates/admin/recruitment/admin-page/settings-tab.php
@@ -30743,11 +30732,6 @@ msgstr ""
 
 #: templates/emails/recruitment-convocation.php
 msgid "Open My Calls"
-msgstr ""
-
-#. translators: {count} is replaced in JS with the number of candidates
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
-msgid "{count} called candidate(s) have no email on file and were not notified. Contact them manually."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
@@ -35334,10 +35318,6 @@ msgid "The prefix \"%1$s\" is the address of \"%2$s\". Short URLs would sit over
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
-msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified. Calling says the same when the e-mail could not go out, because e-mails are switched off or the send failed, and no new password link is issued for a message that is not sent."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
 msgid "A file that replaces a list that already has rows shows what it changes before anything is written: the rows that enter, leave, or change rank or score. Nothing is imported until the operator confirms. The preliminary status and reason set by hand stay with each candidate and adjutancy that remains; only those of the rows that leave are lost, and the comparison says how many. The notice is read again when the list is replaced: a preliminary list is refused once the notice has become definitive or closed, even if its import started earlier. Each step of an import must name the notice it was started for, by the operator who started it."
 msgstr ""
 
@@ -35351,6 +35331,22 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php
 msgid "The e-mail is not a valid address. Correct it, or send it empty to clear it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy. Only the plain list, a pinned adjutancy and the first 20 pages of each section are cached; a name search, an adjutancy chosen in the address and a later page are rendered fresh each time."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. Each rank is one place in its adjutancy, so two lines with the same rank in one adjutancy are refused. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history. An unlink is kept: neither the background linking nor a new account with the same CPF or RF links the candidate again, until someone links it by hand."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Another line of the same adjutancy has this rank. Each rank is one place in the list."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
@@ -35422,3 +35418,69 @@ msgid "%d certificate of this form is signed. Changing the title, workload or ev
 msgid_plural "%d certificates of this form are signed. Changing the title, workload or event dates makes them read as changed after signing, until they are signed again from the notice the save shows."
 msgstr[0] ""
 msgstr[1] ""
+#: includes/frontend/submission/class-ffc-submission-identity-lock.php:69
+msgid "Another submission with these details is still being processed. Wait a moment and try again."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified. Calling says the same when the e-mail could not go out, because e-mails are switched off or the send failed, and no new password link is issued for a message that is not sent. A bulk call saves the calls at once and sends their e-mails in the background, a few at a time. The Calls tab shows each call's e-mail as sent, not sent or waiting to be sent, with its time, and Send the e-mail again sends a call still in force once more."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "{count} called candidate(s) were not notified by e-mail: no address on file, e-mails switched off or the send failed. Contact them another way, or use Send again on the Calls tab."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The e-mails of {count} call(s) are being sent in the background. The Calls tab shows each delivery."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The call e-mail was sent again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The call e-mail did not go out: no address on file, e-mails switched off or the send failed."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "This call was cancelled, so its e-mail is not sent again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The date and time to assume are over, so no e-mail is sent for this call."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Send the e-mail again"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Recruitment Call E-mail Sent Again"
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Recruitment: call e-mails of a bulk call (one per batch)"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Sent"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Not sent"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Waiting to be sent"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "The same person appears twice in this adjutancy. A candidate holds one place per adjutancy."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "This person appears on another line with different details (name, RF, e-mail, phone or PCD). The lines of one candidate must agree."
+msgstr ""

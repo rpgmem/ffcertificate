@@ -124,7 +124,7 @@ class RecruitmentAccountLinkerTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $query ) {
 				[ $sql ] = $this->statement( $query );
-				$this->assertStringContainsString( 'c.user_id IS NULL AND c.id > %d', $sql );
+				$this->assertStringContainsString( 'c.user_id IS NULL AND c.account_unlinked = 0 AND c.id > %d', $sql );
 				return $this->batch;
 			}
 		);
