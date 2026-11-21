@@ -35,6 +35,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class VerificationHandler {
 
 	/**
+	 * Width of every stored code column (`auth_code` / `validation_code`
+	 * varchar(20)): a cleaned code longer than this cannot exist (#2730).
+	 */
+	private const MAX_STORED_CODE_LENGTH = 20;
+
+	/**
 	 * Submission handler.
 	 *
 	 * @var SubmissionHandler|null
@@ -107,7 +113,9 @@ class VerificationHandler {
 		$clean_code = $parsed['code'];
 		$prefix     = $parsed['prefix'];
 
-		if ( empty( $clean_code ) ) {
+		// Every code column is varchar(20): a longer code names nothing, so
+		// it is refused before three lookups that cannot match (#2730).
+		if ( empty( $clean_code ) || strlen( $clean_code ) > self::MAX_STORED_CODE_LENGTH ) {
 			return VerificationResult::not_found();
 		}
 

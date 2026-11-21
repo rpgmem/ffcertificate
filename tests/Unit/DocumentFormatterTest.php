@@ -842,6 +842,9 @@ class DocumentFormatterTest extends TestCase {
 			'no prefix no dashes'        => ['ABCD1234EFGH', '', 'ABCD1234EFGH'],
 			'lowercase input with C'     => ['c-abcd-1234-efgh', 'C', 'ABCD1234EFGH'],
 			'whitespace trimmed'         => ['  ABCD1234EFGH  ', '', 'ABCD1234EFGH'],
+			// Pasted from a receipt or a PDF without JavaScript (#2730).
+			'spaced A prefix'            => ['A - FDVS - UJA0 - BAMQ', 'A', 'FDVSUJA0BAMQ'],
+			'line break inside'          => ["A-FDVS\nUJA0-BAMQ", 'A', 'FDVSUJA0BAMQ'],
 			'short fallback no prefix'   => ['SHORT', '', 'SHORT'],
 			'empty string'               => ['', '', ''],
 		];
