@@ -35,7 +35,7 @@ class DeliveryLog {
 	/**
 	 * Counter columns a run carries.
 	 */
-	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced', 'listed' );
+	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced', 'listed', 'already_sent' );
 
 	/**
 	 * Days the history keeps a run and its deliveries (#1647).
@@ -372,6 +372,7 @@ class DeliveryLog {
 			'out_of_audience' => 'a',
 			'failed'          => 'f',
 			'listed'          => 'l',
+			'already_sent'    => 'r',
 		);
 		if ( ! isset( $codes[ $counter ] ) ) {
 			self::bump( $run_id, $counter );
@@ -408,7 +409,7 @@ class DeliveryLog {
 				'rule_id'        => $rule_id,
 				'user_id'        => $user_id,
 				'occurrence_key' => $occurrence,
-				'channel'        => 'xf' . $run_id,
+				'channel'        => self::counted_channel( $run_id, 'failed' ),
 			),
 			array( '%d', '%d', '%s', '%s' )
 		);
@@ -424,14 +425,19 @@ class DeliveryLog {
 	/**
 	 * The channel {@see self::count_once()} records a counted decision under,
 	 * for the run's own readers: the summary-only digest lists the people its
-	 * `listed` rows name (#2336).
+	 * `listed` rows name (#2336), and the history the people its `failed`
+	 * rows name (#2692).
 	 *
 	 * @param int    $run_id  Run.
-	 * @param string $counter `listed`.
+	 * @param string $counter `listed` or `failed`.
 	 * @return string
 	 */
 	public static function counted_channel( int $run_id, string $counter ): string {
-		return 'listed' === $counter ? 'xl' . $run_id : '';
+		$codes = array(
+			'listed' => 'l',
+			'failed' => 'f',
+		);
+		return isset( $codes[ $counter ] ) ? 'x' . $codes[ $counter ] . $run_id : '';
 	}
 
 	/**
@@ -502,9 +508,10 @@ class DeliveryLog {
 	 * @param string          $occurrence Target day.
 	 * @param array<int, int> $user_ids   Candidates.
 	 * @param string          $channel    Channel.
+	 * @param int             $run_id     Only this run's deliveries, when above 0 (#2692).
 	 * @return array<int, true>
 	 */
-	public static function delivered_among( int $rule_id, string $occurrence, array $user_ids, string $channel = 'user' ): array {
+	public static function delivered_among( int $rule_id, string $occurrence, array $user_ids, string $channel = 'user', int $run_id = 0 ): array {
 		$user_ids = array_values( array_filter( array_map( 'intval', $user_ids ), static fn( int $id ): bool => $id > 0 ) );
 		if ( array() === $user_ids ) {
 			return array();
@@ -515,8 +522,8 @@ class DeliveryLog {
 		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The sniff counts the literal's placeholders and does not know `prepare()` accepts a single array of arguments, which is how the table, the keys and the ids arrive.
 		$found = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT user_id FROM %i WHERE rule_id = %d AND occurrence_key = %s AND channel = %s AND user_id IN ({$placeholders})",
-				array_merge( array( DateMessagesActivator::log_table(), $rule_id, $occurrence, $channel ), $user_ids )
+				'SELECT user_id FROM %i WHERE rule_id = %d AND occurrence_key = %s AND channel = %s' . ( $run_id > 0 ? ' AND run_id = %d' : '' ) . " AND user_id IN ({$placeholders})",
+				array_merge( array( DateMessagesActivator::log_table(), $rule_id, $occurrence, $channel ), $run_id > 0 ? array( $run_id ) : array(), $user_ids )
 			)
 		);
 		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber

@@ -25,8 +25,8 @@ return array(
 	),
 	'includes/date-messages/class-ffc-date-messages-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\DateMessages\\DateMessagesActivator',
-		'revision'    => '1',
-		'fingerprint' => '0548b5d771d26bb8adedb5a827dfb1e04b3bd78a',
+		'revision'    => '2',
+		'fingerprint' => '6a6ac095f8fee6f2509b4427e7985b2b7ff05c3e',
 	),
 	'includes/recruitment/class-ffc-recruitment-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Recruitment\\RecruitmentActivator',

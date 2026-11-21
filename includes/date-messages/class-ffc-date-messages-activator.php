@@ -45,7 +45,7 @@ class DateMessagesActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '1';
+	public const SCHEMA_REVISION = '2';
 
 	/**
 	 * Option holding the revision last applied. Listed in `uninstall.php`.
@@ -136,7 +136,22 @@ class DateMessagesActivator {
 	public static function maybe_migrate(): void {
 		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) !== self::SCHEMA_REVISION ) {
 			self::create_tables();
-			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+			// Revision 2: the runs table counts the people a run found
+			// already sent by an earlier one (#2692). Recorded only once the
+			// column is read back, so a failed `ALTER` is retried.
+			$runs = self::runs_table();
+			self::add_columns_if_missing(
+				$runs,
+				array(
+					'already_sent' => array(
+						'type'  => 'INT(10) UNSIGNED NOT NULL DEFAULT 0',
+						'after' => 'listed',
+					),
+				)
+			);
+			if ( self::column_exists( $runs, 'already_sent' ) ) {
+				update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+			}
 		}
 
 		if ( '1' !== (string) get_option( self::AUDIENCE_IDS_OPTION, '' ) ) {
@@ -415,6 +430,7 @@ class DateMessagesActivator {
             failed int(10) unsigned NOT NULL DEFAULT 0,
             forced int(10) unsigned NOT NULL DEFAULT 0,
             listed int(10) unsigned NOT NULL DEFAULT 0,
+            already_sent int(10) unsigned NOT NULL DEFAULT 0,
             created_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY idx_rule (rule_id),

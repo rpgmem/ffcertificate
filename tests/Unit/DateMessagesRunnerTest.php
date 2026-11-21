@@ -48,6 +48,9 @@ class DateMessagesRunnerTest extends TestCase {
 	/** @var list<int> Users the delivery log already holds for the occurrence. */
 	private array $delivered = array();
 
+	/** @var list<int> The delivered ids that run 7 itself sent, a replay's own (#2692). */
+	private array $delivered_here = array();
+
 	/** @var list<string> Members of the rule's audience, as `$wpdb` returns them. */
 	private array $members = array();
 
@@ -130,6 +133,7 @@ class DateMessagesRunnerTest extends TestCase {
 		$this->candidates   = array();
 		$this->preferences  = array();
 		$this->delivered    = array();
+		$this->delivered_here = array();
 		$this->members      = array();
 		$this->claim_result = 1;
 		$this->mail_result  = true;
@@ -294,6 +298,10 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			function ( $q ) {
+				if ( 0 === strpos( $q['sql'], 'SELECT user_id FROM %i WHERE rule_id = %d AND occurrence_key = %s AND channel = %s AND run_id = %d' ) ) {
+					// This run's own deliveries only (#2692).
+					return 7 === $q['args'][4] ? array_map( 'strval', array_values( array_intersect( $this->delivered_here, array_slice( $q['args'], 5 ) ) ) ) : array();
+				}
 				if ( 0 === strpos( $q['sql'], 'SELECT user_id FROM %i WHERE rule_id = %d AND occurrence_key = %s' ) ) {
 					return array_map( 'strval', array_values( array_intersect( $this->delivered, array_slice( $q['args'], 4 ) ) ) );
 				}
@@ -502,9 +510,10 @@ class DateMessagesRunnerTest extends TestCase {
 				'opted_out'       => 1,
 				'no_email'        => 1,
 				'out_of_audience' => 1,
+				'already_sent'    => 1,
 			),
 			$this->bumps,
-			'An already-sent person is neither sent nor counted again.'
+			'A person an earlier run reached is not sent again, and is counted as already sent (#2692).'
 		);
 	}
 
@@ -618,6 +627,22 @@ class DateMessagesRunnerTest extends TestCase {
 			),
 			$this->bumps
 		);
+	}
+
+	/**
+	 * A replay of this batch meets the people it already sent; they are
+	 * counted as sent once, not also as already sent (#2692).
+	 */
+	public function test_a_replay_does_not_count_its_own_deliveries_as_already_sent(): void {
+		$this->one_sendable_candidate();
+		Runner::process( 7, '2026-10-10', 0 );
+
+		// The send is now in the log, under this run.
+		$this->delivered      = array( 1 );
+		$this->delivered_here = array( 1 );
+		Runner::process( 7, '2026-10-10', 0, 1 );
+
+		$this->assertSame( array( 'sent' => 1 ), $this->bumps );
 	}
 
 	public function test_a_message_that_throws_is_one_failure_and_the_batch_goes_on(): void {

@@ -311,6 +311,13 @@ final class Runner {
 		cache_users( array_map( static fn( array $row ): int => $row['user_id'], $page['rows'] ) );
 
 		$occurrence = $rule->occurrence_key( $day );
+
+		// "Already sent" counts the people an earlier run reached (#2692). A
+		// replay of this batch meets this run's own deliveries too, and those
+		// are already counted as sent.
+		$already = array_map( static fn( array $row ): int => $row['user_id'], array_filter( $page['rows'], static fn( array $row ): bool => RecipientResolver::ALREADY_SENT === $row['decision'] ) );
+		$own     = array() === $already ? array() : DeliveryLog::delivered_among( $rule->id, $occurrence, $already, 'user', $run_id );
+
 		foreach ( $page['rows'] as $row ) {
 			switch ( $row['decision'] ) {
 				case RecipientResolver::WILL_SEND:
@@ -321,6 +328,11 @@ final class Runner {
 						break;
 					}
 					self::deliver( $run_id, $rule, $source, $row, $day, $today );
+					break;
+				case RecipientResolver::ALREADY_SENT:
+					if ( ! isset( $own[ $row['user_id'] ] ) ) {
+						DeliveryLog::count_once( $run_id, $rule->id, $row['user_id'], $occurrence, 'already_sent' );
+					}
 					break;
 				case RecipientResolver::OPTED_OUT:
 				case RecipientResolver::NO_EMAIL:
