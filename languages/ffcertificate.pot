@@ -579,10 +579,6 @@ msgstr ""
 msgid "(built-in default)"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:107
-msgid "(Calendar Deleted)"
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:432
 msgid "(connecting directly to this server)"
 msgstr ""
@@ -2083,14 +2079,6 @@ msgstr ""
 
 #: includes/api/class-ffc-calendar-rest-controller.php:311 includes/api/class-ffc-appointment-rest-controller.php:214 includes/api/class-ffc-appointment-rest-controller.php:326
 msgid "Appointment handler not available"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:431
-msgid "Appointment ID:"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:429
-msgid "Appointment Information"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:39
@@ -6976,10 +6964,6 @@ msgstr ""
 msgid "Error: PDF container not found"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:507
-msgid "Error: PDF generator not loaded. Please refresh the page."
-msgstr ""
-
 #: includes/core/captcha/class-ffc-math-captcha.php:123
 msgid "Error: Please answer the security question."
 msgstr ""
@@ -7014,10 +6998,6 @@ msgstr ""
 
 #: templates/admin/recruitment/candidate-edit/history-section.php:40
 msgid "Event"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:415
-msgid "Event Details"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:339
@@ -9110,12 +9090,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:176
 msgid "Generate Tickets"
-msgstr ""
-
-#. %s: date and time of generation
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:485
-#, php-format
-msgid "Generated on %s"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:290
@@ -12952,10 +12926,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:109
 msgid "Personal email"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:455
-msgid "Personal Information"
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:247
@@ -17461,10 +17431,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:581
 msgid "This appointment is already cancelled."
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:94
-msgid "This appointment is awaiting admin approval. The receipt will be available after confirmation."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:338
@@ -28366,9 +28332,6 @@ msgstr ""
 msgid "This browser cannot build the receipt"
 msgstr ""
 
-msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
-msgstr ""
-
 msgid "Allowed"
 msgstr ""
 
@@ -30256,10 +30219,6 @@ msgid "Deleting this calendar cancels %d open appointment (pending, confirmed or
 msgid_plural "Deleting this calendar cancels %d open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?"
 msgstr[0] ""
 msgstr[1] ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:93
-msgid "The receipt opens unmasked only for the person it belongs to: signed in as its owner, or through the link in their e-mails, which carries their confirmation token. Staff who can open the Appointments list reach it from View Receipt with the e-mail, phone and CPF/RF masked and without the token, which no staff screen shows, so a member of staff cannot cancel as the guest; the audited Reveal stays on the appointment's admin screen. View as user shows no receipt link."
-msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php
 msgid "%1$d open appointment(s) of the calendar \"%2$s\" fall on what you are blocking. They will be cancelled, and each person booked will receive the calendar's cancellation e-mail with the reason."
@@ -35500,4 +35459,24 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php:82
 msgid "In the event list, the past days of the month that holds today wait in a collapsed group at the top, with their count, and today's date carries a Today mark; a past or future month lists every day open."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:336
+msgid "Open receipt"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-open-handler.php:114
+msgid "You do not have permission to open this receipt."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:125
+msgid "The status badge's background and text colours, which follow the status"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:107
+msgid "The receipt is the appointment's magic link on the verification page: the link in the person's e-mails and on their dashboard opens it with the data as it is, and a pending appointment shows there as Pending Approval. The older receipt address still works: it sends the holder of the link or the signed-in owner to the magic link, and staff to the Appointments list. Staff who may reveal personal data open a receipt from Open receipt on that list, which writes an Activity Log entry; without that permission the action is not shown. View as user shows no receipt link."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:108
+msgid "The receipt PDF is built in the visitor's browser. Right after booking, the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr ""

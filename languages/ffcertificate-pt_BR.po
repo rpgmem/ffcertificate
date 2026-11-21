@@ -577,10 +577,6 @@ msgstr "(um proxy confiável configurado)"
 msgid "(built-in default)"
 msgstr "(padrão integrado)"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:107
-msgid "(Calendar Deleted)"
-msgstr "(Calendário Excluído)"
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:432
 msgid "(connecting directly to this server)"
 msgstr "(conectando-se diretamente a este servidor)"
@@ -2081,14 +2077,6 @@ msgstr "Duração do Agendamento"
 #: includes/api/class-ffc-calendar-rest-controller.php:311 includes/api/class-ffc-appointment-rest-controller.php:214 includes/api/class-ffc-appointment-rest-controller.php:326
 msgid "Appointment handler not available"
 msgstr "Processador de agendamento não disponível"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:431
-msgid "Appointment ID:"
-msgstr "ID do Agendamento:"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:429
-msgid "Appointment Information"
-msgstr "Informações do Agendamento"
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:39
 #| msgid "Appointment length (default 30 min) and an optional break between slots."
@@ -6977,10 +6965,6 @@ msgstr "Erro: falha na conversão de html2canvas"
 msgid "Error: PDF container not found"
 msgstr "Erro: Contêiner PDF não encontrado"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:507
-msgid "Error: PDF generator not loaded. Please refresh the page."
-msgstr "Erro: Gerador de PDF não carregado. Por favor, atualize a página."
-
 #: includes/core/captcha/class-ffc-math-captcha.php:123
 msgid "Error: Please answer the security question."
 msgstr "Erro: Por favor, responda à pergunta de segurança."
@@ -7016,10 +7000,6 @@ msgstr "Mesmo que um administrador tenha uma função bloqueada, ele ainda pode 
 #: templates/admin/recruitment/candidate-edit/history-section.php:40
 msgid "Event"
 msgstr "Evento"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:415
-msgid "Event Details"
-msgstr "Detalhes do Evento"
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:339
 msgid "Event List"
@@ -9107,12 +9087,6 @@ msgstr "Gerar URLs curtas ausentes"
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:176
 msgid "Generate Tickets"
 msgstr "Gerar Ingressos"
-
-#. %s: date and time of generation
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:485
-#, php-format
-msgid "Generated on %s"
-msgstr "Gerado em %s"
 
 #: includes/frontend/class-ffc-frontend.php:290
 msgid "Generating certificate in the background, please wait 10 seconds and check your downloads folder..."
@@ -12974,10 +12948,6 @@ msgstr "E-mail Pessoal"
 #: includes/settings/views/documentation/feature-record.php:109
 msgid "Personal email"
 msgstr "E-mail pessoal"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:455
-msgid "Personal Information"
-msgstr "Informações Pessoais"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:247
 msgid "Personal notes..."
@@ -17511,10 +17481,6 @@ msgstr "Este agendamento já foi cancelado. Nenhuma outra ação é necessária.
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:581
 msgid "This appointment is already cancelled."
 msgstr "Este agendamento já foi cancelado."
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:94
-msgid "This appointment is awaiting admin approval. The receipt will be available after confirmation."
-msgstr "Este agendamento está aguardando aprovação administrativa. O recibo será disponibilizado após a confirmação."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:338
 msgid "This calendar already has bookings — the scheduling mode is locked."
@@ -28445,9 +28411,6 @@ msgstr "Faltam neste navegador recursos necessários para gerar o seu comprovant
 msgid "This browser cannot build the receipt"
 msgstr "Este navegador não consegue gerar o comprovante"
 
-msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
-msgstr "O PDF do comprovante é gerado no navegador do visitante, após o agendamento ou na página do comprovante, e antes vem a mesma verificação de navegador que um formulário de certificado executa: o navegador próprio de um aplicativo (Instagram, WhatsApp e outros), onde salvar o arquivo costuma falhar, recebe o pedido de abrir a página no navegador do celular, com \"Continuar mesmo assim\", que então faz o download; um navegador sem o que o PDF precisa é barrado. O agendamento em si nunca espera por isso. Configurações → Certificados → Verificação do navegador a desliga, e cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando o agendamento."
-
 msgid "Allowed"
 msgstr "Permitido"
 
@@ -30335,10 +30298,6 @@ msgid "Deleting this calendar cancels %d open appointment (pending, confirmed or
 msgid_plural "Deleting this calendar cancels %d open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?"
 msgstr[0] "Excluir este calendário cancela %d agendamento aberto (pendente, confirmado ou na lista de espera) e avisa a pessoa por e-mail. Excluir permanentemente?"
 msgstr[1] "Excluir este calendário cancela %d agendamentos abertos (pendentes, confirmados ou na lista de espera) e avisa cada pessoa por e-mail. Excluir permanentemente?"
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:93
-msgid "The receipt opens unmasked only for the person it belongs to: signed in as its owner, or through the link in their e-mails, which carries their confirmation token. Staff who can open the Appointments list reach it from View Receipt with the e-mail, phone and CPF/RF masked and without the token, which no staff screen shows, so a member of staff cannot cancel as the guest; the audited Reveal stays on the appointment's admin screen. View as user shows no receipt link."
-msgstr "O comprovante abre sem máscara só para a pessoa a quem pertence: conectada como titular, ou pelo link dos seus e-mails, que leva o token de confirmação. A equipe que pode abrir a lista de Agendamentos chega a ele por Ver comprovante com e-mail, telefone e CPF/RF mascarados e sem o token, que nenhuma tela da equipe mostra, então ninguém da equipe consegue cancelar como o convidado; o Revelar auditado continua na tela de administração do agendamento. Ver como usuário não mostra link de comprovante."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php
 msgid "%1$d open appointment(s) of the calendar \"%2$s\" fall on what you are blocking. They will be cancelled, and each person booked will receive the calendar's cancellation e-mail with the reason."
@@ -35579,3 +35538,23 @@ msgstr "No mês atual, os agendamentos do visitante já realizados ficam num gru
 #: includes/settings/views/documentation/scheduling-audiences.php:82
 msgid "In the event list, the past days of the month that holds today wait in a collapsed group at the top, with their count, and today's date carries a Today mark; a past or future month lists every day open."
 msgstr "Na lista de eventos, os dias já passados do mês atual ficam num grupo recolhido no topo, com a contagem, e a data de hoje leva a marca Hoje; um mês passado ou futuro mostra todos os dias abertos."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:336
+msgid "Open receipt"
+msgstr "Abrir comprovante"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-open-handler.php:114
+msgid "You do not have permission to open this receipt."
+msgstr "Você não tem permissão para abrir este comprovante."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:125
+msgid "The status badge's background and text colours, which follow the status"
+msgstr "As cores de fundo e de texto do selo de status, que acompanham o status"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:107
+msgid "The receipt is the appointment's magic link on the verification page: the link in the person's e-mails and on their dashboard opens it with the data as it is, and a pending appointment shows there as Pending Approval. The older receipt address still works: it sends the holder of the link or the signed-in owner to the magic link, and staff to the Appointments list. Staff who may reveal personal data open a receipt from Open receipt on that list, which writes an Activity Log entry; without that permission the action is not shown. View as user shows no receipt link."
+msgstr "O comprovante é o link mágico do agendamento na página de verificação: o link dos e-mails da pessoa e do seu painel o abre com os dados como estão, e um agendamento pendente aparece ali como Pendente de aprovação. O endereço antigo do comprovante continua funcionando: leva quem tem o link ou o titular conectado ao link mágico, e a equipe à lista de Agendamentos. Quem da equipe pode revelar dados pessoais abre um comprovante por Abrir comprovante nessa lista, o que grava uma entrada no registro de atividades; sem essa permissão a ação não aparece. Ver como usuário não mostra link de comprovante."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:108
+msgid "The receipt PDF is built in the visitor's browser. Right after booking, the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
+msgstr "O PDF do comprovante é gerado no navegador do visitante. Logo após o agendamento, antes vem a mesma verificação de navegador que um formulário de certificado executa: o navegador próprio de um aplicativo (Instagram, WhatsApp e outros), onde salvar o arquivo costuma falhar, recebe o pedido de abrir a página no navegador do celular, com \"Continuar mesmo assim\", que então faz o download; um navegador sem o que o PDF precisa é barrado. O agendamento em si nunca espera por isso. Configurações → Certificados → Verificação do navegador a desliga, e cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando o agendamento."

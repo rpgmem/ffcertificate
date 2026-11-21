@@ -53,6 +53,18 @@ class CertificatePreviewSamplesTest extends TestCase {
 		$this->assertArrayHasKey( 'schedule_total', $map );
 	}
 
+	/**
+	 * The receipt badge's colours (#2732) are written out in Core so it does
+	 * not reach into Generators; they must stay the Confirmed pair.
+	 */
+	public function test_the_receipt_badge_sample_is_the_confirmed_pair(): void {
+		$map    = CertificatePreviewSamples::get_map();
+		$colors = \FreeFormCertificate\Generators\PdfGenerator::receipt_status_colors( 'confirmed' );
+
+		$this->assertSame( $colors['bg'], $map['status_bg'] );
+		$this->assertSame( $colors['text'], $map['status_color'] );
+	}
+
 	public function test_site_name_is_the_real_blog_name(): void {
 		$map = CertificatePreviewSamples::get_map();
 		$this->assertSame( 'Test Site', $map['site_name'] );

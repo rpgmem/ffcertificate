@@ -134,8 +134,6 @@
             ? ffc_ajax.strings.generatingPdf
             : (typeof ffcCalendar !== 'undefined' && ffcCalendar.strings && ffcCalendar.strings.generatingPdf)
             ? ffcCalendar.strings.generatingPdf
-            : (typeof ffcReceiptData !== 'undefined' && ffcReceiptData.strings && ffcReceiptData.strings.generatingPdf)
-            ? ffcReceiptData.strings.generatingPdf
             : 'Generating PDF...';
 
         var title = $('<h3 id="ffc-pdf-overlay-title"></h3>').css({
@@ -149,8 +147,6 @@
             ? ffc_ajax.strings.pleaseWait
             : (typeof ffcCalendar !== 'undefined' && ffcCalendar.strings && ffcCalendar.strings.pleaseWait)
             ? ffcCalendar.strings.pleaseWait
-            : (typeof ffcReceiptData !== 'undefined' && ffcReceiptData.strings && ffcReceiptData.strings.pleaseWait)
-            ? ffcReceiptData.strings.pleaseWait
             : 'Please wait, this may take a few seconds...';
 
         var message = $('<p id="ffc-pdf-overlay-message" aria-live="polite"></p>').css({

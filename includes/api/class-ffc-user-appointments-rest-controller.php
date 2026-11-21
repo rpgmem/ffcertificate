@@ -187,15 +187,12 @@ class UserAppointmentsRestController {
 				// cancels as a guest.
 				$receipt_url = '';
 				if ( 'cancelled' !== $status && ! $ctx['is_view_as'] ) {
-					$confirmation_token = $appointment['confirmation_token'] ?? '';
-					if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-						$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-					} elseif ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
-						$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-							(int) $appointment['id'],
-							$confirmation_token
-						);
-					}
+					// The magic link, or without a token the legacy address,
+					// which gives the owner one on the way there (#2732).
+					$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
+						(int) $appointment['id'],
+						(string) ( $appointment['confirmation_token'] ?? '' )
+					);
 				}
 
 				// The same rules the cancel handler applies (#2244): an open
