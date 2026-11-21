@@ -367,7 +367,92 @@ class AudienceFormInviteSendingTest extends TestCase {
 
 		$this->assertSame( 0, AudienceFormInviteScanner::invite_booking( $this->booking(), $closed, 200 ) );
 		$this->assertSame( array(), $this->mailed );
-		$this->assertSame( 2, $this->participant_reads(), 'The scan reads the list once and judges person 7 only: the refusal holds for 8 too.' );
+		$this->assertSame( 1, $this->participant_reads(), 'The scan reads the list once, judges person 7 with it, and the refusal holds for 8 too.' );
+	}
+
+	public function test_the_list_is_read_once_however_many_people_the_booking_has(): void {
+		// Without the list passed in, each eligibility check read it again (#2691).
+		$this->participants = range( 100, 139 );
+
+		AudienceFormInviteScanner::invite_booking( $this->booking(), $this->now, 200 );
+
+		$this->assertSame( 1, $this->participant_reads() );
+	}
+
+	public function test_invite_all_sends_to_who_has_not_answered_invited_before_or_not(): void {
+		$this->participants = array( 10, 9, 7, 8 );
+		$this->bookings     = array( 5 => $this->booking() );
+		// 9 was invited and has not answered: invited again. 10 answered.
+		$this->invited[5] = array(
+			array(
+				'user_id'    => '9',
+				'sent_at'    => '1',
+				'send_count' => '1',
+			),
+		);
+		$this->answers    = array(
+			array(
+				'user_id' => '10',
+				'status'  => 'publish',
+			),
+		);
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		$this->assertSame( 2, AudienceFormInviteScanner::invite_all_batch( 5, 0, $this->now ) );
+		$this->assertSame( array( 'ana@example.org', 'p9@example.org' ), $this->recipients(), 'In user ID order; 8 has no address, 10 answered.' );
+		$this->assertSame( 2, $this->participant_reads(), 'Once with the booking row, once for the list every check then shares.' );
+	}
+
+	public function test_invite_all_stops_at_the_cap_and_queues_the_rest_after_the_last_person_reached(): void {
+		$this->participants = range( 1000, 1000 + AudienceFormInviteScanner::PER_RUN );
+		$this->bookings     = array( 5 => $this->booking() );
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => (object) array(
+				'display_name' => 'Person ' . $id,
+				'user_email'   => 'p' . $id . '@example.org',
+			)
+		);
+		Functions\expect( 'wp_next_scheduled' )->once()->with( AudienceFormInviteScanner::INVITE_ALL_HOOK, array( 5, 999 + AudienceFormInviteScanner::PER_RUN ) )->andReturn( false );
+		Functions\expect( 'wp_schedule_single_event' )->once()->with( $this->now + AudienceFormInviteScanner::INVITE_ALL_DELAY, AudienceFormInviteScanner::INVITE_ALL_HOOK, array( 5, 999 + AudienceFormInviteScanner::PER_RUN ) );
+
+		$this->assertSame( AudienceFormInviteScanner::PER_RUN, AudienceFormInviteScanner::invite_all_batch( 5, 0, $this->now ) );
+	}
+
+	public function test_invite_all_resumes_after_its_cursor(): void {
+		$this->participants = array( 7, 9, 10 );
+		$this->bookings     = array( 5 => $this->booking() );
+
+		$this->assertSame( 1, AudienceFormInviteScanner::invite_all_batch( 5, 9, $this->now ) );
+		$this->assertSame( array( 'p10@example.org' ), $this->recipients() );
+	}
+
+	public function test_invite_all_does_nothing_once_the_form_closed_or_the_booking_is_gone(): void {
+		$this->participants = array( 7 );
+		$this->bookings     = array( 5 => $this->booking() );
+
+		$this->assertSame( 0, AudienceFormInviteScanner::invite_all_batch( 5, 0, $this->now + 8 * DAY_IN_SECONDS ) );
+		$this->assertSame( 0, AudienceFormInviteScanner::invite_all_batch( 404, 0, $this->now ) );
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame( 1, $this->participant_reads(), 'Only the booking row reads its people: nobody is judged when the form takes no answers.' );
+	}
+
+	public function test_the_cron_callback_runs_a_batch_now(): void {
+		$this->participants = array( 7 );
+		// The callback reads the clock, so the booking ended yesterday.
+		$this->bookings = array( 5 => $this->booking( array( 'booking_date' => gmdate( 'Y-m-d', time() - DAY_IN_SECONDS ) ) ) );
+
+		AudienceFormInviteScanner::run_invite_all( 5, 0 );
+
+		$this->assertSame( array( 'ana@example.org' ), $this->recipients() );
+	}
+
+	public function test_invite_all_is_queued_once(): void {
+		$args = array( 5, 0 );
+		Functions\expect( 'wp_next_scheduled' )->twice()->with( AudienceFormInviteScanner::INVITE_ALL_HOOK, $args )->andReturn( false, 123 );
+		Functions\expect( 'wp_schedule_single_event' )->once()->with( Mockery::type( 'int' ), AudienceFormInviteScanner::INVITE_ALL_HOOK, $args );
+
+		AudienceFormInviteScanner::queue_invite_all( 5 );
+		AudienceFormInviteScanner::queue_invite_all( 5 );
 	}
 
 	public function test_a_form_no_page_embeds_stops_the_booking_and_an_address_problem_does_not(): void {
