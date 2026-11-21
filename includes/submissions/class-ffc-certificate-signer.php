@@ -19,6 +19,7 @@ use FreeFormCertificate\Core\CertificateRecord;
 use FreeFormCertificate\Core\CertificateTemplateLink;
 use FreeFormCertificate\Core\EventDate;
 use FreeFormCertificate\Core\SigningKeys;
+use FreeFormCertificate\Core\SubmitterName;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -130,7 +131,28 @@ final class CertificateSigner {
 		if ( null === CertificateSignatureRepository::current( (int) $submission_id ) || ! SigningKeys::has_active() ) {
 			return;
 		}
-		self::sign( (int) $submission_id );
+		$submission = ( new SubmissionHandler() )->get_submission( (int) $submission_id );
+		if ( is_array( $submission ) ) {
+			self::sign_if_changed( (int) $submission_id, $submission );
+		}
+	}
+
+	/**
+	 * Sign an edited certificate again, only when something its record
+	 * covers changed: signing an unchanged record would only move the hash a
+	 * printed QR code carries, and after a key rotation that reads as "data
+	 * changed" on paper (#2696).
+	 *
+	 * @param int                  $submission_id Submission id.
+	 * @param array<string, mixed> $submission    The decrypted row as it is now.
+	 * @return bool Whether it was signed again.
+	 */
+	public static function sign_if_changed( int $submission_id, array $submission ): bool {
+		$signed = CertificateSignatureRepository::current( $submission_id );
+		if ( null === $signed || array() === self::changes_since( $signed, $submission ) ) {
+			return false;
+		}
+		return self::sign( $submission_id, $submission );
 	}
 
 	/**
@@ -195,16 +217,61 @@ final class CertificateSigner {
 		$out['issued'] = isset( $signed_fields['issued'] ) && is_numeric( $signed_fields['issued'] ) ? (int) $signed_fields['issued'] : 0;
 		$valid         = array() !== $signed_fields
 			&& CertificateRecord::hash( $signed['record'] ) === $signed['record_hash']
-			&& SigningKeys::verify( CertificateRecord::full_payload( $signed['key_id'], $signed_fields, $signed['record_hash'] ), $signed['signature_full'], $signed['key_id'] );
+			&& self::signature_holds( $signed, $signed_fields );
 		if ( ! $valid ) {
 			$out['state'] = self::STATE_INVALID;
 			return $out;
 		}
 
-		$current        = self::fields( $submission, $signed['key_id'] );
-		$out['changed'] = CertificateRecord::changed( $signed_fields, $current );
+		$out['changed'] = self::changes_since( $signed, $submission );
 		$out['state']   = array() === $out['changed'] ? self::STATE_INTACT : self::STATE_CHANGED;
 		return $out;
+	}
+
+	/**
+	 * Whether the stored signature covers the stored record.
+	 *
+	 * The payload's day is the one the site's timezone gave when it signed,
+	 * so every day the issue instant can fall on is tried (#2696). The
+	 * instant itself is in the record the hash covers, so this admits no
+	 * other certificate.
+	 *
+	 * @param array{key_id: string, record_hash: string, signature_full: string} $signed        The stored signature row.
+	 * @param array<string, string>                                              $signed_fields The record's fields.
+	 */
+	private static function signature_holds( array $signed, array $signed_fields ): bool {
+		foreach ( CertificateRecord::dates_of_instant( $signed_fields['issued'] ?? '' ) as $day ) {
+			if ( SigningKeys::verify( CertificateRecord::full_payload( $signed['key_id'], $signed_fields, $signed['record_hash'], $day ), $signed['signature_full'], $signed['key_id'] ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The record fields that differ between the signed record and the
+	 * certificate as it is now.
+	 *
+	 * A record signed before the name was read through
+	 * {@see SubmitterName::from()} carries the old reading, only `name`
+	 * (#2696); it is compared with that reading, so the fix does not flag
+	 * those certificates as changed.
+	 *
+	 * @param array{key_id: string, record: string} $signed     The stored signature row.
+	 * @param array<string, mixed>                  $submission The decrypted submission row.
+	 * @return list<string>
+	 */
+	private static function changes_since( array $signed, array $submission ): array {
+		$signed_fields = CertificateRecord::fields_of( $signed['record'] );
+		if ( array() === $signed_fields ) {
+			return CertificateRecord::RECORD_FIELDS;
+		}
+		$current = self::fields( $submission, $signed['key_id'] );
+		if ( '' === $signed_fields['name'] ) {
+			$data            = SubmissionHandler::submission_data( $submission );
+			$current['name'] = is_scalar( $data['name'] ?? null ) ? (string) $data['name'] : '';
+		}
+		return CertificateRecord::changed( $signed_fields, $current );
 	}
 
 	/**
@@ -240,7 +307,8 @@ final class CertificateSigner {
 			'submission_id' => (string) (int) ( $submission['id'] ?? 0 ),
 			'auth_code'     => (string) ( $submission['auth_code'] ?? '' ),
 			'issued'        => (string) (int) ( $submission['submission_date'] ?? 0 ),
-			'name'          => is_scalar( $data['name'] ?? null ) ? (string) $data['name'] : '',
+			// The form's own name field, whatever its key (#2696).
+			'name'          => SubmitterName::from( $data ),
 			'identifier'    => SigningKeys::identifier_mac( (string) ( $submission['cpf_rf'] ?? '' ), $key_id ),
 			'course'        => self::form_title( $form_id ),
 			'workload'      => (string) ( $values['workload'] ?? '' ),

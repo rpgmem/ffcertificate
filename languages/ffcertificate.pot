@@ -34759,10 +34759,6 @@ msgstr ""
 msgid "Signing key %s generated. Forms with a signed QR mode now sign every certificate they issue."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-qr-codes.php:75
-msgid "Signing needs a key, generated once on Settings → Certificates, in the Integrity signature card, by someone with the Danger Zone capability. Rotating it retires the old key, which keeps verifying what it signed. Until a key exists, forms with a signed mode print the link only, and each certificate that could not be signed is recorded in the activity log."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-layout-metabox.php:273
 msgid "The QR code carries the link and a signature over the code, the date, the name, the course and the workload. Without internet it shows them to compare with the paper; a name or course too long for the template's QR falls back to compact."
 msgstr ""
@@ -34798,10 +34794,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-signing-key-handler.php:89
 msgid "The signing key could not be generated: this server cannot create Ed25519 keys."
-msgstr ""
-
-#: includes/settings/views/documentation/reference-qr-codes.php:74
-msgid "The verification page checks the certificate against its signed record and says one of three things: integrity confirmed, changed after signing (naming the fields that changed), or signature not valid. Editing a signed certificate signs it again."
 msgstr ""
 
 #: includes/frontend/class-ffc-verification-response-renderer.php:117
@@ -35376,4 +35368,16 @@ msgstr ""
 #: templates/admin/url-shortener/short-urls-page.php
 #, php-format
 msgid "Last: %s"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:76
+msgid "The verification page checks the certificate against its signed record and says one of three things: integrity confirmed, changed after signing (naming the fields that changed), or signature not valid. Editing a signed certificate signs it again only when something the record covers changed. Changing the site's timezone does not affect signatures already made."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "Signing needs a key, generated once on Settings → Certificates, in the Integrity signature card, by someone with the Danger Zone capability. Rotating it retires the old key, which keeps verifying what it signed. Until a key exists, forms with a signed mode print the link only, and each certificate that could not be signed is recorded in the activity log. The private key is stored encrypted: rotating the site's encryption key re-encrypts it with the records, and the card warns when it can no longer be read."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:298
+msgid "The private key cannot be read with the current encryption key, so new certificates are issued unsigned. Restore the previous encryption key and run the key rotation under Settings → Migrations, or generate a new signing key."
 msgstr ""

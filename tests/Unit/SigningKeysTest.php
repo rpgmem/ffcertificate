@@ -112,6 +112,43 @@ final class SigningKeysTest extends TestCase {
 		$this->assertSame( '', SigningKeys::fingerprint( 'k9' ) );
 	}
 
+	/**
+	 * A secret encrypted under an encryption key the site no longer has
+	 * cannot sign, and the key card is told (#2696).
+	 */
+	public function test_a_secret_the_current_key_cannot_read_is_reported(): void {
+		SigningKeys::rotate();
+		$this->assertTrue( SigningKeys::secret_is_readable() );
+
+		$this->options[ SigningKeys::OPTION ]['keys']['k1']['secret'] = Encryption::V2_PREFIX . 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+		$this->assertFalse( SigningKeys::secret_is_readable() );
+		$this->assertNull( SigningKeys::sign( 'v1|k1|code' ) );
+	}
+
+	/**
+	 * The key rotation rewrites every readable secret under the active
+	 * encryption key, leaves an unreadable one alone, and the key still signs.
+	 */
+	public function test_reencrypting_rewrites_readable_secrets_and_keeps_signing(): void {
+		SigningKeys::rotate();
+		SigningKeys::rotate();
+		$before     = $this->options[ SigningKeys::OPTION ]['keys']['k1']['secret'];
+		$unreadable = Encryption::V2_PREFIX . 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+		$this->options[ SigningKeys::OPTION ]['keys']['k2']['secret'] = $unreadable;
+
+		$this->assertSame( 1, SigningKeys::reencrypt_secrets() );
+
+		$after = $this->options[ SigningKeys::OPTION ]['keys'];
+		$this->assertNotSame( $before, $after['k1']['secret'] );
+		$this->assertStringStartsWith( Encryption::V2_PREFIX, $after['k1']['secret'] );
+		$this->assertSame( $unreadable, $after['k2']['secret'] );
+
+		$this->options[ SigningKeys::OPTION ]['active'] = 'k1';
+		$signed = SigningKeys::sign( 'v1|k1|code' );
+		$this->assertTrue( SigningKeys::verify( 'v1|k1|code', $signed['signature'], 'k1' ) );
+	}
+
 	public function test_a_corrupt_option_reads_as_no_key(): void {
 		$this->options[ SigningKeys::OPTION ] = array( 'active' => 'k5', 'keys' => array( 'k5' => 'nope' ) );
 

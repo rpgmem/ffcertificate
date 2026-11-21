@@ -127,6 +127,25 @@ final class CertificateRecord {
 	}
 
 	/**
+	 * Every calendar day an instant falls on somewhere: UTC-12 to UTC+14.
+	 *
+	 * A payload carries the issue day in the timezone the site had when it
+	 * signed. The record carries the instant, so a signature is checked
+	 * against these days rather than the one today's timezone gives, and a
+	 * timezone change does not turn genuine certificates red (#2696).
+	 *
+	 * @param mixed $value Unix seconds.
+	 * @return list<string> One to three `YYYY-MM-DD` days, earliest first.
+	 */
+	public static function dates_of_instant( $value ): array {
+		if ( ! is_numeric( $value ) ) {
+			return array();
+		}
+		$ts = (int) $value;
+		return array_values( array_unique( array( gmdate( 'Y-m-d', $ts - 12 * 3600 ), gmdate( 'Y-m-d', $ts ), gmdate( 'Y-m-d', $ts + 14 * 3600 ) ) ) );
+	}
+
+	/**
 	 * A workload as a plain integer of hours, read from text such as
 	 * "40 horas" or "40h"; '' when it carries no number.
 	 *
@@ -220,14 +239,15 @@ final class CertificateRecord {
 	 * @param string                $key_id Signing key id.
 	 * @param array<string, scalar> $fields Record fields.
 	 * @param string                $hash   The record hash.
+	 * @param string|null           $date   The issue day to write, instead of the site's day for the instant.
 	 */
-	public static function full_payload( string $key_id, array $fields, string $hash ): string {
+	public static function full_payload( string $key_id, array $fields, string $hash, ?string $date = null ): string {
 		return self::join(
 			array(
 				self::VERSION,
 				self::normalize( $key_id ),
 				self::normalize( $fields['auth_code'] ?? '' ),
-				self::date( $fields['issued'] ?? '' ),
+				$date ?? self::date( $fields['issued'] ?? '' ),
 				self::normalize( $fields['name'] ?? '' ),
 				self::normalize( $fields['course'] ?? '' ),
 				self::hours( $fields['workload'] ?? '' ),
