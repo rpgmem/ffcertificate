@@ -433,6 +433,34 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertSame(2, $lookups, 'read, create, re-read — the re-read is what resolves the race against the UNIQUE');
 	}
 
+	/**
+	 * A pending row left from before the person left the campaign's audiences
+	 * is not theirs to fill (#2688): the row exists, the membership does not.
+	 */
+	public function test_ajax_get_form_refuses_a_pending_row_its_owner_no_longer_belongs_to(): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+
+		$_POST['reregistration_id'] = 1;
+
+		global $wpdb;
+		$rereg      = (object) array('id' => 1, 'status' => 'active', 'title' => 'Test');
+		$submission = (object) array('id' => 10, 'status' => 'pending', 'user_id' => 1);
+		$wpdb->shouldReceive('get_row')->andReturn($rereg, $submission);
+		// get_active_for_user: the user is in no audience any more.
+		$wpdb->shouldReceive('get_results')->andReturn(array());
+		$wpdb->shouldNotReceive('insert');
+
+		$ex = null;
+		try {
+			ReregistrationFrontend::ajax_get_form();
+		} catch (FrontendJsonErrorException $e) {
+			$ex = $e;
+		}
+
+		$this->assertNotNull($ex);
+		$this->assertStringContainsString('not part of this reregistration', $ex->payload['message']);
+	}
+
 	public function test_ajax_get_form_errors_when_submission_already_approved(): void {
 		Functions\when('get_current_user_id')->justReturn(1);
 

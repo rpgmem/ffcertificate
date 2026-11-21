@@ -154,6 +154,26 @@ class ReregistrationRepository {
 	}
 
 	/**
+	 * Which of the given users are still members of the campaign (#2688).
+	 *
+	 * Membership is the campaign's audiences with their descendants, the set
+	 * the seeding and {@see self::get_active_for_user()} read. A submission
+	 * row outlives a membership, so whoever reads rows to act on them asks
+	 * here first.
+	 *
+	 * @param int        $reregistration_id Campaign ID.
+	 * @param array<int> $user_ids          Candidates.
+	 * @return array<int, true> User ID => true for every member.
+	 */
+	public static function members_among( int $reregistration_id, array $user_ids ): array {
+		if ( array() === $user_ids ) {
+			return array();
+		}
+		$audiences = AudienceReader::with_descendants( self::get_audience_ids( $reregistration_id ) );
+		return AudienceReader::members_among( $audiences, $user_ids );
+	}
+
+	/**
 	 * Get audience objects for a reregistration (with name and color).
 	 *
 	 * @param int $reregistration_id Reregistration ID.
