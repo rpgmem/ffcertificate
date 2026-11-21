@@ -380,8 +380,13 @@ class CustomFieldValidator {
 		if ( 'checkbox' !== (string) ( $field->field_type ?? '' ) ) {
 			return false;
 		}
-		$answer = strtolower( trim( is_scalar( $value ) ? (string) $value : '' ) );
-		return in_array( $answer, array( '0', 'false', 'off', 'no', 'não', 'nao', strtolower( __( 'No', 'ffcertificate' ) ) ), true );
+		$answer = trim( is_scalar( $value ) ? (string) $value : '' );
+		foreach ( array( '0', 'false', 'off', 'no', 'não', 'Não', 'nao', __( 'No', 'ffcertificate' ) ) as $unticked ) {
+			if ( 0 === strcasecmp( $answer, $unticked ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
