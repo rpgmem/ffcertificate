@@ -35295,3 +35295,7 @@ msgstr ""
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "An hourly task sends each reminder once, to a confirmed appointment that starts within the calendar's reminder hours, measured in the timezone set in WordPress. A run that was missed is caught up by the next one. An appointment booked or approved less than that ahead gets no reminder, since its confirmation has just gone out, and a reminder the mail server refuses is tried again at the next run, until the appointment starts."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "The confirmation, approval and promotion e-mails of a confirmed appointment carry a calendar file (.ics), and the cancellation carries one that takes the appointment off the calendar. Every calendar file the plugin makes, these and the one on the user dashboard, is written in the time zone set in WordPress."
+msgstr ""

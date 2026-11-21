@@ -154,6 +154,7 @@ return array(
 	'Shortcodes>DateMessages',
 	'Shortcodes>Recruitment',
 	'Shortcodes>Reregistration',
+	'Shortcodes>Scheduling',
 	'Shortcodes>Settings',
 	'Submissions>Core',
 	'Submissions>Integrations',

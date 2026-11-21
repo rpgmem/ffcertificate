@@ -37,6 +37,7 @@ class QrEventLinkTest extends TestCase {
 		Functions\when( 'admin_url' )->alias( static fn( $p ) => 'https://site.test/wp-admin/' . $p );
 		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'home_url' )->justReturn( 'https://site.test' );
 		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
 		Functions\when( 'wp_date' )->alias( static fn( $f, $t = null ) => gmdate( $f, $t ?? time() ) );
@@ -95,8 +96,8 @@ class QrEventLinkTest extends TestCase {
 		$ics = QrEventIcsHandler::build( $data, $sig );
 
 		$this->assertStringContainsString( "METHOD:PUBLISH\r\n", $ics );
-		$this->assertStringContainsString( "DTSTART:20261110T090000\r\n", $ics );
-		$this->assertStringContainsString( "DTEND:20261110T123000\r\n", $ics );
+		$this->assertStringContainsString( "DTSTART;TZID=America/Sao_Paulo:20261110T090000\r\n", $ics );
+		$this->assertStringContainsString( "DTEND;TZID=America/Sao_Paulo:20261110T123000\r\n", $ics );
 		$this->assertStringContainsString( 'SUMMARY:Formação\; módulo 2', $ics );
 		$this->assertStringContainsString( 'DESCRIPTION:Trazer\\ndocumento', $ics );
 		$this->assertStringContainsString( 'UID:ffc-qr-' . substr( $sig, 0, 16 ) . '@site.test', $ics );

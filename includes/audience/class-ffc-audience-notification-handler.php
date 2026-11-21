@@ -710,36 +710,12 @@ class AudienceNotificationHandler {
 	 * @return bool
 	 */
 	private static function send_email( string $to, string $subject, string $body, ?string $ics_content = null ): bool {
-		$attachments = array();
-		$temp_files  = array();
-
-		// Create temporary ICS file in the system temp dir (not the publicly-accessible uploads dir).
-		if ( $ics_content ) {
-			$ics_file = function_exists( 'wp_tempnam' )
-				? wp_tempnam( 'ffc-ics-' )
-				: tempnam( sys_get_temp_dir(), 'ffc-ics-' );
-
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes the generated .ics to a wp_tempnam() path for the mail attachment; WP_Filesystem would need credentials on a mail-send path.
-			if ( $ics_file && false !== file_put_contents( $ics_file, $ics_content ) ) {
-				$attachments[] = $ics_file;
-				$temp_files[]  = $ics_file;
+		return \FreeFormCertificate\Scheduling\SchedulingMailer::with_ics(
+			$ics_content,
+			static function ( array $attachments ) use ( $to, $subject, $body ): bool {
+				return \FreeFormCertificate\Scheduling\SchedulingMailer::send( $to, $subject, $body, $attachments, true, \FreeFormCertificate\Core\EmailSource::AUDIENCE );
 			}
-		}
-
-		// Delegate to shared email service. Use try/finally so temp files are always cleaned up,
-		// even if the email service throws.
-		try {
-			$result = \FreeFormCertificate\Scheduling\SchedulingMailer::send( $to, $subject, $body, $attachments, true, \FreeFormCertificate\Core\EmailSource::AUDIENCE );
-		} finally {
-			foreach ( $temp_files as $file ) {
-				if ( file_exists( $file ) ) {
-                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the temp .ics this method created, in its own finally block.
-					unlink( $file );
-				}
-			}
-		}
-
-		return $result;
+		);
 	}
 
 	/**

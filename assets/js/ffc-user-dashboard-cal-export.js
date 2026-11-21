@@ -46,6 +46,52 @@
 
     function toGoogleDateTime(dateRaw, timeStr) { return toIcsDateTime(dateRaw, timeStr); }
 
+    // The site's zone (#2689): a named zone with its VTIMEZONE block, or an
+    // offset in seconds for a zone WordPress holds as "+03:00".
+    function icsZone() {
+        var zone = (window.ffcDashboard && ffcDashboard.icsZone) || {};
+        return { tzid: zone.tzid || '', vtimezone: zone.vtimezone || '', offset: parseInt(zone.offset, 10) || 0 };
+    }
+
+    // A wall-clock local time in the site's zone, written as UTC.
+    function localToUtc(local, offset) {
+        var ms = Date.UTC(+local.slice(0, 4), +local.slice(4, 6) - 1, +local.slice(6, 8), +local.slice(9, 11), +local.slice(11, 13), +local.slice(13, 15)) - offset * 1000;
+        return new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    }
+
+    // A date-time property from its parameter on: `;TZID=Zone:…` or `:…Z`.
+    function icsProperty(dateRaw, timeStr) {
+        var zone = icsZone();
+        var local = toIcsDateTime(dateRaw, timeStr);
+        return zone.tzid ? ';TZID=' + zone.tzid + ':' + local : ':' + localToUtc(local, zone.offset);
+    }
+
+    // The offset of a named zone at a moment, from the browser's own zone data.
+    function zoneOffsetAt(tzid, ms) {
+        var parts = {};
+        new Intl.DateTimeFormat('en-US', { timeZone: tzid, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            .formatToParts(new Date(ms))
+            .forEach(function (p) { parts[p.type] = p.value; });
+        return (Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour % 24, +parts.minute, +parts.second) - ms) / 1000;
+    }
+
+    // UNTIL in UTC, as RFC 5545 asks when DTSTART carries a zone.
+    function icsRrule(rrule) {
+        var zone = icsZone();
+        return rrule.replace(/UNTIL=(\d{8}T\d{6})(?!Z)/, function (m, local) {
+            var offset = zone.offset;
+            if (zone.tzid) {
+                try {
+                    var guess = Date.UTC(+local.slice(0, 4), +local.slice(4, 6) - 1, +local.slice(6, 8), +local.slice(9, 11), +local.slice(11, 13), +local.slice(13, 15));
+                    offset = zoneOffsetAt(zone.tzid, guess - zoneOffsetAt(zone.tzid, guess) * 1000);
+                } catch (e) {
+                    offset = 0;
+                }
+            }
+            return 'UNTIL=' + localToUtc(local, offset);
+        });
+    }
+
     function toOutlookDateTime(dateRaw, timeStr) {
         var t = parseTime(timeStr);
         return dateRaw + 'T' + pad2(t.h) + ':' + pad2(t.m) + ':00';
@@ -66,15 +112,16 @@
         ics += 'PRODID:-//' + (ffcDashboard.siteName || domain) + '//FFC//PT\r\n';
         ics += 'CALSCALE:GREGORIAN\r\n';
         ics += 'METHOD:PUBLISH\r\n';
+        ics += icsZone().vtimezone;
         ics += 'BEGIN:VEVENT\r\n';
         ics += 'UID:' + uid + '\r\n';
         ics += 'DTSTAMP:' + dtstamp + '\r\n';
-        ics += 'DTSTART:' + toIcsDateTime(event.date, event.startTime) + '\r\n';
-        ics += 'DTEND:' + toIcsDateTime(event.endDate || event.date, event.endTime) + '\r\n';
+        ics += 'DTSTART' + icsProperty(event.date, event.startTime) + '\r\n';
+        ics += 'DTEND' + icsProperty(event.endDate || event.date, event.endTime) + '\r\n';
         // A daily range repeats until its last day, leaving out the days it skipped.
-        if (event.rrule) { ics += 'RRULE:' + event.rrule + '\r\n'; }
+        if (event.rrule) { ics += 'RRULE:' + icsRrule(event.rrule) + '\r\n'; }
         (event.exdates || []).forEach(function (day) {
-            ics += 'EXDATE:' + toIcsDateTime(day, event.startTime) + '\r\n';
+            ics += 'EXDATE' + icsProperty(day, event.startTime) + '\r\n';
         });
         ics += 'SUMMARY:' + escapeIcsText(event.summary) + '\r\n';
         if (event.description) { ics += 'DESCRIPTION:' + escapeIcsText(event.description) + '\r\n'; }

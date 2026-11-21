@@ -23,6 +23,7 @@ class IcsGeneratorTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
 			return parse_url( $url, $component );
@@ -58,7 +59,7 @@ class IcsGeneratorTest extends TestCase {
 		$this->assertSame( 2, substr_count( $ics, 'BEGIN:VEVENT' ) );
 		$this->assertStringContainsString( 'UID:test-event-123@example.com', $ics );
 		$this->assertStringContainsString( 'UID:test-event-456@example.com', $ics );
-		$this->assertStringContainsString( 'DTSTART:20300122T1000', $ics );
+		$this->assertStringContainsString( 'DTSTART;TZID=America/Sao_Paulo:20300122T1000', $ics );
 	}
 
 	public function test_one_event_reads_the_same_through_either_entry_point(): void {
@@ -82,8 +83,8 @@ class IcsGeneratorTest extends TestCase {
 
 	public function test_ics_date_time_formatted(): void {
 		$ics = IcsGenerator::generate( $this->ics_event() );
-		$this->assertStringContainsString( 'DTSTART:20300115T1000', $ics );
-		$this->assertStringContainsString( 'DTEND:20300115T1100', $ics );
+		$this->assertStringContainsString( 'DTSTART;TZID=America/Sao_Paulo:20300115T1000', $ics );
+		$this->assertStringContainsString( 'DTEND;TZID=America/Sao_Paulo:20300115T1100', $ics );
 	}
 
 	public function test_ics_uid_includes_domain(): void {
@@ -150,8 +151,8 @@ class IcsGeneratorTest extends TestCase {
 
 		$ics = IcsGenerator::generate( $event );
 
-		$this->assertStringContainsString( 'DTSTART:20300115T1000', $ics );
-		$this->assertStringContainsString( 'DTEND:20300117T1100', $ics );
+		$this->assertStringContainsString( 'DTSTART;TZID=America/Sao_Paulo:20300115T1000', $ics );
+		$this->assertStringContainsString( 'DTEND;TZID=America/Sao_Paulo:20300117T1100', $ics );
 		$this->assertStringNotContainsString( 'RRULE:', $ics );
 	}
 
@@ -163,8 +164,55 @@ class IcsGeneratorTest extends TestCase {
 
 		$ics = IcsGenerator::generate( $event );
 
-		$this->assertStringContainsString( 'RRULE:FREQ=DAILY;UNTIL=20300117T235959', $ics );
-		$this->assertStringContainsString( 'EXDATE:20300116T1000', $ics );
-		$this->assertStringContainsString( 'DTEND:20300115T1100', $ics );
+		$this->assertStringContainsString( 'RRULE:FREQ=DAILY;UNTIL=20300118T025959Z', $ics, 'UNTIL in UTC, since DTSTART carries a zone.' );
+		$this->assertStringContainsString( 'EXDATE;TZID=America/Sao_Paulo:20300116T1000', $ics );
+		$this->assertStringContainsString( 'DTEND;TZID=America/Sao_Paulo:20300115T1100', $ics );
+	}
+
+	// ==================================================================
+	// Time zone (#2689)
+	// ==================================================================
+
+	public function test_a_named_zone_is_declared_once_and_carried_by_every_date(): void {
+		$ics = IcsGenerator::generate( $this->ics_event() );
+
+		$this->assertSame( 1, substr_count( $ics, "BEGIN:VTIMEZONE\r\nTZID:America/Sao_Paulo\r\n" ) );
+		$this->assertLessThan( strpos( $ics, 'BEGIN:VEVENT' ), strpos( $ics, 'BEGIN:VTIMEZONE' ), 'The zone is declared before the event that names it.' );
+		$this->assertStringContainsString( "TZOFFSETFROM:-0300\r\nTZOFFSETTO:-0300\r\n", $ics, 'No change of offset in the span: one part holds it.' );
+		$this->assertStringNotContainsString( 'DAYLIGHT', $ics );
+	}
+
+	public function test_a_zone_with_daylight_saving_lists_each_change(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/New_York' ) );
+
+		$ics = IcsGenerator::generate( $this->ics_event() );
+
+		$this->assertStringContainsString( 'DTSTART;TZID=America/New_York:20300115T100000', $ics );
+		$this->assertStringContainsString( "BEGIN:DAYLIGHT\r\nDTSTART:20300310T020000\r\nTZOFFSETFROM:-0500\r\nTZOFFSETTO:-0400\r\nTZNAME:EDT\r\n", $ics );
+		$this->assertStringContainsString( "BEGIN:STANDARD\r\nDTSTART:20301103T020000\r\nTZOFFSETFROM:-0400\r\nTZOFFSETTO:-0500\r\nTZNAME:EST\r\n", $ics );
+	}
+
+	public function test_a_zone_set_as_an_offset_writes_utc(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( '-03:00' ) );
+
+		$event            = $this->ics_event();
+		$event['rrule']   = 'FREQ=DAILY;UNTIL=20300117T235959';
+		$event['exdates'] = array( '2030-01-16' );
+		$ics              = IcsGenerator::generate( $event );
+
+		$this->assertStringNotContainsString( 'VTIMEZONE', $ics, 'An offset has no name to declare.' );
+		$this->assertStringContainsString( "DTSTART:20300115T130000Z\r\n", $ics );
+		$this->assertStringContainsString( "DTEND:20300115T140000Z\r\n", $ics );
+		$this->assertStringContainsString( "EXDATE:20300116T130000Z\r\n", $ics );
+		$this->assertStringContainsString( 'UNTIL=20300118T025959Z', $ics );
+	}
+
+	public function test_utc_writes_utc_unchanged(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+		$ics = IcsGenerator::generate( $this->ics_event() );
+
+		$this->assertStringContainsString( "DTSTART:20300115T100000Z\r\n", $ics );
+		$this->assertStringNotContainsString( 'VTIMEZONE', $ics );
 	}
 }

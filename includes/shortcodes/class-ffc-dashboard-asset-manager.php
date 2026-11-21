@@ -265,6 +265,8 @@ class DashboardAssetManager {
 				'canViewMessages'         => $tabs['messages'],
 				'siteName'                => get_bloginfo( 'name' ),
 				'wpTimezone'              => wp_timezone_string(),
+				// The site's zone for the .ics the dashboard builds (#2689).
+				'icsZone'                 => \FreeFormCertificate\Scheduling\IcsGenerator::script_zone(),
 				'mainAddress'             => \FreeFormCertificate\Settings\SettingsReader::get( 'main_address', '' ),
 				// WordPress's own reset, for a member who no longer knows the
 				// current password the change form asks for (#2246).
