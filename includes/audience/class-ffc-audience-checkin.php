@@ -48,7 +48,10 @@ class AudienceCheckin {
 	 * Exchange a scanned code for a receipt.
 	 *
 	 * The window looked up is the one open today for the code's booking, so a
-	 * code can never be checked against a window it was not signed for.
+	 * code can never be checked against a window it was not signed for. A
+	 * window closes on its own after the booking's end plus a grace, which can
+	 * fall after midnight; until it does, yesterday's window is still the one
+	 * open (#2691).
 	 *
 	 * @param string $code Code from the QR.
 	 * @param int    $now  Unix time.
@@ -60,12 +63,26 @@ class AudienceCheckin {
 			return self::error( self::ERROR_INVALID_CODE );
 		}
 
-		$window = AudienceCheckinWindowReader::open_for( $parts['booking_id'], AudienceBookingRules::today(), $now );
+		$today  = AudienceBookingRules::today();
+		$window = AudienceCheckinWindowReader::open_for( $parts['booking_id'], $today, $now )
+			?? AudienceCheckinWindowReader::open_for( $parts['booking_id'], self::day_before( $today ), $now );
 		if ( null === $window || ! AudienceCheckinCode::verify( $code, $window, $now ) ) {
 			return self::error( self::ERROR_INVALID_CODE );
 		}
 
 		return AudienceCheckinReceipt::issue( $window['booking_id'], $window['window_date'], $window['id'], $now );
+	}
+
+	/**
+	 * The day before a date.
+	 *
+	 * @param string $date Y-m-d.
+	 * @return string Y-m-d; the date itself when it does not parse.
+	 */
+	private static function day_before( string $date ): string {
+		$day = \DateTimeImmutable::createFromFormat( '!Y-m-d', $date, new \DateTimeZone( 'UTC' ) );
+
+		return false === $day ? $date : $day->modify( '-1 day' )->format( 'Y-m-d' );
 	}
 
 	/**

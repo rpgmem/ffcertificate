@@ -972,6 +972,12 @@ class AudienceRestController {
 			$time_mode  = $is_range ? 'span' : $time_mode;
 		}
 
+		// A time the space's working hours did not supply is checked here, or
+		// a value such as "9" would be stored and compared as text (#2691).
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_time( $start_time ) || ! \FreeFormCertificate\Core\DateFormatter::is_valid_time( $end_time ) ) {
+			return self::refusal( 400, __( 'Invalid time format.', 'ffcertificate' ) );
+		}
+
 		// Validate time range. A span runs from one day to another, so its start may come after its end.
 		$is_span = $is_range && 'span' === $time_mode;
 		if ( ! $is_span && $start_time >= $end_time ) {

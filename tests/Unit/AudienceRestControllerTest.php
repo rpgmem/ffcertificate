@@ -1256,6 +1256,49 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertStringContainsString( 'End time', $result->get_data()['message'] );
 	}
 
+	/**
+	 * A time that is not HH:MM never reaches the text comparison (#2691).
+	 *
+	 * @dataProvider malformed_times
+	 */
+	public function test_create_booking_refuses_a_time_that_is_not_hh_mm( string $start, string $end ): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
+		$this->environment( 10, 20 );
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => $start,
+					'end_time'       => $end,
+					'booking_type'   => 'audience',
+					'description'    => 'A test booking description',
+					'is_all_day'     => false,
+					'audience_ids'   => array( 1 ),
+					'user_ids'       => array(),
+				)
+			)
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 'Invalid time format.', $result->get_data()['message'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function malformed_times(): array {
+		return array(
+			// "9" < "10:00" as text, so it passed the order check.
+			'hour only'      => array( '9', '10:00' ),
+			'hour past 23'   => array( '09:00', '25:00' ),
+			'empty end'      => array( '09:00', '' ),
+			'text'           => array( 'morning', 'noon' ),
+		);
+	}
+
 	public function test_create_booking_returns_400_when_description_too_short(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
