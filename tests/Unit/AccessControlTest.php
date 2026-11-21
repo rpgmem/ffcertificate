@@ -366,6 +366,7 @@ class AccessControlTest extends TestCase {
 
 	public function test_get_default_settings_returns_array_with_expected_keys(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'get_option' )->justReturn( false );
 
 		$defaults = AccessControl::get_default_settings();
 
@@ -387,6 +388,7 @@ class AccessControlTest extends TestCase {
 
 	public function test_get_default_settings_block_wp_admin_defaults_to_false(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'get_option' )->justReturn( false );
 
 		$defaults = AccessControl::get_default_settings();
 
@@ -395,6 +397,7 @@ class AccessControlTest extends TestCase {
 
 	public function test_get_default_settings_blocked_roles_defaults_to_ffc_user(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'get_option' )->justReturn( false );
 
 		$defaults = AccessControl::get_default_settings();
 
@@ -403,6 +406,7 @@ class AccessControlTest extends TestCase {
 
 	public function test_get_default_settings_allow_admin_bar_defaults_to_false(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'get_option' )->justReturn( false );
 
 		$defaults = AccessControl::get_default_settings();
 
@@ -411,13 +415,15 @@ class AccessControlTest extends TestCase {
 
 	public function test_get_default_settings_bypass_for_admins_defaults_to_true(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+		Functions\when( 'get_option' )->justReturn( false );
 
 		$defaults = AccessControl::get_default_settings();
 
 		$this->assertTrue( $defaults['bypass_for_admins'] );
 	}
 
-	public function test_get_default_settings_redirect_url_uses_home_url(): void {
+	public function test_get_default_settings_redirect_url_falls_back_to_home_url(): void {
+		Functions\when( 'get_option' )->justReturn( false );
 		Functions\expect( 'home_url' )
 			->once()
 			->with( '/dashboard' )
@@ -426,6 +432,19 @@ class AccessControlTest extends TestCase {
 		$defaults = AccessControl::get_default_settings();
 
 		$this->assertSame( 'https://example.com/dashboard', $defaults['redirect_url'] );
+	}
+
+	/**
+	 * The default redirect is the managed dashboard page, wherever its slug
+	 * ended up (#2690), not a hard-coded /dashboard.
+	 */
+	public function test_get_default_settings_redirect_url_is_the_dashboard_page(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_dashboard_page_id' === $key ? '42' : $default );
+		Functions\when( 'get_permalink' )->alias( static fn( $id ) => 42 === $id ? 'https://example.com/dashboard-2/' : false );
+
+		$defaults = AccessControl::get_default_settings();
+
+		$this->assertSame( 'https://example.com/dashboard-2/', $defaults['redirect_url'] );
 	}
 
 	// ==================================================================

@@ -22571,9 +22571,6 @@ msgstr ""
 msgid "On by default: an administrator is never redirected, even when holding a blocked role."
 msgstr ""
 
-msgid "Where blocked users land — by default the site's /dashboard page."
-msgstr ""
-
 msgid "The notice shown on the dashboard page after a redirect."
 msgstr ""
 
@@ -35238,6 +35235,14 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php
 msgid "A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "A page already at either address is used only when it is published and holds that shortcode; any other page there, a draft or one of the site's own, is left alone and the plugin's page is created beside it under the address WordPress gives it."
+msgstr ""
+
+#: includes/settings/views/documentation/config-user-access.php
+msgid "Where blocked users land — by default the dashboard page the plugin manages, wherever its address ended up."
 msgstr ""
 
 #: includes/api/class-ffc-user-profile-rest-controller.php
