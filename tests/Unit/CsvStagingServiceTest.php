@@ -337,8 +337,10 @@ class CsvStagingServiceTest extends TestCase {
 	private function storeJob( string $status, array $extra = array() ): void {
 		$this->jobs[ self::JOB_ID ] = (object) array_merge(
 			array(
-				'job_id' => self::JOB_ID,
-				'status' => $status,
+				'job_id'    => self::JOB_ID,
+				'status'    => $status,
+				'notice_id' => 5,
+				'user_id'   => 7,
 			),
 			$extra
 		);
@@ -548,14 +550,14 @@ class CsvStagingServiceTest extends TestCase {
 	// ───────────────────────── validate_job ─────────────────────────
 
 	public function test_validate_returns_error_when_job_missing(): void {
-		$r = CsvStagingService::validate_job( self::JOB_ID );
+		$r = CsvStagingService::validate_job( self::JOB_ID, 5 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_import_job_not_found', $r['errors'] );
 	}
 
 	public function test_validate_rejects_invalid_state(): void {
 		$this->storeJob( 'committed' );
-		$r = CsvStagingService::validate_job( self::JOB_ID );
+		$r = CsvStagingService::validate_job( self::JOB_ID, 5 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_import_job_invalid_state_for_validate', $r['errors'] );
 		$this->assertSame( array(), $this->updates );
@@ -564,7 +566,7 @@ class CsvStagingServiceTest extends TestCase {
 	public function test_validate_marks_validated_when_no_errors(): void {
 		$this->storeJob( 'ingested' );
 		// All rule queries return empty → no errors.
-		$r = CsvStagingService::validate_job( self::JOB_ID );
+		$r = CsvStagingService::validate_job( self::JOB_ID, 5 );
 		$this->assertTrue( $r['ok'] );
 		$this->assertSame( array(), $r['errors'] );
 
@@ -588,7 +590,7 @@ class CsvStagingServiceTest extends TestCase {
 				'd_pcd'     => 1,
 			),
 		);
-		$r = CsvStagingService::validate_job( self::JOB_ID );
+		$r = CsvStagingService::validate_job( self::JOB_ID, 5 );
 		$this->assertTrue( $r['ok'] );
 		$this->assertSame(
 			array(
@@ -637,7 +639,7 @@ class CsvStagingServiceTest extends TestCase {
 			),
 		);
 
-		$r = CsvStagingService::validate_job( self::JOB_ID );
+		$r = CsvStagingService::validate_job( self::JOB_ID, 5 );
 
 		$this->assertTrue( $r['ok'] );
 		$this->assertSame( array(), $r['errors'] );
@@ -678,7 +680,7 @@ class CsvStagingServiceTest extends TestCase {
 			),
 		);
 
-		$r = CsvStagingService::validate_job( self::JOB_ID );
+		$r = CsvStagingService::validate_job( self::JOB_ID, 5 );
 
 		$this->assertSame( array( 'line=3: recruitment_csv_identity_conflict' ), $r['errors'] );
 		$this->assertSame( 'invalid', $this->to( $this->updates, self::JOBS )[0]['data']['status'] );
@@ -694,25 +696,25 @@ class CsvStagingServiceTest extends TestCase {
 		);
 		$this->batch = array( $this->stagedRow( 1, Identifiers::CPF_A, 0 ) );
 
-		$refused = CsvStagingService::promote_batch( self::JOB_ID, 50 );
+		$refused = CsvStagingService::promote_batch( self::JOB_ID, 5, 50 );
 		$this->assertFalse( $refused['ok'] );
 		$this->assertSame( array( 'recruitment_import_identity_mismatch' ), $refused['errors'] );
 		$this->assertSame( array(), $this->inserts, 'Nothing is written before the acknowledgement.' );
 
-		$accepted = CsvStagingService::promote_batch( self::JOB_ID, 50, true );
+		$accepted = CsvStagingService::promote_batch( self::JOB_ID, 5, 50, true );
 		$this->assertTrue( $accepted['ok'] );
 		$this->assertSame( 'promoting', $this->to( $this->updates, self::JOBS )[0]['data']['status'] );
 	}
 
 	public function test_promote_returns_error_when_job_missing(): void {
-		$r = CsvStagingService::promote_batch( self::JOB_ID, 50 );
+		$r = CsvStagingService::promote_batch( self::JOB_ID, 5, 50 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_import_job_not_found', $r['errors'] );
 	}
 
 	public function test_promote_rejects_invalid_state(): void {
 		$this->storeJob( 'ingested' );
-		$r = CsvStagingService::promote_batch( self::JOB_ID, 50 );
+		$r = CsvStagingService::promote_batch( self::JOB_ID, 5, 50 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_import_job_invalid_state_for_promote', $r['errors'] );
 	}
@@ -725,7 +727,7 @@ class CsvStagingServiceTest extends TestCase {
 				'total'           => 3,
 			)
 		);
-		$r = CsvStagingService::promote_batch( self::JOB_ID, 50 );
+		$r = CsvStagingService::promote_batch( self::JOB_ID, 5, 50 );
 		$this->assertTrue( $r['ok'] );
 		$this->assertTrue( $r['done'] );
 		$this->assertSame( 3, $r['processed'] );
@@ -744,7 +746,7 @@ class CsvStagingServiceTest extends TestCase {
 			$this->stagedRow( 1, Identifiers::CPF_A, 0 ),
 			$this->stagedRow( 2, Identifiers::CPF_B, 1 ),
 		);
-		$r           = CsvStagingService::promote_batch( self::JOB_ID, 50 );
+		$r           = CsvStagingService::promote_batch( self::JOB_ID, 5, 50 );
 		$this->assertTrue( $r['ok'] );
 		$this->assertSame( 2, $r['processed'] );
 		$this->assertTrue( $r['done'] );
@@ -807,7 +809,7 @@ class CsvStagingServiceTest extends TestCase {
 		$this->batch = array( $this->stagedRow( 1, Identifiers::CPF_A, 0 ) );
 		// The candidate INSERT fails, which upsert_candidate() reports as false.
 		$this->insert_results[ self::CANDIDATES ] = false;
-		$r                                        = CsvStagingService::promote_batch( self::JOB_ID, 50 );
+		$r                                        = CsvStagingService::promote_batch( self::JOB_ID, 5, 50 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_candidate_upsert_failed', $r['errors'] );
 		$this->assertSame( array(), $this->to( $this->updates, self::STAGING ), 'No staging row is marked processed.' );
@@ -816,14 +818,14 @@ class CsvStagingServiceTest extends TestCase {
 	// ───────────────────────── commit_job ─────────────────────────
 
 	public function test_commit_returns_error_when_job_missing(): void {
-		$r = CsvStagingService::commit_job( self::JOB_ID );
+		$r = CsvStagingService::commit_job( self::JOB_ID, 5 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_import_job_not_found', $r['errors'] );
 	}
 
 	public function test_commit_rejects_invalid_state(): void {
 		$this->storeJob( 'validated' );
-		$r = CsvStagingService::commit_job( self::JOB_ID );
+		$r = CsvStagingService::commit_job( self::JOB_ID, 5 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_import_job_invalid_state_for_commit', $r['errors'] );
 	}
@@ -837,13 +839,14 @@ class CsvStagingServiceTest extends TestCase {
 			)
 		);
 		$this->unpromoted = 2;
-		$r                = CsvStagingService::commit_job( self::JOB_ID );
+		$r                = CsvStagingService::commit_job( self::JOB_ID, 5 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_import_job_not_finished', $r['errors'] );
 		$this->assertSame( array(), $this->queries, 'No transaction is opened.' );
 	}
 
 	public function test_commit_happy_path_swaps_and_cleans_up(): void {
+		$this->storeNotice();
 		$this->storeJob(
 			'promoting',
 			array(
@@ -852,7 +855,7 @@ class CsvStagingServiceTest extends TestCase {
 			)
 		);
 		$this->swap_result = 3;
-		$r                 = CsvStagingService::commit_job( self::JOB_ID );
+		$r                 = CsvStagingService::commit_job( self::JOB_ID, 5 );
 		$this->assertTrue( $r['ok'] );
 		$this->assertSame( 3, $r['inserted'] );
 
@@ -905,7 +908,69 @@ class CsvStagingServiceTest extends TestCase {
 		);
 	}
 
+	public function test_commit_refuses_a_preliminary_list_once_the_notice_is_definitive(): void {
+		$this->storeNotice( 'definitive' );
+		$this->storeJob(
+			'promoting',
+			array(
+				'notice_id' => 5,
+				'list_type' => 'preview',
+			)
+		);
+		$r = CsvStagingService::commit_job( self::JOB_ID, 5 );
+		$this->assertFalse( $r['ok'] );
+		$this->assertContains( 'recruitment_invalid_state_for_preview_import', $r['errors'] );
+		$this->assertSame( array(), $this->queries, 'The live list is left alone.' );
+	}
+
+	public function test_commit_refuses_a_preliminary_list_once_the_notice_is_closed(): void {
+		$this->storeNotice( 'closed' );
+		$this->storeJob(
+			'promoting',
+			array(
+				'notice_id' => 5,
+				'list_type' => 'preview',
+			)
+		);
+		$r = CsvStagingService::commit_job( self::JOB_ID, 5 );
+		$this->assertFalse( $r['ok'] );
+		$this->assertContains( 'recruitment_invalid_state_for_preview_import', $r['errors'] );
+	}
+
+	/**
+	 * A job id from another notice, or started by another operator, reads as
+	 * unknown in every phase (#2694).
+	 *
+	 * @dataProvider provide_foreign_jobs
+	 */
+	public function test_a_foreign_job_is_not_found_in_any_phase( array $owner, int $notice_id ): void {
+		$this->storeNotice( 'preliminary' );
+
+		$this->storeJob( 'ingested', array_merge( array( 'list_type' => 'preview' ), $owner ) );
+		$this->assertSame( array( 'recruitment_import_job_not_found' ), CsvStagingService::validate_job( self::JOB_ID, $notice_id )['errors'] );
+
+		$this->storeJob( 'validated', array_merge( array( 'list_type' => 'preview' ), $owner ) );
+		$this->assertSame( array( 'recruitment_import_job_not_found' ), CsvStagingService::promote_batch( self::JOB_ID, $notice_id, 50 )['errors'] );
+
+		$this->storeJob( 'promoting', array_merge( array( 'list_type' => 'preview' ), $owner ) );
+		$this->assertSame( array( 'recruitment_import_job_not_found' ), CsvStagingService::commit_job( self::JOB_ID, $notice_id )['errors'] );
+
+		$this->assertSame( array(), $this->updates, 'No job moves.' );
+		$this->assertSame( array(), $this->queries, 'No list is touched.' );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, int>, 1: int}>
+	 */
+	public function provide_foreign_jobs(): array {
+		return array(
+			'another notice'   => array( array(), 9 ),
+			'another operator' => array( array( 'user_id' => 8 ), 5 ),
+		);
+	}
+
 	public function test_commit_rolls_back_when_swap_fails(): void {
+		$this->storeNotice();
 		$this->storeJob(
 			'promoting',
 			array(
@@ -915,7 +980,7 @@ class CsvStagingServiceTest extends TestCase {
 		);
 		// START TRANSACTION → 0, INSERT…SELECT → false (fail) → ROLLBACK.
 		$this->swap_result = false;
-		$r                 = CsvStagingService::commit_job( self::JOB_ID );
+		$r                 = CsvStagingService::commit_job( self::JOB_ID, 5 );
 		$this->assertFalse( $r['ok'] );
 		$this->assertContains( 'recruitment_import_swap_failed', $r['errors'] );
 

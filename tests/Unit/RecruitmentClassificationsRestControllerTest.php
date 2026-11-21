@@ -321,7 +321,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 			}
 			return null;
 		}
-		if ( 1 === preg_match( '/^SELECT (?:\*|job_id, status) FROM ' . self::T_JOBS . ' WHERE job_id = (\S+)$/', $sql, $m ) ) {
+		if ( 1 === preg_match( '/^SELECT (?:\*|job_id, status, notice_id, user_id) FROM ' . self::T_JOBS . ' WHERE job_id = (\S+)$/', $sql, $m ) ) {
 			return $this->jobs[ $m[1] ] ?? null;
 		}
 		if ( 1 === preg_match( '/^SELECT \* FROM ' . self::T_CANDIDATE . ' WHERE (?:cpf|rf)_hash = \S+ LIMIT 1$/', $sql ) ) {
@@ -1161,12 +1161,14 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 
 	public function test_import_job_validate_success(): void {
 		$this->jobs['job-1'] = (object) array(
-			'job_id' => 'job-1',
-			'status' => 'ingested',
+			'job_id'    => 'job-1',
+			'status'    => 'ingested',
+			'notice_id' => 7,
+			'user_id'   => self::OPERATOR,
 		);
 
 		$response = $this->controller->import_job_validate(
-			$this->make_request( array( 'job_id' => 'job-1' ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -1179,7 +1181,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 
 	public function test_import_job_validate_failure(): void {
 		$result = $this->controller->import_job_validate(
-			$this->make_request( array( 'job_id' => 'bad' ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'bad' ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1192,6 +1194,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->ffc_settings  = array();
 		$this->jobs['job-1'] = (object) array(
 			'job_id'          => 'job-1',
+			'user_id' => self::OPERATOR,
 			'notice_id'       => 7,
 			'list_type'       => 'preview',
 			'status'          => 'validated',
@@ -1213,7 +1216,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		);
 
 		$response = $this->controller->import_job_batch(
-			$this->make_request( array( 'job_id' => 'job-1', 'size' => 25 ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1', 'size' => 25 ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -1230,13 +1233,15 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	public function test_import_job_batch_failure(): void {
 		$this->jobs['job-1'] = (object) array(
 			'job_id'          => 'job-1',
+			'user_id' => self::OPERATOR,
+			'notice_id' => 7,
 			'status'          => 'ingested',
 			'processed_count' => 0,
 			'total'           => 5,
 		);
 
 		$result = $this->controller->import_job_batch(
-			$this->make_request( array( 'job_id' => 'job-1', 'size' => 10 ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1', 'size' => 10 ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1244,8 +1249,10 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_import_job_commit_success(): void {
+		$this->notice( 7, 'draft' );
 		$this->jobs['job-1'] = (object) array(
 			'job_id'    => 'job-1',
+			'user_id' => self::OPERATOR,
 			'notice_id' => 7,
 			'list_type' => 'preview',
 			'status'    => 'promoting',
@@ -1253,7 +1260,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->swapped       = 5;
 
 		$response = $this->controller->import_job_commit(
-			$this->make_request( array( 'job_id' => 'job-1' ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -1275,6 +1282,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->classification( 1, array( 'notice_id' => 7, 'list_type' => 'preview' ) );
 		$this->jobs['job-1']   = (object) array(
 			'job_id'    => 'job-1',
+			'user_id' => self::OPERATOR,
 			'notice_id' => 7,
 			'list_type' => 'preview',
 			'status'    => 'promoting',
@@ -1286,7 +1294,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 
-		$result = $this->controller->import_job_commit( $this->make_request( array( 'job_id' => 'job-1' ) ) );
+		$result = $this->controller->import_job_commit( $this->make_request( array( 'id' => 7, 'job_id' => 'job-1' ) ) );
 
 		// #2245: nothing is written until the operator confirms.
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1300,8 +1308,10 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_import_job_commit_failure(): void {
+		$this->notice( 7, 'draft' );
 		$this->jobs['job-1'] = (object) array(
 			'job_id'    => 'job-1',
+			'user_id' => self::OPERATOR,
 			'notice_id' => 7,
 			'list_type' => 'preview',
 			'status'    => 'promoting',
@@ -1309,11 +1319,32 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->unpromoted    = 2;
 
 		$result = $this->controller->import_job_commit(
-			$this->make_request( array( 'job_id' => 'job-1' ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1' ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_import_job_not_finished', $result->get_error_code() );
+		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
+	}
+
+	// ------------------------------------------------------------------
+	public function test_import_job_commit_refuses_a_job_from_another_notice(): void {
+		$this->notice( 7, 'draft' );
+		$this->notice( 8, 'draft' );
+		$this->jobs['job-1'] = (object) array(
+			'job_id'    => 'job-1',
+			'user_id'   => self::OPERATOR,
+			'notice_id' => 7,
+			'list_type' => 'preview',
+			'status'    => 'promoting',
+		);
+
+		$result = $this->controller->import_job_commit(
+			$this->make_request( array( 'id' => 8, 'job_id' => 'job-1' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_import_job_not_found', $result->get_error_code() );
 		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
 	}
 
