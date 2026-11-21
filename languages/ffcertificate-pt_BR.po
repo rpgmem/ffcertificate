@@ -35460,3 +35460,11 @@ msgstr "Último clique"
 #, php-format
 msgid "Last: %s"
 msgstr "Último: %s"
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "The same person appears twice in this adjutancy. A candidate holds one place per adjutancy."
+msgstr "A mesma pessoa aparece duas vezes nesta matéria. Um candidato ocupa um só lugar por matéria."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "This person appears on another line with different details (name, RF, e-mail, phone or PCD). The lines of one candidate must agree."
+msgstr "Esta pessoa aparece em outra linha com dados diferentes (nome, RF, e-mail, telefone ou PCD). As linhas de um mesmo candidato devem coincidir."

@@ -35382,3 +35382,11 @@ msgstr ""
 #, php-format
 msgid "Last: %s"
 msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "The same person appears twice in this adjutancy. A candidate holds one place per adjutancy."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "This person appears on another line with different details (name, RF, e-mail, phone or PCD). The lines of one candidate must agree."
+msgstr ""
