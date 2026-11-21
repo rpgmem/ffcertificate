@@ -35247,3 +35247,11 @@ msgstr ""
 #: includes/settings/views/documentation/config-user-access.php
 msgid "Where blocked users land — by default the dashboard page the plugin manages, wherever its address ended up."
 msgstr ""
+
+#: includes/api/class-ffc-user-profile-rest-controller.php
+msgid "A privacy request cannot be made while viewing as another account."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Nor can a privacy request be made there, since it is the data subject's own, and a profile edit made while viewing as someone is logged under the account that made it, naming the account edited."
+msgstr ""

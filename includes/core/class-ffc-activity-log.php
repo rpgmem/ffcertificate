@@ -824,19 +824,25 @@ class ActivityLog {
 	 * Log user profile updated
 	 *
 	 * @since 4.9.9
-	 * @param int                $user_id User whose profile was updated.
-	 * @param array<int, string> $fields  Fields that were changed.
+	 * @param int                $user_id  User whose profile was updated.
+	 * @param array<int, string> $fields   Fields that were changed.
+	 * @param int                $actor_id Who made the edit when it is not that
+	 *                                     user, as under view-as (#2690); the row
+	 *                                     then names the actor and the context the
+	 *                                     account edited. 0 when the user edited
+	 *                                     their own profile.
 	 * @return bool
 	 */
-	public static function log_profile_updated( int $user_id, array $fields = array() ): bool {
-		return self::log(
-			'profile_updated',
-			self::LEVEL_INFO,
-			array(
-				'fields' => $fields,
-			),
-			$user_id
+	public static function log_profile_updated( int $user_id, array $fields = array(), int $actor_id = 0 ): bool {
+		$context = array(
+			'fields' => $fields,
 		);
+		if ( $actor_id > 0 && $actor_id !== $user_id ) {
+			$context['target_user_id'] = $user_id;
+			$user_id                   = $actor_id;
+		}
+
+		return self::log( 'profile_updated', self::LEVEL_INFO, $context, $user_id );
 	}
 
 	/**

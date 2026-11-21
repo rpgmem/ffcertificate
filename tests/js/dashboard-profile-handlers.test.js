@@ -623,11 +623,12 @@ describe('profile — viewAsUserId propagation', () => {
 		expect(document.getElementById('ffc-new-password')).toBeNull();
 	});
 
-	it('privacyRequest appends viewAsUserId', () => {
+	it('offers no privacy request while viewing as another account (#2690)', () => {
 		panel().render(PROFILE_FIXTURE);
 		const spy = mockAjax(() => ({}));
+		expect(document.querySelector('.ffc-lgpd-export-btn')).toBeNull();
 		window.$('.ffc-lgpd-export-btn').trigger('click');
-		expect(spy.mock.calls[0][0].url).toContain('?viewAsUserId=12');
+		expect(spy).not.toHaveBeenCalled();
 	});
 
 	it('saveNotificationPreferences appends viewAsUserId', () => {
