@@ -69,14 +69,16 @@ class ReregistrationDataProcessor {
 	/**
 	 * Whether the member declares a second post.
 	 *
-	 * The answer is the option's label, as the form stores it and the
-	 * dual-post toggle reads it.
+	 * The answer is the option's label, as the form stores it; which labels
+	 * declare a second post is {@see ReregistrationFieldOptions::second_post_answers()},
+	 * independent of the request's language (#2688).
 	 *
 	 * @param array<string, mixed> $values field_key => plain value.
 	 * @return bool
 	 */
 	public static function holds_second_post( array $values ): bool {
-		return __( 'I hold', 'ffcertificate' ) === ( $values['acumulo_cargos'] ?? '' );
+		$answer = $values['acumulo_cargos'] ?? '';
+		return is_string( $answer ) && '' !== $answer && in_array( $answer, ReregistrationFieldOptions::second_post_answers(), true );
 	}
 
 	/**
@@ -255,7 +257,7 @@ class ReregistrationDataProcessor {
 			$label = (string) $field->field_label;
 
 			// Required check — use repository's is_empty_value semantics.
-			if ( ! empty( $field->is_required ) && self::is_empty_value( $value ) ) {
+			if ( ! empty( $field->is_required ) && CustomFieldValidator::is_missing( $field, $value ) ) {
 				/* translators: %s: field label */
 				$errors[ $name ] = sprintf( __( '%s is required.', 'ffcertificate' ), $label );
 				continue;

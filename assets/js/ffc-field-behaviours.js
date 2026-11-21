@@ -179,7 +179,9 @@
      * field's wrapper.
      *
      * @param {jQuery} $container
-     * @param {string} showValue  The option that reveals the fields ("I hold", translated).
+     * @param {string|string[]} showValue The answers that reveal the fields: the
+     *                                    dual-post field's third choice in every
+     *                                    language it was stored in (#2688).
      */
     function initDualPost($container, showValue) {
         var $select = $container.find('[data-field-key="acumulo_cargos"] select');
@@ -193,8 +195,10 @@
             return;
         }
 
+        var answers = Array.isArray(showValue) ? showValue : [showValue || 'I hold'];
+
         function apply(animate) {
-            var show = $select.val() === (showValue || 'I hold');
+            var show = answers.indexOf($select.val()) !== -1;
 
             if (animate) {
                 show ? $fields.slideDown(200) : $fields.slideUp(200);

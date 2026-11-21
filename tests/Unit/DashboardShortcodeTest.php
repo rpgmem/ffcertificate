@@ -272,6 +272,10 @@ class DashboardShortcodeTest extends TestCase {
 				if ( false !== strpos( $text, 'SELECT user_id, preferences FROM %i' ) ) {
 					return array();
 				}
+				// ReregistrationFieldOptions::second_post_answers() (#2688).
+				if ( false !== strpos( $text, "field_source = 'standard' AND field_key = %s" ) ) {
+					return array();
+				}
 				$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
 			}
 		);

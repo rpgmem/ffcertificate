@@ -238,7 +238,7 @@ class DashboardAssetManager {
 					'friday'            => __( 'Friday', 'ffcertificate' ),
 					'saturday'          => __( 'Saturday', 'ffcertificate' ),
 					'removeDay'         => __( 'Remove day', 'ffcertificate' ),
-					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
+					'dualPostShowValue' => \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::second_post_answers(),
 					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
 					'retractConfirm'    => __( 'Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed.', 'ffcertificate' ),
 					'retract'           => __( 'Retract submission', 'ffcertificate' ),

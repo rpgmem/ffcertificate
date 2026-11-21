@@ -210,6 +210,15 @@ describe('FFC.Fields dual post', () => {
 		window.FFC.Fields.initDualPost(window.$('#c'), 'Acumulo');
 	}
 
+	it('reads the second post from any of the stored answers (#2688)', () => {
+		mount(false);
+		window.FFC.Fields.initDualPost(window.$('#c'), ['I hold', 'Acumulo']);
+		window.$('[data-field-key="acumulo_cargos"] select').val('Acumulo').trigger('change');
+		expect(window.$('[data-field-key="jornada_acumulo"]').css('display')).not.toBe('none');
+		window.$('[data-field-key="acumulo_cargos"] select').val('Nao acumulo').trigger('change');
+		expect(window.$('[data-field-key="jornada_acumulo"]').css('display')).toBe('none');
+	});
+
 	it('hides the accumulation rows and lifts their required on load', () => {
 		mount(false);
 		expect(window.$('[data-field-key="jornada_acumulo"]').css('display')).toBe('none');

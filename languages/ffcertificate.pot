@@ -35299,3 +35299,11 @@ msgstr ""
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "The confirmation, approval and promotion e-mails of a confirmed appointment carry a calendar file (.ics), and the cancellation carries one that takes the appointment off the calendar. Every calendar file the plugin makes, these and the one on the user dashboard, is written in the time zone set in WordPress."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "The answer that declares a second post is the third option of the Position Accumulation field, whatever its text and whatever language it was saved in, so rewording the options keeps the second post's fields working as long as that answer stays third."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "A required checkbox has to be ticked: the form and the import both refuse one left unticked, whether it arrives as 0 or as No."
+msgstr ""

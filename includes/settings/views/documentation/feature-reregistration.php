@@ -94,6 +94,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'The draft saves itself 5 seconds after the member stops typing; Save Draft still saves at once. Leaving the page or pressing Cancel with changes not saved yet asks first.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'When the member has an approved reregistration from an earlier campaign, the form offers "Bring previous answers". Nothing is fetched until it is clicked; it fills only the fields this campaign also has, and every field stays editable, so the member reviews what came from the previous cycle before submitting.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'The second post\'s fields (its workload, role and work hours) are asked, required and stored only while the member answers that they hold another post. Answers typed before switching to "I do not hold" are not kept.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The answer that declares a second post is the third option of the Position Accumulation field, whatever its text and whatever language it was saved in, so rewording the options keeps the second post\'s fields working as long as that answer stays third.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'A required checkbox has to be ticked: the form and the import both refuse one left unticked, whether it arrives as 0 or as No.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'On a phone the work-hours table keeps its columns and scrolls sideways; a shadow at the edge shows there is more.', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
