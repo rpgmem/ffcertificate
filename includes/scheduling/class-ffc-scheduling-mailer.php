@@ -100,4 +100,46 @@ class SchedulingMailer {
 	public static function document( string $body, array $context = array() ): string {
 		return self::ffc_email_document( $body, $context );
 	}
+
+	/**
+	 * Run a send with a calendar file attached, then remove the file.
+	 *
+	 * The file goes in the system temp dir, not the public uploads dir, and
+	 * ends in `.ics` so mail clients offer to add it to a calendar. It is
+	 * removed even if the send throws. With no content, the send runs with
+	 * no attachment.
+	 *
+	 * @param string|null $ics  iCalendar content, or null.
+	 * @param callable    $send Sends the message with the attachment paths it is given (a list of strings), returning bool.
+	 * @return bool What the send returned.
+	 */
+	public static function with_ics( ?string $ics, callable $send ): bool {
+		$attachments = array();
+		$temp        = '';
+		if ( null !== $ics && '' !== $ics ) {
+			// PHP's own tempnam(), not wp_tempnam(): that one lives in an admin
+			// include a cron or front-end send has not loaded.
+			$reserved = tempnam( sys_get_temp_dir(), 'ffc-ics-' );
+			if ( false !== $reserved ) {
+				$temp = $reserved . '.ics';
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes the generated .ics beside a tempnam() path for the mail attachment; WP_Filesystem would need credentials on a mail-send path.
+				if ( false !== file_put_contents( $temp, $ics ) ) {
+					$attachments[] = $temp;
+				}
+				if ( file_exists( $reserved ) ) {
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the empty placeholder tempnam() created.
+					unlink( $reserved );
+				}
+			}
+		}
+
+		try {
+			return (bool) $send( $attachments );
+		} finally {
+			if ( '' !== $temp && file_exists( $temp ) ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the temp .ics this method created, in its own finally block.
+				unlink( $temp );
+			}
+		}
+	}
 }

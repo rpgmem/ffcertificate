@@ -19,6 +19,11 @@ function installDeps() {
 	window.ffcDashboard = {
 		siteName: 'Test Site',
 		wpTimezone: 'America/Sao_Paulo',
+		icsZone: {
+			tzid: 'America/Sao_Paulo',
+			vtimezone: 'BEGIN:VTIMEZONE\r\nTZID:America/Sao_Paulo\r\nEND:VTIMEZONE\r\n',
+			offset: 0,
+		},
 		strings: {
 			exportToCalendar: 'Export to Calendar',
 			otherIcs: 'Other (.ics)',
@@ -297,18 +302,39 @@ describe('ffc-user-dashboard-cal-export — booking ranges (#1946)', () => {
 			exdates: ['2026-05-21'],
 		}));
 
-		expect(ics).toContain('DTSTART:20260520T090000');
-		expect(ics).toContain('DTEND:20260520T103000');
-		expect(ics).toContain('RRULE:FREQ=DAILY;UNTIL=20260523T235959');
-		expect(ics).toContain('EXDATE:20260521T090000');
+		expect(ics).toContain('DTSTART;TZID=America/Sao_Paulo:20260520T090000\r\n');
+		expect(ics).toContain('DTEND;TZID=America/Sao_Paulo:20260520T103000\r\n');
+		// UNTIL in UTC once DTSTART names a zone: 23:59:59 at -03:00 (#2689).
+		expect(ics).toContain('RRULE:FREQ=DAILY;UNTIL=20260524T025959Z\r\n');
+		expect(ics).toContain('EXDATE;TZID=America/Sao_Paulo:20260521T090000\r\n');
 	});
 
 	it('ends a span on its last day', () => {
 		const ics = icsOf(makeEvent({ date: '2026-05-20', endDate: '2026-05-22', startTime: '14:00', endTime: '10:00' }));
 
-		expect(ics).toContain('DTSTART:20260520T140000');
-		expect(ics).toContain('DTEND:20260522T100000');
+		expect(ics).toContain('DTSTART;TZID=America/Sao_Paulo:20260520T140000');
+		expect(ics).toContain('DTEND;TZID=America/Sao_Paulo:20260522T100000');
 		expect(ics).not.toContain('RRULE');
+	});
+
+	it('declares the site zone before the event that names it (#2689)', () => {
+		const ics = icsOf(makeEvent({ date: '2026-05-20' }));
+
+		expect(ics).toContain('METHOD:PUBLISH\r\nBEGIN:VTIMEZONE\r\nTZID:America/Sao_Paulo\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\n');
+	});
+
+	it('writes UTC for a site zone set as an offset (#2689)', () => {
+		window.ffcDashboard.icsZone = { tzid: '', vtimezone: '', offset: -10800 };
+		const ics = icsOf(makeEvent({
+			date: '2026-05-20',
+			rrule: 'FREQ=DAILY;UNTIL=20260523T235959',
+			exdates: ['2026-05-21'],
+		}));
+
+		expect(ics).not.toContain('VTIMEZONE');
+		expect(ics).toContain('DTSTART:20260520T120000Z\r\n');
+		expect(ics).toContain('EXDATE:20260521T120000Z\r\n');
+		expect(ics).toContain('UNTIL=20260524T025959Z');
 	});
 
 	it('carries the range to the Google and Outlook links', () => {

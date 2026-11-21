@@ -55,6 +55,7 @@ class RecruitmentCallIcsTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -141,8 +142,8 @@ class RecruitmentCallIcsTest extends TestCase {
 		$this->assertStringStartsWith( "BEGIN:VCALENDAR\r\n", $ics );
 		$this->assertStringContainsString( "METHOD:PUBLISH\r\n", $ics );
 		$this->assertStringContainsString( "UID:ffc-recruitment-call-55@example.test\r\n", $ics );
-		$this->assertStringContainsString( "DTSTART:20261019T133000\r\n", $ics, 'Wall-clock: written as floating local time.' );
-		$this->assertStringContainsString( "DTEND:20261019T143000\r\n", $ics );
+		$this->assertStringContainsString( "DTSTART;TZID=America/Sao_Paulo:20261019T133000\r\n", $ics, 'Wall-clock, in the site\'s zone (#2689).' );
+		$this->assertStringContainsString( "DTEND;TZID=America/Sao_Paulo:20261019T143000\r\n", $ics );
 		$this->assertStringContainsString( "SUMMARY:Presentation: EDT-15 — Mathematics\r\n", $ics );
 		$this->assertStringContainsString( "DESCRIPTION:Temporary teachers\\nBring your ID\\; and diploma\r\n", $ics );
 		$this->assertStringEndsWith( "END:VCALENDAR\r\n", $ics );
@@ -179,8 +180,8 @@ class RecruitmentCallIcsTest extends TestCase {
 
 		$ics = (string) RecruitmentCallIcs::build( 55, 100, false );
 
-		$this->assertStringContainsString( "DTSTART:20261019T233000\r\n", $ics );
-		$this->assertStringContainsString( "DTEND:20261019T235959\r\n", $ics );
+		$this->assertStringContainsString( "DTSTART;TZID=America/Sao_Paulo:20261019T233000\r\n", $ics );
+		$this->assertStringContainsString( "DTEND;TZID=America/Sao_Paulo:20261019T235959\r\n", $ics );
 	}
 
 	public function test_the_link_carries_a_nonce_bound_to_the_call(): void {

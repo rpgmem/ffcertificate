@@ -64,6 +64,9 @@ class AppointmentEmailHandlerTest extends TestCase {
 			return $default;
 		} );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
+		Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+			return parse_url( $url, $component );
+		} );
 		Functions\when( 'date_i18n' )->alias( function ( $format, $timestamp = false ) {
 			return gmdate( $format, $timestamp ?: time() );
 		} );
@@ -157,6 +160,95 @@ class AppointmentEmailHandlerTest extends TestCase {
 			'allow_cancellation' => 1,
 			'email_config'      => '{"admin_email":"admin@example.com"}',
 		), $overrides );
+	}
+
+	// ==================================================================
+	// Calendar file (#2689)
+	// ==================================================================
+
+	/**
+	 * Stub wp_mail so it records each attachment's content before the
+	 * handler removes the temp file.
+	 *
+	 * @return \ArrayObject<int, array{name: string, body: string}>
+	 */
+	private function captureAttachments(): \ArrayObject {
+		$seen = new \ArrayObject();
+		Functions\when( 'wp_mail' )->alias(
+			static function ( $to, $subject, $body, $headers = array(), $attachments = array() ) use ( $seen ) {
+				foreach ( (array) $attachments as $path ) {
+					$seen[] = array( 'name' => basename( (string) $path ), 'body' => (string) file_get_contents( (string) $path ) );
+				}
+				return true;
+			}
+		);
+		return $seen;
+	}
+
+	public function test_a_confirmed_booking_carries_its_calendar_file(): void {
+		$seen = $this->captureAttachments();
+
+		$this->handler->send_booking_confirmation(
+			$this->makeAppointment( array( 'id' => '7', 'end_time' => '10:00' ) ),
+			$this->makeCalendar()
+		);
+
+		$this->assertCount( 1, $seen );
+		$this->assertStringEndsWith( '.ics', $seen[0]['name'], 'Mail clients offer a .ics to the calendar.' );
+		$this->assertStringContainsString( "METHOD:REQUEST\r\n", $seen[0]['body'] );
+		$this->assertStringContainsString( 'UID:ffc-apt-7@', $seen[0]['body'], 'The dashboard export uses the same UID.' );
+		$this->assertStringContainsString( "DTSTART:20260315T090000Z\r\n", $seen[0]['body'] );
+		$this->assertStringContainsString( "DTEND:20260315T100000Z\r\n", $seen[0]['body'] );
+		$this->assertStringContainsString( 'SUMMARY:Test Calendar', $seen[0]['body'] );
+	}
+
+	public function test_a_booking_awaiting_approval_carries_no_file_until_it_is_approved(): void {
+		$seen = $this->captureAttachments();
+
+		$this->handler->send_booking_confirmation( $this->makeAppointment( array( 'status' => 'pending' ) ), $this->makeCalendar( array( 'requires_approval' => 1 ) ) );
+		$this->assertCount( 0, $seen );
+
+		$this->handler->send_approval_notification( $this->makeAppointment(), $this->makeCalendar( array( 'requires_approval' => 1 ) ) );
+		$this->assertCount( 1, $seen );
+		$this->assertStringContainsString( "METHOD:REQUEST\r\n", $seen[0]['body'] );
+	}
+
+	public function test_a_cancellation_carries_a_cancel_file_for_the_same_event(): void {
+		$seen = $this->captureAttachments();
+
+		$this->handler->send_cancellation_notification( $this->makeAppointment( array( 'id' => '7', 'status' => 'cancelled' ) ), $this->makeCalendar() );
+
+		$this->assertCount( 1, $seen );
+		$this->assertStringContainsString( "METHOD:CANCEL\r\n", $seen[0]['body'] );
+		$this->assertStringContainsString( 'UID:ffc-apt-7@', $seen[0]['body'] );
+		$this->assertStringContainsString( "STATUS:CANCELLED\r\n", $seen[0]['body'] );
+	}
+
+	public function test_a_reminder_and_a_waitlist_notice_carry_no_file(): void {
+		$seen = $this->captureAttachments();
+
+		$this->handler->send_reminder( $this->makeAppointment(), $this->makeCalendar() );
+		$this->handler->send_waitlist_notification( $this->makeAppointment( array( 'status' => 'waitlist' ) ), $this->makeCalendar() );
+
+		$this->assertCount( 0, $seen );
+	}
+
+	public function test_the_temp_file_is_removed_after_the_send(): void {
+		$paths = new \ArrayObject();
+		Functions\when( 'wp_mail' )->alias(
+			static function ( $to, $subject, $body, $headers = array(), $attachments = array() ) use ( $paths ) {
+				foreach ( (array) $attachments as $path ) {
+					$paths[] = (string) $path;
+				}
+				return true;
+			}
+		);
+
+		$this->handler->send_booking_confirmation( $this->makeAppointment(), $this->makeCalendar() );
+
+		$this->assertCount( 1, $paths );
+		$this->assertFileDoesNotExist( $paths[0] );
+		$this->assertFileDoesNotExist( substr( $paths[0], 0, -4 ), 'The tempnam() placeholder is gone too.' );
 	}
 
 	// ==================================================================

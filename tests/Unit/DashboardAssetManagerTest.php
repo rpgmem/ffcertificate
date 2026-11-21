@@ -76,6 +76,7 @@ class DashboardAssetManagerTest extends TestCase {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
 		Functions\when( 'wp_timezone_string' )->justReturn( 'America/Sao_Paulo' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'get_option' )->justReturn( array() );
 
 		// Global stubs only: stubbing a namespaced copy would define it for
@@ -174,6 +175,8 @@ class DashboardAssetManagerTest extends TestCase {
 		$this->assertArrayHasKey( 'nonce', $dashboard );
 		$this->assertArrayHasKey( 'strings', $dashboard );
 		$this->assertFalse( $dashboard['viewAsUserId'] );
+		$this->assertSame( 'America/Sao_Paulo', $dashboard['icsZone']['tzid'], 'The .ics the dashboard builds names the site zone (#2689).' );
+		$this->assertStringStartsWith( "BEGIN:VTIMEZONE\r\nTZID:America/Sao_Paulo\r\n", $dashboard['icsZone']['vtimezone'] );
 	}
 
 	// ==================================================================
