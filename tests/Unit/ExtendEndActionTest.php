@@ -25,6 +25,12 @@ class ExtendEndActionTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` before the test, restored after it. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
+
 	/** @var array<int, array<string, mixed>> */
 	private array $meta_store = array();
 
@@ -32,6 +38,8 @@ class ExtendEndActionTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
@@ -52,6 +60,11 @@ class ExtendEndActionTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -310,5 +323,73 @@ class ExtendEndActionTest extends TestCase {
 		$this->assertSame( 'no_end_date', $r['reason'] );
 		// No write happened.
 		$this->assertArrayNotHasKey( ExtendEndAction::META_POSTPONED_AT, $this->meta_store[1] );
+	}
+
+	/**
+	 * A `$wpdb` that plays the form's window lock (#2695): `$on_lock` runs
+	 * while this request waits, as another tab writing, then the lock answers
+	 * `$answer`.
+	 *
+	 * @param string        $answer  GET_LOCK's answer.
+	 * @param callable|null $on_lock What another request does meanwhile.
+	 * @return \ArrayObject<int, string> Every lock query, in order.
+	 */
+	private function lock_server( string $answer, ?callable $on_lock = null ): \ArrayObject {
+		$queries = new \ArrayObject();
+		$wpdb    = \Mockery::mock( 'wpdb' );
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => vsprintf( str_replace( '%s', "'%s'", (string) $sql ), $args ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( $queries, $answer, $on_lock ) {
+				$queries[] = (string) $sql;
+				if ( 0 === strpos( (string) $sql, 'SELECT GET_LOCK' ) ) {
+					if ( null !== $on_lock ) {
+						$on_lock();
+					}
+					return $answer;
+				}
+				return '1';
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+		return $queries;
+	}
+
+	/**
+	 * A tab that writes while this one waits for the form's lock leaves
+	 * this one refused, with nothing written twice (#2695).
+	 */
+	public function test_execute_rereads_under_the_lock_what_another_tab_wrote(): void {
+		$this->configure_eligible_form( 1, 'h' );
+		$before  = $this->meta_store[1];
+		$queries = $this->lock_server(
+			'1',
+			function () {
+				$this->meta_store[1][ ExtendEndAction::META_POSTPONED_AT ] = 12345;
+			}
+		);
+
+		$r = ExtendEndAction::execute( 1, 'h', '15:30' );
+
+		$this->assertFalse( $r['ok'] );
+		$this->assertSame( 'already_postponed', $r['reason'] );
+		$this->assertSame( 12345, $this->meta_store[1][ ExtendEndAction::META_POSTPONED_AT ], 'The other tab\'s write stands.' );
+		$this->assertSame( $before['_ffc_geofence_config'], $this->meta_store[1]['_ffc_geofence_config'] );
+		$this->assertSame( "SELECT RELEASE_LOCK('ffc_form_window_1')", $queries[ count( $queries ) - 1 ], 'The lock is let go.' );
+	}
+
+	/**
+	 * A lock still held when the wait runs out refuses without writing.
+	 */
+	public function test_execute_refuses_when_the_form_lock_stays_held(): void {
+		$this->configure_eligible_form( 1, 'h' );
+		$before  = $this->meta_store[1];
+		$queries = $this->lock_server( '0' );
+
+		$r = ExtendEndAction::execute( 1, 'h', '15:30' );
+
+		$this->assertFalse( $r['ok'] );
+		$this->assertSame( 'already_postponed', $r['reason'] );
+		$this->assertSame( $before, $this->meta_store[1] );
+		$this->assertCount( 1, $queries, 'A lock never granted is not released.' );
 	}
 }

@@ -32,6 +32,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 	}
 
 	protected function tearDown(): void {
@@ -522,6 +523,42 @@ class AccessRestrictionCheckerTest extends TestCase {
 
 		$this->assertSame( "T-2\nNEW-9", $saved['generated_codes_list'] );
 		$this->assertSame( 'edited meanwhile', $saved['success_message'] );
+	}
+
+	/**
+	 * The config is read and written under the form's config lock, the one
+	 * the editor's save takes, so neither write drops the other (#2695).
+	 */
+	public function test_consume_ticket_reads_and_writes_under_the_form_config_lock(): void {
+		$events = array();
+		global $wpdb;
+		$wpdb = Mockery::mock( 'wpdb' );
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => vsprintf( str_replace( '%s', "'%s'", (string) $sql ), $args ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( &$events ) {
+				$events[] = (string) $sql;
+				return '1';
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			static function () use ( &$events ) {
+				$events[] = 'read';
+				return array( 'generated_codes_list' => "T-1\nT-2" );
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function () use ( &$events ) {
+				$events[] = 'write';
+				return true;
+			}
+		);
+
+		AccessRestrictionChecker::consume_ticket( 3, 'T-1' );
+
+		$this->assertSame(
+			array( "SELECT GET_LOCK('ffc_form_config_3', 5)", 'read', 'write', "SELECT RELEASE_LOCK('ffc_form_config_3')" ),
+			$events
+		);
 	}
 
 	public function test_consume_ticket_writes_nothing_when_the_ticket_is_not_listed(): void {

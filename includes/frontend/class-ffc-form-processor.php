@@ -51,7 +51,8 @@ class FormProcessor {
 	 * Handle form submission via AJAX
 	 */
 	public function handle_submission_ajax(): void {
-		$ctx = new Submission\SubmissionContext();
+		$ctx  = new Submission\SubmissionContext();
+		$lock = new Submission\SubmissionIdentityLock();
 
 		// #563 Sprint 1 — thin orchestrator over the submission pipeline.
 		// Stages 1-13 (guards) validate/resolve into the context; stages
@@ -72,6 +73,9 @@ class FormProcessor {
 			( new Submission\FieldRulesGuard() )->apply( $ctx );
 			( new Submission\DeviceSignalsResolver() )->apply( $ctx );
 			( new Submission\GeofenceGuard() )->apply( $ctx );
+			// From here to the response, one submission per form and person
+			// at a time: the checks below read what earlier ones stored (#2695).
+			$lock->apply( $ctx );
 			( new Submission\RateLimitGuard() )->apply( $ctx );
 			( new Submission\AccessRestrictionGuard() )->apply( $ctx );
 
@@ -79,6 +83,7 @@ class FormProcessor {
 			( new Submission\PdfStage( $this->submission_handler ) )->apply( $ctx );
 			( new Submission\SuccessResponder( $this->submission_handler ) )->apply( $ctx );
 		} catch ( Submission\SubmissionRejected $rejected ) {
+			$lock->release();
 			// Every rejection carries a usable challenge: SecurityFieldsGuard
 			// redeems (and thereby spends) the one the client submitted, so a
 			// later guard's rejection would otherwise leave the visitor unable
@@ -89,6 +94,7 @@ class FormProcessor {
 			);
 		}
 
+		$lock->release();
 		wp_send_json_success( $ctx->response );
 	}
 }

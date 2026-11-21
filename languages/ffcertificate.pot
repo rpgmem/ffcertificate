@@ -35369,3 +35369,7 @@ msgstr ""
 #, php-format
 msgid "Last: %s"
 msgstr ""
+
+#: includes/frontend/submission/class-ffc-submission-identity-lock.php:69
+msgid "Another submission with these details is still being processed. Wait a moment and try again."
+msgstr ""

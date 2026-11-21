@@ -96,6 +96,8 @@ class SubmissionPersisterTest extends TestCase {
 		$this->remote_addr_backup = $_SERVER['REMOTE_ADDR'] ?? null;
 		unset( $_SERVER['REMOTE_ADDR'] );
 
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
 		$wpdb          = Mockery::mock( 'wpdb' );
 		$wpdb->prefix  = 'wp_';
 		$wpdb->options = 'wp_options';
@@ -109,6 +111,15 @@ class SubmissionPersisterTest extends TestCase {
 			}
 		);
 		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => addcslashes( (string) $v, '_%\\' ) );
+		// The form's config lock around a used ticket's removal (#2695).
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $q ) {
+				if ( is_array( $q ) && 1 === preg_match( '/^SELECT (GET|RELEASE)_LOCK\(/', (string) $q['sql'] ) ) {
+					return '1';
+				}
+				$this->fail( 'Unexpected get_var(): ' . print_r( $q, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r -- test diagnostics.
+			}
+		);
 		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
 			function ( $q ) {
 				if ( false !== strpos( $q['sql'], 'ticket_hash = %s' ) || false !== strpos( $q['sql'], 'data LIKE %s' ) ) {

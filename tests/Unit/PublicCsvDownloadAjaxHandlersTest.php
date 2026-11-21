@@ -277,6 +277,10 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 				if ( 0 === strpos( $q, 'SELECT COUNT(*) FROM wp_ffc_submissions' ) ) {
 					return '3';
 				}
+				// The form's window lock, around the open-early and postpone writes (#2695).
+				if ( 0 === strpos( $q, 'SELECT GET_LOCK(ffc_form_window_' ) || 0 === strpos( $q, 'SELECT RELEASE_LOCK(ffc_form_window_' ) ) {
+					return '1';
+				}
 				$this->fail( 'Unexpected get_var(): ' . $q );
 			}
 		);
