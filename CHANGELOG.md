@@ -103,6 +103,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Personal Calendars: the free slots panel follows the booking window the validator applies** (#2689). On a custom calendar it lists every block of the month, since the advance window does not apply there, and an advance window of 0 now means no limit instead of today only.
 - **Personal Calendars: the verification headline follows the appointment status** (#2689). Only a confirmed or completed appointment reads as a valid receipt; a pending or waitlisted one says it is not confirmed yet, a no-show says the participant did not attend, and a cancelled one says so and offers no receipt.
 - **Personal Calendars: a reminder neither repeats a fresh confirmation nor counts a failed send** (#2689). An appointment booked or approved inside its reminder window gets no reminder, since its confirmation has just gone out; a reminder the mail server refuses stays unsent and is tried again at the next hourly run, until the slot starts.
+- **Personal Calendars: the time slot list prints its labels as text** (#2689). The slot time, its label and the availability line go through the script's escape helper before they reach the markup, like the rest of the booking screen.
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
 - **A `{{signer2:signature}}` or `{{signer3:signature}}` image address survives the layout allow-list and the visual conversion** (#2624): the allow-list held only `{{signer:`, and the conversion's markup escaped the braces, so both cut the token down to `signature}}`.

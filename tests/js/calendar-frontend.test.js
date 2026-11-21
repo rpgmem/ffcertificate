@@ -145,6 +145,18 @@ describe('ffc-calendar-frontend.js — renderTimeSlots', () => {
 		expect(slots[1].getAttribute('aria-disabled')).toBe('true');
 	});
 
+	it('prints a slot label as text, never as markup (#2689)', () => {
+		window.ffcCalendarFrontend.renderTimeSlots([
+			{ time: '09:00"><b id="x', display: '<img src=x onerror=alert(1)>9h', available: 1, total: 2 },
+		]);
+
+		const slot = document.querySelector('#ffc-timeslots-container .ffc-timeslot');
+		expect(slot.querySelector('img')).toBeNull();
+		expect(document.getElementById('x')).toBeNull();
+		expect(slot.querySelector('.ffc-timeslot-time').textContent).toBe('<img src=x onerror=alert(1)>9h');
+		expect(slot.getAttribute('data-time')).toBe('09:00"><b id="x');
+	});
+
 	it('renders a full slot with waitlist_available as a selectable waitlist option (#941)', () => {
 		window.ffcCalendarFrontend.renderTimeSlots([
 			{ time: '09:00', display: '09:00', available: 0, total: 5, waitlist_available: true },

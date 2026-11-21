@@ -414,9 +414,11 @@
                 var ariaDisabled = selectable ? '' : ' aria-disabled="true"';
                 var waitAttr = canWaitlist ? ' data-waitlist="1"' : '';
 
-                html += '<div class="ffc-timeslot' + stateClass + '" role="option" aria-selected="false"' + tabIdx + ariaDisabled + waitAttr + ' data-time="' + slot.time + '">';
-                html += '<span class="ffc-timeslot-time">' + slot.display + '</span>';
-                html += '<span class="ffc-timeslot-available">' + availableText + '</span>';
+                // The server's values go through esc() like the rest of this
+                // file's markup: a slot label is text, never HTML (#2689).
+                html += '<div class="ffc-timeslot' + stateClass + '" role="option" aria-selected="false"' + tabIdx + ariaDisabled + waitAttr + ' data-time="' + esc(slot.time) + '">';
+                html += '<span class="ffc-timeslot-time">' + esc(slot.display) + '</span>';
+                html += '<span class="ffc-timeslot-available">' + esc(availableText) + '</span>';
                 html += '</div>';
             });
 
