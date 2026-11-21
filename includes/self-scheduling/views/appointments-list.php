@@ -178,18 +178,22 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 		);
 
 		if ( 'undo_attendance' === $ffcertificate_action ) {
-			if ( $ffcertificate_repo->revertAttendance( $ffc_self_scheduling_appointment_id, $ffcertificate_status ) ) {
+			$ffcertificate_undone = ( new \FreeFormCertificate\SelfScheduling\AppointmentAdminActions( $ffcertificate_repo ) )->undo_attendance( $ffc_self_scheduling_appointment_id, time() );
+			if ( true === $ffcertificate_undone ) {
 				$ffcertificate_notice = array(
 					'type'    => 'success',
 					'message' => __( 'Attendance mark undone. The appointment is confirmed again.', 'ffcertificate' ),
 				);
+			} else {
+				$ffcertificate_notice['message'] = $ffcertificate_undone->get_error_message();
 			}
 		} elseif ( ! is_array( $ffcertificate_appointment ) ) {
 			$ffcertificate_notice['message'] = __( 'Appointment not found.', 'ffcertificate' );
-		} elseif ( '' === (string) ( $ffcertificate_appointment['appointment_date'] ?? '' ) || (string) $ffcertificate_appointment['appointment_date'] > wp_date( 'Y-m-d' ) ) {
-			// Attendance is a fact about a day that has come; the date is
-			// wall-clock, so it is compared with today in the site timezone.
-			$ffcertificate_notice['message'] = __( 'Attendance can only be marked from the appointment date on.', 'ffcertificate' );
+		} elseif ( 'confirmed' === $ffcertificate_status && ! \FreeFormCertificate\SelfScheduling\AppointmentAdminActions::can_mark( $ffcertificate_appointment, $ffcertificate_action, time() ) ) {
+			// Attendance is a fact about a slot that has come (#2689).
+			$ffcertificate_notice['message'] = 'no_show' === $ffcertificate_action
+				? __( 'A no-show can only be marked once the appointment has started.', 'ffcertificate' )
+				: __( 'Attendance can only be marked from the appointment date on.', 'ffcertificate' );
 		} else {
 			$ffcertificate_result = 'attended' === $ffcertificate_action
 				? $ffcertificate_repo->markCompleted( $ffc_self_scheduling_appointment_id )
