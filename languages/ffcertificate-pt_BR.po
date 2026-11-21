@@ -30581,15 +30581,6 @@ msgstr "Reagendado pelo participante"
 msgid "This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else."
 msgstr "Este agendamento é cancelado primeiro e depois o calendário abre para você escolher um novo horário. O horário antigo é liberado na hora e pode ser ocupado por outra pessoa."
 
-#. translators: 1: date and time of the last appointment, 2: minimum hours between appointments.
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:607
-msgid "Your last appointment on this calendar is on %1$s. A new one must be at least %2$d hours before or after it."
-msgstr "Seu último agendamento neste calendário é em %1$s. Um novo precisa estar pelo menos %2$d horas antes ou depois dele."
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:46
-msgid "A new booking must start at least this many hours before or after the person's last booking on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time."
-msgstr "Um novo agendamento precisa começar pelo menos este número de horas antes ou depois do último agendamento da pessoa no mesmo calendário (padrão 24; 0 desativa). Agendamentos cancelados não contam, então cancelar para reagendar nunca é barrado pelo horário antigo."
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:64
 msgid "Mark as no-show in the bulk actions does the same for several rows at once; a selected row that is not confirmed, or whose date has not come, is skipped and counted in the notice."
 msgstr "Marcar como não comparecimento, nas ações em massa, faz o mesmo em várias linhas de uma vez; uma linha selecionada que não esteja confirmada, ou cuja data ainda não chegou, é ignorada e contada no aviso."
@@ -35351,3 +35342,16 @@ msgstr "Agendamentos com data de %1$d dias atrás ou mais ainda estão abertos: 
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "Minimum notice (hours) and how far ahead bookings are allowed (default 30 days; 0 = no limit). How far ahead applies to regular calendars only: a custom calendar's blocks are bookable whatever their date, and the free slots panel follows the same rule."
 msgstr "Antecedência mínima (em horas) e prazo máximo de antecedência para reservas (padrão: 30 dias; 0 = sem limite). O prazo máximo vale só para calendários regulares: os blocos de um calendário personalizado podem ser reservados qualquer que seja a data, e o painel de horários livres segue a mesma regra."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "A new booking must start at least this many hours before or after the person's booking nearest to it on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time. The person is the account, else the CPF/RF, so a new e-mail address resets neither this nor the block cap; and on any calendar one person may hold only one place on a slot."
+msgstr "Um novo agendamento precisa começar pelo menos esse número de horas antes ou depois do agendamento da pessoa mais próximo dele no mesmo calendário (padrão 24; 0 desativa). Agendamentos cancelados não contam, então cancelar para reagendar nunca é bloqueado pelo horário antigo. A pessoa é a conta, ou então o CPF/RF, então um novo endereço de e-mail não zera esse limite nem o limite de blocos; e, em qualquer calendário, uma pessoa só pode ocupar um lugar por horário."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php
+msgid "You already have an appointment at this time."
+msgstr "Você já tem um agendamento neste horário."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php
+#, php-format
+msgid "You have an appointment on this calendar on %1$s. A new one must be at least %2$d hours before or after it."
+msgstr "Você tem um agendamento neste calendário em %1$s. Um novo precisa estar pelo menos %2$d horas antes ou depois dele."
