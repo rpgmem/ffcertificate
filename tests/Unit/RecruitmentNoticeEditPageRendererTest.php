@@ -1032,6 +1032,51 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertSame( 2, substr_count( $html, 'Olga Operator' ) );
 	}
 
+	public function test_the_calls_record_shows_each_e_mail_and_offers_send_again_on_a_call_in_force(): void {
+		// #2694 — every call records its e-mail; Send again on a call still
+		// in force, never on one already waiting, cancelled or over.
+		$this->store_classifications( array(), array( $this->cls_row( 60, 4, 'called', 1, 600 ) ) );
+		$extra              = array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' );
+		$future             = array( 'date_to_assume' => '2099-01-01' );
+		$this->notice_calls = array(
+			(object) array_merge( (array) $this->call( 95, 60, 3, $future + array( 'email_status' => 'sent', 'email_sent_at' => '1780308000' ) ), $extra ),
+			(object) array_merge( (array) $this->call( 94, 60, 3, $future + array( 'email_status' => 'not_sent', 'email_sent_at' => '1780308000' ) ), $extra ),
+			(object) array_merge( (array) $this->call( 93, 60, 3, $future + array( 'email_status' => 'queued' ) ), $extra ),
+			(object) array_merge( (array) $this->call( 92, 60, 3, array( 'email_status' => 'sent', 'email_sent_at' => '1780308000' ) ), $extra ),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th scope="col">E-mail</th>', $html );
+		$this->assertStringContainsString( 'Sent', $html );
+		$this->assertStringContainsString( 'Not sent', $html );
+		$this->assertStringContainsString( 'Waiting to be sent', $html );
+		$this->assertStringContainsString( 'data-cls-action="resend" data-call-id="95"', $html );
+		$this->assertStringContainsString( 'data-cls-action="resend" data-call-id="94"', $html );
+		$this->assertStringNotContainsString( 'data-call-id="93"', $html, 'A queued e-mail is already on its way.' );
+		$this->assertStringNotContainsString( 'data-call-id="92"', $html, 'A call whose date is over is never e-mailed.' );
+	}
+
+	public function test_the_calls_record_offers_no_send_again_without_the_call_capability(): void {
+		$this->caps = array(
+			'ffc_call_recruitment'   => false,
+			'ffc_manage_recruitment' => false,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 60, 4, 'called', 1, 600 ) ) );
+		$this->notice_calls = array(
+			(object) array_merge( (array) $this->call( 95, 60, 3, array( 'date_to_assume' => '2099-01-01', 'email_status' => 'not_sent' ) ), array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' ) ),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Not sent', $html );
+		$this->assertStringNotContainsString( 'data-cls-action="resend"', $html );
+	}
+
 	public function test_the_calls_record_names_nobody_without_the_history_capability(): void {
 		$this->caps = array(
 			'manage_options'               => false,

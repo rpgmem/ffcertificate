@@ -193,14 +193,18 @@ class RecruitmentCandidateWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		// Unlinking is the operator's decision and it sticks: the account
+		// linker and the orphan adoption skip a candidate marked so, and a
+		// link set by hand clears the mark (#2694).
 		$result = $wpdb->update(
 			$table,
 			array(
-				'user_id'    => $user_id,
-				'updated_at' => time(),
+				'user_id'          => $user_id,
+				'account_unlinked' => null === $user_id ? 1 : 0,
+				'updated_at'       => time(),
 			),
 			array( 'id' => $id ),
-			array( '%d', '%d' ),
+			array( '%d', '%d', '%d' ),
 			array( '%d' )
 		);
 
@@ -225,7 +229,7 @@ class RecruitmentCandidateWriter {
 		$wpdb = self::db();
 
 		$sql = $wpdb->prepare(
-			'UPDATE %i SET user_id = %d, updated_at = %d WHERE id = %d AND user_id IS NULL',
+			'UPDATE %i SET user_id = %d, updated_at = %d WHERE id = %d AND user_id IS NULL AND account_unlinked = 0',
 			self::get_table_name(),
 			$user_id,
 			time(),
@@ -321,7 +325,7 @@ class RecruitmentCandidateWriter {
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- `$clause` is built from this method's own fragments with matching placeholders, and `$sql` holds the result of `prepare()` two statements up -- held in a variable only so a null return can be refused before it reaches `query()`. `WordPress.DB.DirectDatabaseQuery` is deliberately NOT named here: the file-level disable already covers it, and re-enabling it below would switch it back on for the rest of the file no matter who turned it off.
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT id FROM %i WHERE ({$clause}) AND user_id IS NULL",
+				"SELECT id FROM %i WHERE ({$clause}) AND user_id IS NULL AND account_unlinked = 0",
 				$table,
 				...$values
 			)
@@ -334,7 +338,7 @@ class RecruitmentCandidateWriter {
 		// `prepare()` answers null when its placeholders and values disagree,
 		// and `query( null )` would be a silent no-op wearing a success.
 		$sql = $wpdb->prepare(
-			"UPDATE %i SET user_id = %d, updated_at = %d WHERE ({$clause}) AND user_id IS NULL",
+			"UPDATE %i SET user_id = %d, updated_at = %d WHERE ({$clause}) AND user_id IS NULL AND account_unlinked = 0",
 			$table,
 			$user_id,
 			time(),

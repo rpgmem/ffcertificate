@@ -6,6 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Tests\Support\CallLog;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -459,5 +460,45 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 		$body = $this->sent()['body'];
 		$this->assertStringContainsString( 'ffc_key=k3y', $body, 'An account the import created gets the link that sets its first password.' );
 		$this->assertStringContainsString( 'ffc_login=alice', $body );
+	}
+
+	public function test_reports_a_send_that_did_not_go_out(): void {
+		// #2694 — the call screen lists the candidates a refused send left
+		// unreached, so the dispatcher must report the refusal.
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>Body</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+		Functions\when( 'wp_mail' )->justReturn( false );
+
+		$this->assertFalse( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+	}
+
+	public function test_switched_off_e_mails_report_unreached_and_issue_no_password_link(): void {
+		$this->candidate->user_id = '55';
+		$user                     = new \WP_User( 55 );
+		$user->user_login         = 'alice';
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\when( 'user_can' )->justReturn( false );
+		$keys = CallLog::record( 'get_password_reset_key', 'k3y' );
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>{{set_password_url}}</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+		$this->options['ffc_settings'] = array( 'disable_all_emails' => 1 );
+
+		$this->assertFalse( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertSame( array(), $this->mails );
+		$this->assertSame( 0, $keys->count(), 'No key is rotated for a message that will not go out.' );
 	}
 }

@@ -403,33 +403,36 @@ final class RecruitmentCsvImporter {
 	/**
 	 * Phase 2 — SQL-validate the staged rows. {@see CsvStagingService::validate_job()}.
 	 *
-	 * @param string $job_id Job identifier.
+	 * @param string $job_id    Job identifier.
+	 * @param int    $notice_id The notice the request names.
 	 * @return array{ok: true, errors: list<string>, mismatches: list<array{line: int, candidate_id: int, fields: list<string>}>}|array{ok: false, errors: list<string>}
 	 */
-	public static function validate_job( string $job_id ) {
-		return CsvStagingService::validate_job( $job_id );
+	public static function validate_job( string $job_id, int $notice_id ) {
+		return CsvStagingService::validate_job( $job_id, $notice_id );
 	}
 
 	/**
 	 * Phase 3 — promote one chunk of staged rows. {@see CsvStagingService::promote_batch()}.
 	 *
 	 * @param string $job_id               Job identifier.
+	 * @param int    $notice_id            The notice the request names.
 	 * @param int    $size                 Rows to process in this batch (clamped to 10–100).
 	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches (#2245).
 	 * @return array{ok: true, processed: int, total: int, done: bool}|array{ok: false, errors: list<string>}
 	 */
-	public static function promote_batch( string $job_id, int $size, bool $acknowledge_identity = false ) {
-		return CsvStagingService::promote_batch( $job_id, $size, $acknowledge_identity );
+	public static function promote_batch( string $job_id, int $notice_id, int $size, bool $acknowledge_identity = false ) {
+		return CsvStagingService::promote_batch( $job_id, $notice_id, $size, $acknowledge_identity );
 	}
 
 	/**
 	 * Phase 4 — atomic swap of the staged list into the live table. {@see CsvStagingService::commit_job()}.
 	 *
 	 * @param string $job_id           Job identifier.
+	 * @param int    $notice_id        The notice the request names.
 	 * @param bool   $confirm_reimport The operator confirmed the comparison with the stored list (#2245).
 	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>, diff?: Diff}
 	 */
-	public static function commit_job( string $job_id, bool $confirm_reimport = false ) {
-		return CsvStagingService::commit_job( $job_id, $confirm_reimport );
+	public static function commit_job( string $job_id, int $notice_id, bool $confirm_reimport = false ) {
+		return CsvStagingService::commit_job( $job_id, $notice_id, $confirm_reimport );
 	}
 }

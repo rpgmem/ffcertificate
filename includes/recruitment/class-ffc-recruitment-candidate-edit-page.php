@@ -709,10 +709,15 @@ final class RecruitmentCandidateEditPage {
 		// masked tier whatever the form says (#2245).
 		$tier = RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() );
 		if ( RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier || ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier && isset( $_POST['email'] ) ) ) {
-			$input['email'] = isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
+			// Passed as typed: the editor validates it and refuses an address
+			// that sanitizing would have emptied (#2694).
+			$input['email'] = isset( $_POST['email'] ) ? trim( sanitize_text_field( wp_unslash( (string) $_POST['email'] ) ) ) : '';
 		}
 
-		RecruitmentCandidateEditor::update( $before, $input );
+		$result = RecruitmentCandidateEditor::update( $before, $input );
+		if ( is_wp_error( $result ) ) {
+			self::redirect_with_notice( $id, 'recruitment_candidate_email_invalid' === $result->get_error_code() ? 'email-invalid' : 'save-failed' );
+		}
 
 		self::redirect_with_notice( $id, 'saved' );
 	}

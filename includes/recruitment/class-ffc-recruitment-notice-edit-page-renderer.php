@@ -983,6 +983,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$calls        = array_slice( $calls, ( $current_page - 1 ) * self::CALLS_PER_PAGE, self::CALLS_PER_PAGE );
 
 		$show_callers = RecruitmentNoticeEditPage::can_see_callers();
+		$can_resend   = current_user_can( 'ffc_call_recruitment' ) || current_user_can( 'ffc_manage_recruitment' );
 		$candidates   = array();
 		foreach ( RecruitmentCandidateReader::get_by_ids( array_values( array_unique( array_map( static fn( $c ) => (int) $c->candidate_id, $calls ) ) ) ) as $cand ) {
 			$candidates[ (int) $cand->id ] = (string) ( $cand->name ?? '' );
@@ -1013,6 +1014,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '<th scope="col">' . esc_html__( 'Called by', 'ffcertificate' ) . '</th>';
 		}
 		echo '<th scope="col">' . esc_html__( 'Out of order', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'E-mail', 'ffcertificate' ) . '</th>';
 		echo '<th scope="col">' . esc_html__( 'Call', 'ffcertificate' ) . '</th>';
 		echo '</tr></thead><tbody>';
 		foreach ( $calls as $call ) {
@@ -1029,6 +1031,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			}
 			$reason = (string) ( $call->out_of_order_reason ?? '' );
 			echo '<td>' . esc_html( '1' === (string) $call->out_of_order ? ( '' !== $reason ? $reason : __( 'Yes', 'ffcertificate' ) ) : '—' ) . '</td>';
+			echo '<td>' . self::call_email_state( $call, $can_resend ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- call_email_state() returns escaped HTML.
 			echo '<td>' . self::call_state( $call, $show_callers, $users ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- call_state() returns escaped HTML.
 			echo '</tr>';
 		}
@@ -1110,6 +1113,42 @@ final class RecruitmentNoticeEditPageRenderer {
 			)
 		);
 		echo '</p>';
+	}
+
+	/**
+	 * Whether the call's e-mail went out, and when, with Send again for a
+	 * call still in force (#2694).
+	 *
+	 * @param object $call       Call row.
+	 * @phpstan-param NoticeCallRow $call
+	 * @param bool   $can_resend Whether the user may call candidates.
+	 * @return string Escaped HTML.
+	 */
+	private static function call_email_state( object $call, bool $can_resend ): string {
+		$status = (string) ( $call->email_status ?? '' );
+		$when   = is_numeric( $call->email_sent_at ?? null ) ? (int) $call->email_sent_at : 0;
+		switch ( $status ) {
+			case RecruitmentCallMailQueue::STATUS_SENT:
+				$out = esc_html_x( 'Sent', 'call e-mail status', 'ffcertificate' );
+				break;
+			case RecruitmentCallMailQueue::STATUS_NOT_SENT:
+				$out = esc_html_x( 'Not sent', 'call e-mail status', 'ffcertificate' );
+				break;
+			case RecruitmentCallMailQueue::STATUS_QUEUED:
+				$out = esc_html_x( 'Waiting to be sent', 'call e-mail status', 'ffcertificate' );
+				break;
+			default:
+				$out = '—';
+		}
+		if ( $when > 0 ) {
+			$out .= '<br><span class="description">' . esc_html( DateFormatter::format_datetime( $when ) ) . '</span>';
+		}
+		$open = null === $call->cancelled_at
+			&& ! RecruitmentCallService::is_past( (string) $call->date_to_assume, (string) $call->time_to_assume );
+		if ( $can_resend && $open && RecruitmentCallMailQueue::STATUS_QUEUED !== $status ) {
+			$out .= ' ' . self::cls_button( (int) $call->classification_id, 'resend', __( 'Send the e-mail again', 'ffcertificate' ), 'neutral', 'send', (int) $call->id );
+		}
+		return $out;
 	}
 
 	/**

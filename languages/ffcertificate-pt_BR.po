@@ -24221,9 +24221,6 @@ msgstr "Sem edital:"
 msgid "shows a selector of every notice in its preliminary or definitive list (drafts and closed notices are left out); the visitor picks one and its list appears below. With a single notice on offer it opens directly. The notice edit screen has the shortcode ready to copy."
 msgstr "mostra um seletor com todos os editais em lista prévia ou definitiva (rascunhos e editais encerrados ficam de fora); o visitante escolhe um e a lista dele aparece abaixo. Com um único edital disponível, ele abre direto. A tela de edição do edital traz o shortcode pronto para copiar."
 
-msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy."
-msgstr "a lista pública de classificação de um edital. Mostra só as colunas que o edital marca como públicas. Aceita o atributo opcional adjutancy=\"slug\" e respeita os filtros de URL ?q (busca por nome), ?adjutancy, ?subscription (pcd/geral) e ?page_top / ?page_bottom. O card \"Exibir no site\" na tela de edição do edital traz o shortcode pronto para copiar."
-
 msgid "without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice's list appears below it. Add list=\"preliminary\" or list=\"definitive\" to offer only one kind."
 msgstr "sem edital, um seletor com todos os editais em lista prévia ou definitiva; rascunhos e editais encerrados ficam de fora. A lista do edital escolhido aparece abaixo. Adicione list=\"preliminary\" ou list=\"definitive\" para oferecer só um tipo."
 
@@ -30652,10 +30649,6 @@ msgstr "Somente um edital em rascunho pode ser excluído, e suas listas importad
 msgid "+{n} more, listed below the form"
 msgstr "+{n} a mais, listadas abaixo do formulário"
 
-#: includes/settings/views/documentation/feature-recruitment.php:71
-msgid "A candidate is shared by every notice and is recognised by CPF, then by RF. Before anything is written, each line is compared with the candidate it matches. A line whose CPF belongs to one candidate and whose RF belongs to another refuses the whole file. A line whose name, CPF, RF or e-mail differs from the stored candidate is listed, and the import waits for confirmation: confirming attaches the line to that candidate and keeps the stored data. An import never overwrites a stored name or identifier; it only fills in one the candidate lacks. To correct a candidate, edit it on its own screen."
-msgstr "Um candidato é compartilhado por todos os editais e é reconhecido pelo CPF e, depois, pelo RF. Antes de qualquer gravação, cada linha é comparada com o candidato correspondente. Uma linha cujo CPF pertence a um candidato e cujo RF pertence a outro recusa o arquivo inteiro. Uma linha cujo nome, CPF, RF ou e-mail difere do candidato armazenado é listada, e a importação aguarda confirmação: ao confirmar, a linha é vinculada a esse candidato e os dados armazenados são mantidos. Uma importação nunca sobrescreve um nome ou identificador armazenado; apenas preenche o que estiver faltando. Para corrigir um candidato, edite-o na própria tela."
-
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:122
 msgid "Import and keep stored data"
 msgstr "Importar e manter os dados armazenados"
@@ -30776,10 +30769,6 @@ msgid "Module-wide options: convocation email, public-queue tuning and status co
 msgstr "Opções do módulo: e-mail de convocação, ajustes da fila pública e cores de status."
 
 #: includes/settings/views/documentation/feature-recruitment.php
-msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history."
-msgstr "Um candidato vinculado a uma conta vê os próprios dados sem máscara, então um vínculo concede acesso. Ninguém pode vincular um candidato à própria conta. Sem a permissão de dados pessoais, um candidato só pode ser vinculado à conta que tem o seu CPF, RF ou e-mail. Todo vínculo e desvínculo fica registrado no registro de atividades e no histórico do candidato."
-
-#: includes/settings/views/documentation/feature-recruitment.php
 msgid "The REST API edits a candidate under the edit screen's rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate's own API answer carries the score only when the notice shows it, never the staff fields of a call."
 msgstr "A API REST edita um candidato com as regras da tela de edição: nome, telefone e observações para a permissão de gerenciar, o e-mail só para quem pode revelá-lo, CPF e RF nunca, e toda alteração registrada. Toda revelação de CPF, RF ou e-mail é registrada; não há opção para desligar isso. O filtro PCD da lista pública só existe quando o edital mostra a coluna PCD, e a resposta da API ao próprio candidato traz a nota só quando o edital a mostra, nunca os campos internos de uma convocação."
 
@@ -30798,10 +30787,6 @@ msgstr "importar candidatos / convocar candidatos, registrar desfechos e cancela
 #: includes/recruitment/class-ffc-recruitment-error-messages.php
 msgid "The file is not UTF-8. Excel often saves CSV as Windows-1252: in Excel choose \"CSV UTF-8\", or re-save the file as UTF-8 in your editor, and import it again."
 msgstr "O arquivo não está em UTF-8. O Excel costuma salvar CSV como Windows-1252: no Excel escolha \"CSV UTF-8\", ou salve o arquivo de novo como UTF-8 no seu editor, e importe outra vez."
-
-#: includes/settings/views/documentation/feature-recruitment.php
-msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
-msgstr "Toda linha é verificada antes de qualquer importação, tanto na tela quanto pela API: identificadores, nota, pontos de tempo, classificação e adjutância. Uma linha inválida recusa o arquivo inteiro, e o relatório indica cada linha, cada problema e o valor errado (nunca um CPF ou RF, que são dados pessoais). O arquivo precisa estar em UTF-8: o \"CSV\" comum do Excel é Windows-1252, então escolha \"CSV UTF-8\" ao salvar. Promover a lista preliminar mantém todas as colunas, incluindo os pontos de tempo e a habilitação EMEBS."
 
 #: templates/admin/recruitment/admin-page/settings-tab.php
 msgid "Days to answer a call"
@@ -30828,18 +30813,9 @@ msgstr "O arquivo de calendário anexo adiciona a apresentação à sua agenda."
 msgid "Open My Calls"
 msgstr "Abrir Minhas Convocações"
 
-#. translators: {count} is replaced in JS with the number of candidates
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
-msgid "{count} called candidate(s) have no email on file and were not notified. Contact them manually."
-msgstr "{count} candidato(s) convocado(s) não têm e-mail cadastrado e não foram notificados. Entre em contato manualmente."
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
 msgid "No email — contact manually"
 msgstr "Sem e-mail — contatar manualmente"
-
-#: includes/settings/views/documentation/feature-recruitment.php
-msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified."
-msgstr "O e-mail de convocação informa a data e a hora da apresentação nos formatos do site, anexa o .ics da convocação, leva a \"Minhas convocações\" e pede que o candidato confirme respondendo. A opção \"Dias para responder à convocação\" das configurações do Recrutamento acrescenta um prazo, contado a partir do dia da convocação e nunca posterior à apresentação; 0 não indica prazo. O e-mail traz também um link para definir a senha, que é como um candidato cuja conta foi criada pela importação entra pela primeira vez. Um candidato sem e-mail cadastrado aparece como \"Sem e-mail — contatar manualmente\" na lista definitiva, e convocá-lo avisa isso, pois ninguém foi notificado."
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php
 msgid "Adjutancies are attached or detached only while the notice is in draft or preliminary."
@@ -30918,10 +30894,6 @@ msgid "A definitive list from an earlier cycle exists (%s row). Either option be
 msgid_plural "A definitive list from an earlier cycle exists (%s rows). Either option below replaces it."
 msgstr[0] "Existe uma lista definitiva de um ciclo anterior (%s linha). Qualquer opção abaixo a substitui."
 msgstr[1] "Existe uma lista definitiva de um ciclo anterior (%s linhas). Qualquer opção abaixo a substitui."
-
-#: includes/settings/views/documentation/feature-recruitment.php
-msgid "A file that replaces a list that already has rows shows what it changes before anything is written: the rows that enter, leave, or change rank or score. Nothing is imported until the operator confirms. The preliminary status and reason set by hand stay with each candidate and adjutancy that remains; only those of the rows that leave are lost, and the comparison says how many."
-msgstr "Um arquivo que substitui uma lista que já tem linhas mostra o que muda antes de gravar qualquer coisa: as linhas que entram, saem ou mudam de posição ou pontuação. Nada é importado até o operador confirmar. O status e o motivo preliminares lançados à mão continuam com cada candidato e matéria que permanece; só se perdem os das linhas que saem, e a comparação diz quantos são."
 
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "A preliminary notice is promoted only by \"Copy preliminary as definitive\" or by importing a definitive list. When a definitive list remains from an earlier cycle, because the notice went back to preliminary, both replace it, so the definitive list always comes from the corrected preliminary one or from the new file."
@@ -35431,6 +35403,38 @@ msgstr "Não foi possível alterar a URL curta. Ela pode ter sido alterada ou ex
 msgid "The prefix \"%1$s\" is the address of \"%2$s\". Short URLs would sit over that page and the pages under it, so choose another prefix."
 msgstr "O prefixo \"%1$s\" é o endereço de \"%2$s\". As URLs curtas ficariam por cima dessa página e das páginas abaixo dela, então escolha outro prefixo."
 
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A file that replaces a list that already has rows shows what it changes before anything is written: the rows that enter, leave, or change rank or score. Nothing is imported until the operator confirms. The preliminary status and reason set by hand stay with each candidate and adjutancy that remains; only those of the rows that leave are lost, and the comparison says how many. The notice is read again when the list is replaced: a preliminary list is refused once the notice has become definitive or closed, even if its import started earlier. Each step of an import must name the notice it was started for, by the operator who started it."
+msgstr "Um arquivo que substitui uma lista que já tem linhas mostra o que muda antes de gravar qualquer coisa: as linhas que entram, saem ou mudam de posição ou pontuação. Nada é importado até o operador confirmar. O status e o motivo preliminares lançados à mão continuam com cada candidato e matéria que permanece; só se perdem os das linhas que saem, e a comparação diz quantos são. O edital é lido de novo quando a lista é substituída: uma lista preliminar é recusada depois que o edital passou a definitivo ou foi encerrado, mesmo que sua importação tenha começado antes. Cada etapa de uma importação deve indicar o edital para o qual ela foi iniciada, pelo operador que a iniciou."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A candidate is shared by every notice and is recognised by CPF, then by RF. Before anything is written, each line is compared with the candidate it matches. A line whose CPF belongs to one candidate and whose RF belongs to another refuses the whole file. A line whose name, CPF, RF or e-mail differs from the stored candidate is listed, and the import waits for confirmation: confirming attaches the line to that candidate and keeps the stored data. An import never overwrites a stored name or identifier; it only fills in one the candidate lacks. To correct a candidate, edit it on its own screen. An e-mail typed there that is not a valid address is refused and nothing is saved; an empty field clears the e-mail."
+msgstr "Um candidato é compartilhado por todos os editais e é reconhecido pelo CPF e, depois, pelo RF. Antes de qualquer gravação, cada linha é comparada com o candidato correspondente. Uma linha cujo CPF pertence a um candidato e cujo RF pertence a outro recusa o arquivo inteiro. Uma linha cujo nome, CPF, RF ou e-mail difere do candidato armazenado é listada, e a importação aguarda confirmação: ao confirmar, a linha é vinculada a esse candidato e os dados armazenados são mantidos. Uma importação nunca sobrescreve um nome ou identificador armazenado; apenas preenche o que estiver faltando. Para corrigir um candidato, edite-o na própria tela. Um e-mail digitado ali que não é um endereço válido é recusado e nada é salvo; um campo vazio apaga o e-mail."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Nothing was saved: the e-mail is not a valid address. Correct it, or leave the field empty to clear it."
+msgstr "Nada foi salvo: o e-mail não é um endereço válido. Corrija-o ou deixe o campo vazio para apagá-lo."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The e-mail is not a valid address. Correct it, or send it empty to clear it."
+msgstr "O e-mail não é um endereço válido. Corrija-o ou envie-o vazio para apagá-lo."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy. Only the plain list, a pinned adjutancy and the first 20 pages of each section are cached; a name search, an adjutancy chosen in the address and a later page are rendered fresh each time."
+msgstr "a lista pública de classificação de um edital. Mostra só as colunas que o edital marca como públicas. Aceita o atributo opcional adjutancy=\"slug\" e respeita os filtros de URL ?q (busca por nome), ?adjutancy, ?subscription (pcd/geral) e ?page_top / ?page_bottom. O card \"Exibir no site\" na tela de edição do edital traz o shortcode pronto para copiar. Só a lista simples, uma matéria fixada e as 20 primeiras páginas de cada seção ficam em cache; uma busca por nome, uma matéria escolhida no endereço e uma página posterior são geradas a cada acesso."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. Each rank is one place in its adjutancy, so two lines with the same rank in one adjutancy are refused. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
+msgstr "Toda linha é verificada antes de qualquer importação, tanto na tela quanto pela API: identificadores, nota, pontos de tempo, classificação e adjutância. Cada classificação é um lugar na sua matéria, então duas linhas com a mesma classificação numa matéria são recusadas. Uma linha inválida recusa o arquivo inteiro, e o relatório indica cada linha, cada problema e o valor errado (nunca um CPF ou RF, que são dados pessoais). O arquivo precisa estar em UTF-8: o \"CSV\" comum do Excel é Windows-1252, então escolha \"CSV UTF-8\" ao salvar. Promover a lista preliminar mantém todas as colunas, incluindo os pontos de tempo e a habilitação EMEBS."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history. An unlink is kept: neither the background linking nor a new account with the same CPF or RF links the candidate again, until someone links it by hand."
+msgstr "Um candidato vinculado a uma conta vê os próprios dados sem máscara, então um vínculo concede acesso. Ninguém pode vincular um candidato à própria conta. Sem a permissão de dados pessoais, um candidato só pode ser vinculado à conta que tem o seu CPF, RF ou e-mail. Todo vínculo e desvínculo fica registrado no registro de atividades e no histórico do candidato. A desvinculação é mantida: nem a vinculação em segundo plano nem uma nova conta com o mesmo CPF ou RF vinculam o candidato de novo, até alguém vinculá-lo à mão."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Another line of the same adjutancy has this rank. Each rank is one place in the list."
+msgstr "Outra linha da mesma matéria tem esta classificação. Cada classificação é um lugar na lista."
+
 #: includes/settings/views/documentation/feature-url-shortener.php
 msgid "The list shows each link's title, short URL, destination, click count with the date of the last click, and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
 msgstr "A lista mostra o título, a URL curta, o destino, os cliques com a data do último clique e o estado de cada link, com ações para mostrar o QR code, ligar ou desligar, editar ou mover para a lixeira (links na lixeira podem ser restaurados, como desativados, ou excluídos definitivamente). A URL curta é um botão que a copia. Quem só pode ver a lista não recebe interruptor, Editar nem Lixeira. Cada link tem um QR code (PNG ou SVG) que codifica a própria URL curta, então a leitura dele também é contada."
@@ -35451,3 +35455,66 @@ msgstr "Último: %s"
 #: includes/frontend/submission/class-ffc-submission-identity-lock.php:69
 msgid "Another submission with these details is still being processed. Wait a moment and try again."
 msgstr "Outra submissão com estes dados ainda está sendo processada. Aguarde um momento e tente novamente."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified. Calling says the same when the e-mail could not go out, because e-mails are switched off or the send failed, and no new password link is issued for a message that is not sent. A bulk call saves the calls at once and sends their e-mails in the background, a few at a time. The Calls tab shows each call's e-mail as sent, not sent or waiting to be sent, with its time, and Send the e-mail again sends a call still in force once more."
+msgstr "O e-mail de convocação informa a data e a hora da apresentação nos formatos do site, anexa o .ics da convocação, leva a \"Minhas convocações\" e pede que o candidato confirme respondendo. A opção \"Dias para responder à convocação\" das configurações do Recrutamento acrescenta um prazo, contado a partir do dia da convocação e nunca posterior à apresentação; 0 não indica prazo. O e-mail traz também um link para definir a senha, que é como um candidato cuja conta foi criada pela importação entra pela primeira vez. Um candidato sem e-mail cadastrado aparece como \"Sem e-mail — contatar manualmente\" na lista definitiva, e convocá-lo avisa isso, pois ninguém foi notificado. A convocação avisa o mesmo quando o e-mail não pôde sair, porque os e-mails estão desativados ou o envio falhou, e nenhum novo link de senha é emitido para uma mensagem que não é enviada. Uma convocação em lote grava as convocações de uma vez e envia os e-mails em segundo plano, alguns por vez. A aba Chamados mostra o e-mail de cada convocação como enviado, não enviado ou aguardando envio, com o horário, e Enviar o e-mail de novo envia mais uma vez o de uma convocação em vigor."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "{count} called candidate(s) were not notified by e-mail: no address on file, e-mails switched off or the send failed. Contact them another way, or use Send again on the Calls tab."
+msgstr "{count} candidato(s) convocado(s) não foram avisados por e-mail: sem endereço cadastrado, e-mails desativados ou falha no envio. Entre em contato de outra forma ou use Enviar o e-mail de novo na aba Chamados."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The e-mails of {count} call(s) are being sent in the background. The Calls tab shows each delivery."
+msgstr "Os e-mails de {count} convocação(ões) estão sendo enviados em segundo plano. A aba Chamados mostra cada envio."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The call e-mail was sent again."
+msgstr "O e-mail da convocação foi enviado de novo."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The call e-mail did not go out: no address on file, e-mails switched off or the send failed."
+msgstr "O e-mail da convocação não saiu: sem endereço cadastrado, e-mails desativados ou falha no envio."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "This call was cancelled, so its e-mail is not sent again."
+msgstr "Esta convocação foi cancelada, então o e-mail dela não é enviado de novo."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The date and time to assume are over, so no e-mail is sent for this call."
+msgstr "A data e a hora de assunção já passaram, então nenhum e-mail é enviado para esta convocação."
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Send the e-mail again"
+msgstr "Enviar o e-mail de novo"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Recruitment Call E-mail Sent Again"
+msgstr "E-mail de Convocação do Recrutamento Reenviado"
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Recruitment: call e-mails of a bulk call (one per batch)"
+msgstr "Recrutamento: e-mails de uma convocação em lote (um por lote)"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Sent"
+msgstr "Enviado"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Not sent"
+msgstr "Não enviado"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Waiting to be sent"
+msgstr "Aguardando envio"
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "The same person appears twice in this adjutancy. A candidate holds one place per adjutancy."
+msgstr "A mesma pessoa aparece duas vezes nesta matéria. Um candidato ocupa um só lugar por matéria."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "This person appears on another line with different details (name, RF, e-mail, phone or PCD). The lines of one candidate must agree."
+msgstr "Esta pessoa aparece em outra linha com dados diferentes (nome, RF, e-mail, telefone ou PCD). As linhas de um mesmo candidato devem coincidir."

@@ -607,6 +607,44 @@ class RecruitmentActivatorTest extends TestCase {
 		$this->assertSame( array(), $log['dbdelta'] );
 	}
 
+	public function test_create_tables_adds_the_unlink_column_and_waits_for_it(): void {
+		$log     = $this->stub_schema( true, array() );
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+
+		RecruitmentActivator::create_tables();
+
+		$this->assertNotEmpty( $this->queries_matching( $log, 'ADD COLUMN \'account_unlinked\'' ), 'A table created before #2694 gains the column.' );
+		$this->assertArrayNotHasKey( RecruitmentActivator::SCHEMA_REVISION_OPTION, $written, 'The revision waits until the column reads back.' );
+	}
+
+	public function test_create_tables_records_the_revision_once_the_column_exists(): void {
+		$this->stub_schema(
+			true,
+			array(
+				'account_unlinked' => 'tinyint(1) unsigned',
+				'email_status'     => 'varchar(16)',
+				'email_sent_at'    => 'bigint(20) unsigned',
+			)
+		);
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+
+		RecruitmentActivator::create_tables();
+
+		$this->assertSame( RecruitmentActivator::SCHEMA_REVISION, $written[ RecruitmentActivator::SCHEMA_REVISION_OPTION ] ?? null );
+	}
+
 	public function test_maybe_migrate_does_nothing_when_already_current(): void {
 		$writes = $this->record_schema_versions( '12' );
 		$log    = $this->stub_schema( true, array() );

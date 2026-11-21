@@ -60,6 +60,7 @@ class Deactivator {
 		wp_unschedule_hook( 'ffc_reregistration_reminder_batch' );
 		wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
 		wp_unschedule_hook( 'ffc_recruitment_account_link_batch' );
+		wp_unschedule_hook( 'ffc_recruitment_call_mail_batch' );
 		wp_unschedule_hook( 'ffc_audience_notification_batch' );
 		// The one-shot submission pipeline and its pre-#1248 name (#2343): a
 		// pending event would otherwise fire into code that is not loaded.
