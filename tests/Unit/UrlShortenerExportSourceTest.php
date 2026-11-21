@@ -73,6 +73,7 @@ class UrlShortenerExportSourceTest extends BatchedExportSourceContractTestCase {
 			'title'       => 'My Link',
 			'target_url'  => 'https://example.com/very/long',
 			'click_count' => 42,
+			'last_clicked_at' => '1768647600', // 2026-01-17 11:00:00 UTC.
 			'status'      => 'active',
 			'post_id'     => 55,
 			'created_by'  => 3,
@@ -89,12 +90,13 @@ class UrlShortenerExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'url_shortener', $this->source->type() );
 	}
 
-	public function test_header_has_ten_columns(): void {
+	public function test_header_has_eleven_columns(): void {
 		$header = $this->source->header( array(), array() );
-		$this->assertCount( 10, $header );
+		$this->assertCount( 11, $header );
 		$this->assertSame( 'ID', $header[0] );
 		$this->assertSame( 'Short Code', $header[1] );
-		$this->assertSame( 'Updated At', $header[9] );
+		$this->assertSame( 'Last Click', $header[5] );
+		$this->assertSame( 'Updated At', $header[10] );
 	}
 
 	// ==================================================================
@@ -119,11 +121,25 @@ class UrlShortenerExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'My Link', $result[2] );
 		$this->assertSame( 'https://example.com/current-permalink', $result[3] );
 		$this->assertSame( '42', $result[4] );
-		$this->assertSame( 'active', $result[5] );
-		$this->assertSame( '55', $result[6] );
-		$this->assertSame( 'Alice', $result[7] );
-		$this->assertSame( '15/01/2026 10:30', $result[8] );
-		$this->assertSame( '16/01/2026 11:00', $result[9] );
+		$this->assertSame( '17/01/2026 11:00', $result[5] );
+		$this->assertSame( 'active', $result[6] );
+		$this->assertSame( '55', $result[7] );
+		$this->assertSame( 'Alice', $result[8] );
+		$this->assertSame( '15/01/2026 10:30', $result[9] );
+		$this->assertSame( '16/01/2026 11:00', $result[10] );
+	}
+
+	public function test_a_link_never_clicked_leaves_the_last_click_empty(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/current-permalink' );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( $format, (int) $ts ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_option' )->alias( static fn( $key, $fallback = false ) => $fallback );
+
+		$row                    = $this->sample_row();
+		$row['last_clicked_at'] = null;
+
+		$this->assertSame( '', $this->source->format_row( $row, array() )[5] );
 	}
 
 	public function test_creator_name_deleted_user_shows_id(): void {

@@ -74,12 +74,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	?>
 
 	<h4><?php esc_html_e( 'The list & QR codes', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'The list shows each link\'s title, short URL, destination, click count and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted.', 'ffcertificate' ); ?> <?php esc_html_e( 'Their design follows Settings → QR Code when it is applied to short URLs.', 'ffcertificate' ); ?> <a href="#config-qr-code"><?php esc_html_e( 'See QR Code settings', 'ffcertificate' ); ?></a>.</p>
+	<p><?php esc_html_e( 'The list shows each link\'s title, short URL, destination, click count with the date of the last click, and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted.', 'ffcertificate' ); ?> <?php esc_html_e( 'Their design follows Settings → QR Code when it is applied to short URLs.', 'ffcertificate' ); ?> <a href="#config-qr-code"><?php esc_html_e( 'See QR Code settings', 'ffcertificate' ); ?></a>.</p>
 	<p><?php esc_html_e( 'QR Codes are also available over REST for external automations:', 'ffcertificate' ); ?> <code>GET /ffc/v1/short-urls/{code}/qr</code> (<?php esc_html_e( 'base64 png/svg, cap-gated by ffc_view_url_shortener via an Application Password).', 'ffcertificate' ); ?> <a href="#developer-hooks-api"><?php esc_html_e( 'See the REST API', 'ffcertificate' ); ?></a>.</p>
 
 	<?php ob_start(); ?>
 		<p>
-			<?php esc_html_e( 'Each visit increments a click count; the plugin does not store per-click timestamps, referrers or IPs. Inactive links show the page above and are not counted, and neither are HEAD requests or link previews (WhatsApp, Slack, social networks…). Redirects are sent with no-cache headers; a click that a page cache answers anyway never reaches the counter.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Each visit increments a click count and records when the last one happened; the plugin does not store per-click timestamps, referrers or IPs. Inactive links show the page above and are not counted, and neither are HEAD requests, link previews (WhatsApp, Slack, social networks…) or search and AI crawlers that announce themselves (Googlebot, Bingbot, GPTBot…). Redirects are sent with no-cache headers; a click that a page cache answers anyway never reaches the counter.', 'ffcertificate' ); ?>
 		</p>
 	<?php
 	\FreeFormCertificate\Core\AdminNotice::callout(

@@ -361,7 +361,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 										<br><small class="ffc-shorturl-dest-note"><?php esc_html_e( 'follows the page', 'ffcertificate' ); ?></small>
 									<?php endif; ?>
 								</td>
-								<td><strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong></td>
+								<td>
+									<strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong>
+									<?php
+									// When the link was last clicked (#2693).
+									$ffc_last_click = (int) ( $item['last_clicked_at'] ?? 0 );
+									?>
+									<br><small class="ffc-shorturl-last-click">
+										<?php
+										echo esc_html(
+											$ffc_last_click > 0
+												/* translators: %s: date and time of the last click */
+												? sprintf( __( 'Last: %s', 'ffcertificate' ), \FreeFormCertificate\Core\DateFormatter::format_datetime( $ffc_last_click ) )
+												: __( 'Never clicked', 'ffcertificate' )
+										);
+										?>
+									</small>
+								</td>
 								<?php // The Status badge follows the row's toggle once its save is confirmed (#1904). ?>
 								<td class="ffc-shorturl-status-cell">
 									<?php

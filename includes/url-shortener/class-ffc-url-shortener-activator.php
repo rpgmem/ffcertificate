@@ -67,6 +67,7 @@ class UrlShortenerActivator {
             post_id bigint(20) unsigned DEFAULT NULL,
             title varchar(255) DEFAULT '',
             click_count bigint(20) unsigned DEFAULT 0,
+            last_clicked_at bigint(20) unsigned DEFAULT NULL,
             created_by bigint(20) unsigned DEFAULT 0,
             created_at bigint(20) unsigned NOT NULL DEFAULT 0,
             updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
@@ -248,7 +249,7 @@ class UrlShortenerActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '2';
+	public const SCHEMA_REVISION = '3';
 
 	/**
 	 * Option holding the revision last applied.
@@ -318,7 +319,12 @@ class UrlShortenerActivator {
 		// Revision 2: creation and change times are instants (#2337).
 		$instants = self::migrate_instant_columns();
 
-		if ( $instants && self::table_exists( self::get_retired_table_name() ) ) {
+		// Revision 3: when a link was last clicked, an instant (#2693).
+		$table_name = self::get_table_name();
+		self::add_column_if_missing( $table_name, 'last_clicked_at', 'BIGINT(20) UNSIGNED DEFAULT NULL', 'click_count' );
+		$last_click = ! self::table_exists( $table_name ) || self::column_exists( $table_name, 'last_clicked_at' );
+
+		if ( $instants && $last_click && self::table_exists( self::get_retired_table_name() ) ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		}
 	}

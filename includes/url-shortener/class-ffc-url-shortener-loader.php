@@ -375,8 +375,32 @@ class UrlShortenerLoader {
 	);
 
 	/**
-	 * Whether this request counts as a click: not a HEAD request and not a
-	 * link preview (#2337).
+	 * User agents of the search and AI crawlers that follow a link they find
+	 * on a page (#2693). A crawl is not a visit, so it is not counted.
+	 */
+	public const CRAWLER_AGENTS = array(
+		'googlebot',
+		'bingbot',
+		'yandexbot',
+		'baiduspider',
+		'duckduckbot',
+		'applebot',
+		'petalbot',
+		'seznambot',
+		'ahrefsbot',
+		'semrushbot',
+		'mj12bot',
+		'dotbot',
+		'gptbot',
+		'ccbot',
+		'claudebot',
+		'perplexitybot',
+		'bytespider',
+	);
+
+	/**
+	 * Whether this request counts as a click: not a HEAD request, not a
+	 * link preview (#2337) and not a crawler (#2693).
 	 *
 	 * @return bool
 	 */
@@ -387,8 +411,8 @@ class UrlShortenerLoader {
 		}
 
 		$agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) ) : '';
-		foreach ( self::PREVIEW_AGENTS as $preview ) {
-			if ( false !== strpos( $agent, $preview ) ) {
+		foreach ( array_merge( self::PREVIEW_AGENTS, self::CRAWLER_AGENTS ) as $bot ) {
+			if ( false !== strpos( $agent, $bot ) ) {
 				return false;
 			}
 		}
