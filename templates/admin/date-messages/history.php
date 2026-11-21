@@ -6,6 +6,7 @@
  *
  * @var array<int, array<string, mixed>> $history    A page of runs.
  * @var int                              $total      Number of runs.
+ * @var array<int, list<string>>         $failed_names Run id => masked names of who it failed to reach (#2692).
  * @var int                              $paged      Current page.
  * @var array<int, string>               $rule_names Rule id => name.
  * @var int|false                        $next_run   Next daily run.
@@ -93,6 +94,7 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 				<th scope="col"><?php esc_html_e( 'Outside the audience', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Failed', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Listed for the summary only', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Already sent before', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 			</tr>
 		</thead>
@@ -141,8 +143,25 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 						echo esc_html( DateFormatter::format_wallclock_date( $ffc_dm_from ) . ( $ffc_dm_to !== $ffc_dm_from ? ' – ' . DateFormatter::format_wallclock_date( $ffc_dm_to ) : '' ) );
 						?>
 					</td>
-					<?php foreach ( array( 'sent', 'forced', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'listed' ) as $ffc_dm_counter ) : ?>
-						<td><?php echo esc_html( number_format_i18n( $ffc_dm_int( $ffc_dm_run[ $ffc_dm_counter ] ?? 0 ) ) ); ?></td>
+					<?php $ffc_dm_run_id = $ffc_dm_int( $ffc_dm_run['id'] ?? 0 ); ?>
+					<?php foreach ( array( 'sent', 'forced', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'listed', 'already_sent' ) as $ffc_dm_counter ) : ?>
+						<td>
+							<?php echo esc_html( number_format_i18n( $ffc_dm_int( $ffc_dm_run[ $ffc_dm_counter ] ?? 0 ) ) ); ?>
+							<?php
+							// Who it failed to reach, masked, for a viewer allowed
+							// to see names (#2692).
+							if ( 'failed' === $ffc_dm_counter && ! empty( $failed_names[ $ffc_dm_run_id ] ) ) :
+								?>
+								<details class="ffc-date-messages-failed">
+									<summary><?php esc_html_e( 'Who', 'ffcertificate' ); ?></summary>
+									<ul>
+										<?php foreach ( $failed_names[ $ffc_dm_run_id ] as $ffc_dm_name ) : ?>
+											<li><?php echo esc_html( $ffc_dm_name ); ?></li>
+										<?php endforeach; ?>
+									</ul>
+								</details>
+							<?php endif; ?>
+						</td>
 					<?php endforeach; ?>
 					<td><?php echo esc_html( $ffc_dm_int( $ffc_dm_run['finished_at'] ?? 0 ) > 0 ? __( 'Finished', 'ffcertificate' ) : __( 'Running', 'ffcertificate' ) ); ?></td>
 				</tr>

@@ -103,11 +103,42 @@ class DateMessagesActivatorTest extends TestCase {
 	public function test_maybe_migrate_heals_and_then_records_the_version(): void {
 		Functions\when( 'get_option' )->justReturn( '6.0.0' );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		// The created runs table carries the counter (#2692).
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static fn( $q ) => 0 === strpos( (string) $q, 'SHOW COLUMNS FROM %i LIKE %s|wp_ffc_date_message_runs,already_sent' ) ? array( (object) array( 'Field' => 'already_sent' ) ) : array()
+		);
 		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::SCHEMA_REVISION_OPTION, DateMessagesActivator::SCHEMA_REVISION );
 
 		DateMessagesActivator::maybe_migrate();
 
 		$this->assertCount( 3, $this->deltas );
+		$this->assertStringContainsString( 'already_sent int(10) unsigned NOT NULL DEFAULT 0', $this->deltas[1] );
+	}
+
+	public function test_a_counter_column_that_does_not_read_back_is_tried_again(): void {
+		// An install whose runs table predates the counter gets it by ALTER,
+		// and the revision is recorded only once it reads back (#2692).
+		// Every one-shot move is done; the schema is on revision 1.
+		Functions\when( 'get_option' )->justReturn( '1' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $q ) => substr( (string) $q, (int) strrpos( (string) $q, '|' ) + 1 ) );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'suppress_errors' )->andReturn( false );
+		$altered = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$altered ) {
+				$altered[] = (string) $q;
+				return false;
+			}
+		);
+		Functions\expect( 'update_option' )->never();
+
+		DateMessagesActivator::maybe_migrate();
+
+		$this->assertCount( 1, $altered );
+		$this->assertStringContainsString( 'ALTER TABLE %i ADD COLUMN %i INT(10) UNSIGNED NOT NULL DEFAULT 0', $altered[0] );
+		$this->assertStringContainsString( 'wp_ffc_date_message_runs,already_sent', $altered[0] );
 	}
 
 	// ------------------------------------------------------------------
