@@ -2010,6 +2010,7 @@ msgid "Appointment booking confirmation"
 msgstr "Confirmação de agendamento"
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:277
+#: includes/frontend/class-ffc-verification-response-renderer.php
 msgid "Appointment Cancelled"
 msgstr "Agendamento Cancelado"
 
@@ -19118,6 +19119,7 @@ msgid "Waiting for location permission… Check if a browser prompt appeared."
 msgstr "Aguardando permissão de localização… Verifique se apareceu uma solicitação no navegador."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:262 includes/settings/views/documentation/feature-self-scheduling.php:43
+#: includes/frontend/class-ffc-verification-response-renderer.php
 msgid "Waitlist"
 msgstr "Lista de espera"
 
@@ -35231,10 +35233,6 @@ msgstr "Desligue para desenhar o código sem o logo, mantendo a imagem seleciona
 msgid "This appointment is awaiting approval and cannot be verified yet."
 msgstr "Este agendamento aguarda aprovação e ainda não pode ser verificado."
 
-#: includes/settings/views/documentation/feature-self-scheduling.php
-msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved."
-msgstr "Na página de verificação, um código de validação confirma um agendamento e baixa o comprovante com o CPF/RF e o e-mail mascarados. O código de validação vem impresso no comprovante, então qualquer pessoa com uma cópia pode digitá-lo. O comprovante completo e o link de cancelamento ficam no link mágico que a pessoa recebeu. Um agendamento que aguarda aprovação só pode ser verificado depois de aprovado."
-
 #: includes/settings/views/ffc-tab-geolocation.php
 msgid "Visitor addresses are sent over HTTPS only. A failed lookup is not repeated for 5 minutes."
 msgstr "Os endereços dos visitantes são enviados só por HTTPS. Uma consulta que falhou não é repetida por 5 minutos."
@@ -35343,6 +35341,18 @@ msgstr "Você já tem um agendamento neste horário."
 #, php-format
 msgid "You have an appointment on this calendar on %1$s. A new one must be at least %2$d hours before or after it."
 msgstr "Você tem um agendamento neste calendário em %1$s. Um novo precisa estar pelo menos %2$d horas antes ou depois dele."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved. Only a confirmed or completed appointment is shown as a valid receipt: a waitlisted one says it is not confirmed yet, a no-show says the participant did not attend, and a cancelled one says so and offers no receipt to download."
+msgstr "Na página de verificação, um código de validação confirma um agendamento e baixa o comprovante com o CPF/RF e o e-mail mascarados. O código de validação vem impresso no comprovante, então qualquer pessoa com uma cópia pode digitá-lo. O comprovante completo e o link de cancelamento ficam no link mágico que a pessoa recebeu. Um agendamento que aguarda aprovação só pode ser verificado depois de aprovado. Só um agendamento confirmado ou concluído aparece como comprovante válido: um na lista de espera diz que ainda não foi confirmado, uma ausência diz que o participante não compareceu, e um cancelado diz isso e não oferece comprovante para baixar."
+
+#: includes/frontend/class-ffc-verification-response-renderer.php
+msgid "Appointment Not Confirmed Yet"
+msgstr "Agendamento ainda não confirmado"
+
+#: includes/frontend/class-ffc-verification-response-renderer.php
+msgid "Participant Did Not Attend"
+msgstr "O participante não compareceu"
 
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "On the Appointments list, a confirmed appointment offers Attended from its date on and No-show once its start time has passed; either mark is replaced by Undo attendance, which puts the appointment back to confirmed. A mark frees the place, so undoing one before the slot starts recounts the slot and is refused when the place was booked again since. Marking attendance needs ffc_manage_appointments and sends no e-mail."

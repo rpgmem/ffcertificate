@@ -305,6 +305,58 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-verification-status-pending', $html );
 	}
 
+	/**
+	 * The headline follows the status: only a confirmed or completed
+	 * appointment is called a valid receipt (#2689).
+	 *
+	 * @dataProvider appointment_status_headlines
+	 */
+	public function test_appointment_headline_follows_the_status( string $status, string $headline, string $badge, bool $error_card, bool $download ): void {
+		$result = array(
+			'data'        => array( 'name' => 'Ana' ),
+			'appointment' => array(
+				'appointment_date' => '2025-07-01',
+				'start_time'       => '14:00',
+				'status'           => $status,
+			),
+		);
+
+		$html = $this->renderer->format_appointment_verification_response( $result );
+
+		$this->assertStringContainsString( '>' . $headline . '</span>', $html );
+		$this->assertStringContainsString( '<span class="' . $badge . '">', $html );
+		$this->assertSame( $error_card, false !== strpos( $html, 'ffc-appointment-verification ffc-error' ), 'Only a cancelled appointment draws the error card.' );
+		$this->assertSame( $download, false !== strpos( $html, 'Download Receipt (PDF)' ), 'A cancelled appointment offers no receipt.' );
+		if ( false === strpos( $badge, 'badge-success' ) ) {
+			$this->assertStringNotContainsString( 'Appointment Receipt Valid', $html, 'Only a confirmed or completed appointment is called valid.' );
+		}
+	}
+
+	/**
+	 * @return array<string, array{string, string, string, bool, bool}>
+	 */
+	public static function appointment_status_headlines(): array {
+		return array(
+			'confirmed' => array( 'confirmed', 'Appointment Receipt Valid', 'ffc-status-badge ffc-status-badge-success ffc-icon-success', false, true ),
+			'completed' => array( 'completed', 'Appointment Receipt Valid', 'ffc-status-badge ffc-status-badge-success ffc-icon-success', false, true ),
+			'pending'   => array( 'pending', 'Appointment Not Confirmed Yet', 'ffc-status-badge ffc-icon-clock', false, true ),
+			'waitlist'  => array( 'waitlist', 'Appointment Not Confirmed Yet', 'ffc-status-badge ffc-icon-clock', false, true ),
+			'no_show'   => array( 'no_show', 'Participant Did Not Attend', 'ffc-status-badge ffc-icon-warning', false, true ),
+			'cancelled' => array( 'cancelled', 'Appointment Cancelled', 'ffc-status-badge ffc-status-badge-error ffc-icon-error', true, false ),
+		);
+	}
+
+	public function test_waitlist_status_has_its_own_label(): void {
+		$html = $this->renderer->format_appointment_verification_response(
+			array(
+				'data'        => array(),
+				'appointment' => array( 'status' => 'waitlist' ),
+			)
+		);
+
+		$this->assertStringContainsString( 'ffc-verification-status-waitlist">Waitlist</span>', $html );
+	}
+
 	// ==================================================================
 	// format_appointment_verification_response() — empty dates
 	// ==================================================================
