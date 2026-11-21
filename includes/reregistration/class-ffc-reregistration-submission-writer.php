@@ -262,8 +262,10 @@ class ReregistrationSubmissionWriter {
 				$value = wp_json_encode( $value );
 			}
 
+			// A reason is text; anything else the caller passed is not a
+			// reason and is not stored as one.
 			if ( 'notes' === $key && null !== $value ) {
-				$value = sanitize_textarea_field( $value );
+				$value = is_string( $value ) ? sanitize_textarea_field( $value ) : '';
 			}
 
 			$update_data[ $key ] = $value;
