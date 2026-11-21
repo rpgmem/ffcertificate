@@ -35418,6 +35418,7 @@ msgid "%d certificate of this form is signed. Changing the title, workload or ev
 msgid_plural "%d certificates of this form are signed. Changing the title, workload or event dates makes them read as changed after signing, until they are signed again from the notice the save shows."
 msgstr[0] ""
 msgstr[1] ""
+
 #: includes/frontend/submission/class-ffc-submission-identity-lock.php:69
 msgid "Another submission with these details is still being processed. Wait a moment and try again."
 msgstr ""

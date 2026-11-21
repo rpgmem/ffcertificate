@@ -35496,6 +35496,7 @@ msgid "%d certificate of this form is signed. Changing the title, workload or ev
 msgid_plural "%d certificates of this form are signed. Changing the title, workload or event dates makes them read as changed after signing, until they are signed again from the notice the save shows."
 msgstr[0] "%d certificado deste formulário está assinado. Mudar o título, a carga horária ou as datas do evento faz com que ele apareça como alterado após a assinatura, até ser assinado de novo pelo aviso que o salvamento mostra."
 msgstr[1] "%d certificados deste formulário estão assinados. Mudar o título, a carga horária ou as datas do evento faz com que apareçam como alterados após a assinatura, até serem assinados de novo pelo aviso que o salvamento mostra."
+
 #: includes/frontend/submission/class-ffc-submission-identity-lock.php:69
 msgid "Another submission with these details is still being processed. Wait a moment and try again."
 msgstr "Outra submissão com estes dados ainda está sendo processada. Aguarde um momento e tente novamente."
