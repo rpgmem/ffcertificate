@@ -546,13 +546,16 @@ class UrlShortenerService {
 	 * @return bool
 	 */
 	public function trash_short_url( int $id ): bool {
-		return false !== $this->repository->update(
+		// Only a row that changed is a success: an id that is gone already
+		// changes nothing, and the screen says so (#2693).
+		$updated = $this->repository->update(
 			$id,
 			array(
 				'status'     => 'trashed',
 				'updated_at' => time(),
 			)
 		);
+		return is_int( $updated ) && $updated > 0;
 	}
 
 	/**
@@ -562,13 +565,16 @@ class UrlShortenerService {
 	 * @return bool
 	 */
 	public function restore_short_url( int $id ): bool {
-		return false !== $this->repository->update(
+		// Only a row that changed is a success: an id that is gone already
+		// changes nothing, and the screen says so (#2693).
+		$updated = $this->repository->update(
 			$id,
 			array(
 				'status'     => 'disabled',
 				'updated_at' => time(),
 			)
 		);
+		return is_int( $updated ) && $updated > 0;
 	}
 
 	/**

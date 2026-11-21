@@ -7620,10 +7620,6 @@ msgid "The link follows its post"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
-msgid "Trashing a post disables its short URL; restoring and publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php
 msgid "Retired codes"
 msgstr ""
 
@@ -7636,15 +7632,7 @@ msgid "When a link is not active"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
-msgid "An unknown, disabled, trashed or retired code shows a short page of its own, without the site's theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) for a disabled, trashed or retired code and 404 for a code that never existed, and asks search engines not to index it."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php
 msgid "Changing the prefix"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php
-msgid "Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
@@ -35342,4 +35330,25 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php:84
 msgid "On a multisite network a rule reaches only the members of this site, whether it follows a date or is an announcement without an audience. A batch that stops halfway is retried; the retry does not send the rest of the run a second time, and a message that failed and then went out on the retry is counted once, as sent."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php:43
+msgid "Taking a post off the site (the trash, a draft, pending review, private or a future date) disables its short URL; publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php:49
+msgid "A disabled, trashed or retired code shows a short page of its own, without the site's theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) and asks search engines not to index it. An address under the prefix that is not a code the site issued is left to WordPress, so a page whose address starts with the prefix still opens, and anything else gets the site's own 404."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php:52
+msgid "Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty or be changed to the address of a page, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes."
+msgstr ""
+
+#: templates/admin/url-shortener/short-urls-page.php:104
+msgid "The short URL could not be changed. It may have been changed or deleted in the meantime; reload the list and try again."
+msgstr ""
+
+#: includes/admin/class-ffc-settings-save-handler.php:866
+#, php-format
+msgid "The prefix \"%1$s\" is the address of \"%2$s\". Short URLs would sit over that page and the pages under it, so choose another prefix."
 msgstr ""

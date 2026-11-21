@@ -7621,10 +7621,6 @@ msgid "The link follows its post"
 msgstr "O link acompanha o post"
 
 #: includes/settings/views/documentation/feature-url-shortener.php
-msgid "Trashing a post disables its short URL; restoring and publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code."
-msgstr "Mover um post para a lixeira desativa a sua URL curta; restaurá-lo e publicá-lo de novo a reativa; excluir o post definitivamente exclui a URL curta e aposenta o código."
-
-#: includes/settings/views/documentation/feature-url-shortener.php
 msgid "Retired codes"
 msgstr "Códigos aposentados"
 
@@ -7637,16 +7633,8 @@ msgid "When a link is not active"
 msgstr "Quando um link não está ativo"
 
 #: includes/settings/views/documentation/feature-url-shortener.php
-msgid "An unknown, disabled, trashed or retired code shows a short page of its own, without the site's theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) for a disabled, trashed or retired code and 404 for a code that never existed, and asks search engines not to index it."
-msgstr "Um código desconhecido, desativado, na lixeira ou aposentado mostra uma página própria e simples, sem o tema do site, dizendo que o link não está mais ativo. Ela leva o visitante à página inicial depois de 15 segundos, com um link para ir agora. Responde 410 (Gone) para um código desativado, na lixeira ou aposentado e 404 para um código que nunca existiu, e pede aos buscadores que não a indexem."
-
-#: includes/settings/views/documentation/feature-url-shortener.php
 msgid "Changing the prefix"
 msgstr "Trocar o prefixo"
-
-#: includes/settings/views/documentation/feature-url-shortener.php
-msgid "Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes."
-msgstr "Os prefixos anteriores são lembrados: uma visita a um prefixo antigo com um código conhecido é encaminhada para o prefixo atual, então links e QR codes já impressos continuam funcionando, e o clique conta uma vez. O prefixo não pode ficar vazio, e um prefixo anterior que passou a ser o endereço de uma página é recusado até que a página ou o prefixo mude."
 
 #: includes/settings/views/documentation/feature-url-shortener.php
 msgid "Redirect type"
@@ -35421,3 +35409,24 @@ msgstr "O histórico guarda os últimos 365 dias: cada execução diária apaga 
 #: includes/settings/views/documentation/feature-date-messages.php:84
 msgid "On a multisite network a rule reaches only the members of this site, whether it follows a date or is an announcement without an audience. A batch that stops halfway is retried; the retry does not send the rest of the run a second time, and a message that failed and then went out on the retry is counted once, as sent."
 msgstr "Numa rede multisite, uma regra alcança só os membros deste site, seja ela por data ou um comunicado sem público. Um lote que para no meio é refeito; a nova tentativa não envia o resto da execução uma segunda vez, e uma mensagem que falhou e depois saiu na nova tentativa é contada uma vez, como enviada."
+
+#: includes/settings/views/documentation/feature-url-shortener.php:43
+msgid "Taking a post off the site (the trash, a draft, pending review, private or a future date) disables its short URL; publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code."
+msgstr "Tirar um post do site (a lixeira, um rascunho, revisão pendente, privado ou uma data futura) desativa a sua URL curta; publicá-lo de novo a reativa; excluir o post definitivamente exclui a URL curta e aposenta o código."
+
+#: includes/settings/views/documentation/feature-url-shortener.php:49
+msgid "A disabled, trashed or retired code shows a short page of its own, without the site's theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) and asks search engines not to index it. An address under the prefix that is not a code the site issued is left to WordPress, so a page whose address starts with the prefix still opens, and anything else gets the site's own 404."
+msgstr "Um código desativado, na lixeira ou aposentado mostra uma página própria e simples, sem o tema do site, dizendo que o link não está mais ativo. Ela leva o visitante à página inicial depois de 15 segundos, com um link para ir agora. Responde 410 (Gone) e pede aos buscadores que não a indexem. Um endereço sob o prefixo que não é um código emitido pelo site fica com o WordPress, então uma página cujo endereço começa com o prefixo continua abrindo, e o resto recebe o 404 do próprio site."
+
+#: includes/settings/views/documentation/feature-url-shortener.php:52
+msgid "Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty or be changed to the address of a page, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes."
+msgstr "Os prefixos anteriores são lembrados: uma visita a um prefixo antigo com um código conhecido é encaminhada para o prefixo atual, então links e QR codes já impressos continuam funcionando, e o clique conta uma vez. O prefixo não pode ficar vazio nem passar a ser o endereço de uma página, e um prefixo anterior que passou a ser o endereço de uma página é recusado até que a página ou o prefixo mude."
+
+#: templates/admin/url-shortener/short-urls-page.php:104
+msgid "The short URL could not be changed. It may have been changed or deleted in the meantime; reload the list and try again."
+msgstr "Não foi possível alterar a URL curta. Ela pode ter sido alterada ou excluída nesse meio-tempo; recarregue a lista e tente de novo."
+
+#: includes/admin/class-ffc-settings-save-handler.php:866
+#, php-format
+msgid "The prefix \"%1$s\" is the address of \"%2$s\". Short URLs would sit over that page and the pages under it, so choose another prefix."
+msgstr "O prefixo \"%1$s\" é o endereço de \"%2$s\". As URLs curtas ficariam por cima dessa página e das páginas abaixo dela, então escolha outro prefixo."

@@ -1118,6 +1118,28 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( array( array( 'ffc_short_url_prefix_taken', 'error' ) ), $this->prefix_notices );
 	}
 
+	public function test_a_new_prefix_that_is_a_page_address_is_refused(): void {
+		// /events is a page with children such as /events/2026 (#2693).
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save( array( 'events' => 'Events' ) );
+
+		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'go' ), array( 'url_shortener_prefix' => 'events' ) ) );
+
+		$this->assertSame( 'go', $result['url_shortener_prefix'] );
+		$this->assertSame( array( array( 'ffc_short_url_prefix_page', 'error' ) ), $this->prefix_notices );
+	}
+
+	public function test_an_unchanged_prefix_saves_even_where_a_page_shares_it(): void {
+		// A site already in that state can still save the rest of the tab.
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save( array( 'events' => 'Events' ) );
+
+		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'events' ), array( 'url_shortener_prefix' => 'events' ) ) );
+
+		$this->assertSame( 'events', $result['url_shortener_prefix'] );
+		$this->assertSame( array(), $this->prefix_notices );
+	}
+
 	public function test_url_shortener_prefix_unchanged_no_flush(): void {
 		$_POST['_ffc_tab'] = 'url_shortener';
 		$this->stub_prefix_save();

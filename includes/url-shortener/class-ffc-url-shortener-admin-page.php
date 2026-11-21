@@ -188,8 +188,9 @@ class UrlShortenerAdminPage {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_trash_' . RequestInput::get_get_int( 'id' ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
-			$this->service->trash_short_url( RequestInput::get_get_int( 'id' ) );
-			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=trashed' ) );
+			$done = $this->service->trash_short_url( RequestInput::get_get_int( 'id' ) );
+			// A change that did not happen is said, never reported as done (#2693).
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=' . ( $done ? 'trashed' : 'action_failed' ) ) );
 			exit;
 		}
 
@@ -197,8 +198,9 @@ class UrlShortenerAdminPage {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_restore_' . RequestInput::get_get_int( 'id' ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
-			$this->service->restore_short_url( RequestInput::get_get_int( 'id' ) );
-			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&status=trashed&msg=restored' ) );
+			$done = $this->service->restore_short_url( RequestInput::get_get_int( 'id' ) );
+			// A change that did not happen is said, never reported as done (#2693).
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&status=trashed&msg=' . ( $done ? 'restored' : 'action_failed' ) ) );
 			exit;
 		}
 
@@ -206,8 +208,9 @@ class UrlShortenerAdminPage {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_delete_' . RequestInput::get_get_int( 'id' ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
-			$this->service->delete_short_url( RequestInput::get_get_int( 'id' ) );
-			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&status=trashed&msg=deleted' ) );
+			$done = $this->service->delete_short_url( RequestInput::get_get_int( 'id' ) );
+			// A change that did not happen is said, never reported as done (#2693).
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&status=trashed&msg=' . ( $done ? 'deleted' : 'action_failed' ) ) );
 			exit;
 		}
 

@@ -130,6 +130,42 @@ class UrlShortenerPostLifecycleTest extends TestCase {
 		$this->lifecycle->on_transition( 'publish', 'draft', $this->post( 5 ) );
 	}
 
+	/**
+	 * A published post sent back to draft, pending, private or a future
+	 * date leaves the public site as the trash does, and so does its link
+	 * (#2693); publishing it again brings the link back.
+	 *
+	 * @dataProvider statuses_off_the_site
+	 */
+	public function test_leaving_publish_pauses_the_link_and_republishing_resumes_it( string $status ): void {
+		$this->repo->shouldReceive( 'findByPostId' )->with( 5 )->andReturn( array( 'id' => 50, 'status' => 'active' ), array( 'id' => 50, 'status' => 'disabled' ) );
+		$this->service->shouldReceive( 'set_active' )->with( 50, false )->once()->andReturn( true );
+		$this->service->shouldReceive( 'set_active' )->with( 50, true )->once()->andReturn( true );
+
+		$this->lifecycle->on_transition( $status, 'publish', $this->post( 5 ) );
+		$this->assertSame( 1, $this->meta[5][ UrlShortenerPostLifecycle::PAUSED_META ] ?? null );
+
+		$this->lifecycle->on_transition( 'publish', $status, $this->post( 5 ) );
+		$this->assertArrayNotHasKey( UrlShortenerPostLifecycle::PAUSED_META, $this->meta[5] );
+	}
+
+	/** @return array<string, array{string}> */
+	public static function statuses_off_the_site(): array {
+		return array(
+			'draft'   => array( 'draft' ),
+			'pending' => array( 'pending' ),
+			'private' => array( 'private' ),
+			'future'  => array( 'future' ),
+		);
+	}
+
+	public function test_an_update_that_stays_published_leaves_the_link_alone(): void {
+		$this->repo->shouldNotReceive( 'findByPostId' );
+		$this->service->shouldNotReceive( 'set_active' );
+
+		$this->lifecycle->on_transition( 'publish', 'publish', $this->post( 5 ) );
+	}
+
 	public function test_deleting_the_post_deletes_its_link(): void {
 		$this->repo->shouldReceive( 'findByPostId' )->with( 5 )->andReturn( array( 'id' => 50, 'status' => 'trashed' ) );
 		$this->service->shouldReceive( 'delete_short_url' )->with( 50 )->once()->andReturn( true );

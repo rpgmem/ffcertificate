@@ -40,16 +40,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'Both need ffc_manage_url_shortener and permission to edit that post, and both update the box in place, without reloading the editor.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'The link follows its post', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Trashing a post disables its short URL; restoring and publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Taking a post off the site (the trash, a draft, pending review, private or a future date) disables its short URL; publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Retired codes', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A code leaves use when its link is deleted (one at a time, by Empty Trash or by the cleanup tool) or regenerated. It is then recorded as retired and is never issued again, so a printed link or QR code can never start pointing somewhere else. Administrators see them under "Retired" in the list\'s status filter.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'When a link is not active', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'An unknown, disabled, trashed or retired code shows a short page of its own, without the site\'s theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) for a disabled, trashed or retired code and 404 for a code that never existed, and asks search engines not to index it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A disabled, trashed or retired code shows a short page of its own, without the site\'s theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) and asks search engines not to index it. An address under the prefix that is not a code the site issued is left to WordPress, so a page whose address starts with the prefix still opens, and anything else gets the site\'s own 404.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Changing the prefix', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty or be changed to the address of a page, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Redirect type', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( '302 (temporary) is the default and the recommended choice: the browser asks again on every visit, so switching a link off or changing its destination works at once and every visit is counted. 307 behaves the same way. 301 (permanent) is still available, but a browser keeps it for good: switching the link off or changing it no longer reaches earlier visitors, and their clicks are not counted. A 301 saved before this recommendation was moved to 302 once on update.', 'ffcertificate' ); ?></p>

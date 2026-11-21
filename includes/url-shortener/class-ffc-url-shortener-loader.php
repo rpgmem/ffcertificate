@@ -44,10 +44,18 @@ class UrlShortenerLoader {
 	}
 
 	/**
-	 * Option key used to track whether rewrite rules have been flushed
-	 * for the current prefix configuration.
+	 * Option key recording the rewrite flush this module last asked for.
 	 */
 	private const FLUSH_FLAG = 'ffc_url_shortener_rewrite_version';
+
+	/**
+	 * The flush the stored rewrite rules must have seen (#2693).
+	 *
+	 * Version 2 removed the module's own rewrite rule, so an install that
+	 * still stores it is flushed once and stops sending every
+	 * `/<prefix>/<anything>` address to the short URL handler.
+	 */
+	private const REWRITE_VERSION = 'no-rule:2';
 
 	/**
 	 * Wire all hooks for the URL Shortener module.
@@ -57,16 +65,16 @@ class UrlShortenerLoader {
 			return;
 		}
 
-		// Rewrite rules (front-end routing).
-		add_action( 'init', array( $this, 'register_rewrite_rules' ) );
-		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
-
+		// No rewrite rule of its own (#2693): a rule at the top claimed every
+		// `/<prefix>/<anything>` address, so a page such as /events/2026
+		// under a prefix "events" could never load. The request is read here
+		// instead, and an address that is not a known code is left alone.
 		// Primary: intercept during parse_request (before WP_Query, no rewrite dependency).
 		add_action( 'parse_request', array( $this, 'intercept_short_url' ), 1 );
 		// Fallback: template_redirect catches anything parse_request missed.
 		add_action( 'template_redirect', array( $this, 'handle_redirect' ), 1 );
 
-		// Auto-flush rewrite rules when prefix changes or first install.
+		// Flush once, so the rule earlier versions stored goes (#2693).
 		add_action( 'init', array( $this, 'maybe_flush_rewrite_rules' ), 99 );
 
 		// Expose short URLs as the canonical WordPress shortlink for opted-in
@@ -140,40 +148,14 @@ class UrlShortenerLoader {
 	}
 
 	/**
-	 * Flush rewrite rules once when the module is first installed
-	 * or when the URL prefix changes.
+	 * Flush the rewrite rules once per {@see self::REWRITE_VERSION}, so the
+	 * rule earlier versions stored is dropped (#2693).
 	 */
 	public function maybe_flush_rewrite_rules(): void {
-		$current_version = $this->service->get_prefix() . ':1';
-		$stored_version  = get_option( self::FLUSH_FLAG, '' );
-
-		if ( $stored_version !== $current_version ) {
+		if ( get_option( self::FLUSH_FLAG, '' ) !== self::REWRITE_VERSION ) {
 			flush_rewrite_rules( false );
-			update_option( self::FLUSH_FLAG, $current_version, true );
+			update_option( self::FLUSH_FLAG, self::REWRITE_VERSION, true );
 		}
-	}
-
-	/**
-	 * Register WordPress rewrite rules for the short URL prefix.
-	 */
-	public function register_rewrite_rules(): void {
-		$prefix = $this->service->get_prefix();
-		add_rewrite_rule(
-			'^' . preg_quote( $prefix, '/' ) . '/([A-Za-z0-9]+)/?$',
-			'index.php?ffc_short_code=$matches[1]',
-			'top'
-		);
-	}
-
-	/**
-	 * Register custom query variable.
-	 *
-	 * @param array<string> $vars Existing query vars.
-	 * @return array<string>
-	 */
-	public function add_query_vars( array $vars ): array {
-		$vars[] = 'ffc_short_code';
-		return $vars;
 	}
 
 	/**
@@ -232,7 +214,6 @@ class UrlShortenerLoader {
 			return;
 		}
 
-		$this->redirected = true;
 		$this->do_redirect( sanitize_text_field( $code ) );
 	}
 
@@ -248,13 +229,7 @@ class UrlShortenerLoader {
 			return;
 		}
 
-		// Try the rewrite-rule query var first.
-		$code = get_query_var( 'ffc_short_code' );
-
-		// Fallback: parse URI directly.
-		if ( empty( $code ) ) {
-			$code = $this->extract_code_from_uri();
-		}
+		$code = $this->extract_code_from_uri();
 
 		if ( empty( $code ) ) {
 			$this->forward_previous_prefix();
@@ -299,6 +274,10 @@ class UrlShortenerLoader {
 	/**
 	 * Perform the actual redirect for a given short code.
 	 *
+	 * A code the site never issued is not answered here (#2693): the address
+	 * may be a page of the site under a path that starts with the prefix, so
+	 * WordPress resolves it, and answers 404 itself when nothing is there.
+	 *
 	 * @param string $code Sanitized short code.
 	 */
 	private function do_redirect( string $code ): void {
@@ -306,10 +285,15 @@ class UrlShortenerLoader {
 		$record     = $repository->findByShortCode( $code );
 
 		// A dead code gets a page that says so, not a silent trip home (#2337):
-		// 410 for a code that existed (off, trashed or retired), 404 otherwise.
+		// 410 for a code that existed (off, trashed or retired).
 		if ( ! $record ) {
-			self::render_inactive_page( $repository->codeRetired( $code ) ? 410 : 404 );
+			if ( $repository->codeRetired( $code ) ) {
+				$this->redirected = true;
+				self::render_inactive_page( 410 );
+			}
+			return;
 		}
+		$this->redirected = true;
 		if ( 'active' !== $record['status'] ) {
 			self::render_inactive_page( 410 );
 		}
