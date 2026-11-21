@@ -265,7 +265,8 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 			$row['user_id'] ?? '',
 			$row['user_name'] ?? '',
 			\FreeFormCertificate\Core\PiiExport::cell( 'email', $row['user_email'] ?? '', $clear ),
-			$row['status'] ?? '',
+			// The label the list screen shows, not the stored key (#2688).
+			ReregistrationSubmissionReader::get_status_label( (string) ( $row['status'] ?? '' ) ),
 			$submitted_at_display,
 			$reviewed_at_display,
 		);

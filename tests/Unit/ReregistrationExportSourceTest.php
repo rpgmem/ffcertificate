@@ -272,7 +272,7 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertSame( 10, $result[0] );
 		$this->assertSame( 'Jane Doe', $result[1] );
 		$this->assertSame( 'jane@example.com', $result[2] );
-		$this->assertSame( 'submitted', $result[3] );
+		$this->assertSame( 'Submitted — Pending Review', $result[3], 'The status is the label the list shows, not the stored key (#2688).' );
 		$this->assertSame( '', $result[4] );
 		$this->assertSame( '', $result[5] );
 		$this->assertSame( '42', $result[6] );

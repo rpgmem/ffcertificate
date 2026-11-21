@@ -629,6 +629,13 @@ class ReregistrationAdmin {
 			'status'                     => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_status', 'draft' ),
 		);
 
+		// A status the repository does not know would leave the campaign in
+		// none of its lists and outside every daily run (#2688).
+		if ( ! in_array( $data['status'], ReregistrationRepository::STATUSES, true ) ) {
+			add_settings_error( 'ffc_reregistration', 'ffc_status', __( 'Choose a valid campaign status. Nothing was saved.', 'ffcertificate' ), 'error' );
+			return;
+		}
+
 		// The window has to be a window: an end on or before the start would
 		// leave a campaign nobody can ever answer (#2242).
 		$ffc_start = ReregistrationWindow::normalise( (string) $data['start_date'] );

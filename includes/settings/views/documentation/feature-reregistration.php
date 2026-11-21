@@ -108,7 +108,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'The search box takes a name, an e-mail, a CPF or an RF. A CPF or RF is matched through its hash, so the member is found although the value is stored encrypted.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Filter by status, by "not finished" (pending or in progress: the members still to chase) or, when the campaign reaches several audiences, by audience, child audiences included.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Each status card links to the list filtered by that status; the Total card clears every filter.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Export CSV exports what the list shows: the same filters, every page.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Export CSV exports what the list shows: the same filters, every page, with each status written as the list names it.', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
 

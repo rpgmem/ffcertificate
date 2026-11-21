@@ -823,6 +823,30 @@ class ReregistrationAdminTest extends TestCase {
 		$this->assertSame( array(), $this->writes_to( 'wp_ffc_reregistrations' ), 'Nothing is saved.' );
 	}
 
+	public function test_handle_save_refuses_a_status_the_repository_does_not_know(): void {
+		// Such a campaign would sit in no list and outside every daily run (#2688).
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		$errors = array();
+		Functions\when( 'add_settings_error' )->alias(
+			function ( $setting, $code, $message, $type ) use ( &$errors ) {
+				$errors[] = array( $code, $type );
+			}
+		);
+
+		$_POST['ffc_action']        = 'save_reregistration';
+		$_POST['reregistration_id'] = 0;
+		$_POST['rereg_title']       = 'C';
+		$_POST['rereg_start_date']  = '2026-12-01T08:00';
+		$_POST['rereg_end_date']    = '2026-12-31T18:00';
+		$_POST['rereg_status']      = 'archived';
+
+		$this->invoke_private( new ReregistrationAdmin(), 'handle_save' );
+
+		$this->assertSame( array( array( 'ffc_status', 'error' ) ), $errors );
+		$this->assertSame( array(), $this->writes_to( 'wp_ffc_reregistrations' ), 'Nothing is saved.' );
+	}
+
 	/** @return array<string, array{string, string}> */
 	public static function inverted_window_provider(): array {
 		return array(
