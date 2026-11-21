@@ -625,7 +625,7 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_month_panel_lists_no_day_beyond_the_booking_window(): void {
-		$calendar = $this->panelCalendar( 0 );
+		$calendar = $this->panelCalendar( 5 );
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->never();
 		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array() );
 
@@ -634,8 +634,40 @@ class AppointmentHandlerTest extends TestCase {
 		$this->assertSame( array(), $panel['days'] );
 	}
 
+	public function test_month_panel_reads_no_booking_window_on_a_custom_calendar(): void {
+		// A custom calendar's blocks are bookable on any future date, so the
+		// panel lists them whatever the advance window says (#2689).
+		$custom = $this->makeCalendar(
+			array(
+				'schedule_type'       => 'custom',
+				'advance_booking_max' => 5,
+				'custom_slots'        => array(
+					array( 'date' => '2032-03-10', 'start' => '08:00', 'end' => '12:00', 'capacity' => 3, 'label' => '' ),
+				),
+			)
+		);
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $custom );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array() );
+
+		$panel = $this->handler->month_panel( $custom, 1, '2032-03-01', '2032-03-31' );
+		$this->assertSame( array( '2032-03-10' => array( 'free' => 3, 'slots' => 1 ) ), $panel['days'] );
+	}
+
+	public function test_month_panel_reads_a_zero_window_as_no_limit(): void {
+		// The validator applies the window only above 0; the panel showed only today (#2689).
+		$unlimited = $this->panelCalendar( 0 );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $unlimited );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array() );
+
+		$this->assertCount( 5, $this->handler->month_panel( $unlimited, 1, '2032-03-01', '2032-03-31' )['days'], 'March 2032 has five Mondays.' );
+	}
+
 	public function test_month_panel_lists_only_the_visitors_own_bookings_in_this_calendar_and_month(): void {
-		$calendar = $this->panelCalendar( 0 );
+		$calendar = $this->panelCalendar( 5 );
 		$this->appointmentRepo->shouldReceive( 'findByUserId' )->once()->with( 1, array( 'pending', 'confirmed' ) )->andReturn(
 			array(
 				array( 'calendar_id' => 1, 'appointment_date' => '2032-03-15', 'start_time' => '09:30:00', 'end_time' => '10:00:00', 'status' => 'pending', 'email_encrypted' => 'x' ),
@@ -657,7 +689,7 @@ class AppointmentHandlerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 		$this->appointmentRepo->shouldReceive( 'findByUserId' )->never();
 
-		$panel = $this->handler->month_panel( $this->panelCalendar( 0 ), 1, '2032-03-01', '2032-03-31' );
+		$panel = $this->handler->month_panel( $this->panelCalendar( 5 ), 1, '2032-03-01', '2032-03-31' );
 
 		$this->assertSame( array(), $panel['mine'] );
 	}

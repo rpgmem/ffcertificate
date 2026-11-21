@@ -514,9 +514,16 @@ class AppointmentHandler {
 	 */
 	public function month_panel( array $calendar, int $calendar_id, string $start_date, string $end_date ): array {
 		$today = wp_date( 'Y-m-d' );
-		$last  = wp_date( 'Y-m-d', time() + max( 0, (int) ( $calendar['advance_booking_max'] ?? 30 ) ) * DAY_IN_SECONDS );
 		$from  = max( $start_date, (string) $today );
-		$until = min( $end_date, (string) $last );
+		$until = $end_date;
+		// The advance window is the validator's rule, and it applies where the
+		// validator applies it: a regular calendar with a limit above 0. A
+		// custom calendar's blocks are bookable whatever their date, and 0
+		// means no limit, not "today only" (#2689).
+		$advance = (int) ( $calendar['advance_booking_max'] ?? 30 );
+		if ( 'custom' !== ( $calendar['schedule_type'] ?? 'regular' ) && $advance > 0 ) {
+			$until = min( $end_date, (string) wp_date( 'Y-m-d', time() + $advance * DAY_IN_SECONDS ) );
+		}
 
 		$sessions = CalendarSessions::in_use( CalendarSessions::of_calendar( $calendar ) );
 		$days     = array();
