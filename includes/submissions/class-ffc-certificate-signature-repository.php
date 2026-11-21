@@ -173,7 +173,11 @@ final class CertificateSignatureRepository {
 				$limit
 			)
 		);
-		return array_values( array_map( 'intval', is_array( $ids ) ? $ids : array() ) );
+		$out = array();
+		foreach ( is_array( $ids ) ? $ids : array() as $id ) {
+			$out[] = is_numeric( $id ) ? (int) $id : 0;
+		}
+		return $out;
 	}
 
 	/**
