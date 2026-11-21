@@ -296,6 +296,7 @@ class VerificationResponseRenderer {
 			'cancelled' => __( 'Cancelled', 'ffcertificate' ),
 			'completed' => __( 'Completed', 'ffcertificate' ),
 			'no_show'   => __( 'No Show', 'ffcertificate' ),
+			'waitlist'  => __( 'Waitlist', 'ffcertificate' ),
 		);
 		$status        = $appointment['status'] ?? 'pending';
 		$status_label  = $status_labels[ $status ] ?? $status;
@@ -317,10 +318,12 @@ class VerificationResponseRenderer {
 		}
 
 		// Build HTML.
-		$html = '<div class="ffc-certificate-preview ffc-appointment-verification">';
+		$verdict = self::appointment_verdict( $status );
+
+		$html = '<div class="ffc-certificate-preview ffc-appointment-verification' . ( 'error' === $verdict['tone'] ? ' ffc-error' : '' ) . '">';
 
 		$html .= '<div class="ffc-preview-header">';
-		$html .= '<span class="ffc-status-badge ffc-status-badge-success ffc-icon-success">' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="ffc-status-badge' . ( '' !== $verdict['tone'] ? ' ffc-status-badge-' . esc_attr( $verdict['tone'] ) : '' ) . ' ffc-icon-' . esc_attr( $verdict['icon'] ) . '">' . esc_html( $verdict['label'] ) . '</span>';
 		$html .= '<br><span class="ffc-verification-status ffc-verification-status-' . esc_attr( $status ) . '">' . esc_html( $status_label ) . '</span>';
 		$html .= '</div>';
 
@@ -386,20 +389,66 @@ class VerificationResponseRenderer {
 
 		$html .= '</div>'; // .ffc-preview-body
 
-		$html .= '<div class="ffc-preview-actions">';
-		$html .= \FreeFormCertificate\Core\Button::html(
-			array(
-				'label'    => __( 'Download Receipt (PDF)', 'ffcertificate' ),
-				'category' => 'primary',
-				'icon'     => 'download',
-				'class'    => 'ffc-download-btn ffc-download-pdf-btn',
-			)
-		);
-		$html .= '</div>';
+		// A cancelled appointment has no receipt to hand out: the record is
+		// shown so the code is answered, but nothing downloadable says it
+		// still holds (#2689).
+		if ( 'cancelled' !== $status ) {
+			$html .= '<div class="ffc-preview-actions">';
+			$html .= \FreeFormCertificate\Core\Button::html(
+				array(
+					'label'    => __( 'Download Receipt (PDF)', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'download',
+					'class'    => 'ffc-download-btn ffc-download-pdf-btn',
+				)
+			);
+			$html .= '</div>';
+		}
 
 		$html .= '</div>'; // .ffc-certificate-preview
 
 		return $html;
+	}
+
+	/**
+	 * What the verification headline says about an appointment in a status.
+	 *
+	 * Only a confirmed or completed appointment is a valid receipt. The others
+	 * are genuine records whose code still answers, so the headline names what
+	 * they are instead of calling them valid (#2689).
+	 *
+	 * @param string $status Appointment status.
+	 * @return array{label: string, tone: string, icon: string} Tone is a badge
+	 *         variant (`success`, `error`) or `''` for the neutral badge.
+	 */
+	public static function appointment_verdict( string $status ): array {
+		switch ( $status ) {
+			case 'confirmed':
+			case 'completed':
+				return array(
+					'label' => __( 'Appointment Receipt Valid', 'ffcertificate' ),
+					'tone'  => 'success',
+					'icon'  => 'success',
+				);
+			case 'cancelled':
+				return array(
+					'label' => __( 'Appointment Cancelled', 'ffcertificate' ),
+					'tone'  => 'error',
+					'icon'  => 'error',
+				);
+			case 'no_show':
+				return array(
+					'label' => __( 'Participant Did Not Attend', 'ffcertificate' ),
+					'tone'  => '',
+					'icon'  => 'warning',
+				);
+			default:
+				return array(
+					'label' => __( 'Appointment Not Confirmed Yet', 'ffcertificate' ),
+					'tone'  => '',
+					'icon'  => 'clock',
+				);
+		}
 	}
 
 	/**

@@ -2013,6 +2013,7 @@ msgid "Appointment booking confirmation"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:277
+#: includes/frontend/class-ffc-verification-response-renderer.php
 msgid "Appointment Cancelled"
 msgstr ""
 
@@ -19066,6 +19067,7 @@ msgid "Waiting for location permission… Check if a browser prompt appeared."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:262 includes/settings/views/documentation/feature-self-scheduling.php:43
+#: includes/frontend/class-ffc-verification-response-renderer.php
 msgid "Waitlist"
 msgstr ""
 
@@ -35157,10 +35159,6 @@ msgstr ""
 msgid "This appointment is awaiting approval and cannot be verified yet."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php
-msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php
 msgid "Visitor addresses are sent over HTTPS only. A failed lookup is not repeated for 5 minutes."
 msgstr ""
@@ -35268,6 +35266,18 @@ msgstr ""
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php
 #, php-format
 msgid "You have an appointment on this calendar on %1$s. A new one must be at least %2$d hours before or after it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved. Only a confirmed or completed appointment is shown as a valid receipt: a waitlisted one says it is not confirmed yet, a no-show says the participant did not attend, and a cancelled one says so and offers no receipt to download."
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php
+msgid "Appointment Not Confirmed Yet"
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php
+msgid "Participant Did Not Attend"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php
