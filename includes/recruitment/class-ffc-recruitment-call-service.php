@@ -62,10 +62,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * no e-mail on file — so the screen can tell the operator to contact them
  * by other means (#2245). Absent when nothing was sent.
  *
+ * `queued` counts the bulk-call e-mails handed to the background batch
+ * (#2694); their delivery shows on the Calls tab, call by call.
+ *
  * `past` is true when the date and time to assume are already over: the
  * call is recorded and no e-mail is sent, whatever the send mode (#2245).
  *
- * @phpstan-type CallResult array{success: bool, call_ids: list<int>, errors: list<string>, unreached?: list<int>, past?: bool}
+ * @phpstan-type CallResult array{success: bool, call_ids: list<int>, errors: list<string>, unreached?: list<int>, queued?: int, past?: bool}
  */
 final class RecruitmentCallService {
 
@@ -130,7 +133,7 @@ final class RecruitmentCallService {
 		// never e-mails the candidate (#2245).
 		$past      = self::is_past( $schedule['date'], $schedule['time'] );
 		$unreached = array();
-		if ( ! $past && RecruitmentEmailDispatcher::should_send( $notify_email ) && ! RecruitmentEmailDispatcher::send_for_call( $result['call_id'] ) ) {
+		if ( ! $past && RecruitmentEmailDispatcher::should_send( $notify_email ) && ! RecruitmentCallMailQueue::deliver( $result['call_id'] ) ) {
 			$unreached[] = $classification_id;
 		}
 
@@ -225,24 +228,23 @@ final class RecruitmentCallService {
 			$time_to_assume
 		);
 
-		// Best-effort email dispatch per row — failures here do NOT roll
-		// back the committed batch (§7). Gated by the configured send mode (#794);
+		// The e-mails go out in the background (#2694): sending them here
+		// could time out after the calls were committed, with no record of
+		// who had been written to. Each call records its own delivery, which
+		// the Calls tab shows. Gated by the configured send mode (#794),
 		// resolved once for the whole batch.
-		$past      = self::is_past( $date_to_assume, $time_to_assume );
-		$unreached = array();
+		$past   = self::is_past( $date_to_assume, $time_to_assume );
+		$queued = 0;
 		if ( ! $past && RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
-			foreach ( $call_ids as $i => $cid ) {
-				if ( ! RecruitmentEmailDispatcher::send_for_call( $cid ) ) {
-					$unreached[] = (int) $classification_ids[ $i ];
-				}
-			}
+			$queued = RecruitmentCallMailQueue::queue( $call_ids );
 		}
 
 		return array(
 			'success'   => true,
 			'call_ids'  => $call_ids,
 			'errors'    => array(),
-			'unreached' => $unreached,
+			'unreached' => array(),
+			'queued'    => $queued,
 			'past'      => $past,
 		);
 	}

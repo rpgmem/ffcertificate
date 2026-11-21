@@ -67,7 +67,7 @@ class RecruitmentActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '3';
+	public const SCHEMA_REVISION = '4';
 
 	/**
 	 * Option holding the revision last applied. Listed in `uninstall.php`.
@@ -130,7 +130,11 @@ class RecruitmentActivator {
 		global $wpdb;
 		$candidates = $wpdb->prefix . 'ffc_recruitment_candidate';
 		self::add_column_if_missing( $candidates, 'account_unlinked', 'TINYINT(1) UNSIGNED NOT NULL DEFAULT 0', 'user_id' );
-		if ( ! self::column_exists( $candidates, 'account_unlinked' ) ) {
+		// Each call's e-mail delivery (#2694).
+		$calls = $wpdb->prefix . 'ffc_recruitment_call';
+		self::add_column_if_missing( $calls, 'email_status', "VARCHAR(16) NOT NULL DEFAULT ''", 'notes' );
+		self::add_column_if_missing( $calls, 'email_sent_at', 'BIGINT(20) UNSIGNED DEFAULT NULL', 'email_status' );
+		if ( ! self::column_exists( $candidates, 'account_unlinked' ) || ! self::column_exists( $calls, 'email_sent_at' ) ) {
 			return; // The next request tries again.
 		}
 
@@ -933,6 +937,8 @@ class RecruitmentActivator {
             cancelled_at bigint(20) unsigned DEFAULT NULL,
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             notes text DEFAULT NULL,
+            email_status varchar(16) NOT NULL DEFAULT '',
+            email_sent_at bigint(20) unsigned DEFAULT NULL,
             created_by bigint(20) unsigned NOT NULL,
             created_at bigint(20) unsigned NOT NULL DEFAULT 0,
             updated_at bigint(20) unsigned NOT NULL DEFAULT 0,

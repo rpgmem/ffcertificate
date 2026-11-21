@@ -677,11 +677,11 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	public function test_register_routes_registers_classification_route_groups(): void {
 		$this->controller->register_routes();
 
-		// 15 register_rest_route calls: list/item/import/promote/call/bulk-call/
-		// status/preview-status/override-to-empty/cancel-call/adjutancy + 4
-		// batched-import endpoints (import-job/start, import-job/validate,
-		// import-job/batch, import-job/commit).
-		$this->assertCount( 15, $this->registered_routes );
+		// 16 register_rest_route calls: list/item/import/promote/call/bulk-call/
+		// status/preview-status/override-to-empty/cancel-call/resend-email/
+		// adjutancy + 4 batched-import endpoints (import-job/start,
+		// import-job/validate, import-job/batch, import-job/commit).
+		$this->assertCount( 16, $this->registered_routes );
 	}
 
 	public function test_register_routes_includes_classifications_and_import_routes(): void {
@@ -1976,6 +1976,46 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertStringContainsString( 'cancellation_reason = mistake', $cancels[0] );
 		$this->assertStringContainsString( 'cancelled_by = ' . self::OPERATOR, $cancels[0] );
 		$this->assertStringContainsString( 'WHERE id = 99', $cancels[0] );
+	}
+
+	/**
+	 * @dataProvider provide_calls_that_send_nothing
+	 */
+	public function test_resend_refuses_a_call_it_must_not_mail( array $call, int $route_id, string $code, int $status ): void {
+		$this->store( self::T_CALL, array_merge( array( 'id' => 99, 'classification_id' => 5, 'cancelled_at' => null, 'created_by' => self::OPERATOR, 'date_to_assume' => '2099-01-01', 'time_to_assume' => '09:00:00' ), $call ) );
+
+		$result = $this->controller->resend_call_email( $this->make_request( array( 'id' => $route_id, 'call_id' => 99 ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( $code, $result->get_error_code() );
+		$this->assertSame( $status, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'update', self::T_CALL ), 'Nothing is recorded.' );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, mixed>, 1: int, 2: string, 3: int}>
+	 */
+	public function provide_calls_that_send_nothing(): array {
+		return array(
+			'another classification' => array( array(), 6, 'recruitment_call_not_found', 404 ),
+			'a cancelled call'       => array( array( 'cancelled_at' => 1800000000 ), 5, 'recruitment_call_cancelled_no_email', 409 ),
+			'a date that is over'    => array( array( 'date_to_assume' => '2020-01-01' ), 5, 'recruitment_call_past_no_email', 409 ),
+		);
+	}
+
+	public function test_resend_records_an_e_mail_that_did_not_go_out(): void {
+		// #2694 — the dispatcher finds no classification, so nothing is sent;
+		// the call still records the attempt, which is what the tab shows.
+		$this->store( self::T_CALL, array( 'id' => 99, 'classification_id' => 5, 'cancelled_at' => null, 'created_by' => self::OPERATOR, 'date_to_assume' => '2099-01-01', 'time_to_assume' => '09:00:00' ) );
+
+		$response = $this->controller->resend_call_email( $this->make_request( array( 'id' => 5, 'call_id' => 99 ) ) );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array( 'sent' => false ), $response->get_data() );
+		$updates = $this->writes_to( 'update', self::T_CALL );
+		$this->assertCount( 1, $updates );
+		$this->assertSame( 'not_sent', $updates[0][2]['email_status'] );
+		$this->assertSame( array( 'id' => 99 ), $updates[0][3] );
 	}
 
 	public function test_cancel_call_failure_returns_409(): void {

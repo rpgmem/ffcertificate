@@ -203,6 +203,25 @@ final class RecruitmentActivityLogger {
 	}
 
 	/**
+	 * A call's convocation e-mail sent again by staff (#2694).
+	 *
+	 * @param int  $call_id Call ID.
+	 * @param bool $sent    Whether the message went out.
+	 * @return void
+	 */
+	public static function call_email_resent( int $call_id, bool $sent ): void {
+		ActivityLog::log(
+			'recruitment_call_email_resent',
+			$sent ? ActivityLog::LEVEL_INFO : ActivityLog::LEVEL_WARNING,
+			array(
+				'call_id' => $call_id,
+				'sent'    => $sent ? 1 : 0,
+			),
+			get_current_user_id()
+		);
+	}
+
+	/**
 	 * Bulk convocation created (one aggregated event for N call rows).
 	 *
 	 * @param array<int> $classification_ids Classifications convocated.

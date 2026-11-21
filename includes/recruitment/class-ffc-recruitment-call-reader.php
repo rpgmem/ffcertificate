@@ -29,8 +29,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.12.0
  *
- * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
- * @phpstan-type NoticeCallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string, candidate_id: numeric-string, adjutancy_id: numeric-string, rank: numeric-string}
+ * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string, email_status: string, email_sent_at: numeric-string|null}
+ * @phpstan-type NoticeCallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string, email_status: string, email_sent_at: numeric-string|null, candidate_id: numeric-string, adjutancy_id: numeric-string, rank: numeric-string}
  */
 class RecruitmentCallReader {
 
@@ -91,6 +91,27 @@ class RecruitmentCallReader {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Calls whose e-mail waits for the background batch, oldest first
+	 * (#2694). A call cancelled before its turn is left out: its
+	 * convocation is no longer true.
+	 *
+	 * @param int $limit Maximum IDs.
+	 * @return list<int>
+	 */
+	public static function get_queued_email_ids( int $limit ): array {
+		$wpdb = self::db();
+		$ids  = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT id FROM %i WHERE email_status = %s AND cancelled_at IS NULL ORDER BY id LIMIT %d',
+				self::get_table_name(),
+				RecruitmentCallMailQueue::STATUS_QUEUED,
+				max( 1, $limit )
+			)
+		);
+		return array_map( 'intval', $ids );
 	}
 
 	/**
