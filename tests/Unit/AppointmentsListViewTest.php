@@ -563,7 +563,10 @@ class AppointmentsListViewTest extends TestCase {
 
 		$this->assertSame( array(), $this->updates );
 		$this->assertSame(
-			array( 'type' => 'error', 'message' => 'Attendance can only be marked from the appointment date on.' ),
+			array(
+				'type'    => 'error',
+				'message' => 'no_show' === $action ? 'A no-show can only be marked once the appointment has started.' : 'Attendance can only be marked from the appointment date on.',
+			),
 			$notice
 		);
 	}
