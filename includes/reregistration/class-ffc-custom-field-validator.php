@@ -41,8 +41,9 @@ class CustomFieldValidator {
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
 	public static function validate( object $field, $value, array $context = array() ) {
-		// Required check.
-		if ( ! empty( $field->is_required ) && self::is_empty_value( $value ) ) {
+		// Required check. A checkbox posts '0' when left unticked, which is a
+		// value, so it needs its own reading (#2688).
+		if ( ! empty( $field->is_required ) && self::is_missing( $field, $value ) ) {
 			return new \WP_Error(
 				'field_required',
 				/* translators: %s: field label */
@@ -359,6 +360,28 @@ class CustomFieldValidator {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether a required field has no answer.
+	 *
+	 * An unticked checkbox counts as no answer: the form posts it as '0', and
+	 * an import may carry it as "0" or "No" (#2688).
+	 *
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @param mixed  $value Value.
+	 * @return bool
+	 */
+	public static function is_missing( object $field, $value ): bool {
+		if ( self::is_empty_value( $value ) ) {
+			return true;
+		}
+		if ( 'checkbox' !== (string) ( $field->field_type ?? '' ) ) {
+			return false;
+		}
+		$answer = strtolower( trim( is_scalar( $value ) ? (string) $value : '' ) );
+		return in_array( $answer, array( '0', 'false', 'off', 'no', 'não', 'nao', strtolower( __( 'No', 'ffcertificate' ) ) ), true );
 	}
 
 	/**

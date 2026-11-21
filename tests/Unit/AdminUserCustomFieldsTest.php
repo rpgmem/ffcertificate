@@ -224,6 +224,10 @@ class AdminUserCustomFieldsTest extends TestCase {
 					}
 					return $rows;
 				}
+				// ReregistrationFieldOptions::second_post_answers() (#2688).
+				if ( false !== strpos( (string) $sql, "field_source = 'standard' AND field_key = %s" ) ) {
+					return array();
+				}
 				$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
 			}
 		);
@@ -1268,7 +1272,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 		// Its dependencies are AssetRegistry's to declare (#1931).
 		$this->assertArrayHasKey( 'ffc-field-behaviours', $scripts );
 		$this->assertSame( array( 'jquery', 'ffc-field-behaviours' ), $scripts['ffc-admin-user-fields'] ?? null );
-		$this->assertSame( 'I hold', $localize['ffcAdminUserFields']['strings']['dualPostShowValue'] ?? null );
+		$this->assertSame( array( 'I hold' ), $localize['ffcAdminUserFields']['strings']['dualPostShowValue'] ?? null, 'Every stored answer that declares a second post (#2688).' );
 	}
 
 	// ==================================================================
