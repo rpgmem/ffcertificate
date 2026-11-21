@@ -492,6 +492,19 @@ class AppointmentEmailHandlerTest extends TestCase {
 		$this->assertStringContainsString( 'Appointment reminder', $this->last_mail['subject'] );
 	}
 
+	public function test_reminder_records_whether_it_went_out(): void {
+		$this->handler->send_reminder( $this->makeAppointment( array( 'id' => '41' ) ), $this->makeCalendar() );
+		$this->assertTrue( AppointmentEmailHandler::take_reminder_outcome( 41 ) );
+		$this->assertNull( AppointmentEmailHandler::take_reminder_outcome( 41 ), 'The outcome is read once.' );
+
+		Functions\when( 'wp_mail' )->justReturn( false );
+		$this->handler->send_reminder( $this->makeAppointment( array( 'id' => '42' ) ), $this->makeCalendar() );
+		$this->assertFalse( AppointmentEmailHandler::take_reminder_outcome( 42 ), 'A refused send reads false, so the scanner leaves it unmarked (#2689).' );
+
+		$this->handler->send_reminder( $this->makeAppointment( array( 'id' => '43', 'email' => 'not-an-address' ) ), $this->makeCalendar() );
+		$this->assertNull( AppointmentEmailHandler::take_reminder_outcome( 43 ), 'No valid address: nothing was attempted.' );
+	}
+
 	public function test_reminder_includes_cancel_link_when_allowed(): void {
 		$this->handler->send_reminder(
 			$this->makeAppointment(),
