@@ -35379,5 +35379,5 @@ msgid "Signing needs a key, generated once on Settings → Certificates, in the 
 msgstr ""
 
 #: includes/settings/views/ffc-tab-certificates.php:298
-msgid "The private key cannot be read with the current encryption key, so new certificates are issued unsigned. Restore the previous encryption key and run the key rotation under Settings → Migrations, or generate a new signing key."
+msgid "The private key cannot be read with the current encryption key, so new certificates are issued unsigned. Restore the previous encryption key and run the key rotation under Settings → Data Migrations, or generate a new signing key."
 msgstr ""
