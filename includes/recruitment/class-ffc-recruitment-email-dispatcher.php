@@ -181,7 +181,7 @@ final class RecruitmentEmailDispatcher {
 		// Checked before the password link is issued: issuing rotates the
 		// key, so a message that will not go out must not invalidate the
 		// link an earlier e-mail carried (#2694).
-		if ( \FreeFormCertificate\Settings\SettingsReader::emails_disabled() ) {
+		if ( self::ffc_emails_disabled() ) {
 			return false;
 		}
 

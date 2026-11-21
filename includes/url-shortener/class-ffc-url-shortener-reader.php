@@ -52,6 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     post_id: numeric-string|null,
  *     title: string|null,
  *     click_count: numeric-string|null,
+ *     last_clicked_at: numeric-string|null,
  *     created_by: numeric-string|null,
  *     created_at: numeric-string,
  *     updated_at: numeric-string,
@@ -132,7 +133,7 @@ class UrlShortenerReader extends AbstractRepository {
 	 * `ShortUrlRow`, and `UrlShortenerRepositoryTest` holds it to the
 	 * table's `CREATE TABLE`, minus `qr_cache`.
 	 */
-	public const ROW_COLUMNS = 'id, short_code, target_url, post_id, title, click_count, created_by, created_at, updated_at, status';
+	public const ROW_COLUMNS = 'id, short_code, target_url, post_id, title, click_count, last_clicked_at, created_by, created_at, updated_at, status';
 
 	/**
 	 * What the object cache holds for a code nobody has (#2337), so a bot

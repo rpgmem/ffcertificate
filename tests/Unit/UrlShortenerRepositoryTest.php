@@ -300,7 +300,15 @@ class UrlShortenerRepositoryTest extends TestCase {
 	}
 
 	public function test_increment_click_count_success(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'UPDATE ...' );
+		$before = time();
+		$this->wpdb->shouldReceive( 'prepare' )->once()
+			->with(
+				Mockery::on( static fn( $sql ) => false !== strpos( $sql, 'click_count = click_count + 1' ) && false !== strpos( $sql, 'last_clicked_at = %d' ) ),
+				Mockery::any(),
+				Mockery::on( static fn( $ts ) => is_int( $ts ) && $ts >= $before && $ts <= time() ),
+				1
+			)
+			->andReturn( 'UPDATE ...' );
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
 		$this->assertTrue( $this->repo->incrementClickCount( 1 ) );
