@@ -436,6 +436,16 @@ class AudienceFormInviteSendingTest extends TestCase {
 		$this->assertSame( 1, $this->participant_reads(), 'Only the booking row reads its people: nobody is judged when the form takes no answers.' );
 	}
 
+	public function test_the_cron_callback_runs_a_batch_now(): void {
+		$this->participants = array( 7 );
+		// The callback reads the clock, so the booking ended yesterday.
+		$this->bookings = array( 5 => $this->booking( array( 'booking_date' => gmdate( 'Y-m-d', time() - DAY_IN_SECONDS ) ) ) );
+
+		AudienceFormInviteScanner::run_invite_all( 5, 0 );
+
+		$this->assertSame( array( 'ana@example.org' ), $this->recipients() );
+	}
+
 	public function test_invite_all_is_queued_once(): void {
 		$args = array( 5, 0 );
 		Functions\expect( 'wp_next_scheduled' )->twice()->with( AudienceFormInviteScanner::INVITE_ALL_HOOK, $args )->andReturn( false, 123 );

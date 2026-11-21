@@ -184,6 +184,17 @@ class AudienceFormInviteScanner {
 	}
 
 	/**
+	 * The cron callback of {@see self::INVITE_ALL_HOOK}: an action returns nothing.
+	 *
+	 * @param int $booking_id Booking ID.
+	 * @param int $after      Cursor: only user IDs greater than this.
+	 * @return void
+	 */
+	public static function run_invite_all( int $booking_id, int $after = 0 ): void {
+		self::invite_all_batch( $booking_id, $after );
+	}
+
+	/**
 	 * One batch of a send to everyone: everyone eligible who has not answered,
 	 * invited before or not, in user ID order after the cursor; then the next
 	 * batch when this one stopped at the cap.
