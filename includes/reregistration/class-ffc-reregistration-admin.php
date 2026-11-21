@@ -721,7 +721,20 @@ class ReregistrationAdmin {
 			return;
 		}
 
-		ReregistrationRepository::delete( $id );
+		$campaign = ReregistrationRepository::get_by_id( $id );
+		if ( ReregistrationRepository::delete( $id ) && $campaign && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			// The campaign and its submissions are gone; the log keeps who
+			// deleted which one (#2688).
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'reregistration_deleted',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'reregistration_id' => $id,
+					'title'             => (string) $campaign->title,
+				),
+				get_current_user_id()
+			);
+		}
 		wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&message=deleted' ) );
 		exit;
 	}

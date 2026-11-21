@@ -41,9 +41,47 @@ class ReregistrationSubmissionActions {
 			return;
 		}
 
-		ReregistrationSubmissionWriter::approve( $sub_id, get_current_user_id() );
+		self::approve_one( $sub_id, $rereg_id );
 		wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=approved' ) );
 		exit;
+	}
+
+	/**
+	 * Approve one submission, then tell the member and log it (#2688).
+	 *
+	 * The submission must belong to the campaign the screen shows, the same
+	 * check a reject or a return to draft makes; a row from another campaign
+	 * is skipped.
+	 *
+	 * @param int $sub_id   Submission ID.
+	 * @param int $rereg_id The campaign the screen shows.
+	 * @return bool Whether the submission was approved.
+	 */
+	private static function approve_one( int $sub_id, int $rereg_id ): bool {
+		$sub = ReregistrationSubmissionReader::get_by_id( $sub_id );
+		if ( ! $sub || (int) $sub->reregistration_id !== $rereg_id ) {
+			return false;
+		}
+
+		if ( ! ReregistrationSubmissionWriter::approve( $sub_id, get_current_user_id() ) ) {
+			return false;
+		}
+
+		ReregistrationEmailHandler::send_approval( $sub_id );
+
+		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'reregistration_submission_approved',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'reregistration_id' => $rereg_id,
+					'submission_id'     => $sub_id,
+				),
+				get_current_user_id()
+			);
+		}
+
+		return true;
 	}
 
 	/**
@@ -167,10 +205,16 @@ class ReregistrationSubmissionActions {
 		}
 
 		if ( 'approve' === $action ) {
-			// Only rows awaiting review are approved (#2242); the rest of the
-			// selection is reported, never silently changed.
-			$approved = ReregistrationSubmissionWriter::bulk_approve( $ids, get_current_user_id() );
-			$skipped  = count( $ids ) - $approved;
+			// Only rows of this campaign awaiting review are approved (#2242,
+			// #2688); the rest of the selection is reported, never silently
+			// changed.
+			$approved = 0;
+			foreach ( array_values( array_unique( array_filter( $ids ) ) ) as $sub_id ) {
+				if ( self::approve_one( $sub_id, $rereg_id ) ) {
+					++$approved;
+				}
+			}
+			$skipped = count( $ids ) - $approved;
 			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_approved&count=' . $approved . '&skipped=' . $skipped ) );
 			exit;
 		}

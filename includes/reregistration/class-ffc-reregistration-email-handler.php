@@ -592,6 +592,49 @@ class ReregistrationEmailHandler {
 	}
 
 	/**
+	 * Tell the member a reviewer approved their submission (#2688).
+	 *
+	 * Sent for a manual approval only: an auto-approved submission is told by
+	 * the confirmation e-mail, which carries its status. Not gated on a
+	 * campaign toggle, like the other review decisions; the global kill
+	 * switch still applies.
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return bool Whether the e-mail went out.
+	 */
+	public static function send_approval( int $submission_id ): bool {
+		if ( self::emails_disabled() ) {
+			return false;
+		}
+
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
+		if ( ! $submission ) {
+			return false;
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
+		if ( ! $rereg ) {
+			return false;
+		}
+
+		$template = self::effective_template( 'reregistration-approved' );
+		if ( ! $template ) {
+			return false;
+		}
+
+		$auth_code = ! empty( $submission->auth_code )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
+			: '';
+
+		return self::send_to_user(
+			(int) $submission->user_id,
+			$rereg,
+			$template,
+			array( 'auth_code' => $auth_code )
+		);
+	}
+
+	/**
 	 * The e-mail a reject or a return to draft sends, by decision (#2242).
 	 *
 	 * @var array<string, string>

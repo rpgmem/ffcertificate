@@ -934,6 +934,38 @@ class ReregistrationAdminTest extends TestCase {
 		);
 	}
 
+	public function test_handle_delete_records_who_deleted_which_campaign(): void {
+		// The campaign and its submissions leave no other trace (#2688).
+		$this->campaigns[5] = (object) array(
+			'id'    => 5,
+			'title' => 'Annual census',
+		);
+		$_GET['action']     = 'delete';
+		$_GET['id']         = '5';
+		$_GET['_wpnonce']   = 'good';
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn ( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+
+		try {
+			$this->invoke_private( new ReregistrationAdmin(), 'handle_delete' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+
+		$logged = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::contexts();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		$this->assertSame( array( 'reregistration_deleted' ), array_column( $logged, 'action' ) );
+		$this->assertSame( 'warning', $logged[0]['level'] );
+		$this->assertSame( 5, $logged[0]['context']['reregistration_id'] );
+		$this->assertSame( 'Annual census', $logged[0]['context']['title'] );
+	}
+
 	public function test_handle_delete_returns_early_on_bad_nonce(): void {
 		$_GET['action']   = 'delete';
 		$_GET['id']       = '5';

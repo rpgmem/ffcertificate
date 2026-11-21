@@ -40,6 +40,7 @@ final class EmailTemplates {
 		'reregistration-invitation',
 		'reregistration-reminder',
 		'reregistration-confirmation',
+		'reregistration-approved',
 		'reregistration-rejected',
 		'reregistration-returned',
 		'audience-booking',
