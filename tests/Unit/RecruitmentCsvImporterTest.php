@@ -495,6 +495,29 @@ class RecruitmentCsvImporterTest extends TestCase {
 		$this->assertEmpty( $dup_errors, 'same person in different adjutancies must not flag duplicate' );
 	}
 
+	public function test_validate_refuses_two_candidates_with_one_rank_in_one_adjutancy(): void {
+		// #2694 — a tie used to be accepted and then ordered by candidate id.
+		$rows = array(
+			$this->csv_row( array( '_line' => 2, 'cpf' => '20456942084', 'rf' => '', 'email' => 'a@b.test', 'rank' => '1' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '73102442064', 'rf' => '', 'email' => 'c@d.test', 'rank' => '1' ) ),
+		);
+
+		$errors = $this->validate_rows( $rows );
+
+		$rank_errors = array_values( array_filter( $errors, static fn( $e ) => false !== strpos( $e, 'recruitment_csv_duplicate_rank' ) ) );
+		$this->assertCount( 1, $rank_errors );
+		$this->assertStringContainsString( 'matches line 2', $rank_errors[0] );
+	}
+
+	public function test_validate_accepts_distinct_ranks_in_one_adjutancy(): void {
+		$rows = array(
+			$this->csv_row( array( '_line' => 2, 'cpf' => '20456942084', 'rf' => '', 'email' => 'a@b.test', 'rank' => '1' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '73102442064', 'rf' => '', 'email' => 'c@d.test', 'rank' => '2' ) ),
+		);
+
+		$this->assertSame( array(), $this->validate_rows( $rows ) );
+	}
+
 	public function test_validate_transitively_coalesces_identities_via_shared_tags(): void {
 		// Row 1 carries CPF=A + RF=R1
 		// Row 2 carries CPF=B + email=E1   (different person on the

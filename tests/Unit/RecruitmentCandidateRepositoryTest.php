@@ -181,6 +181,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		$this->assertNotEmpty( $statements );
 		$this->assertStringNotContainsStringIgnoringCase( 'limit', $statements[0], 'Claiming one row would orphan its sibling candidacy.' );
 		$this->assertStringContainsString( 'user_id IS NULL', $statements[0], 'A candidacy already linked to somebody is never taken.' );
+		$this->assertStringContainsString( 'account_unlinked = 0', $statements[0], 'A candidacy an operator unlinked is never taken (#2694).' );
 	}
 
 	/**
@@ -246,7 +247,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		);
 
 		$this->assertTrue( RecruitmentCandidateWriter::claim_user_id( 5, 100 ) );
-		$this->assertStringContainsString( 'WHERE id = %d AND user_id IS NULL', $statements[0], 'A link is never moved by an import (#2245).' );
+		$this->assertStringContainsString( 'WHERE id = %d AND user_id IS NULL AND account_unlinked = 0', $statements[0], 'A link is never moved by an import (#2245), nor restored after an unlink (#2694).' );
 	}
 
 	public function test_claim_user_id_reports_a_candidate_that_already_has_an_account(): void {
@@ -268,6 +269,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 
 		$this->assertTrue( RecruitmentCandidateWriter::set_user_id( 5, 100 ) );
 		$this->assertSame( 100, $captured['user_id'] );
+		$this->assertSame( 0, $captured['account_unlinked'], 'A link set by hand clears the unlink decision (#2694).' );
 	}
 
 	public function test_set_user_id_can_clear_link(): void {
@@ -283,6 +285,7 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 
 		$this->assertTrue( RecruitmentCandidateWriter::set_user_id( 5, null ) );
 		$this->assertNull( $captured['user_id'] );
+		$this->assertSame( 1, $captured['account_unlinked'], 'Unlinking is recorded, so no automatic link restores it (#2694).' );
 	}
 
 	public function test_get_by_user_id_returns_array_for_each_match(): void {

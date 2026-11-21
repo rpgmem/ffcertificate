@@ -24142,9 +24142,6 @@ msgstr ""
 msgid "shows a selector of every notice in its preliminary or definitive list (drafts and closed notices are left out); the visitor picks one and its list appears below. With a single notice on offer it opens directly. The notice edit screen has the shortcode ready to copy."
 msgstr ""
 
-msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy."
-msgstr ""
-
 msgid "without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice's list appears below it. Add list=\"preliminary\" or list=\"definitive\" to offer only one kind."
 msgstr ""
 
@@ -30693,10 +30690,6 @@ msgid "Module-wide options: convocation email, public-queue tuning and status co
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
-msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
 msgid "The REST API edits a candidate under the edit screen's rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate's own API answer carries the score only when the notice shows it, never the staff fields of a call."
 msgstr ""
 
@@ -30714,10 +30707,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php
 msgid "The file is not UTF-8. Excel often saves CSV as Windows-1252: in Excel choose \"CSV UTF-8\", or re-save the file as UTF-8 in your editor, and import it again."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
-msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
 msgstr ""
 
 #: templates/admin/recruitment/admin-page/settings-tab.php
@@ -35361,6 +35350,22 @@ msgstr ""
 msgid "The e-mail is not a valid address. Correct it, or send it empty to clear it."
 msgstr ""
 
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy. Only the plain list, a pinned adjutancy and the first 20 pages of each section are cached; a name search, an adjutancy chosen in the address and a later page are rendered fresh each time."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. Each rank is one place in its adjutancy, so two lines with the same rank in one adjutancy are refused. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history. An unlink is kept: neither the background linking nor a new account with the same CPF or RF links the candidate again, until someone links it by hand."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Another line of the same adjutancy has this rank. Each rank is one place in the list."
+msgstr ""
+
 #: includes/settings/views/documentation/feature-url-shortener.php
 msgid "The list shows each link's title, short URL, destination, click count with the date of the last click, and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
 msgstr ""
@@ -35376,4 +35381,12 @@ msgstr ""
 #: templates/admin/url-shortener/short-urls-page.php
 #, php-format
 msgid "Last: %s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "The same person appears twice in this adjutancy. A candidate holds one place per adjutancy."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "This person appears on another line with different details (name, RF, e-mail, phone or PCD). The lines of one candidate must agree."
 msgstr ""

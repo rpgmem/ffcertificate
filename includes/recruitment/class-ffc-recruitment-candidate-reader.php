@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.0.0
  *
- * @phpstan-type CandidateRow \stdClass&object{id: numeric-string, user_id: numeric-string|null, name: string, cpf_encrypted: string|null, cpf_hash: string|null, rf_encrypted: string|null, rf_hash: string|null, email_encrypted: string|null, email_hash: string|null, phone: string|null, notes: string|null, pcd_hash: string, created_at: string, updated_at: string}
+ * @phpstan-type CandidateRow \stdClass&object{id: numeric-string, user_id: numeric-string|null, account_unlinked: numeric-string, name: string, cpf_encrypted: string|null, cpf_hash: string|null, rf_encrypted: string|null, rf_hash: string|null, email_encrypted: string|null, email_hash: string|null, phone: string|null, notes: string|null, pcd_hash: string, created_at: string, updated_at: string}
  * @phpstan-type IdentityRow \stdClass&object{id: numeric-string, cpf_hash: string|null, rf_hash: string|null, email_hash: string|null, name: string}
  */
 class RecruitmentCandidateReader {

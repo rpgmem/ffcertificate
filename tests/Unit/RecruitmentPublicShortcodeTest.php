@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Tests\Support\CallLog;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -250,6 +251,51 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 			$this->assertStringNotContainsString( 'name="' . $param . '"', $html, $param . ' belongs to the notice being left' );
 		}
 		$this->assertStringNotContainsString( 'type="hidden" name="notice"', $html );
+	}
+
+	/**
+	 * A view a visitor can vary without bound is rendered fresh and never
+	 * stored, so typed values cannot fill the options table (#2694).
+	 *
+	 * @dataProvider provide_unbounded_views
+	 */
+	public function test_an_unbounded_view_is_not_cached( array $get ): void {
+		$this->selector_setup( $get );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$reads  = CallLog::record( 'get_transient', false );
+		$writes = CallLog::record( 'set_transient', true );
+		Functions\when( 'get_option' )->justReturn( array( 'public_cache_seconds' => 60 ) );
+
+		RecruitmentPublicShortcode::render( array( 'notice' => 'EDITAL-FAKE' ) );
+
+		$cache = static fn( array $calls ): array => array_values( array_filter( $calls, static fn( array $c ): bool => 0 === strpos( (string) $c[0], 'ffc_recruitment_public_cache_' ) ) );
+		$this->assertSame( array(), $cache( $reads->calls() ) );
+		$this->assertSame( array(), $cache( $writes->calls() ) );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, string>}>
+	 */
+	public function provide_unbounded_views(): array {
+		return array(
+			'a typed name'               => array( array( 'q' => 'ana' ) ),
+			'an adjutancy from the URL'  => array( array( 'adjutancy' => 'anything' ) ),
+			'a page past the bound'      => array( array( 'page_top' => '9999' ) ),
+			'a lower page past the bound' => array( array( 'page_bottom' => '21' ) ),
+		);
+	}
+
+	public function test_the_plain_view_is_cached(): void {
+		$this->selector_setup();
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$writes = CallLog::record( 'set_transient', true );
+		Functions\when( 'get_option' )->justReturn( array( 'public_cache_seconds' => 60 ) );
+
+		RecruitmentPublicShortcode::render( array( 'notice' => 'EDITAL-FAKE' ) );
+
+		$this->assertNotEmpty(
+			array_filter( $writes->calls(), static fn( array $c ): bool => 0 === strpos( (string) $c[0], 'ffc_recruitment_public_cache_' ) )
+		);
 	}
 
 	public function test_render_uncached_returns_error_when_notice_unknown(): void {

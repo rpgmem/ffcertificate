@@ -133,7 +133,7 @@ final class RecruitmentAccountLinker {
 				'SELECT DISTINCT c.id, c.name, c.cpf_hash, c.rf_hash, c.email_encrypted
 				 FROM %i c
 				 INNER JOIN %i cl ON cl.candidate_id = c.id
-				 WHERE cl.notice_id = %d AND c.user_id IS NULL AND c.id > %d
+				 WHERE cl.notice_id = %d AND c.user_id IS NULL AND c.account_unlinked = 0 AND c.id > %d
 				 ORDER BY c.id
 				 LIMIT %d',
 				RecruitmentCandidateReader::get_table_name(),

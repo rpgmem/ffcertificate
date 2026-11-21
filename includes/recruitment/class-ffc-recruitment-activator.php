@@ -67,7 +67,7 @@ class RecruitmentActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '2';
+	public const SCHEMA_REVISION = '3';
 
 	/**
 	 * Option holding the revision last applied. Listed in `uninstall.php`.
@@ -125,6 +125,14 @@ class RecruitmentActivator {
 		self::create_reason_table();
 		self::create_import_jobs_table();
 		self::create_import_staging_table();
+
+		// The operator's unlink decision (#2694), on tables created before it.
+		global $wpdb;
+		$candidates = $wpdb->prefix . 'ffc_recruitment_candidate';
+		self::add_column_if_missing( $candidates, 'account_unlinked', 'TINYINT(1) UNSIGNED NOT NULL DEFAULT 0', 'user_id' );
+		if ( ! self::column_exists( $candidates, 'account_unlinked' ) ) {
+			return; // The next request tries again.
+		}
 
 		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
@@ -808,6 +816,7 @@ class RecruitmentActivator {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned DEFAULT NULL,
+            account_unlinked tinyint(1) unsigned NOT NULL DEFAULT 0,
             name varchar(255) NOT NULL,
             cpf_encrypted text DEFAULT NULL,
             cpf_hash varchar(64) DEFAULT NULL,

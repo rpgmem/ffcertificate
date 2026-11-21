@@ -42,6 +42,7 @@ final class CsvValidator {
 		$errors    = array();
 		$by_cpf    = array(); // cpf → first-seen row reference (for cross-row consistency).
 		$seen_pair = array(); // "candidate_identity|adjutancy" → line number, for duplicate detection.
+		$seen_rank = array(); // "adjutancy|rank" → line number: a rank is one place in one adjutancy (#2694).
 
 		// Build a logical-identity map BEFORE the per-row loop so duplicate
 		// detection can group rows by the same physical candidate even when
@@ -274,6 +275,19 @@ final class CsvValidator {
 				}
 				$seen_pair[ $key ] = $line;
 			}
+
+			// A rank is one place in its adjutancy's list. Two lines with
+			// the same rank used to be accepted and then ordered by
+			// candidate id, which is not a criterion of any notice (#2694).
+			$rank_key = $slug . '|' . (int) $rank_raw;
+			if ( isset( $seen_rank[ $rank_key ] ) ) {
+				$errors[] = self::line_error(
+					$line,
+					sprintf( 'recruitment_csv_duplicate_rank: matches line %d', $seen_rank[ $rank_key ] )
+				);
+				continue;
+			}
+			$seen_rank[ $rank_key ] = $line;
 
 			// Same-CPF rows must agree on candidate-level fields.
 			if ( '' !== $cpf ) {
