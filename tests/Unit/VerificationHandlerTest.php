@@ -309,6 +309,32 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertSame( 'Maria', $result['data']['name'] );
 	}
 
+	/**
+	 * A code longer than any stored column is refused without a query (#2730).
+	 */
+	public function test_search_certificate_code_longer_than_any_column_queries_nothing(): void {
+		global $wpdb;
+		$wpdb->shouldNotReceive( 'get_row' );
+		$wpdb->shouldNotReceive( 'get_var' );
+		$wpdb->shouldNotReceive( 'get_results' );
+
+		$result = $this->invokePrivate( 'search_certificate', [ 'A-' . str_repeat( 'X', 30 ) ] );
+
+		$this->assertFalse( $result['found'] );
+	}
+
+	/**
+	 * A spaced code of the right length still reaches the lookups (#2730).
+	 */
+	public function test_search_certificate_spaced_code_still_queries(): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_row' )->atLeast()->once()->andReturn( null );
+
+		$result = $this->invokePrivate( 'search_certificate', [ 'A - FDVS - UJA0 - BAMQ' ] );
+
+		$this->assertFalse( $result['found'] );
+	}
+
 	public function test_search_certificate_nothing_found_returns_not_found(): void {
 		global $wpdb;
 

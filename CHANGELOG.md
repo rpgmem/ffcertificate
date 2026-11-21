@@ -121,6 +121,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Certificates: a submission records its time as an instant, so the success card and the record show it in the site's time zone; the CSV preview checks its challenge and the form's hash before asking for a CPF; and a code posted on the verification page without JavaScript is now verified there (#2695).
 - Certificates: two submissions with the same form and CPF (or e-mail) now run one after the other, so they can no longer both pass the reprint, quiz-attempt and rate-limit checks. Open early and Postpone close re-check the form under a lock before writing, and removing a used ticket no longer races an editor save on the form's settings (#2695).
 - **Recruitment: a bulk call sends its e-mails in the background, and every call shows its delivery** (#2694). A bulk call saves the calls and queues their e-mails for a WP-Cron batch, so a long list no longer times out. Each call records its e-mail as sent, not sent or waiting, with its time, on the Calls tab, where Send the e-mail again resends one in force.
+- Verification: a code pasted with spaces or line breaks (as copied from a receipt or a PDF) is cleaned and masked whole; the field no longer cuts it at 16 characters before the mask runs, and it submits with spaces when JavaScript is off; a code longer than any stored one is answered as not found without a lookup (#2730).
+
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
 - **A `{{signer2:signature}}` or `{{signer3:signature}}` image address survives the layout allow-list and the visual conversion** (#2624): the allow-list held only `{{signer:`, and the conversion's markup escaped the braces, so both cut the token down to `signature}}`.
