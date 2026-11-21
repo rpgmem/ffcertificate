@@ -236,10 +236,18 @@ class ReregistrationEmailHandler {
 			$limit
 		);
 
+		$members = ReregistrationRepository::members_among( $reregistration_id, array_map( static fn( $sub ): int => (int) $sub->user_id, $submissions ) );
+
 		$count   = 0;
 		$last_id = $after_id;
 		foreach ( $submissions as $sub ) {
 			$last_id = (int) $sub->id;
+
+			// A row outlives its member: whoever left the campaign's audiences
+			// is not invited (#2688). The cursor has already moved past it.
+			if ( ! isset( $members[ (int) $sub->user_id ] ) ) {
+				continue;
+			}
 
 			// The password-setting link is issued PER USER and per send
 			// (#1212). Issuing rotates the key, so the last email is always the
@@ -499,6 +507,7 @@ class ReregistrationEmailHandler {
 		}
 
 		$days_left = ReregistrationWindow::days_left( (string) $rereg->end_date );
+		$members   = ReregistrationRepository::members_among( $reregistration_id, array_map( static fn( $sub ): int => (int) $sub->user_id, $submissions ) );
 
 		$count   = 0;
 		$last_id = $after_id;
@@ -507,6 +516,11 @@ class ReregistrationEmailHandler {
 			// submission whose user was deleted from jamming the queue: it is
 			// stepped past today and retried in tomorrow's sweep.
 			$last_id = (int) $sub->id;
+
+			// Nor is anybody who left the campaign's audiences reminded (#2688).
+			if ( ! isset( $members[ (int) $sub->user_id ] ) ) {
+				continue;
+			}
 
 			// In the reminder too: whoever never set a password can act on
 			// neither the invitation NOR the reminder, and the dashboard button

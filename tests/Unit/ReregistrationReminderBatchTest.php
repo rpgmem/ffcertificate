@@ -51,6 +51,9 @@ class ReregistrationReminderBatchTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var list<int> Users the campaign's audiences no longer hold (#2688). */
+	private array $non_members = array();
+
 	/**
 	 * Captured `wp_schedule_single_event` calls.
 	 *
@@ -109,6 +112,9 @@ class ReregistrationReminderBatchTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign's audiences are expanded to their descendants (#2688).
+		Functions\when( 'wp_parse_args' )->alias( static fn ( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		// The campaign window is read on the site's clock (#2242); pin it
 		// inside the fixtures' campaigns.
 		Functions\when( 'current_time' )->alias(
@@ -252,7 +258,24 @@ class ReregistrationReminderBatchTest extends TestCase {
 					);
 					return preg_match( '/LIMIT (\d+)/', $sql, $l ) ? array_slice( $rows, 0, (int) $l[1] ) : $rows;
 				}
+				// The campaign's audience has no children (#2688).
+				if ( str_contains( $sql, 'FROM wp_ffc_audiences' ) && str_contains( $sql, 'parent_id' ) ) {
+					return array();
+				}
 				throw new \LogicException( 'Unexpected get_results: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				if ( str_contains( $sql, 'SELECT audience_id FROM wp_ffc_reregistration_audiences' ) ) {
+					return array( '1' );
+				}
+				// ReregistrationRepository::members_among() (#2688).
+				if ( preg_match( '/FROM wp_ffc_audience_members WHERE audience_id IN \\([\\d,]+\\) AND user_id IN \\(([\\d,]+)\\)/', $sql, $mm ) ) {
+					return array_map( 'strval', array_diff( array_map( 'intval', explode( ',', $mm[1] ) ), $this->non_members ) );
+				}
+				throw new \LogicException( 'Unexpected get_col: ' . $sql );
 			}
 		);
 

@@ -262,8 +262,10 @@ class ReregistrationSubmissionWriter {
 				$value = wp_json_encode( $value );
 			}
 
+			// A reason is text; anything else the caller passed is not a
+			// reason and is not stored as one.
 			if ( 'notes' === $key && null !== $value ) {
-				$value = sanitize_textarea_field( $value );
+				$value = is_string( $value ) ? sanitize_textarea_field( $value ) : '';
 			}
 
 			$update_data[ $key ] = $value;
@@ -534,6 +536,46 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
+	 * Remove the unstarted rows of users the campaign no longer reaches (#2688).
+	 *
+	 * The daily run calls it before seeding, so a removed audience or member
+	 * leaves Pending and the totals by the next day. Only `pending` rows go:
+	 * nobody opened them, so nothing a person wrote is lost. A row in progress or delivered stays, and the readers that act on
+	 * rows ask {@see ReregistrationRepository::members_among()} before they do.
+	 *
+	 * @param int $reregistration_id Campaign ID.
+	 * @return int Rows removed.
+	 */
+	public static function remove_unstarted_outside( int $reregistration_id ): int {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read right before the delete that depends on it.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( "SELECT id, user_id FROM %i WHERE reregistration_id = %d AND status = 'pending'", $table, $reregistration_id )
+		);
+		if ( ! is_array( $rows ) || array() === $rows ) {
+			return 0;
+		}
+
+		$removed = 0;
+		foreach ( array_chunk( $rows, self::SEED_CHUNK_SIZE ) as $chunk ) {
+			$members = ReregistrationRepository::members_among( $reregistration_id, array_map( static fn( $row ): int => (int) $row->user_id, $chunk ) );
+			foreach ( $chunk as $row ) {
+				if ( isset( $members[ (int) $row->user_id ] ) ) {
+					continue;
+				}
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A write to the plugin's own table; the cache entry is cleared below.
+				if ( $wpdb->delete( $table, array( 'id' => (int) $row->id ), array( '%d' ) ) ) {
+					static::cache_delete( 'id_' . (int) $row->id );
+					++$removed;
+				}
+			}
+		}
+		return $removed;
+	}
+
+	/**
 	 * Create the missing submissions of every active campaign (#2242).
 	 *
 	 * Activation seeds a row per member once, so whoever joins one of the
@@ -553,6 +595,9 @@ class ReregistrationSubmissionWriter {
 	 */
 	public static function seed_active_campaigns(): void {
 		foreach ( ReregistrationRepository::get_active_ids() as $reregistration_id ) {
+			// Whoever left the campaign's audiences, or whose audience was
+			// taken off the campaign, loses the row nobody opened (#2688).
+			self::remove_unstarted_outside( $reregistration_id );
 			self::create_for_audience_members( $reregistration_id, ReregistrationRepository::get_audience_ids( $reregistration_id ) );
 		}
 	}

@@ -1492,6 +1492,58 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		);
 	}
 
+	/**
+	 * The daily run removes the unstarted row of someone the campaign no longer
+	 * reaches, and only that row (#2688): a member's row and every row with
+	 * answers stay.
+	 */
+	public function test_seed_active_campaigns_removes_the_unstarted_row_of_a_former_member(): void {
+		$last = array('', array());
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			function ($sql, ...$args) use (&$last) {
+				if (1 === count($args) && is_array($args[0])) {
+					$args = $args[0];
+				}
+				$last = array((string) $sql, array_values($args));
+				return (string) $sql;
+			}
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function () use (&$last) {
+				[$sql] = $last;
+				if (0 === strpos($sql, 'SELECT id, user_id FROM %i WHERE reregistration_id = %d AND status')) {
+					return array((object) array('id' => '41', 'user_id' => '10'), (object) array('id' => '42', 'user_id' => '30'));
+				}
+				return array(); // No child audiences.
+			}
+		);
+		$this->wpdb->shouldReceive('get_col')->andReturnUsing(
+			function () use (&$last) {
+				[$sql] = $last;
+				if (0 === strpos($sql, "SELECT id FROM %i WHERE status = 'active'")) {
+					return array('3');
+				}
+				if (0 === strpos($sql, 'SELECT audience_id FROM %i WHERE reregistration_id')) {
+					return array('100');
+				}
+				// User 10 is still a member of audience 100; user 30 left.
+				return array('10');
+			}
+		);
+		$deleted = array();
+		$this->wpdb->shouldReceive('delete')->andReturnUsing(
+			function ($table, $where) use (&$deleted) {
+				$deleted[] = $where['id'];
+				return 1;
+			}
+		);
+		$this->wpdb->shouldReceive('query')->andReturn(0);
+
+		ReregistrationSubmissionWriter::seed_active_campaigns();
+
+		$this->assertSame(array(42), $deleted);
+	}
+
 	public function test_seed_active_campaigns_does_nothing_without_an_active_campaign(): void {
 		$this->wpdb->shouldReceive('get_col')->once()->andReturn(array());
 		$this->wpdb->shouldNotReceive('query');
