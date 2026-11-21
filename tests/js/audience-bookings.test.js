@@ -13,6 +13,7 @@ beforeAll(() => {
 		restUrl: '/wp-json/ffc/v1/audience/',
 		nonce: 'n',
 		locale: 'pt-BR',
+		cancelReasonMin: 5,
 		strings: {
 			booking: 'booking', bookings: 'bookings',
 			noBookings: 'No bookings for this day.',
@@ -57,9 +58,9 @@ function seedBookings() {
 		[DATE]: [
 			{ id: 1, status: 'active', is_all_day: 0, start_time: '09:00:00', end_time: '10:00:00',
 			  description: 'Timed <b>one</b>', environment_id: 10, environment_name: 'Env A',
-			  audiences: [{ id: 11, name: 'Sub', color: '#f00' }] },
+			  audiences: [{ id: 11, name: 'Sub', color: '#f00' }], can_cancel: true },
 			{ id: 2, status: 'active', is_all_day: 1, start_time: '00:00:00', end_time: '23:59:00',
-			  description: 'All day', environment_id: 10, environment_name: 'Env A', audiences: [] },
+			  description: 'All day', environment_id: 10, environment_name: 'Env A', audiences: [], can_cancel: true },
 			{ id: 3, status: 'cancelled', is_all_day: 0, start_time: '14:00:00', end_time: '15:00:00',
 			  description: 'Gone', environment_id: 10, environment_name: 'Env A', audiences: [] },
 		],
@@ -98,6 +99,14 @@ describe('ffc-audience-bookings — loadDayBookings render', () => {
 		expect(window.$('#ffc-day-bookings .ffc-booking-item').length).toBe(3);
 		expect(window.$('#ffc-day-bookings .ffc-booking-cancelled').length).toBe(1);
 		expect(window.$('#ffc-day-bookings').html()).toContain('Cancelled');
+	});
+
+	it('draws Edit and Cancel only on a booking the caller may cancel (#2691)', () => {
+		api.state.bookings[DATE][1].can_cancel = false;
+		api.loadDayBookings(DATE);
+		expect(window.$('#ffc-day-bookings .ffc-cancel-booking').length).toBe(1);
+		expect(window.$('#ffc-day-bookings .ffc-edit-booking').length).toBe(1);
+		expect(window.$('#ffc-day-bookings .ffc-cancel-booking').attr('data-id')).toBe('1');
 	});
 
 	it('omits the cancel button when canBook is false', () => {
@@ -142,7 +151,7 @@ describe('ffc-audience-bookings — cancelBooking', () => {
 		api.loadDayBookings(DATE);
 		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
 
-		expect(confirmSpy.mock.calls[0][0].reasonField).toEqual({ label: expect.any(String), min: 1 });
+		expect(confirmSpy.mock.calls[0][0].reasonField).toEqual({ label: expect.any(String), min: 5 });
 		expect(promptSpy).not.toHaveBeenCalled();
 	});
 

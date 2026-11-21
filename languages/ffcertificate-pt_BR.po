@@ -3342,10 +3342,6 @@ msgstr "Cancelamento não é permitido para este calendário."
 msgid "Cancellation Reason"
 msgstr "Motivo do Cancelamento"
 
-#: includes/audience/class-ffc-audience-rest-controller.php:683
-msgid "Cancellation reason is required."
-msgstr "O motivo do cancelamento é obrigatório."
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:204
 msgid "Cancellation Reason:"
 msgstr "Motivo do Cancelamento:"
@@ -24139,9 +24135,6 @@ msgstr "Remove grupos de público-alvo e o administrador de agendamento."
 msgid "Requires JavaScript and HTTPS. A visitor with JavaScript disabled cannot submit the form at all — acceptable when the audience is known, such as staff filling in forms on a workstation."
 msgstr "Requer JavaScript e HTTPS. Um visitante com o JavaScript desativado não consegue enviar o formulário de forma alguma — o que é aceitável quando o público-alvo é conhecido, como funcionários preenchendo formulários em uma estação de trabalho."
 
-msgid "schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin's REST API and can target one or more audiences or an individual, and are cancelled with a required reason."
-msgstr "`schedule_id`/`environment_id` igual a 0 exibe tudo o que o visitante pode acessar; a visualização é mensal ou semanal. As reservas são realizadas por meio da API REST do plugin, podem ser direcionadas a um ou mais públicos-alvo ou a um indivíduo, e são canceladas mediante a obrigatoriedade de informar o motivo."
-
 msgid "See Audience Calendars"
 msgstr "Ver calendários de público-alvo"
 
@@ -35343,3 +35336,12 @@ msgstr "Acesso de reserva, como para criar uma reserva — as pessoas e os públ
 #, php-format
 msgid "A booking can name at most %d people or audiences."
 msgstr "Uma reserva pode indicar no máximo %d pessoas ou públicos."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin's REST API and can target one or more audiences or an individual, and are cancelled with a reason of at least 5 characters. The day's list draws Edit and Cancel only on a booking the person may cancel: their own, any booking when their User access row carries Cancel Others, or any booking for a bypass holder where the calendar allows it."
+msgstr "`schedule_id`/`environment_id` igual a 0 exibe tudo o que o visitante pode acessar; a visualização é mensal ou semanal. As reservas são realizadas por meio da API REST do plugin, podem ser direcionadas a um ou mais públicos-alvo ou a um indivíduo, e são canceladas com um motivo de pelo menos 5 caracteres. A lista do dia mostra Editar e Cancelar só nas reservas que a pessoa pode cancelar: as suas, qualquer reserva quando sua linha em Acesso de usuários tem Cancelar de Outros, ou qualquer reserva para quem tem bypass, onde o calendário permite."
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+#, php-format
+msgid "Write a cancellation reason of at least %d characters."
+msgstr "Escreva um motivo de cancelamento com pelo menos %d caracteres."
