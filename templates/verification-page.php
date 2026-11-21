@@ -8,6 +8,7 @@
  *
  * @var string $security_fields Generated security fields HTML
  * @var string $device_check_url Address of the "Test my device" mode, or empty (#2040).
+ * @var string $verification_result The result of a code posted without JavaScript, as HTML, or empty (#2695).
  *
  * @package FreeFormCertificate
  * @since 3.1.0
@@ -69,8 +70,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</form>
 	</div>
 
-	<!-- Verification result -->
-	<div class="ffc-verify-result" role="region" aria-live="polite"></div>
+	<!-- Verification result; filled here when the code was posted without JavaScript (#2695). -->
+	<div class="ffc-verify-result" role="region" aria-live="polite"><?php echo isset( $verification_result ) ? $verification_result : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built by Shortcodes::verify_without_script(): escaped messages or the verification renderer's escaped HTML. ?></div>
 	<?php if ( ! empty( $device_check_url ) ) : ?>
 		<p class="ffc-verification-device-check">
 			<a href="<?php echo esc_url( $device_check_url ); ?>"><?php esc_html_e( 'Problems with a form? Test your device', 'ffcertificate' ); ?></a>

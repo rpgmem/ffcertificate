@@ -239,13 +239,41 @@ class SubmissionPersisterTest extends TestCase {
 
 		$persister = new SubmissionPersister( $handler );
 		$ctx       = $this->ctx();
+		$before    = time();
 		$persister->apply( $ctx );
 
 		$this->assertSame( 555, $ctx->submission_id );
 		$this->assertFalse( $ctx->is_reprint );
 		$this->assertFalse( $ctx->is_quiz );
-		$this->assertSame( '2026-06-30 12:00:00', $ctx->real_submission_date );
+		$this->assertMatchesRegularExpression( '/^\d+$/', $ctx->real_submission_date, 'An instant, never a site-time string (#2695).' );
+		$this->assertGreaterThanOrEqual( $before, (int) $ctx->real_submission_date );
+		$this->assertLessThanOrEqual( time(), (int) $ctx->real_submission_date );
 		$this->assertNull( $ctx->quiz_score );
+	}
+
+	public function test_the_success_card_shows_the_submission_time_in_the_site_zone(): void {
+		// #2695 — a site-time string read back as UTC moved the card by the
+		// offset. With the site three hours behind UTC, the card must show
+		// the local wall clock of the instant the row was written.
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Form' ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		$zone = new \DateTimeZone( 'America/Sao_Paulo' );
+		Functions\when( 'wp_timezone' )->justReturn( $zone );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( 'UTC' ) )->format( (string) $format )
+		);
+		Functions\when( 'get_option' )->alias( static fn( $key, $fallback = false ) => in_array( $key, array( 'date_format', 'time_format' ), true ) ? ( 'date_format' === $key ? 'Y-m-d' : 'H:i' ) : $fallback );
+
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 555 );
+		$ctx = $this->ctx();
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$instant = (int) $ctx->real_submission_date;
+		$local   = ( new \DateTimeImmutable( '@' . $instant ) )->setTimezone( $zone );
+		$shown   = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ctx->real_submission_date );
+		$this->assertStringContainsString( $local->format( 'H:i' ), $shown );
+		$this->assertStringNotContainsString( ( new \DateTimeImmutable( '@' . ( $instant - 3 * HOUR_IN_SECONDS ) ) )->setTimezone( $zone )->format( 'H:i' ), $shown, 'Not shifted by the offset.' );
 	}
 
 	public function test_an_invited_submission_names_its_booking_and_a_reprint_does_not_write(): void {

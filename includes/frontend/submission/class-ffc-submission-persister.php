@@ -290,7 +290,9 @@ class SubmissionPersister {
 						$this->submission_handler->get_repository()->updateStatus( $submission_id, $quiz_status );
 					}
 
-					$real_submission_date = current_time( 'mysql' );
+					// An instant, as the row stores it: a site-time string read
+					// back as UTC moved the success card's time by the offset (#2695).
+					$real_submission_date = (string) time();
 				}
 
 				// If not passed, return quiz feedback (no certificate). An
@@ -405,8 +407,8 @@ class SubmissionPersister {
 					);
 				}
 
-				// Get the submission date from the newly created submission.
-				$real_submission_date = current_time( 'mysql' );
+				// The submission's instant, as the row stores it (#2695).
+				$real_submission_date = (string) time();
 
 				// The row holds the ticket now, so it leaves the list (#2341).
 				$this->settle_ticket( $ctx );

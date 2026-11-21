@@ -627,7 +627,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	}
 
 	public function test_ajax_cert_preview_rejects_when_hash_invalid(): void {
-		$this->valid_post();
+		$_POST         = $this->answered_post()[0];
 		$_POST['hash'] = 'nope';
 
 		try {
@@ -642,7 +642,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	public function test_ajax_cert_preview_rejects_when_form_has_ended(): void {
 		// The form closed at 11:30 and it is noon → only the CSV is left (#2682).
 		$this->configure_form( array( 'time_end' => '11:30' ) );
-		$this->valid_post();
+		$_POST = $this->answered_post()[0];
 
 		try {
 			( new PublicCsvDownload() )->ajax_cert_preview();
@@ -655,7 +655,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_cert_preview_is_served_while_the_form_is_open(): void {
 		// The form opened at 11:00, closes at 14:00, and it is noon (#2682).
-		$this->valid_post();
+		$_POST = $this->answered_post()[0];
 		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
 		Functions\when( 'wp_kses' )->returnArg();
 		Functions\when( 'sanitize_hex_color' )->returnArg();
@@ -666,6 +666,48 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->fail( 'expected json_success' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'json_success', $e->getMessage(), (string) wp_json_encode( $this->captured['payload'] ?? null ) );
+		}
+	}
+
+	public function test_ajax_cert_preview_refuses_a_wrong_challenge(): void {
+		// #2695 — the preview runs the panel's gates.
+		list( $post, $challenge ) = $this->answered_post();
+		$post['ffc_captcha_ans']  = (string) ( $challenge['answer'] + 1 );
+		$_POST                    = $post;
+
+		try {
+			( new PublicCsvDownload() )->ajax_cert_preview();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_error', $e->getMessage() );
+		}
+	}
+
+	public function test_ajax_cert_preview_peeks_at_the_challenge_without_spending_it(): void {
+		list( $post, $challenge ) = $this->answered_post();
+		$_POST                    = $post;
+		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+		Functions\when( 'esc_url_raw' )->returnArg();
+
+		try {
+			( new PublicCsvDownload() )->ajax_cert_preview();
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_success', $e->getMessage() );
+		}
+		$this->assertTrue( SecurityService::verify_simple_captcha( (string) $challenge['answer'], $challenge['hash'], 'public_csv' ), 'The download still spends it.' );
+	}
+
+	public function test_ajax_cert_preview_refuses_a_missing_cpf_when_the_form_asks_for_one(): void {
+		$this->configure_form( array(), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
+		$_POST = $this->answered_post()[0];
+
+		try {
+			( new PublicCsvDownload() )->ajax_cert_preview();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_error', $e->getMessage() );
 		}
 	}
 
