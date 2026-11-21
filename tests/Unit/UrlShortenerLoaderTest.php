@@ -471,6 +471,9 @@ class UrlShortenerLoaderTest extends TestCase {
 			'Slack'     => array( 'GET', 'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)' ),
 			'Facebook'  => array( 'GET', 'facebookexternalhit/1.1' ),
 			'Telegram'  => array( 'GET', 'TelegramBot (like TwitterBot)' ),
+			'Googlebot' => array( 'GET', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' ),
+			'Bingbot'   => array( 'GET', 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)' ),
+			'GPTBot'    => array( 'GET', 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2)' ),
 		);
 	}
 

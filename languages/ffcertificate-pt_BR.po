@@ -7657,14 +7657,6 @@ msgid "The \"Generate missing short URLs\" button creates short URLs for already
 msgstr "O botão \"Gerar URLs curtas ausentes\" cria URLs curtas para os posts já publicados dos tipos salvos para encurtamento que não têm nenhuma, em qualquer estado. É executado em lotes enquanto a página fica aberta; sair dela interrompe o processo, e executá-lo de novo continua de onde parou. Se a coluna Encurtar foi alterada e não salva, ele pede para salvar antes. Isso apenas cria as URLs curtas — ative \"Expor\" para publicá-las como URLs curtas."
 
 #: includes/settings/views/documentation/feature-url-shortener.php
-msgid "The list shows each link's title, short URL, destination, click count and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
-msgstr "A lista mostra o título, a URL curta, o destino, os cliques e o estado de cada link, com ações para mostrar o QR code, ligar ou desligar, editar ou mover para a lixeira (links na lixeira podem ser restaurados, como desativados, ou excluídos definitivamente). A URL curta é um botão que a copia. Quem só pode ver a lista não recebe interruptor, Editar nem Lixeira. Cada link tem um QR code (PNG ou SVG) que codifica a própria URL curta, então a leitura dele também é contada."
-
-#: includes/settings/views/documentation/feature-url-shortener.php
-msgid "Each visit increments a click count; the plugin does not store per-click timestamps, referrers or IPs. Inactive links show the page above and are not counted, and neither are HEAD requests or link previews (WhatsApp, Slack, social networks…). Redirects are sent with no-cache headers; a click that a page cache answers anyway never reaches the counter."
-msgstr "Cada visita soma um clique; o plugin não guarda data e hora por clique, origem nem IP. Links inativos mostram a página acima e não são contados, nem pedidos HEAD ou prévias de link (WhatsApp, Slack, redes sociais…). Os redirecionamentos vão com cabeçalhos que impedem cache; um clique que um cache de página responda assim mesmo nunca chega ao contador."
-
-#: includes/settings/views/documentation/feature-url-shortener.php
 msgid "The \"Export CSV\" button downloads the list — code, title, destination, click count, status, creator and dates — as a CSV file, honouring the current search box and status filter. Rows come newest first by creation, not in the on-screen sort order. The export runs as a timeout-safe background job (the same batched engine every other list export uses), so it is safe on shared hosting with large link tables. Gated by the"
 msgstr "O botão \"Exportar CSV\" baixa a lista — código, título, destino, cliques, estado, criador e datas — em um arquivo CSV, respeitando a pesquisa e o filtro de status atuais. As linhas vêm da mais nova para a mais antiga pela criação, não na ordem da tela. A exportação roda como uma tarefa em segundo plano à prova de tempo limite (o mesmo motor em lotes de todas as outras exportações de lista), então é segura em hospedagem compartilhada com muitas URLs. Controlada pela"
 
@@ -35446,3 +35438,20 @@ msgstr "Nada foi salvo: o e-mail não é um endereço válido. Corrija-o ou deix
 #: includes/recruitment/class-ffc-recruitment-error-messages.php
 msgid "The e-mail is not a valid address. Correct it, or send it empty to clear it."
 msgstr "O e-mail não é um endereço válido. Corrija-o ou envie-o vazio para apagá-lo."
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "The list shows each link's title, short URL, destination, click count with the date of the last click, and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
+msgstr "A lista mostra o título, a URL curta, o destino, os cliques com a data do último clique e o estado de cada link, com ações para mostrar o QR code, ligar ou desligar, editar ou mover para a lixeira (links na lixeira podem ser restaurados, como desativados, ou excluídos definitivamente). A URL curta é um botão que a copia. Quem só pode ver a lista não recebe interruptor, Editar nem Lixeira. Cada link tem um QR code (PNG ou SVG) que codifica a própria URL curta, então a leitura dele também é contada."
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Each visit increments a click count and records when the last one happened; the plugin does not store per-click timestamps, referrers or IPs. Inactive links show the page above and are not counted, and neither are HEAD requests, link previews (WhatsApp, Slack, social networks…) or search and AI crawlers that announce themselves (Googlebot, Bingbot, GPTBot…). Redirects are sent with no-cache headers; a click that a page cache answers anyway never reaches the counter."
+msgstr "Cada visita soma um clique e registra quando foi o último; o plugin não guarda data e hora por clique, origem nem IP. Links inativos mostram a página acima e não são contados, nem pedidos HEAD, prévias de link (WhatsApp, Slack, redes sociais…) ou robôs de busca e de IA que se identificam (Googlebot, Bingbot, GPTBot…). Os redirecionamentos vão com cabeçalhos que impedem cache; um clique que um cache de página responda assim mesmo nunca chega ao contador."
+
+#: includes/url-shortener/class-ffc-url-shortener-export-source.php
+msgid "Last Click"
+msgstr "Último clique"
+
+#: templates/admin/url-shortener/short-urls-page.php
+#, php-format
+msgid "Last: %s"
+msgstr "Último: %s"

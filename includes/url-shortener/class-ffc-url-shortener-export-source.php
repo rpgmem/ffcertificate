@@ -190,6 +190,7 @@ class UrlShortenerExportSource implements BatchedExportSourceInterface {
 			__( 'Title', 'ffcertificate' ),
 			__( 'Target URL', 'ffcertificate' ),
 			__( 'Clicks', 'ffcertificate' ),
+			__( 'Last Click', 'ffcertificate' ),
 			__( 'Status', 'ffcertificate' ),
 			__( 'Post ID', 'ffcertificate' ),
 			__( 'Created By', 'ffcertificate' ),
@@ -251,6 +252,7 @@ class UrlShortenerExportSource implements BatchedExportSourceInterface {
 			// permalink, matching the redirect (#888).
 			UrlShortenerService::resolve_target( $row ),
 			(string) ( $row['click_count'] ?? '0' ),
+			self::instant( $row['last_clicked_at'] ?? 0 ),
 			(string) ( $row['status'] ?? '' ),
 			(string) ( $row['post_id'] ?? '' ),
 			$this->creator_name( (int) ( $row['created_by'] ?? 0 ) ),

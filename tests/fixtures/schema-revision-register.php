@@ -60,8 +60,8 @@ return array(
 	),
 	'includes/url-shortener/class-ffc-url-shortener-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\UrlShortener\\UrlShortenerActivator',
-		'revision'    => '2',
-		'fingerprint' => '169e551648fd8de7627c53f6328164f1b36d9d13',
+		'revision'    => '3',
+		'fingerprint' => '16a8bdc88e96eb93bcc7150bd6197dcf78086684',
 	),
 	'includes/user-dashboard/class-ffc-user-dashboard-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\UserDashboard\\UserDashboardActivator',

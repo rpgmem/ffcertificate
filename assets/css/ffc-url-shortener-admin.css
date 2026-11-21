@@ -259,6 +259,12 @@
     color: var(--ffc-danger-text);
 }
 
+/* Admin page: when a link was last clicked, under its count (#2693) */
+.ffc-shorturl-last-click {
+    color: var(--ffc-text-muted);
+    white-space: nowrap;
+}
+
 /* Admin page: destination "follows the page" note (post-linked rows, #888) */
 .ffc-shorturl-dest-note {
     color: var(--ffc-text-muted);
