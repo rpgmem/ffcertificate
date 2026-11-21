@@ -35390,7 +35390,7 @@ msgstr "Configure os e-mails (convite, lembrete, confirmação) e se as submiss�
 
 #: includes/settings/views/documentation/feature-reregistration.php:31
 msgid "Admins review and approve or reject each submission (unless auto-approve is on). Approve, for one submission or a selection, acts only on this campaign's submissions awaiting review, says how many of the selection it skipped, and e-mails each approved member their verification code. Approvals, rejections, returns to draft and campaign deletions are recorded in the activity log."
-msgstr "Os administradores analisam e aprovam ou recusam cada submissão (a menos que a aprovação automática esteja ativa). Aprovar, para uma submissão ou uma seleção, atua só nas submissões desta campanha aguardando análise, informa quantas da seleção foram ignoradas e envia por e-mail a cada membro aprovado o seu código de verificação. Aprovações, recusas, devoluções para rascunho e exclusões de campanha ficam registradas no log de atividades."
+msgstr "Os administradores analisam e aprovam ou recusam cada submissão (a menos que a aprovação automática esteja ativa). Aprovar, para uma submissão ou uma seleção, atua só nas submissões desta campanha aguardando análise, informa quantas da seleção foram ignoradas e envia por e-mail a cada membro aprovado o seu código de verificação. Aprovações, recusas, devoluções para rascunho e exclusões de campanha ficam anotadas no registro de atividades."
 
 #: templates/emails/reregistration-approved.php:25
 msgid "Reregistration approved: {{reregistration_title}}"
