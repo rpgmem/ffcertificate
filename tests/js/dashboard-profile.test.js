@@ -154,6 +154,22 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(document.querySelector('#ffc-tabpanel-profile .ffc-password-toggle-btn')).not.toBeNull();
 	});
 
+	it('renders the privacy request buttons for the account owner', () => {
+		panel().render(makeProfile());
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-lgpd-export-btn')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-lgpd-delete-btn')).not.toBeNull();
+	});
+
+	it('omits the privacy request buttons while viewing as another account (#2690)', () => {
+		window.ffcDashboard.viewAsUserId = 5;
+		try {
+			panel().render(makeProfile());
+			expect(document.querySelector('#ffc-tabpanel-profile .ffc-lgpd-section')).toBeNull();
+		} finally {
+			delete window.ffcDashboard.viewAsUserId;
+		}
+	});
+
 	it('renders the audience-join section placeholder', () => {
 		panel().render(makeProfile());
 		expect(document.querySelector('#ffc-tabpanel-profile #ffc-audience-join-section')).not.toBeNull();
