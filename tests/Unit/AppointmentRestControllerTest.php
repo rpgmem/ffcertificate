@@ -396,6 +396,15 @@ class AppointmentRestControllerTest extends TestCase {
 				if ( preg_match( '/^SELECT \* FROM `' . self::BLOCKED_DATES . '`\s+WHERE \(calendar_id = \d+ OR calendar_id IS NULL\)/', $sql ) ) {
 					return array(); // No date is blocked.
 				}
+				// The person's place on the slot (#2689), read from the rows held.
+				if ( preg_match( '/^SELECT \* FROM `' . self::APPOINTMENTS . "`\\s+WHERE calendar_id = (\\d+)\\s+AND appointment_date = '([0-9-]+)'\\s+AND status IN \\('pending','confirmed','waitlist'\\)/", $sql, $m ) ) {
+					return array_values(
+						array_filter(
+							$this->appointments,
+							static fn( array $row ): bool => (int) ( $row['calendar_id'] ?? 0 ) === (int) $m[1] && ( $row['appointment_date'] ?? '' ) === $m[2] && in_array( $row['status'] ?? '', array( 'pending', 'confirmed', 'waitlist' ), true )
+						)
+					);
+				}
 				$this->unexpected[] = 'get_results: ' . $sql;
 				return array();
 			}
