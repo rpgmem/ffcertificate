@@ -169,6 +169,49 @@ class AppointmentAdminActionsTest extends TestCase {
 		$this->assertSame( array( 'marked' => 1, 'skipped' => 4 ), $result );
 	}
 
+	public function test_a_no_show_waits_for_the_slot_to_start_and_attended_for_the_day(): void {
+		// 2032-05-10 08:59 in the site's clock (#2689).
+		Functions\when( 'wp_date' )->alias( static fn( string $format ) => 'H:i' === $format ? '08:59' : '2032-05-10' );
+		$today  = array( 'status' => 'confirmed', 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' );
+		$before = array( 'appointment_date' => '2032-05-09' ) + $today;
+		$after  = array( 'appointment_date' => '2032-05-11' ) + $today;
+
+		$this->assertFalse( AppointmentAdminActions::can_mark( $today, 'no_show', 0 ), 'One minute before the slot nobody is absent yet.' );
+		$this->assertTrue( AppointmentAdminActions::can_mark( $today, 'attended', 0 ), 'A person may arrive early.' );
+		$this->assertTrue( AppointmentAdminActions::can_mark( $before, 'no_show', 0 ) );
+		$this->assertFalse( AppointmentAdminActions::can_mark( $after, 'attended', 0 ) );
+		$this->assertFalse( AppointmentAdminActions::can_mark( array( 'status' => 'pending' ) + $before, 'no_show', 0 ) );
+
+		Functions\when( 'wp_date' )->alias( static fn( string $format ) => 'H:i' === $format ? '09:00' : '2032-05-10' );
+		$this->assertTrue( AppointmentAdminActions::can_mark( $today, 'no_show', 0 ), 'From the start time on.' );
+	}
+
+	public function test_undoing_a_mark_on_a_slot_ahead_recounts_it(): void {
+		// Attended was marked early; the freed place was booked since (#2689).
+		Functions\when( 'wp_date' )->alias( static fn( string $format ) => 'H:i' === $format ? '08:00' : '2032-05-10' );
+		$row = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'completed', 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' );
+		$this->appointments->shouldReceive( 'findById' )->andReturn( $row );
+		$this->calendars->shouldReceive( 'findById' )->andReturn( array( 'max_appointments_per_slot' => 2 ) );
+		$this->appointments->shouldReceive( 'begin_transaction' )->andReturn( true );
+		$this->appointments->shouldReceive( 'isSlotAvailable' )->with( 7, '2032-05-10', '09:00:00', 2, true, null )->andReturn( false, true );
+		$this->appointments->shouldReceive( 'rollback' )->once();
+		$this->appointments->shouldReceive( 'commit' )->once();
+		$this->appointments->shouldReceive( 'revertAttendance' )->once()->with( 5, 'completed' )->andReturn( 1 );
+
+		$this->assertSame( 'slot_full', $this->actions->undo_attendance( 5, 0 )->get_error_code() );
+		$this->assertTrue( $this->actions->undo_attendance( 5, 0 ) );
+	}
+
+	public function test_undoing_a_mark_on_a_slot_that_started_does_not_recount(): void {
+		Functions\when( 'wp_date' )->alias( static fn( string $format ) => 'H:i' === $format ? '10:00' : '2032-05-10' );
+		$this->appointments->shouldReceive( 'findById' )->andReturn( array( 'id' => 5, 'calendar_id' => 7, 'status' => 'no_show', 'appointment_date' => '2032-05-10', 'start_time' => '09:00:00' ) );
+		$this->calendars->shouldReceive( 'findById' )->never();
+		$this->appointments->shouldReceive( 'isSlotAvailable' )->never();
+		$this->appointments->shouldReceive( 'revertAttendance' )->once()->with( 5, 'no_show' )->andReturn( 1 );
+
+		$this->assertTrue( $this->actions->undo_attendance( 5, 0 ) );
+	}
+
 	/**
 	 * The real ActivityLog, on, writing to its buffer.
 	 */

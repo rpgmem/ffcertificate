@@ -30168,10 +30168,6 @@ msgstr ""
 msgid "No-show"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:60
-msgid "On the Appointments list, a confirmed appointment whose date has come offers Attended and No-show; either mark is replaced by Undo attendance, which puts the appointment back to confirmed. Marking attendance needs ffc_manage_appointments and sends no e-mail."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:209
 msgid "Undo attendance"
 msgstr ""
@@ -30504,10 +30500,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:341
 msgid "This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:64
-msgid "Mark as no-show in the bulk actions does the same for several rows at once; a selected row that is not confirmed, or whose date has not come, is skipped and counted in the notice."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:62
@@ -35276,4 +35268,20 @@ msgstr ""
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php
 #, php-format
 msgid "You have an appointment on this calendar on %1$s. A new one must be at least %2$d hours before or after it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On the Appointments list, a confirmed appointment offers Attended from its date on and No-show once its start time has passed; either mark is replaced by Undo attendance, which puts the appointment back to confirmed. A mark frees the place, so undoing one before the slot starts recounts the slot and is refused when the place was booked again since. Marking attendance needs ffc_manage_appointments and sends no e-mail."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Mark as no-show in the bulk actions does the same for several rows at once; a selected row that is not confirmed, or whose start time has not passed, is skipped and counted in the notice."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php
+msgid "A no-show can only be marked once the appointment has started."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php
+msgid "The slot was booked again since the mark, so the mark cannot be undone."
 msgstr ""

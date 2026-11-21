@@ -242,15 +242,18 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		// Attendance (completed / no-show) is marked on a confirmed appointment
-		// from its date on, and either mark can be undone back to confirmed.
+		// Attendance is marked on a confirmed appointment: attended from its
+		// date on, a no-show once its slot has started (#2689); either mark
+		// can be undone back to confirmed.
 		$attendance_actions = array();
-		$appointment_date   = (string) ( $item['appointment_date'] ?? '' );
-		if ( $ffc_can_edit_appt && 'confirmed' === $item['status'] && '' !== $appointment_date && $appointment_date <= wp_date( 'Y-m-d' ) ) {
-			$attendance_actions = array(
-				'attended' => array( __( 'Attended', 'ffcertificate' ), 'neutral', 'user-check' ),
-				'no_show'  => array( __( 'No-show', 'ffcertificate' ), 'neutral', 'user-minus' ),
-			);
+		if ( $ffc_can_edit_appt && 'confirmed' === $item['status'] ) {
+			$now = time();
+			if ( \FreeFormCertificate\SelfScheduling\AppointmentAdminActions::can_mark( $item, 'attended', $now ) ) {
+				$attendance_actions['attended'] = array( __( 'Attended', 'ffcertificate' ), 'neutral', 'user-check' );
+			}
+			if ( \FreeFormCertificate\SelfScheduling\AppointmentAdminActions::can_mark( $item, 'no_show', $now ) ) {
+				$attendance_actions['no_show'] = array( __( 'No-show', 'ffcertificate' ), 'neutral', 'user-minus' );
+			}
 		} elseif ( $ffc_can_edit_appt && in_array( $item['status'], \FreeFormCertificate\Repositories\AppointmentWriter::ATTENDANCE_STATUSES, true ) ) {
 			// Undoing returns the row to confirmed: a status change, so caution.
 			$attendance_actions = array( 'undo_attendance' => array( __( 'Undo attendance', 'ffcertificate' ), 'caution', 'restore' ) );
