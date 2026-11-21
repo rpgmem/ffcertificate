@@ -35410,6 +35410,14 @@ msgstr "O histórico guarda os últimos 365 dias: cada execução diária apaga 
 msgid "On a multisite network a rule reaches only the members of this site, whether it follows a date or is an announcement without an audience. A batch that stops halfway is retried; the retry does not send the rest of the run a second time, and a message that failed and then went out on the retry is counted once, as sent."
 msgstr "Numa rede multisite, uma regra alcança só os membros deste site, seja ela por data ou um comunicado sem público. Um lote que para no meio é refeito; a nova tentativa não envia o resto da execução uma segunda vez, e uma mensagem que falhou e depois saiu na nova tentativa é contada uma vez, como enviada."
 
+#: includes/settings/views/documentation/feature-date-messages.php:85
+msgid "In the history, \"Already sent before\" counts the people an earlier run had already reached, who are not sent the message again. When a run failed for someone, a viewer allowed to see who receives date messages (ffc_view_date_messages_pii, or an administrator) can open the list of who failed, with each name masked, as in the summary e-mail."
+msgstr "No histórico, \"Já enviadas antes\" conta as pessoas que uma execução anterior já tinha alcançado, que não recebem a mensagem de novo. Quando uma execução falhou para alguém, quem pode ver quem recebe as mensagens por data (ffc_view_date_messages_pii, ou um administrador) abre a lista de quem falhou, com cada nome mascarado, como no e-mail de resumo."
+
+#: templates/admin/date-messages/history.php:107
+msgid "Already sent before"
+msgstr "Já enviadas antes"
+
 #: includes/settings/views/documentation/feature-url-shortener.php:43
 msgid "Taking a post off the site (the trash, a draft, pending review, private or a future date) disables its short URL; publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code."
 msgstr "Tirar um post do site (a lixeira, um rascunho, revisão pendente, privado ou uma data futura) desativa a sua URL curta; publicá-lo de novo a reativa; excluir o post definitivamente exclui a URL curta e aposenta o código."

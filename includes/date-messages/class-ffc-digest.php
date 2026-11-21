@@ -218,13 +218,13 @@ final class Digest {
 	}
 
 	/**
-	 * Display names of the people a run delivered to, or listed.
+	 * Display names of the people a run delivered to, listed or failed.
 	 *
 	 * @param int    $run_id  Run.
-	 * @param string $channel `user` for deliveries; a run's listed channel for a summary-only rule.
+	 * @param string $channel `user` for deliveries; a run's counted channel for the people it listed or failed (#2692).
 	 * @return array<int, string>
 	 */
-	private static function recipient_names( int $run_id, string $channel = 'user' ): array {
+	public static function recipient_names( int $run_id, string $channel = 'user' ): array {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's log to core wp_users for display names; annotated per line because wp_users is a core table. A digest reads the live log, never a cache.

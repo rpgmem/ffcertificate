@@ -517,6 +517,7 @@ final class DateMessagesAdminPage {
 			$history = DeliveryLog::recent_runs( self::HISTORY_PER_PAGE, ( $paged - 1 ) * self::HISTORY_PER_PAGE, $show_tests );
 			$total   = DeliveryLog::count_runs( $show_tests );
 		}
+		$failed_names = 'history' === $tab ? self::failed_names( $history ) : array();
 
 		// Upcoming dates narrow by an active rule, then by one of its audiences
 		// (#1648). A rule or audience the filter does not offer -- a stale or
@@ -1256,5 +1257,36 @@ final class DateMessagesAdminPage {
 		}
 		delete_transient( $key );
 		return is_array( $outcome ) ? $outcome : array();
+	}
+
+	/**
+	 * Who each run failed to reach, by run id, for the history (#2692).
+	 *
+	 * Names are personal data, so they follow the capability the summary
+	 * e-mail asks for, never the screen's: a viewer without it gets nothing
+	 * and the history shows the count alone. Each name is masked, as in the
+	 * summary.
+	 *
+	 * @param array<int, array<string, mixed>> $history A page of runs.
+	 * @return array<int, list<string>>
+	 */
+	private static function failed_names( array $history ): array {
+		if ( ! Capabilities::current_user_can_admin_or( self::PII_CAP ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $history as $run ) {
+			$run_id = is_numeric( $run['id'] ?? null ) ? (int) $run['id'] : 0;
+			if ( $run_id <= 0 || ! is_numeric( $run['failed'] ?? null ) || (int) $run['failed'] <= 0 ) {
+				continue;
+			}
+			$out[ $run_id ] = array_values(
+				array_map(
+					array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_name' ),
+					Digest::recipient_names( $run_id, DeliveryLog::counted_channel( $run_id, 'failed' ) )
+				)
+			);
+		}
+		return $out;
 	}
 }
