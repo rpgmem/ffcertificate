@@ -30237,10 +30237,6 @@ msgstr ""
 msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:68
-msgid "An hourly task sends each reminder once, to a confirmed appointment that starts within the calendar's reminder hours, measured in the timezone set in WordPress. A run that was missed is caught up by the next one; an appointment booked closer than that is reminded at the next run."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:39
 msgid "Each working range is stepped by the duration plus the break, and a slot that would end after the range closes is not offered. A booking is accepted only at one of those start times; slots that already started, or that start inside the minimum notice, are hidden from anyone without the bypass."
 msgstr ""
@@ -35294,4 +35290,8 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php
 msgid "The slot was booked again since the mark, so the mark cannot be undone."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "An hourly task sends each reminder once, to a confirmed appointment that starts within the calendar's reminder hours, measured in the timezone set in WordPress. A run that was missed is caught up by the next one. An appointment booked or approved less than that ahead gets no reminder, since its confirmation has just gone out, and a reminder the mail server refuses is tried again at the next run, until the appointment starts."
 msgstr ""

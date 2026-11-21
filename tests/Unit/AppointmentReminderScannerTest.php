@@ -288,4 +288,83 @@ class AppointmentReminderScannerTest extends TestCase {
 		$this->assertSame( array( 7 ), $this->profile_reads, "The person's stored preference is read once." );
 		$this->assertSame( array( 99 ), $this->markedIds(), 'Handled once, so the next hourly scan does not reconsider it.' );
 	}
+
+	/**
+	 * Set what the reminder handler reports for an appointment, as
+	 * `send_reminder()` does after the mailer answers.
+	 */
+	private static function reportReminder( int $id, bool $sent ): void {
+		$prop = new \ReflectionProperty( \FreeFormCertificate\SelfScheduling\AppointmentEmailHandler::class, 'reminder_outcomes' );
+		$prop->setAccessible( true );
+		$prop->setValue( null, array( $id => $sent ) + (array) $prop->getValue() );
+	}
+
+	/** A row for calendar 5 whose slot starts at `$start` (UTC), booked at `$created`. */
+	private static function dueAt( int $id, int $start, int $created, int $approved = 0 ): array {
+		return array(
+			'id'               => $id,
+			'calendar_id'      => 5,
+			'appointment_date' => gmdate( 'Y-m-d', $start ),
+			'start_time'       => gmdate( 'H:i:s', $start ),
+			'created_at'       => (string) $created,
+			'approved_at'      => $approved > 0 ? (string) $approved : null,
+		);
+	}
+
+	public function test_a_booking_made_inside_the_window_is_marked_without_a_reminder(): void {
+		$start           = time() + 3 * HOUR_IN_SECONDS;
+		$this->calendars = array( array( 'id' => 5, 'email_config' => self::cfg( 1, 24 ) ) );
+		$this->due       = array( self::dueAt( 99, $start, $start - 2 * HOUR_IN_SECONDS ) );
+
+		Actions\expectDone( 'ffcertificate_self_scheduling_appointment_reminder_email' )->never();
+
+		$this->runExpectingWindow( 24 );
+
+		$this->assertSame( array( 99 ), $this->markedIds(), 'The confirmation went out moments ago; the decision is made once (#2689).' );
+	}
+
+	public function test_an_approval_inside_the_window_counts_as_the_confirmation(): void {
+		$start           = time() + 3 * HOUR_IN_SECONDS;
+		$this->calendars = array( array( 'id' => 5, 'email_config' => self::cfg( 1, 24 ) ) );
+		$this->due       = array( self::dueAt( 99, $start, $start - 72 * HOUR_IN_SECONDS, $start - HOUR_IN_SECONDS ) );
+
+		Actions\expectDone( 'ffcertificate_self_scheduling_appointment_reminder_email' )->never();
+
+		$this->runExpectingWindow( 24 );
+
+		$this->assertSame( array( 99 ), $this->markedIds() );
+	}
+
+	public function test_a_booking_made_before_the_window_is_reminded(): void {
+		$start           = time() + 3 * HOUR_IN_SECONDS;
+		$this->calendars = array( array( 'id' => 5, 'email_config' => self::cfg( 1, 24 ) ) );
+		$this->due       = array( self::dueAt( 99, $start, $start - 25 * HOUR_IN_SECONDS ) );
+
+		Actions\expectDone( 'ffcertificate_self_scheduling_appointment_reminder_email' )->once()->whenHappen(
+			static function (): void {
+				self::reportReminder( 99, true );
+			}
+		);
+
+		$this->runExpectingWindow( 24 );
+
+		$this->assertSame( array( 99 ), $this->markedIds() );
+	}
+
+	public function test_a_reminder_the_mailer_refused_stays_unmarked(): void {
+		$start           = time() + 3 * HOUR_IN_SECONDS;
+		$this->calendars = array( array( 'id' => 5, 'email_config' => self::cfg( 1, 24 ) ) );
+		$this->due       = array( self::dueAt( 99, $start, $start - 25 * HOUR_IN_SECONDS ) );
+
+		Actions\expectDone( 'ffcertificate_self_scheduling_appointment_reminder_email' )->once()->whenHappen(
+			static function (): void {
+				self::reportReminder( 99, false );
+			}
+		);
+
+		$this->runExpectingWindow( 24 );
+
+		$this->assertSame( array(), $this->markedIds(), 'The next hourly scan tries again while the slot is ahead (#2689).' );
+		$this->assertNull( \FreeFormCertificate\SelfScheduling\AppointmentEmailHandler::take_reminder_outcome( 99 ), 'The scanner consumed the outcome.' );
+	}
 }
