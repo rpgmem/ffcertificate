@@ -624,7 +624,14 @@ class RecruitmentActivatorTest extends TestCase {
 	}
 
 	public function test_create_tables_records_the_revision_once_the_column_exists(): void {
-		$this->stub_schema( true, array( 'account_unlinked' => 'tinyint(1) unsigned' ) );
+		$this->stub_schema(
+			true,
+			array(
+				'account_unlinked' => 'tinyint(1) unsigned',
+				'email_status'     => 'varchar(16)',
+				'email_sent_at'    => 'bigint(20) unsigned',
+			)
+		);
 		$written = array();
 		Functions\when( 'update_option' )->alias(
 			static function ( $key, $value ) use ( &$written ) {

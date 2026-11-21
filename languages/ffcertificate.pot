@@ -30734,11 +30734,6 @@ msgstr ""
 msgid "Open My Calls"
 msgstr ""
 
-#. translators: {count} is replaced in JS with the number of candidates
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
-msgid "{count} called candidate(s) have no email on file and were not notified. Contact them manually."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
 msgid "No email — contact manually"
 msgstr ""
@@ -35331,10 +35326,6 @@ msgid "The prefix \"%1$s\" is the address of \"%2$s\". Short URLs would sit over
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
-msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified. Calling says the same when the e-mail could not go out, because e-mails are switched off or the send failed, and no new password link is issued for a message that is not sent."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
 msgid "A file that replaces a list that already has rows shows what it changes before anything is written: the rows that enter, leave, or change rank or score. Nothing is imported until the operator confirms. The preliminary status and reason set by hand stay with each candidate and adjutancy that remains; only those of the rows that leave are lost, and the comparison says how many. The notice is read again when the list is replaced: a preliminary list is refused once the notice has become definitive or closed, even if its import started earlier. Each step of an import must name the notice it was started for, by the operator who started it."
 msgstr ""
 
@@ -35381,4 +35372,59 @@ msgstr ""
 #: templates/admin/url-shortener/short-urls-page.php
 #, php-format
 msgid "Last: %s"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified. Calling says the same when the e-mail could not go out, because e-mails are switched off or the send failed, and no new password link is issued for a message that is not sent. A bulk call saves the calls at once and sends their e-mails in the background, a few at a time. The Calls tab shows each call's e-mail as sent, not sent or waiting to be sent, with its time, and Send the e-mail again sends a call still in force once more."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "{count} called candidate(s) were not notified by e-mail: no address on file, e-mails switched off or the send failed. Contact them another way, or use Send again on the Calls tab."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The e-mails of {count} call(s) are being sent in the background. The Calls tab shows each delivery."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The call e-mail was sent again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The call e-mail did not go out: no address on file, e-mails switched off or the send failed."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "This call was cancelled, so its e-mail is not sent again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The date and time to assume are over, so no e-mail is sent for this call."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Send the e-mail again"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Recruitment Call E-mail Sent Again"
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Recruitment: call e-mails of a bulk call (one per batch)"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Sent"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Not sent"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Waiting to be sent"
 msgstr ""

@@ -296,7 +296,11 @@ final class RecruitmentAdminAssetsManager {
 					'overrideModalCta'       => __( 'Undo decision', 'ffcertificate' ),
 					'notifyByEmailAsk'       => __( 'Notify the candidate by email about this call', 'ffcertificate' ),
 					/* translators: {count} is replaced in JS with the number of candidates */
-					'noEmailContactManually' => __( '{count} called candidate(s) have no email on file and were not notified. Contact them manually.', 'ffcertificate' ),
+					'noEmailContactManually' => __( '{count} called candidate(s) were not notified by e-mail: no address on file, e-mails switched off or the send failed. Contact them another way, or use Send again on the Calls tab.', 'ffcertificate' ),
+					/* translators: {count} is replaced in JS with the number of calls */
+					'callMailsQueued'        => __( 'The e-mails of {count} call(s) are being sent in the background. The Calls tab shows each delivery.', 'ffcertificate' ),
+					'resendSent'             => __( 'The call e-mail was sent again.', 'ffcertificate' ),
+					'resendNotSent'          => __( 'The call e-mail did not go out: no address on file, e-mails switched off or the send failed.', 'ffcertificate' ),
 				),
 			)
 		);

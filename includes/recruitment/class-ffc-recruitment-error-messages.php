@@ -193,6 +193,8 @@ final class RecruitmentErrorMessages {
 
 			// Calls.
 			'recruitment_call_not_found'                   => __( 'Call entry not found.', 'ffcertificate' ),
+			'recruitment_call_cancelled_no_email'          => __( 'This call was cancelled, so its e-mail is not sent again.', 'ffcertificate' ),
+			'recruitment_call_past_no_email'               => __( 'The date and time to assume are over, so no e-mail is sent for this call.', 'ffcertificate' ),
 			'recruitment_call_insert_failed'               => __( 'Could not register the call. Please try again.', 'ffcertificate' ),
 			'recruitment_call_already_cancelled'           => __( 'This call has already been cancelled.', 'ffcertificate' ),
 			'recruitment_call_cancel_race_lost'            => __( 'Another operator updated this call moments ago. Reload to see the current state.', 'ffcertificate' ),

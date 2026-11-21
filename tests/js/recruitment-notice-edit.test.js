@@ -1099,3 +1099,77 @@ describe('init readyState', () => {
 		addSpy.mockRestore();
 	});
 });
+
+// ---- Call e-mail delivery (#2694) -----------------------------------
+
+describe('call e-mails sent again and in the background (#2694)', () => {
+	function settle() {
+		return new Promise((resolve) => setTimeout(resolve, 0));
+	}
+
+	function respond(status, body) {
+		return Promise.resolve({ status, json: () => Promise.resolve(body) });
+	}
+
+	it('Send again POSTs the call route and reports a delivered e-mail', async () => {
+		CFG.strings.resendSent = 'SENT_AGAIN';
+		CFG.strings.resendNotSent = 'NOT_SENT_AGAIN';
+		document.body.innerHTML = '<button data-cls-id="5" data-cls-action="resend" data-call-id="77">Send again</button>';
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn() };
+		loadScript(SCRIPT);
+		const notice = vi.spyOn(window.FFC, 'reloadWithNotice').mockImplementation(() => {});
+		fetchSpy.mockImplementation(() => respond(200, { sent: true }));
+
+		document.querySelector('button').click();
+		await settle();
+
+		expect(fetchSpy.mock.calls[0][0]).toBe(CLASS + '5/calls/77/resend-email');
+		expect(fetchSpy.mock.calls[0][1].method).toBe('POST');
+		expect(notice).toHaveBeenCalledWith('success', 'SENT_AGAIN');
+		expect(window.ffcRecruitmentAdmin.openConfirmModal).not.toHaveBeenCalled();
+	});
+
+	it('Send again warns when the e-mail still did not go out', async () => {
+		CFG.strings.resendNotSent = 'NOT_SENT_AGAIN';
+		document.body.innerHTML = '<button data-cls-id="5" data-cls-action="resend" data-call-id="77">Send again</button>';
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn() };
+		loadScript(SCRIPT);
+		const notice = vi.spyOn(window.FFC, 'reloadWithNotice').mockImplementation(() => {});
+		fetchSpy.mockImplementation(() => respond(200, { sent: false }));
+
+		document.querySelector('button').click();
+		await settle();
+
+		expect(notice).toHaveBeenCalledWith('warning', 'NOT_SENT_AGAIN');
+	});
+
+	it('Send again without a call does nothing', () => {
+		document.body.innerHTML = '<button data-cls-id="5" data-cls-action="resend">Send again</button>';
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn() };
+		loadScript(SCRIPT);
+
+		document.querySelector('button').click();
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe('a bulk call whose e-mails are queued (#2694)', () => {
+	it('says the e-mails go out in the background', async () => {
+		CFG.strings.callMailsQueued = 'QUEUED {count}';
+		document.body.innerHTML = `
+			<div data-ffc-clspanel="definitive" data-ffc-empties='{"adj-1":[{"id":10,"rank":1}]}'></div>
+			<input id="ffc-bulk-date" value="2026-05-20"><input id="ffc-bulk-time" value="09:00">
+			<span id="ffc-bulk-status"></span>
+			<input type="checkbox" class="ffc-cls-bulk-cb" value="10" checked>`;
+		window.ffcRecruitmentAdmin = { openConfirmModal: vi.fn((cfg, cb) => cb('')) };
+		loadScript(SCRIPT);
+		const notice = vi.spyOn(window.FFC, 'reloadWithNotice').mockImplementation(() => {});
+		fetchSpy.mockImplementation(() => Promise.resolve({ status: 200, json: () => Promise.resolve({ success: true, unreached: [], queued: 1 }) }));
+
+		window.ffcRecruitmentBulkCall();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(notice).toHaveBeenCalledWith('info', 'QUEUED 1');
+	});
+});
