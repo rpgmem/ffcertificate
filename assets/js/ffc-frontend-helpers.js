@@ -191,9 +191,12 @@ $inputs.each(function() {
             $inputs.each(function() {
                 var $input = $(this);
 
-                // Update maxlength to accommodate prefix format (P-XXXX-XXXX-XXXX = 16 chars)
-                if (!$input.attr('maxlength') || parseInt($input.attr('maxlength'), 10) < 16) {
-                    $input.attr('maxlength', 16);
+                // Room for a pasted code with its spacing: a maxlength of 16
+                // cut "A - FDVS - UJA0 - BAMQ" before the mask below could strip
+                // it, so the field only bounds the paste and the mask caps the
+                // code after cleaning (#2730).
+                if (!$input.attr('maxlength') || parseInt($input.attr('maxlength'), 10) < 64) {
+                    $input.attr('maxlength', 64);
                 }
 
                 // Remove existing handlers to avoid duplicates

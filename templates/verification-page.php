@@ -48,8 +48,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 					required
 					aria-required="true"
 					aria-describedby="ffc-auth-code-desc"
-					maxlength="16"
-					pattern="[A-Za-z0-9\-]+"
+					maxlength="64"
+					pattern="[A-Za-z0-9\-\s]+"
 				>
 			</div>
 
