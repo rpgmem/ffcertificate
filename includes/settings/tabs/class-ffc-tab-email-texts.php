@@ -221,6 +221,10 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Reregistration confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'submission_status', 'auth_code', 'magic_link_url', 'dashboard_url', 'site_name' ),
 			),
+			'reregistration-approved'       => array(
+				'label'  => __( 'Reregistration approved', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'auth_code', 'dashboard_url', 'site_name' ),
+			),
 			'reregistration-rejected'       => array(
 				'label'  => __( 'Reregistration not approved', 'ffcertificate' ),
 				// `reason` is what the reviewer typed (#2242).
@@ -353,6 +357,7 @@ class TabEmailTexts extends SettingsTab {
 				'reregistration-invitation',
 				'reregistration-reminder',
 				'reregistration-confirmation',
+				'reregistration-approved',
 				'reregistration-rejected',
 				'reregistration-returned',
 			),

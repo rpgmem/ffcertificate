@@ -302,6 +302,8 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 	}
 
 	public function test_approve_records_the_reviewer_and_returns_to_the_list(): void {
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'member@example.test', 'display_name' => 'Member' ) );
+		$this->mail_path();
 		$this->single( 'approve' );
 
 		$this->runHandler( 'handle_approve' );
@@ -316,8 +318,59 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$this->assertSame( array( 'https://example.com/wp-admin/admin.php?page=ffc-reregistration&view=submissions&id=4&message=approved' ), $this->redirects );
 	}
 
-	private function decide( string $decision, array $ids, string $reason = 'Your RF does not match the payroll record.' ): void {
-		// The member's e-mail goes through the plugin's own path (#2242).
+	public function test_approve_mails_the_member(): void {
+		// A manual approval used to send nothing (#2688).
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'member@example.test', 'display_name' => 'Member' ) );
+		$this->mail_path();
+		$this->single( 'approve' );
+
+		$this->runHandler( 'handle_approve' );
+
+		$this->assertSame( array( 'member@example.test' ), $this->mailed );
+	}
+
+	public function test_approve_is_recorded_in_the_activity_log(): void {
+		// Rejects and returns were logged; approvals were not (#2688).
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'member@example.test', 'display_name' => 'Member' ) );
+		$this->mail_path();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn ( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+		$this->single( 'approve' );
+
+		$this->runHandler( 'handle_approve' );
+
+		$logged = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::contexts();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		$this->assertSame( array( 'reregistration_submission_approved' ), array_column( $logged, 'action' ) );
+		$this->assertSame( 21, $logged[0]['context']['submission_id'] );
+		$this->assertSame( 4, $logged[0]['context']['reregistration_id'] );
+	}
+
+	public function test_approve_leaves_a_row_of_another_campaign_alone(): void {
+		// 40 belongs to campaign 99; the screen shows campaign 4 (#2688).
+		$this->statuses[40] = 'submitted';
+		$_GET               = array(
+			'action'   => 'approve',
+			'sub_id'   => '40',
+			'id'       => '4',
+			'_wpnonce' => 'good',
+		);
+
+		$this->runHandler( 'handle_approve' );
+
+		$this->assertSame( array(), $this->submission_writes() );
+		$this->assertSame( 'submitted', $this->statuses[40] );
+		$this->assertSame( array(), $this->mailed );
+	}
+
+	/**
+	 * The stubs the member's e-mail needs on its way through the plugin's own
+	 * path (#2242, #2688).
+	 */
+	private function mail_path(): void {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
@@ -329,6 +382,10 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
 		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias( static fn ( $format, $ts = null ) => gmdate( (string) $format, (int) $ts ) );
+	}
+
+	private function decide( string $decision, array $ids, string $reason = 'Your RF does not match the payroll record.' ): void {
+		$this->mail_path();
 		$_POST = array(
 			'ffc_action'        => 'review_decision',
 			'reregistration_id' => '4',
@@ -412,6 +469,8 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 	public function test_bulk_approve_approves_only_the_selected_rows_awaiting_review(): void {
 		// 5 was never answered: a "select all" must leave it alone and say so
 		// (#2242).
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'member@example.test', 'display_name' => 'Member' ) );
+		$this->mail_path();
 		$this->bulk( 'approve', array( '3', '5', '21' ) );
 
 		$this->runHandler( 'handle_bulk' );
@@ -425,6 +484,22 @@ class ReregistrationSubmissionActionsFlowTest extends TestCase {
 		$this->assertSame( 'pending', $this->statuses[5] );
 		$this->assertSame( array( 'bulk_submissions_4' ), $this->nonces );
 		$this->assertStringEndsWith( '&message=bulk_approved&count=2&skipped=1', $this->redirects[0] );
+		$this->assertSame( array( 'member@example.test', 'member@example.test' ), $this->mailed, 'Each approved member is told (#2688).' );
+	}
+
+	public function test_bulk_approve_skips_a_row_of_another_campaign(): void {
+		// 40 belongs to campaign 99 and awaits review there; only the
+		// campaign on screen is approved (#2688).
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'user_email' => 'member@example.test', 'display_name' => 'Member' ) );
+		$this->mail_path();
+		$this->statuses[40] = 'submitted';
+		$this->bulk( 'approve', array( '21', '40' ) );
+
+		$this->runHandler( 'handle_bulk' );
+
+		$this->assertSame( array( 21 ), array_column( $this->submission_writes(), 0 ) );
+		$this->assertSame( 'submitted', $this->statuses[40] );
+		$this->assertStringEndsWith( '&message=bulk_approved&count=1&skipped=1', $this->redirects[0] );
 	}
 
 	public function test_bulk_reminder_reaches_the_owners_of_the_submissions_that_exist(): void {

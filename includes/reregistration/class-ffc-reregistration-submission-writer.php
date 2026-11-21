@@ -433,27 +433,6 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
-	 * Bulk approve the selected submissions that await review.
-	 *
-	 * A selected row in any other status is skipped, not approved (#2242):
-	 * the list is a whole campaign, so "select all" also selects every member
-	 * who has not answered yet.
-	 *
-	 * @param array<int> $ids         Submission IDs.
-	 * @param int        $reviewer_id Reviewer user ID.
-	 * @return int Number of approved submissions.
-	 */
-	public static function bulk_approve( array $ids, int $reviewer_id ): int {
-		$count = 0;
-		foreach ( $ids as $id ) {
-			if ( self::approve( (int) $id, $reviewer_id ) ) {
-				++$count;
-			}
-		}
-		return $count;
-	}
-
-	/**
 	 * How many rows the seeding sends per INSERT (#1234).
 	 *
 	 * Five hundred is the same page size #772's export contract uses: large

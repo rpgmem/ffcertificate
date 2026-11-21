@@ -1037,40 +1037,6 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertFalse(ReregistrationSubmissionWriter::return_to_draft(8));
 	}
 
-	// ==================================================================
-	// bulk_approve()
-	// ==================================================================
-
-	public function test_bulk_approve_approves_all_submissions(): void {
-		$this->capture_review_writes();
-		$this->status_reads_answer('approved');
-		$this->wpdb->shouldReceive('query')->times(3)->andReturn(1);
-
-		$this->assertSame(3, ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99));
-	}
-
-	public function test_bulk_approve_skips_the_rows_not_awaiting_review(): void {
-		// "Select all" selects members who never answered: the conditional
-		// write matches nothing for them, and the re-read says they moved on.
-		$this->capture_review_writes();
-		$this->status_reads_answer('pending');
-		$this->wpdb->shouldReceive('query')->andReturn(1, 0, 1);
-
-		$this->assertSame(2, ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99));
-	}
-
-	public function test_bulk_approve_returns_zero_for_empty_array(): void {
-		$this->assertSame(0, ReregistrationSubmissionWriter::bulk_approve(array(), 99));
-	}
-
-	public function test_bulk_approve_returns_zero_when_all_fail(): void {
-		$this->capture_review_writes();
-		$this->status_reads_answer('submitted');
-		$this->wpdb->shouldReceive('query')->times(2)->andReturn(false);
-
-		$this->assertSame(0, ReregistrationSubmissionWriter::bulk_approve(array(1, 2), 99));
-	}
-
 	public function test_return_to_draft_stores_the_reason_for_the_member(): void {
 		$captured = $this->capture_review_writes();
 		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
