@@ -343,18 +343,11 @@ class AppointmentHandler {
 			}
 		}
 
-		// Generate receipt URL (magic link to /valid/ page).
-		$confirmation_token = is_array( $appointment ) ? ( $appointment['confirmation_token'] ?? '' ) : '';
+		// The receipt is the magic link to the /valid/ page (#2732).
+		$confirmation_token = is_array( $appointment ) ? (string) ( $appointment['confirmation_token'] ?? '' ) : '';
 
 		try {
-			if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-				$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-			} elseif ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
-				$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-					$appointment_id,
-					$confirmation_token
-				);
-			}
+			$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url( $appointment_id, $confirmation_token );
 		} catch ( \Throwable $e ) {
 			$this->log_post_commit_failure( 'receipt_url', $appointment_id, $e );
 		}

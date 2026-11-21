@@ -57,6 +57,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Verification: a certificate signed later than it was issued (by the Sign Certificates Already Issued card, or after a key was first generated) now shows both dates, issue and signing, in the plugin's date format; the signature is never dated back to the issue (#2674).
 - Public operator panel: Preview Certificate is available from before the start until the form closes, beside Download CSV; once the form has closed only the download is left (#2682).
 - The calendar side panels fold the current month's past days into a closed group at the top ("Earlier days" on audience calendars, "Already held" for a visitor's own bookings on personal calendars) and mark today's date; past and future months stay open (#2728).
+- Personal Calendars: an appointment receipt is its magic link on the verification page. E-mails, the dashboard and the booking confirmation link it; the old `?ffc_appointment_receipt=` address redirects (token holder or signed-in owner to the link, staff to the Appointments list, anyone else refused), and the standalone receipt page is gone. Staff open a receipt from "Open receipt" on the list, an audited route gated on the module's PII capability, as certificates open (#2732).
 
 ### Removed
 
@@ -121,6 +122,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Certificates: a submission records its time as an instant, so the success card and the record show it in the site's time zone; the CSV preview checks its challenge and the form's hash before asking for a CPF; and a code posted on the verification page without JavaScript is now verified there (#2695).
 - Certificates: two submissions with the same form and CPF (or e-mail) now run one after the other, so they can no longer both pass the reprint, quiz-attempt and rate-limit checks. Open early and Postpone close re-check the form under a lock before writing, and removing a used ticket no longer races an editor save on the form's settings (#2695).
 - **Recruitment: a bulk call sends its e-mails in the background, and every call shows its delivery** (#2694). A bulk call saves the calls and queues their e-mails for a WP-Cron batch, so a long list no longer times out. Each call records its e-mail as sent, not sent or waiting, with its time, on the Calls tab, where Send the e-mail again resends one in force.
+- Personal Calendars: the receipt PDF's status badge takes the status's colours in both default receipts, which printed every status, Cancelled included, in one fixed colour; installed defaults refresh through the template seed (#2732).
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
 - **A `{{signer2:signature}}` or `{{signer3:signature}}` image address survives the layout allow-list and the visual conversion** (#2624): the allow-list held only `{{signer:`, and the conversion's markup escaped the braces, so both cut the token down to `signature}}`.

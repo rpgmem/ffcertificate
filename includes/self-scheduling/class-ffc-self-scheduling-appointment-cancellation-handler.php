@@ -10,10 +10,9 @@
  * token via hash_equals and enforces every calendar rule (cancellation
  * disabled, deadline, already-cancelled). No account required.
  *
- * Mirrors the AppointmentReceiptHandler pattern: a registered public query
- * var (`ffc_cancel_appointment`) + a `template_redirect` interceptor that
- * renders a self-contained page and exits, so it works on any permalink
- * configuration without rewrite rules.
+ * A registered public query var (`ffc_cancel_appointment`) + a
+ * `template_redirect` interceptor that renders a self-contained page and
+ * exits, so it works on any permalink configuration without rewrite rules.
  *
  * @package FreeFormCertificate\SelfScheduling
  * @since   6.10.0
@@ -87,8 +86,7 @@ class AppointmentCancellationHandler {
 		$url = add_query_arg( self::QUERY_VAR, $appointment_id, home_url() );
 		if ( '' !== $token ) {
 			// add_query_arg() URL-encodes values itself — pass the token raw
-			// (mirrors AppointmentReceiptHandler::get_receipt_url) so it isn't
-			// double-encoded.
+			// so it isn't double-encoded.
 			$url = add_query_arg( 'token', $token, $url );
 		}
 		return $url;
@@ -375,7 +373,7 @@ class AppointmentCancellationHandler {
 	 * Emit a minimal self-contained HTML page wrapping the given inner markup
 	 * and stop WordPress from rendering the theme on top. Kept standalone (no
 	 * theme header/footer) so the e-mail link lands reliably regardless of the
-	 * active theme — the same idiom AppointmentReceiptHandler uses.
+	 * active theme.
 	 *
 	 * @param string $title Page <title>.
 	 * @param string $inner Pre-escaped inner HTML.

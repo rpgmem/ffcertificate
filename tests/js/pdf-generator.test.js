@@ -1237,17 +1237,14 @@ describe('ffc-pdf-generator.js — pipeline branches', () => {
 
 		reset();
 		window.ffcPdfLibraries = { html2canvas: '/a.js', jspdf: '/b.js' };
-		window.ffcReceiptData = { strings: { generatingPdf: 'Receipt title', pleaseWait: 'Receipt wait' } };
+		// The standalone receipt page and its ffcReceiptData are gone (#2732):
+		// without a localized title the overlay falls back to its own text.
 		window.ffc_ajax = { strings: { pdfDontCloseTab: 'Não feche.' } };
-		try {
-			loadScript('assets/js/ffc-pdf-generator.js');
-			window.ffcGeneratePDF({ html: '<p>c</p>' }, 'a.pdf');
-			expect(document.getElementById('ffc-pdf-overlay-title').textContent).toBe('Receipt title');
-			expect(document.getElementById('ffc-pdf-overlay-message').textContent).toBe('Receipt wait');
-			expect(document.querySelector('.ffc-pdf-dont-close').textContent).toBe('Não feche.');
-		} finally {
-			delete window.ffcReceiptData;
-		}
+		loadScript('assets/js/ffc-pdf-generator.js');
+		window.ffcGeneratePDF({ html: '<p>c</p>' }, 'a.pdf');
+		expect(document.getElementById('ffc-pdf-overlay-title').textContent).toBe('Generating PDF...');
+		expect(document.getElementById('ffc-pdf-overlay-message').textContent).toBe('Please wait, this may take a few seconds...');
+		expect(document.querySelector('.ffc-pdf-dont-close').textContent).toBe('Não feche.');
 	});
 
 	it('opens the overlay even when the focused element cannot be read', () => {

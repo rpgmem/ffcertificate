@@ -374,6 +374,9 @@ class PdfGenerator {
 		);
 		$status        = $appointment['status'] ?? 'pending';
 		$status_label  = $status_labels[ $status ] ?? $status;
+		// The badge's colours follow the status (#2732): the default receipts
+		// printed every status, Cancelled included, in the Confirmed green.
+		$status_colors = self::receipt_status_colors( (string) $status );
 
 		// Build data array for placeholder replacement.
 		$data = array(
@@ -391,6 +394,8 @@ class PdfGenerator {
 			'appointment_time_range' => $formatted_range,
 			'created_at'             => $formatted_created,
 			'status'                 => $status_label,
+			'status_bg'              => $status_colors['bg'],
+			'status_color'           => $status_colors['text'],
 			'validation_code'        => ! empty( $appointment['validation_code'] )
 				? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
 				: '',
@@ -507,5 +512,40 @@ class PdfGenerator {
 		}
 
 		return array( $start, $end );
+	}
+
+	/**
+	 * The receipt badge's colours for a status (#2732), for the
+	 * `{{status_bg}}` and `{{status_color}}` placeholders. A PDF is a printed
+	 * document, light by definition, so these are literals, not theme tokens.
+	 *
+	 * @param string $status Appointment status.
+	 * @return array{bg: string, text: string}
+	 */
+	public static function receipt_status_colors( string $status ): array {
+		$colors = array(
+			'pending'   => array(
+				'bg'   => '#f0f0f1',
+				'text' => '#50575e',
+			),
+			'confirmed' => array(
+				'bg'   => '#d5e8d4',
+				'text' => '#1e5a22',
+			),
+			'cancelled' => array(
+				'bg'   => '#f8d7da',
+				'text' => '#8a1f1f',
+			),
+			'completed' => array(
+				'bg'   => '#cfe2ff',
+				'text' => '#004085',
+			),
+			'no_show'   => array(
+				'bg'   => '#fff3cd',
+				'text' => '#6b4e00',
+			),
+		);
+
+		return $colors[ $status ] ?? $colors['pending'];
 	}
 }

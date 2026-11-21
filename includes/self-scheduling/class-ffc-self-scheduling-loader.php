@@ -99,6 +99,10 @@ class SelfSchedulingLoader {
 			$this->admin  = new SelfSchedulingAdmin();
 			$this->editor = new SelfSchedulingEditor();
 
+			// Staff open a receipt through an audited admin_post route (#2732);
+			// admin-post.php runs under is_admin().
+			( new AppointmentReceiptOpenHandler() )->init();
+
 			// Appointment CSV export — register the batched source with the
 			// shared registry (#772); the unified dispatcher (wired in Loader)
 			// routes `type=appointments` start/batch/download requests to it.

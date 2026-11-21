@@ -114,8 +114,12 @@ class CertTemplateSeeder {
 	 * margin of 2 modules, between the signers, where a signed QR code is
 	 * readable (#2639); their verification line becomes two centred lines,
 	 * model 6's signer columns move 16 px apart each, and model 5 is unchanged.
+	 *
+	 * Version 17 colours the two appointment receipts' status badge by status
+	 * (#2732), through `{{status_bg}}` and `{{status_color}}`; they printed
+	 * every status in one fixed colour. The certificate models are unchanged.
 	 */
-	private const SEED_VERSION = 16;
+	private const SEED_VERSION = 17;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background

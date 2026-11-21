@@ -131,6 +131,12 @@ class CertificatePreviewSamples {
 			'date'                     => $today,
 			'reference_year'           => (string) (int) gmdate( 'Y', $now ),
 			'status'                   => 'Confirmado',
+			// The receipt badge's colours for that status (#2732), the values
+			// PdfGenerator::receipt_status_colors( 'confirmed' ) gives; written
+			// here so Core does not reach into Generators, and held equal by
+			// AppointmentReceiptStatusBadgeTest.
+			'status_bg'                => '#d5e8d4',
+			'status_color'             => '#1e5a22',
 
 			// Appointment receipt.
 			'calendar_title'           => 'Atendimento de Exemplo',

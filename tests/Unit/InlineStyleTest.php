@@ -80,7 +80,6 @@ final class InlineStyleTest extends TestCase {
 
 	private const INACTIVE_PAGE = 'the page a dead short URL answers with (#2337) is a whole document of its own, outside the theme by decision so it renders the same on every site, with no plugin stylesheet';
 
-	private const RECEIPT_PAGE = 'the standalone printable appointment receipt carries its own <style>: it is a whole document, printed, with no plugin stylesheet';
 
 	/**
 	 * Every inline occurrence left, per file, with how many and why.
@@ -334,9 +333,6 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="margin: 0 0 5px 0; font-weight: bold; color: #666;' => array( 2, self::EMAIL_BODY ),
 			'style=: style="margin: 0; color: #333;'                            => array( 2, self::EMAIL_BODY ),
 			'style=: style="margin: 0 0 10px 0;'                                => array( 1, self::EMAIL_BODY ),
-		),
-		'includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php' => array(
-			'<style>: <style' => array( 1, self::RECEIPT_PAGE ),
 		),
 		'includes/self-scheduling/class-ffc-self-scheduling-editor.php' => array(
 			'style=: style="display:none;' => array( 2, self::INITIAL_STATE ),

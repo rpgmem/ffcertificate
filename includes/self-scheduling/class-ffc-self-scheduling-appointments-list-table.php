@@ -326,18 +326,16 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		// Receipt link — not for cancelled appointments. It never carries the
-		// confirmation token (#2244): the token opens the person's own receipt
-		// unmasked and cancels the appointment as a guest, so staff get the
-		// bare link, which the receipt handler renders masked for them.
+		// Receipt — not for cancelled appointments, and only for who may
+		// reveal the person's data: it opens through the audited route, which
+		// logs the opening and sends the reader to the magic link (#2732).
 		$item_status = $item['status'] ?? 'pending';
-		if ( 'cancelled' !== $item_status ) {
-			$receipt_url        = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url( (int) $item['id'] );
+		if ( 'cancelled' !== $item_status && \FreeFormCertificate\SelfScheduling\AppointmentReceiptOpenHandler::current_user_can_open( (int) ( $item['user_id'] ?? 0 ) ) ) {
 			$actions['receipt'] = \FreeFormCertificate\Core\Button::html(
 				array(
-					'label' => __( 'View Receipt', 'ffcertificate' ),
+					'label' => __( 'Open receipt', 'ffcertificate' ),
 					'icon'  => 'file',
-					'href'  => $receipt_url,
+					'href'  => \FreeFormCertificate\SelfScheduling\AppointmentReceiptOpenHandler::url( (int) $item['id'] ),
 					'attrs' => array( 'target' => '_blank' ),
 				)
 			);
