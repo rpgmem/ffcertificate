@@ -56,6 +56,37 @@ jQuery(function ($) {
 	}
 	$('#ffc_geofence_date_start, #ffc_geofence_multi_day').on('change', syncEndDateMin);
 	syncEndDateMin();
+
+	// Event date (#2579): the End may equal the Start, never precede it.
+	// An End the Start moved past is cleared rather than left invalid: inside
+	// a collapsed section the browser cannot point at it, so the form would
+	// refuse to save without a word (#2626).
+	function syncEventEndMin() {
+		var startVal = $('#ffc_event_date_start').val();
+		var $end     = $('#ffc_event_date_end');
+		if ( startVal ) {
+			$end.attr('min', startVal);
+			if ( $end.val() && $end.val() < startVal ) {
+				$end.val('');
+			}
+		} else {
+			$end.removeAttr('min');
+		}
+	}
+	$('#ffc_event_date_start').on('change input', syncEventEndMin);
+
+	// Copy the opening date only when asked: the two are different dates,
+	// and an event date must never follow the opening window silently.
+	$('#ffc_event_date_from_opening').on('click', function (e) {
+		e.preventDefault();
+		var opening = $('#ffc_geofence_date_start').val();
+		if ( ! opening ) {
+			// Nothing to copy: take the operator to the opening date instead.
+			$('#ffc_geofence_date_start').trigger('focus');
+			return;
+		}
+		$('#ffc_event_date_start').val(opening).trigger('change');
+	});
 });
 
 // Geolocation: each area picker (GPS + IP) toggles between the saved-locations

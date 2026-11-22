@@ -769,63 +769,6 @@ class PdfGeneratorTest extends TestCase {
 	// generate_pdf_data_from_form() — frontend path
 	// ==================================================================
 
-	public function test_generate_pdf_data_from_form_returns_error_when_form_missing(): void {
-		Functions\when( '__' )->returnArg();
-		Functions\when( 'get_post' )->justReturn( null );
-
-		$result = $this->generator->generate_pdf_data_from_form( array(), 999 );
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'form_not_found', $result->get_error_code() );
-	}
-
-	public function test_generate_pdf_data_from_form_assembles_array_with_date(): void {
-		$this->stub_html_funcs();
-		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Frontend Form' ) );
-		Functions\when( 'get_post_meta' )->alias(
-			static function ( $id, $key ) {
-				if ( '_ffc_form_config' === $key ) {
-					return array( 'pdf_layout' => '<p>{{name}} {{fill_date}}</p>' );
-				}
-				if ( '_ffc_form_bg' === $key ) {
-					return '';
-				}
-				return '';
-			}
-		);
-
-		$result = $this->generator->generate_pdf_data_from_form(
-			array( 'name' => 'Clara', 'auth_code' => 'FC-1' ),
-			10,
-			1_700_000_000
-		);
-
-		$this->assertIsArray( $result );
-		$this->assertSame( 'Frontend Form', $result['form_title'] );
-		$this->assertStringContainsString( 'Clara', $result['html'] );
-		// Date was injected into the data the layout reads.
-		$this->assertStringNotContainsString( '{{fill_date}}', $result['html'] );
-		$this->assertArrayNotHasKey( 'submission', $result, 'No raw answers in the browser payload (#2241).' );
-	}
-
-	public function test_generate_pdf_data_from_form_without_date(): void {
-		$this->stub_html_funcs();
-		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'NoDate Form' ) );
-		Functions\when( 'get_post_meta' )->alias(
-			static function ( $id, $key ) {
-				// `_ffc_form_config` empty (falls back to default HTML);
-				// return an empty array so the array type-hint is satisfied.
-				return '_ffc_form_bg' === $key ? '' : array();
-			}
-		);
-
-		$result = $this->generator->generate_pdf_data_from_form( array( 'name' => 'Zed' ), 11, null );
-
-		$this->assertIsArray( $result );
-		$this->assertArrayNotHasKey( 'submission', $result, 'No raw answers in the browser payload (#2241).' );
-		$this->assertSame( '', $result['auth_code'] ?? '' );
-	}
-
 	// ==================================================================
 	// generate_magic_link_qr() — static delegator to PdfHtmlRenderer
 	// ==================================================================

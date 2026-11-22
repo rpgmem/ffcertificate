@@ -318,6 +318,16 @@ final class RecruitmentClassificationsRestController {
 				),
 			)
 		);
+
+		register_rest_route(
+			$ns,
+			$base . '/classifications/(?P<id>\d+)/calls/(?P<call_id>\d+)/resend-email',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'resend_call_email' ),
+				'permission_callback' => array( $this, 'check_can_call_candidates' ),
+			)
+		);
 	}
 
 	/**
@@ -337,7 +347,7 @@ final class RecruitmentClassificationsRestController {
 			is_int( $adjutancy_id ) && $adjutancy_id > 0 ? $adjutancy_id : null
 		);
 
-		return new \WP_REST_Response( $rows, 200 );
+		return new \WP_REST_Response( self::with_site_times( $rows ), 200 );
 	}
 
 	/**
@@ -507,7 +517,7 @@ final class RecruitmentClassificationsRestController {
 	public function import_job_validate( \WP_REST_Request $request ) {
 		$job_id = (string) $request->get_param( 'job_id' );
 
-		$result = RecruitmentCsvImporter::validate_job( $job_id );
+		$result = RecruitmentCsvImporter::validate_job( $job_id, (int) $request->get_param( 'id' ) );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -538,7 +548,7 @@ final class RecruitmentClassificationsRestController {
 			$size = RecruitmentCsvImporter::BATCH_SIZE_DEFAULT;
 		}
 
-		$result = RecruitmentCsvImporter::promote_batch( $job_id, $size, $this->acknowledged_identity( $request ) );
+		$result = RecruitmentCsvImporter::promote_batch( $job_id, (int) $request->get_param( 'id' ), $size, $this->acknowledged_identity( $request ) );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -560,7 +570,7 @@ final class RecruitmentClassificationsRestController {
 	public function import_job_commit( \WP_REST_Request $request ) {
 		$job_id = (string) $request->get_param( 'job_id' );
 
-		$result = RecruitmentCsvImporter::commit_job( $job_id, $this->confirmed_reimport( $request ) );
+		$result = RecruitmentCsvImporter::commit_job( $job_id, (int) $request->get_param( 'id' ), $this->confirmed_reimport( $request ) );
 		if ( ! $result['ok'] && isset( $result['diff'] ) ) {
 			return $this->reimport_diff_error( $result['diff'] );
 		}
@@ -941,7 +951,7 @@ final class RecruitmentClassificationsRestController {
 			return new \WP_Error( 'recruitment_preview_status_update_failed', RecruitmentErrorMessages::translate( 'recruitment_preview_status_update_failed' ), array( 'status' => 400 ) );
 		}
 
-		return new \WP_REST_Response( RecruitmentClassificationRepository::get_by_id( $id ), 200 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentClassificationRepository::get_by_id( $id ) ), 200 );
 	}
 
 	/**
@@ -1057,5 +1067,33 @@ final class RecruitmentClassificationsRestController {
 			return $this->wp_error_from_envelope( $result['errors'], 409 );
 		}
 		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * POST /classifications/{id}/calls/{call_id}/resend-email
+	 *
+	 * Sends the call's convocation e-mail again and records the outcome
+	 * (#2694). Refused for a call of another classification, a cancelled
+	 * call and a call whose date to assume is over, which is never e-mailed.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function resend_call_email( \WP_REST_Request $request ) {
+		$call = RecruitmentCallReader::get_by_id( (int) $request->get_param( 'call_id' ) );
+		if ( null === $call || (int) $call->classification_id !== (int) $request->get_param( 'id' ) ) {
+			return $this->wp_error_from_envelope( array( 'recruitment_call_not_found' ), 404 );
+		}
+		if ( null !== $call->cancelled_at ) {
+			return $this->wp_error_from_envelope( array( 'recruitment_call_cancelled_no_email' ), 409 );
+		}
+		if ( RecruitmentCallService::is_past( (string) $call->date_to_assume, (string) $call->time_to_assume ) ) {
+			return $this->wp_error_from_envelope( array( 'recruitment_call_past_no_email' ), 409 );
+		}
+
+		$sent = RecruitmentCallMailQueue::deliver( (int) $call->id );
+		RecruitmentActivityLogger::call_email_resent( (int) $call->id, $sent );
+
+		return new \WP_REST_Response( array( 'sent' => $sent ), 200 );
 	}
 }

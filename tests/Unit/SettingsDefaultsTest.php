@@ -34,6 +34,9 @@
  * hardcoded default forever), and the eighth was `notify_capability_grant`,
  * read to gate the "Access granted" email and written by nothing at all — the
  * #936 shape, which is #993's own third revisit trigger.
+ * #2557 declared the last two (`required_certificate_tags` and
+ * `required_form_fields`, the legacy inputs of the Required data table), so
+ * the ratchet blocks at zero and its self-check is explicit.
  *
  * WHAT THE RATCHET MEASURED, and it is not what the issue assumed —
  * `get_default_settings()` is not an incomplete registry, it is a list **no
@@ -317,26 +320,33 @@ final class SettingsDefaultsTest extends TestCase {
 		$out = array();
 
 		foreach ( self::scannable_files() as $path ) {
-			$text = (string) file_get_contents( $path );
-
-			if ( ! preg_match_all(
-				'/' . self::call_prefix( $path ) . "\(\s*'([a-z0-9_]+)'/",
-				$text,
-				$matches
-			) ) {
-				continue;
-			}
-
-			foreach ( $matches[1] as $key ) {
-				if ( ! in_array( $key, self::NOT_A_KEY, true ) ) {
-					$out[ $key ] = true;
-				}
+			foreach ( self::keys_in( $path, (string) file_get_contents( $path ) ) as $key ) {
+				$out[ $key ] = true;
 			}
 		}
 
 		$keys = array_keys( $out );
 		sort( $keys );
 		return $keys;
+	}
+
+	/**
+	 * The `ffc_settings` keys one file reads.
+	 *
+	 * A method of its own so the self-check can run it over synthetic source:
+	 * with the baseline empty, a pattern that stopped matching would pass the
+	 * ratchet in silence.
+	 *
+	 * @param string $path Path, which decides the read forms that apply.
+	 * @param string $text Source.
+	 * @return array<int, string>
+	 */
+	private static function keys_in( string $path, string $text ): array {
+		if ( ! preg_match_all( '/' . self::call_prefix( $path ) . "\\(\\s*'([a-z0-9_]+)'/", $text, $matches ) ) {
+			return array();
+		}
+
+		return array_values( array_diff( $matches[1], self::NOT_A_KEY ) );
 	}
 
 	/**
@@ -489,7 +499,46 @@ final class SettingsDefaultsTest extends TestCase {
 	 */
 	public function test_the_read_scan_cannot_collapse_in_silence(): void {
 		$this->assertGreaterThan( 60, count( self::read_keys() ), 'The read scan collapsed — check the pattern and the excluded paths.' );
-		$this->assertNotEmpty( self::baseline(), 'The baseline is empty; regenerate it deliberately or the ratchet guards nothing.' );
+
+		// The baseline is empty since #2557, so the scan proves itself two
+		// other ways. A second traversal, repeating the filter, must list the
+		// same files the iterator walked.
+		$recount = array();
+		$walk    = static function ( string $dir ) use ( &$walk, &$recount ): void {
+			foreach ( (array) scandir( $dir ) as $name ) {
+				if ( '.' === $name || '..' === $name ) {
+					continue;
+				}
+				$path = $dir . '/' . $name;
+				if ( is_dir( $path ) ) {
+					if ( 'libraries' !== $name ) {
+						$walk( $path );
+					}
+				} elseif ( '.php' === substr( $name, -4 ) && 'class-ffc-tab-user-access.php' !== $name ) {
+					$recount[] = $path;
+				}
+			}
+		};
+		$walk( self::root() . '/includes' );
+		sort( $recount );
+		$this->assertSame( $recount, self::scannable_files(), 'The read scan does not walk the files a second traversal finds.' );
+
+		// And each read form must still yield a key no file declares.
+		$reader = self::root() . '/includes/settings/class-ffc-settings-reader.php';
+		$other  = self::root() . '/includes/admin/class-ffc-x.php';
+		foreach (
+			array(
+				array( $other, "SettingsReader::get( 'canary_key', '' )" ),
+				array( $other, "\\FreeFormCertificate\\Settings\\SettingsReader::get_int( 'canary_key' )" ),
+				array( $other, "\$this->get_option( 'canary_key' )" ),
+				array( $other, "\$ffcertificate_get_option( 'canary_key', 'x' )" ),
+				array( $other, "\$settings->get_option( 'canary_key' )" ),
+				array( $reader, "self::get_bool( 'canary_key' )" ),
+			) as $case
+		) {
+			$this->assertSame( array( 'canary_key' ), self::keys_in( $case[0], $case[1] ), 'The scan no longer reads: ' . $case[1] );
+		}
+		$this->assertArrayNotHasKey( 'canary_key', self::declared_defaults() );
 	}
 
 	/**

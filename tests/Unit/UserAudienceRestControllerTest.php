@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -826,7 +827,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		Functions\when( 'get_post_field' )->justReturn( '[ffc_form id="50"]' );
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.org/form/' );
 		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 
 		// Two days back, so the window is open whichever second the test runs at.
 		return $this->plain_booking(

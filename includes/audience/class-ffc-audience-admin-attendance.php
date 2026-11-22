@@ -297,20 +297,11 @@ class AudienceAdminAttendance {
 				return 'no_page' === $result->get_error_code() ? 'invite_no_page' : 'invite_failed';
 
 			case 'invite_all':
-				$answers = AudienceFormInviteReader::answers( $booking_id );
-				$sent    = 0;
-				foreach ( AudiencePostEventForm::participants( $booking_id ) as $invitee ) {
-					if ( isset( $answers[ $invitee ] ) || true !== AudiencePostEventForm::eligibility( $booking, $invitee, $now ) ) {
-						continue;
-					}
-					$result = AudienceFormInviteMailer::send( $booking, $invitee, $now );
-					if ( true === $result ) {
-						++$sent;
-					} elseif ( 'no_page' === $result->get_error_code() ) {
-						return 'invite_no_page';
-					}
+				if ( ! AudiencePostEventForm::is_open( $booking, $now ) ) {
+					return 'invite_none';
 				}
-				return $sent > 0 ? 'invite_sent_all' : 'invite_none';
+				AudienceFormInviteScanner::queue_invite_all( $booking_id );
+				return 'invite_queued';
 
 			case 'export':
 				if ( ! Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) {
@@ -337,8 +328,8 @@ class AudienceAdminAttendance {
 			'rule_saved'          => array( __( 'Attendance rule saved.', 'ffcertificate' ), 'success' ),
 			'post_event_saved'    => array( __( 'Post-event form saved.', 'ffcertificate' ), 'success' ),
 			'invite_sent'         => array( __( 'Invitation sent.', 'ffcertificate' ), 'success' ),
-			'invite_sent_all'     => array( __( 'Invitations sent to everyone eligible who has not answered.', 'ffcertificate' ), 'success' ),
-			'invite_none'         => array( __( 'Nobody was sent an invitation: everyone eligible has answered, or the form is not open.', 'ffcertificate' ), 'warning' ),
+			'invite_queued'       => array( __( 'Invitations are being sent to everyone eligible who has not answered. A large booking takes a few minutes.', 'ffcertificate' ), 'success' ),
+			'invite_none'         => array( __( 'Nobody can be invited: the form is not open.', 'ffcertificate' ), 'warning' ),
 			'invite_not_eligible' => array( __( 'This person cannot be invited now: the form is not open, or they are not eligible.', 'ffcertificate' ), 'warning' ),
 			'invite_no_page'      => array( __( 'No published page embeds the post-event form. Add the form to a page, then send again.', 'ffcertificate' ), 'error' ),
 			'invite_failed'       => array( __( 'The invitation could not be sent.', 'ffcertificate' ), 'error' ),
@@ -791,9 +782,8 @@ class AudienceAdminAttendance {
 		$booking_id = (int) ( $booking->id ?? 0 );
 		$invited    = AudienceFormInviteReader::for_booking( $booking_id );
 		$answers    = AudienceFormInviteReader::answers( $booking_id );
-		$opens      = AudiencePostEventForm::opens_at( $booking );
-		$open       = 'cancelled' !== ( $booking->status ?? '' ) && 0 !== $opens && $now >= $opens
-			&& $now < AudiencePostEventForm::closes_at( $booking, AudiencePostEventForm::settings( $booking )['window_days'] );
+		$open       = AudiencePostEventForm::is_open( $booking, $now );
+		$people     = $open ? AudiencePostEventForm::participants( $booking_id ) : array();
 
 		echo '<h3>' . esc_html__( 'Invitations', 'ffcertificate' ) . '</h3>';
 		echo '<form method="post">' . $this->form_fields( $booking_id, 'invite', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
@@ -813,7 +803,7 @@ class AudienceAdminAttendance {
 			echo '<td>' . esc_html( self::invite_cell( $invited[ $user_id ] ?? null ) ) . '</td>';
 			echo '<td>' . esc_html( self::answer_label( $answers[ $user_id ] ?? null ) ) . '</td>';
 			echo '<td class="ffc-attendance-row-actions">';
-			if ( $open && ! isset( $answers[ $user_id ] ) && true === AudiencePostEventForm::eligibility( $booking, $user_id, $now ) ) {
+			if ( $open && ! isset( $answers[ $user_id ] ) && true === AudiencePostEventForm::eligibility( $booking, $user_id, $now, $people ) ) {
 				AdminUI::render_button(
 					array(
 						'label' => isset( $invited[ $user_id ] ) ? __( 'Resend', 'ffcertificate' ) : __( 'Send', 'ffcertificate' ),

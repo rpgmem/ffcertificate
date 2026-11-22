@@ -138,6 +138,21 @@ try {
 				: null;
 			$ffcertificate_conflicts = is_int( $ffcertificate_conflicts ) ? $ffcertificate_conflicts : null;
 
+			// A PREREQUISITE THE STRATEGY STILL LACKS (#2651). The same check
+			// execution makes, asked before the button is drawn, so the card
+			// says what is missing instead of offering a run the server refuses.
+			$ffcertificate_unmet        = '';
+			$ffcertificate_unmet_action = null;
+			if ( $ffcertificate_can_migrate && ! $ffcertificate_is_complete ) {
+				try {
+					$ffcertificate_can_run      = $ffcertificate_migration_manager->can_run( $ffcertificate_key );
+					$ffcertificate_unmet        = \FreeFormCertificate\Settings\Tabs\TabMigrations::unmet_prerequisite( $ffcertificate_can_run );
+					$ffcertificate_unmet_action = \FreeFormCertificate\Settings\Tabs\TabMigrations::prerequisite_action( $ffcertificate_can_run );
+				} catch ( \Throwable $e ) {
+					$ffcertificate_unmet = $e->getMessage();
+				}
+			}
+
 			// Generate migration URL.
 			$ffcertificate_migrate_url = wp_nonce_url(
 				add_query_arg(
@@ -167,7 +182,7 @@ try {
 			// (#2115). The summary carries the name, the progress and the removal
 			// release, so a closed card still reads at a glance.
 			?>
-	<details class="ffc-section ffc-migration-card ffc-migration-<?php echo esc_attr( $ffcertificate_status_class ); ?>"<?php echo \FreeFormCertificate\Settings\Tabs\TabMigrations::card_opens( (bool) $ffcertificate_is_complete, (string) $ffcertificate_status_error ) ? ' open' : ''; ?>>
+	<details id="ffc-migration-<?php echo esc_attr( $ffcertificate_key ); ?>" class="ffc-section ffc-migration-card ffc-migration-<?php echo esc_attr( $ffcertificate_status_class ); ?>"<?php echo \FreeFormCertificate\Settings\Tabs\TabMigrations::card_opens( (bool) $ffcertificate_is_complete, (string) $ffcertificate_status_error ) ? ' open' : ''; ?>>
 		<summary class="ffc-section__summary">
 			<span class="ffc-section__icon"><span class="<?php echo esc_attr( $ffcertificate_migration['icon'] ); ?>" aria-hidden="true"></span></span>
 			<span class="ffc-section__text">
@@ -220,6 +235,14 @@ try {
 			<p class="description">
 				<?php echo esc_html( $ffcertificate_migration['description'] ); ?>
 			</p>
+
+			<?php
+			// What the card covers, counted (#2672): a strategy may say how much
+			// of the population falls outside it, which the description cannot.
+			if ( ! is_wp_error( $ffcertificate_status ) && ! empty( $ffcertificate_status['scope'] ) && is_string( $ffcertificate_status['scope'] ) ) :
+				?>
+				<p class="description ffc-icon-info ffc-migration-scope"><?php echo esc_html( $ffcertificate_status['scope'] ); ?></p>
+			<?php endif; ?>
 
 			<?php if ( ! empty( $ffcertificate_status_error ) ) : ?>
 				<?php
@@ -382,6 +405,34 @@ try {
 				</div>
 			<?php endif; ?>
 			<?php
+			// WHAT THE NEXT RUN CHANGES (#2580). A card that rewrites what an
+			// operator wrote lists it first, so the run is read before it is made.
+			$ffcertificate_preview = ( ! is_wp_error( $ffcertificate_status ) && ! empty( $ffcertificate_status['preview'] ) && is_array( $ffcertificate_status['preview'] ) )
+				? $ffcertificate_status['preview']
+				: array();
+			if ( array() !== $ffcertificate_preview ) :
+				?>
+				<div class="ffc-migration-preview">
+					<p><strong><?php esc_html_e( 'What the next run changes:', 'ffcertificate' ); ?></strong></p>
+					<ul>
+						<?php foreach ( $ffcertificate_preview as $ffcertificate_preview_line ) : ?>
+							<li><?php echo esc_html( (string) $ffcertificate_preview_line ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+					<?php if ( (int) $ffcertificate_status['pending'] > count( $ffcertificate_preview ) ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s: how many pending items are not listed. */
+								esc_html__( 'Only the first ones are listed; %s more are pending.', 'ffcertificate' ),
+								esc_html( number_format_i18n( (int) $ffcertificate_status['pending'] - count( $ffcertificate_preview ) ) )
+							);
+							?>
+						</p>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+			<?php
 			// Built once, for the two branches that offer it: the re-check
 			// after completion (`rearmable`) and the retry of a walk that
 			// ended with records behind it (`retryable`, #2338).
@@ -489,6 +540,37 @@ try {
 						);
 						?>
 						<p class="description ffc-icon-lock"><?php esc_html_e( 'Running a migration needs the Danger Zone capability, which this account does not hold.', 'ffcertificate' ); ?></p>
+					<?php elseif ( '' !== $ffcertificate_unmet ) : ?>
+						<?php
+						// Disabled with the strategy's own refusal, the shape the
+						// capability branch above already uses (#2651).
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Run Migration', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'disabled' => true,
+							)
+						);
+						?>
+						<p class="description ffc-icon-lock ffc-migration-unmet"><?php echo esc_html( $ffcertificate_unmet ); ?></p>
+						<?php
+						// Where the prerequisite is met, when the refusal names a
+						// place this user may open (#2656).
+						if ( null !== $ffcertificate_unmet_action ) :
+							?>
+							<p>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label' => $ffcertificate_unmet_action['label'],
+										'icon'  => $ffcertificate_unmet_action['icon'],
+										'href'  => $ffcertificate_unmet_action['url'],
+									)
+								);
+								?>
+							</p>
+						<?php endif; ?>
 					<?php else : ?>
 						<?php
 						// `ffc-migration-run` is the hook ffc-admin-migrations.js runs the batches from.
@@ -527,7 +609,7 @@ try {
 					// `retryable`, never `rearmable`: a strategy sets it only
 					// once its walk has ended, so there is no progress for the
 					// re-check to discard.
-					if ( $ffcertificate_can_migrate && ! empty( $ffcertificate_status['retryable'] ) ) :
+					if ( $ffcertificate_can_migrate && '' === $ffcertificate_unmet && ! empty( $ffcertificate_status['retryable'] ) ) :
 						\FreeFormCertificate\Admin\AdminUI::render_button(
 							array(
 								'label'    => __( 'Try the remaining records again', 'ffcertificate' ),

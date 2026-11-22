@@ -278,6 +278,15 @@ class Encryption {
 	 * @return string|null
 	 */
 	private static function decrypt_internal( string $encrypted ): ?string {
+		// A v1 ciphertext carries no MAC, so a wrong key does not fail: about one
+		// IV in 256 still yields valid padding and returns garbage, which the key
+		// rotation would then seal as authenticated v2 (#2690). v1 was replaced by
+		// v2 in 5.4.0, before FFC_ENCRYPTION_KEY existed, so every v1 value was
+		// written under the WordPress-derived key and is tried with that key only.
+		if ( 0 !== strpos( $encrypted, self::V2_PREFIX ) ) {
+			return self::try_decrypt( $encrypted, self::wp_derived_encryption_key(), self::wp_derived_hmac_key() );
+		}
+
 		// Try the active key first (the common case, and the only key when not
 		// decoupled).
 		$result = self::try_decrypt( $encrypted, self::get_encryption_key(), self::get_hmac_key() );

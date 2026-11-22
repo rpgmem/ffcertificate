@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -117,7 +118,7 @@ class SubmissionHandlerTest extends TestCase {
 		Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'get_userdata' )->justReturn( null );
-		Functions\when( 'wp_generate_password' )->justReturn( 'TestPass123!' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'sanitize_user' )->returnArg();
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'username_exists' )->justReturn( false );

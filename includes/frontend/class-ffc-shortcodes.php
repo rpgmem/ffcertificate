@@ -34,9 +34,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Shortcodes {
 
 	/**
-	 * Constructor
+	 * Verifies a code posted without JavaScript; built on first use when none was given.
+	 *
+	 * @var VerificationHandler|null
 	 */
-	public function __construct() {
+	private ?VerificationHandler $verification_handler;
+
+	/**
+	 * Constructor
+	 *
+	 * @param VerificationHandler|null $verification_handler The handler the AJAX path uses, so both paths verify the same way (#2695).
+	 */
+	public function __construct( ?VerificationHandler $verification_handler = null ) {
+		$this->verification_handler = $verification_handler;
 	}
 
 	/**
@@ -52,6 +62,32 @@ class Shortcodes {
 	 */
 	public function generate_security_fields( string $context ): string {
 		return SecurityService::render_security_fields( $context );
+	}
+
+	/**
+	 * Verify a code the form posted without JavaScript (#2695).
+	 *
+	 * Runs the checks the AJAX handler runs — honeypot and challenge, then
+	 * the verification rate limit inside verify_certificate() — and returns
+	 * the result as HTML for the page's result region.
+	 *
+	 * @return string HTML: the document, or a message saying why not.
+	 */
+	private function verify_without_script(): string {
+		// The challenge is this form's CSRF guard, as on the AJAX path.
+		$security_check = SecurityService::validate_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- The honeypot and challenge stand in for a nonce, as in handle_verification_ajax(); the page is cached, so a nonce would go stale.
+		if ( true !== $security_check ) {
+			return '<p class="ffc-verify-message">' . esc_html( (string) $security_check ) . '</p>';
+		}
+
+		if ( null === $this->verification_handler ) {
+			$this->verification_handler = new VerificationHandler();
+		}
+		$result = $this->verification_handler->verify_certificate( RequestInput::get_post_string( 'ffc_auth_code' ) );
+		if ( ! empty( $result['success'] ) && is_string( $result['html'] ?? null ) ) {
+			return $result['html'];
+		}
+		return '<p class="ffc-verify-message">' . esc_html( (string) ( $result['message'] ?? '' ) ) . '</p>';
 	}
 
 	/**
@@ -117,6 +153,11 @@ class Shortcodes {
 				'has_token' => false,
 			)
 		);
+
+		// A code posted without JavaScript is verified here (#2695): the
+		// form posts to this page, and the script that would have sent it
+		// over AJAX never ran.
+		$verification_result = '' !== RequestInput::get_post_string( 'ffc_auth_code' ) ? $this->verify_without_script() : '';
 
 		// Render verification page using template.
 		$security_fields = $this->generate_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY );

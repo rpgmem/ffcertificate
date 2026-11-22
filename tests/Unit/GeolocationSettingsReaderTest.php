@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -102,14 +103,6 @@ class GeolocationSettingsReaderTest extends TestCase {
 		$this->assertTrue( GeolocationSettingsReader::ip_cache_enabled() );
 	}
 
-	public function test_ip_api_cascade_default_false(): void {
-		$this->stub_option( array() );
-		$this->assertFalse( GeolocationSettingsReader::ip_api_cascade() );
-
-		$this->stub_option( array( 'ip_api_cascade' => 1 ) );
-		$this->assertTrue( GeolocationSettingsReader::ip_api_cascade() );
-	}
-
 	public function test_admin_bypass_datetime_default_false(): void {
 		$this->stub_option( array() );
 		$this->assertFalse( GeolocationSettingsReader::admin_bypass_datetime() );
@@ -130,20 +123,12 @@ class GeolocationSettingsReaderTest extends TestCase {
 	// Typed string accessors
 	// ------------------------------------------------------------------
 
-	public function test_ip_api_service_default_and_value(): void {
-		$this->stub_option( array() );
-		$this->assertSame( 'ipinfo', GeolocationSettingsReader::ip_api_service(), 'The HTTPS service is the default (#2339).' );
-
-		$this->stub_option( array( 'ip_api_service' => 'ipinfo' ) );
-		$this->assertSame( 'ipinfo', GeolocationSettingsReader::ip_api_service() );
-	}
-
 	public function test_ipinfo_api_key_default_and_value(): void {
 		$this->stub_option( array() );
 		$this->assertSame( '', GeolocationSettingsReader::ipinfo_api_key() );
 
-		$this->stub_option( array( 'ipinfo_api_key' => 'abc123' ) );
-		$this->assertSame( 'abc123', GeolocationSettingsReader::ipinfo_api_key() );
+		$this->stub_option( array( 'ipinfo_api_key' => FakeCredentials::API_KEY ) );
+		$this->assertSame( FakeCredentials::API_KEY, GeolocationSettingsReader::ipinfo_api_key() );
 	}
 
 	public function test_api_fallback_default_and_value(): void {

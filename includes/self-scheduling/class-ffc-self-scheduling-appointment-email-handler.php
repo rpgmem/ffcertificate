@@ -23,6 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class AppointmentEmailHandler {
 
+	/**
+	 * Outcome of each reminder sent in this request, by appointment ID.
+	 *
+	 * @var array<int, bool>
+	 */
+	private static array $reminder_outcomes = array();
+
 	use \FreeFormCertificate\Core\EmailHelperTrait;
 
 	/**
@@ -138,7 +145,12 @@ class AppointmentEmailHandler {
 		$subject = $this->render_confirmation_template( $subject_template, $appointment, $calendar, $extra_tokens );
 		$content = $this->render_confirmation_template( $body_template, $appointment, $calendar, $extra_tokens );
 
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
+		$this->send_mail(
+			$email,
+			$subject,
+			self::ffc_email_document( $content, array( 'recipient' => $email ) ),
+			'confirmed' === ( $appointment['status'] ?? '' ) ? self::appointment_ics( $appointment, $calendar, 'REQUEST' ) : null
+		);
 	}
 
 	/**
@@ -282,9 +294,10 @@ class AppointmentEmailHandler {
 	 * @param array<string, mixed>  $appointment Appointment data.
 	 * @param array<string, mixed>  $calendar    Calendar data.
 	 * @param array<string, string> $extra       Pre-rendered HTML tokens.
-	 * @return void
+	 * @param string|null           $ics         Calendar file to attach, or null.
+	 * @return bool Whether the e-mail was handed to the mailer.
 	 */
-	private function send_lifecycle_email( string $name, string $email, array $appointment, array $calendar, array $extra ): void {
+	private function send_lifecycle_email( string $name, string $email, array $appointment, array $calendar, array $extra, ?string $ics = null ): bool {
 		$subject = $this->render_confirmation_template(
 			\FreeFormCertificate\Core\EmailTemplates::effective_body( $name, 'subject' ),
 			$appointment,
@@ -298,7 +311,7 @@ class AppointmentEmailHandler {
 			$extra
 		);
 
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
+		return $this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ), $ics );
 	}
 
 	/**
@@ -415,7 +428,7 @@ class AppointmentEmailHandler {
 			),
 		);
 
-		$this->send_lifecycle_email( 'appointment-approval', $email, $appointment, $calendar, $extra );
+		$this->send_lifecycle_email( 'appointment-approval', $email, $appointment, $calendar, $extra, self::appointment_ics( $appointment, $calendar, 'REQUEST' ) );
 	}
 
 	/**
@@ -439,7 +452,8 @@ class AppointmentEmailHandler {
 			'{{cancellation_reason_block}}' => $this->build_reason_block( (string) ( $appointment['cancellation_reason'] ?? '' ) ),
 		);
 
-		$this->send_lifecycle_email( 'appointment-cancellation', $email, $appointment, $calendar, $extra );
+		// Takes the event off a calendar the confirmation's file put it on.
+		$this->send_lifecycle_email( 'appointment-cancellation', $email, $appointment, $calendar, $extra, self::appointment_ics( $appointment, $calendar, 'CANCEL' ) );
 	}
 
 	/**
@@ -520,7 +534,7 @@ class AppointmentEmailHandler {
 			),
 		);
 
-		$this->send_lifecycle_email( 'appointment-promoted', $email, $appointment, $calendar, $extra );
+		$this->send_lifecycle_email( 'appointment-promoted', $email, $appointment, $calendar, $extra, $is_pending ? null : self::appointment_ics( $appointment, $calendar, 'REQUEST' ) );
 	}
 
 	/**
@@ -549,20 +563,84 @@ class AppointmentEmailHandler {
 			),
 		);
 
-		$this->send_lifecycle_email( 'appointment-reminder', $email, $appointment, $calendar, $extra );
+		self::$reminder_outcomes[ (int) ( $appointment['id'] ?? 0 ) ] = $this->send_lifecycle_email( 'appointment-reminder', $email, $appointment, $calendar, $extra );
+	}
+
+	/**
+	 * Whether the last reminder for an appointment went out, read once.
+	 *
+	 * The reminder runs on an action, which returns nothing, so the scanner
+	 * asks here after firing it: a failed send leaves the appointment
+	 * unmarked and the next hourly scan tries again (#2689).
+	 *
+	 * @param int $appointment_id Appointment ID.
+	 * @return bool|null True when sent, false when the mailer refused it,
+	 *                   null when no reminder was attempted (no handler, or no
+	 *                   valid address to send to).
+	 */
+	public static function take_reminder_outcome( int $appointment_id ): ?bool {
+		$outcome = self::$reminder_outcomes[ $appointment_id ] ?? null;
+		unset( self::$reminder_outcomes[ $appointment_id ] );
+		return $outcome;
 	}
 
 	/**
 	 * Send email with failure logging.
 	 *
 	 * @since 4.6.6
-	 * @param string $to      Recipient email.
-	 * @param string $subject Email subject.
-	 * @param string $body    Email body HTML.
+	 * @param string      $to      Recipient email.
+	 * @param string      $subject Email subject.
+	 * @param string      $body    Email body HTML.
+	 * @param string|null $ics     Calendar file to attach, or null.
 	 * @return bool Whether the email was sent.
 	 */
-	private function send_mail( string $to, string $subject, string $body ): bool {
-		return self::ffc_send_mail( $to, $subject, $body, array(), \FreeFormCertificate\Core\EmailSource::SCHEDULING );
+	private function send_mail( string $to, string $subject, string $body, ?string $ics = null ): bool {
+		return \FreeFormCertificate\Scheduling\SchedulingMailer::with_ics(
+			$ics,
+			static function ( array $attachments ) use ( $to, $subject, $body ): bool {
+				return self::ffc_send_mail( $to, $subject, $body, $attachments, \FreeFormCertificate\Core\EmailSource::SCHEDULING );
+			}
+		);
+	}
+
+	/**
+	 * The appointment as a calendar file (#2689).
+	 *
+	 * The dashboard offered the only one until then. The UID matches the
+	 * dashboard's export (`ffc-apt-<id>`), so a file imported from either
+	 * place updates the same event, and the cancellation's CANCEL removes it.
+	 *
+	 * @param array<string, mixed> $appointment Appointment.
+	 * @param array<string, mixed> $calendar    Calendar.
+	 * @param string               $method      REQUEST or CANCEL.
+	 * @return string|null Null when the appointment has no date or time.
+	 */
+	private static function appointment_ics( array $appointment, array $calendar, string $method ): ?string {
+		$date  = (string) ( $appointment['appointment_date'] ?? '' );
+		$start = (string) ( $appointment['start_time'] ?? '' );
+		if ( '' === $date || '' === $start ) {
+			return null;
+		}
+		$end     = (string) ( $appointment['end_time'] ?? '' );
+		$session = CalendarSessions::name_of_appointment( $calendar, $appointment );
+		$title   = (string) ( $calendar['title'] ?? '' );
+		$summary = '' !== $session ? $title . ' · ' . $session : $title;
+		if ( 'CANCEL' === $method ) {
+			$summary = '[' . __( 'CANCELLED', 'ffcertificate' ) . '] ' . $summary;
+		}
+
+		return \FreeFormCertificate\Scheduling\IcsGenerator::generate(
+			array(
+				'uid'         => 'ffc-apt-' . (int) ( $appointment['id'] ?? 0 ),
+				'summary'     => $summary,
+				'description' => '' !== $session ? $title . ' · ' . $session : $title,
+				'location'    => (string) \FreeFormCertificate\Settings\SettingsReader::get( 'main_address', '' ),
+				'date'        => $date,
+				'start_time'  => $start,
+				'end_time'    => '' !== $end ? $end : $start,
+			),
+			$method
+		);
 	}
 
 	/**

@@ -46,6 +46,7 @@ class DateFormatterTest extends TestCase {
 		Functions\when( 'wp_timezone' )->alias( static function () {
 			return new \DateTimeZone( 'UTC' );
 		} );
+		Functions\when( 'determine_locale' )->justReturn( 'pt_BR' );
 	}
 
 	protected function tearDown(): void {
@@ -56,6 +57,21 @@ class DateFormatterTest extends TestCase {
 	// ──────────────────────────────────────────────────────────────.
 	// Defaults
 	// ──────────────────────────────────────────────────────────────.
+
+	public function test_script_config_carries_the_plugin_formats(): void {
+		$this->ffc_settings = array(
+			'date_format' => 'Y-m-d',
+			'time_format' => 'g:i A',
+		);
+
+		$config = DateFormatter::script_config();
+
+		$this->assertSame( 'Y-m-d', $config['date'] );
+		$this->assertSame( 'g:i A', $config['time'] );
+		$this->assertSame( 'pt-BR', $config['locale'], 'A BCP 47 tag, as toLocaleDateString() reads it.' );
+		// Without WP_Locale the names stay empty and the script falls back to digits.
+		$this->assertSame( array( 'am' => 'am', 'pm' => 'pm', 'AM' => 'AM', 'PM' => 'PM' ), $config['meridiem'] );
+	}
 
 	public function test_format_date_uses_default_when_settings_unset(): void {
 		// 2026-01-04 15:30:00 UTC.
@@ -169,6 +185,34 @@ class DateFormatterTest extends TestCase {
 		$this->assertSame( '', DateFormatter::format_wallclock_time( null ) );
 		$this->assertSame( '', DateFormatter::format_wallclock_date( '' ) );
 		$this->assertSame( '', DateFormatter::format_wallclock_time( '' ) );
+	}
+
+	/**
+	 * A stored timestamp reads as the same instant whether its column holds
+	 * UTC seconds or the site-local DATETIME it held before #2679, with the
+	 * site at UTC-3: 2026-05-20 09:00 there is 12:00 UTC.
+	 */
+	public function test_instant_helpers_read_both_shapes_in_the_site_timezone(): void {
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( '-03:00' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( '-03:00' ) )->format( $format )
+		);
+		$instant = gmmktime( 12, 0, 0, 5, 20, 2026 );
+
+		$this->assertSame( $instant, DateFormatter::instant_of( $instant ) );
+		$this->assertSame( $instant, DateFormatter::instant_of( (string) $instant ), 'The digits $wpdb returns.' );
+		$this->assertSame( $instant, DateFormatter::instant_of( '2026-05-20 09:00:00' ), 'A legacy DATETIME reads in the site timezone.' );
+		$this->assertSame( 0, DateFormatter::instant_of( null ) );
+		$this->assertSame( 0, DateFormatter::instant_of( 'not a date' ) );
+
+		$this->assertSame( '20/05/2026 09:00', DateFormatter::format_instant( $instant ) );
+		$this->assertSame( '20/05/2026 09:00', DateFormatter::format_instant( '2026-05-20 09:00:00' ) );
+		$this->assertSame( '', DateFormatter::format_instant( null ), 'An empty column renders nothing, not 1970.' );
+
+		// The REST shape integrations already read.
+		$this->assertSame( '2026-05-20 09:00:00', DateFormatter::site_mysql_datetime( $instant ) );
+		$this->assertSame( '2026-05-20 09:00:00', DateFormatter::site_mysql_datetime( '2026-05-20 09:00:00' ) );
+		$this->assertSame( '', DateFormatter::site_mysql_datetime( '' ) );
 	}
 
 	/**

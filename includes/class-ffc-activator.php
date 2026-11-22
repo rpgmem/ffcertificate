@@ -889,14 +889,13 @@ class Activator {
 	/**
 	 * Run batch migrations during activation.
 	 *
-	 * V5.0.0: Only split_cpf_rf remains and it must be run manually by admin
-	 * (requires existing data). No auto-run migrations left.
+	 * No migration runs on activation: every one is run from Settings →
+	 * Migrations, because each needs data that only an established install has.
 	 *
 	 * @return void
 	 */
 	private static function run_migrations(): void {
 		// v5.0.0: All auto-run migrations have been retired.
-		// split_cpf_rf is the only remaining migration and must be run manually.
 	}
 
 	/**

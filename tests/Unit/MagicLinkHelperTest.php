@@ -111,36 +111,6 @@ class MagicLinkHelperTest extends TestCase {
 	// extract_token_from_url()
 	// ==================================================================
 
-	public function test_extract_token_from_query_ffc_magic(): void {
-		$url = 'https://example.com/valid/?ffc_magic=abc123';
-		$this->assertSame( 'abc123', MagicLinkHelper::extract_token_from_url( $url ) );
-	}
-
-	public function test_extract_token_from_query_token(): void {
-		$url = 'https://example.com/valid/?token=abc123';
-		$this->assertSame( 'abc123', MagicLinkHelper::extract_token_from_url( $url ) );
-	}
-
-	public function test_extract_token_from_hash_fragment(): void {
-		$url = 'https://example.com/valid/#token=abc123';
-		$this->assertSame( 'abc123', MagicLinkHelper::extract_token_from_url( $url ) );
-	}
-
-	public function test_extract_token_ffc_magic_takes_priority(): void {
-		$url = 'https://example.com/valid/?ffc_magic=first&token=second';
-		$this->assertSame( 'first', MagicLinkHelper::extract_token_from_url( $url ) );
-	}
-
-	public function test_extract_token_no_token_returns_empty(): void {
-		$url = 'https://example.com/valid/?other=param';
-		$this->assertSame( '', MagicLinkHelper::extract_token_from_url( $url ) );
-	}
-
-	public function test_extract_token_no_query_no_fragment_returns_empty(): void {
-		$url = 'https://example.com/valid/';
-		$this->assertSame( '', MagicLinkHelper::extract_token_from_url( $url ) );
-	}
-
 	// ==================================================================
 	// get_magic_link_qr_code()
 	// ==================================================================
@@ -172,29 +142,6 @@ class MagicLinkHelperTest extends TestCase {
 	// ==================================================================
 	// debug_info()
 	// ==================================================================
-
-	public function test_debug_info_returns_expected_keys(): void {
-		$token = 'abcdef1234567890abcdef1234567890';
-		$info = MagicLinkHelper::debug_info( $token );
-		$this->assertArrayHasKey( 'token', $info );
-		$this->assertArrayHasKey( 'token_valid', $info );
-		$this->assertArrayHasKey( 'token_length', $info );
-		$this->assertArrayHasKey( 'verification_url', $info );
-		$this->assertArrayHasKey( 'magic_link', $info );
-		$this->assertArrayHasKey( 'qr_code_url', $info );
-	}
-
-	public function test_debug_info_valid_token_flag(): void {
-		$valid = 'abcdef1234567890abcdef1234567890';
-		$invalid = 'short';
-		$this->assertTrue( MagicLinkHelper::debug_info( $valid )['token_valid'] );
-		$this->assertFalse( MagicLinkHelper::debug_info( $invalid )['token_valid'] );
-	}
-
-	public function test_debug_info_token_length(): void {
-		$token = 'abcdef1234567890abcdef1234567890';
-		$this->assertSame( 32, MagicLinkHelper::debug_info( $token )['token_length'] );
-	}
 
 	// ==================================================================
 	// ensure_token()
@@ -241,18 +188,6 @@ class MagicLinkHelperTest extends TestCase {
 	// get_magic_link_from_submission()
 	// ==================================================================
 
-	public function test_from_submission_with_magic_token(): void {
-		$submission = array( 'id' => 1, 'magic_token' => 'abcdef1234567890abcdef1234567890' );
-		$url = MagicLinkHelper::get_magic_link_from_submission( $submission );
-		$this->assertStringContainsString( 'abcdef1234567890abcdef1234567890', $url );
-	}
-
-	public function test_from_submission_no_token_no_handler_returns_empty(): void {
-		$submission = array( 'id' => 1 );
-		$url = MagicLinkHelper::get_magic_link_from_submission( $submission );
-		$this->assertSame( '', $url );
-	}
-
 	// ==================================================================
 	// get_verification_page_url()
 	// ==================================================================
@@ -298,20 +233,6 @@ class MagicLinkHelperTest extends TestCase {
 	// Round-trip: generate → extract
 	// ==================================================================
 
-	public function test_round_trip_generate_then_extract_returns_original_token(): void {
-		$token = 'abcdef1234567890abcdef1234567890';
-		$url = MagicLinkHelper::generate_magic_link( $token );
-		$extracted = MagicLinkHelper::extract_token_from_url( $url );
-		$this->assertSame( $token, $extracted );
-	}
-
-	public function test_round_trip_64_char_token(): void {
-		$token = str_repeat( 'abcdef12', 8 ); // 64 chars
-		$url = MagicLinkHelper::generate_magic_link( $token );
-		$extracted = MagicLinkHelper::extract_token_from_url( $url );
-		$this->assertSame( $token, $extracted );
-	}
-
 	// ==================================================================
 	// QR code encodes canonical magic link
 	// ==================================================================
@@ -334,25 +255,6 @@ class MagicLinkHelperTest extends TestCase {
 	// ==================================================================
 	// get_magic_link_from_submission() — additional edge cases
 	// ==================================================================
-
-	public function test_from_submission_generates_canonical_format(): void {
-		$token = 'abcdef1234567890abcdef1234567890';
-		$submission = array( 'id' => 1, 'magic_token' => $token );
-		$url = MagicLinkHelper::get_magic_link_from_submission( $submission );
-		// Must use the same canonical format
-		$this->assertSame( 'https://example.com/valid/#token=' . $token, $url );
-	}
-
-	public function test_from_submission_with_handler_generates_canonical_format(): void {
-		$token = 'abcdef1234567890abcdef1234567890';
-		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
-		$handler->shouldReceive( 'ensure_magic_token' )
-			->with( 42 )
-			->andReturn( $token );
-		$submission = array( 'id' => 42 );
-		$url = MagicLinkHelper::get_magic_link_from_submission( $submission, $handler );
-		$this->assertSame( 'https://example.com/valid/#token=' . $token, $url );
-	}
 
 	// ==================================================================
 	// get_submission_magic_link() — canonical format

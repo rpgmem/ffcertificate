@@ -76,9 +76,10 @@ final class InlineStyleTest extends TestCase {
 
 	private const OPTION_FILTER = 'the initial hidden state of a reason <option> the script filters, and the very state it reads back (`style.display === "none"`)';
 
+	private const OFFLINE_VERIFIER = 'the standalone signed QR verifier (#2639) is a downloaded HTML file opened with no server, so it can load no plugin stylesheet';
+
 	private const INACTIVE_PAGE = 'the page a dead short URL answers with (#2337) is a whole document of its own, outside the theme by decision so it renders the same on every site, with no plugin stylesheet';
 
-	private const RECEIPT_PAGE = 'the standalone printable appointment receipt carries its own <style>: it is a whole document, printed, with no plugin stylesheet';
 
 	/**
 	 * Every inline occurrence left, per file, with how many and why.
@@ -95,6 +96,45 @@ final class InlineStyleTest extends TestCase {
 		),
 		'assets/js/ffc-admin-migrations.js' => array(
 			'.css(): .css("width", percent + "%"' => array( 1, self::RUNTIME_VALUE ),
+		),
+		// The page canvas positions, scales and stacks each element from its layout (#2585).
+		// The measured visual copy (#2606) renders the certificate document to
+		// read it, and writes what it read into the layout's HTML blocks.
+		'assets/js/ffc-visual-measure.js' => array(
+			'style=: style="'                                => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="width:100%;height:100%;object-fit:' => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="position:relative;width:'        => array( 1, self::PDF_DOCUMENT ),
+			'.style.x =: .style.position = "static"'         => array( 1, self::PDF_DOCUMENT ),
+			'.style.x =: .style.margin = "0"'                => array( 1, self::PDF_DOCUMENT ),
+		),
+		'assets/js/ffc-visual-editor.js' => array(
+			'.style.x =: .style.left = box.x + "px"'                                             => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.top = box.y + "px"'                                              => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.width = box.w + "px"'                                            => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.height = box.h + "px"'                                           => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.width = page.width + "px"'                                       => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.height = page.height + "px"'                                     => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.transform = "scale(" + zoom + ")"'                               => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.width = Math.round(page.width * zoom) + "px"'                    => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.height = Math.round(page.height * zoom) + "px"'                  => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.zIndex = String(index + 1)'                                      => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.transform = el.rotation ? "rotate(" + el.rotation + "deg)" : "'  => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.border = (el.border_width || 0) + "px " + (el.border_style'      => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.borderRadius = (el.radius || 0) + "px"'                          => array( 1, self::RUNTIME_VALUE ),
+			// The operator's fill, font and colour on the canvas (#2586).
+			'.style.x =: .style.background = el.fill || "transparent"'                           => array( 1, self::OPERATOR_COLOUR ),
+
+			'.style.x =: .style.backgroundImage = gradientCss(el.gradient)'                          => array( 1, self::OPERATOR_COLOUR ),
+			'.style.setProperty: .style.setProperty("--ffc-ve-bg-image", url ? "url("" + url + ""'        => array( 1, self::OPERATOR_COLOUR ),
+			'.style.setProperty: .style.setProperty("--ffc-ve-bg-color", /^#[0-9a-f]{6}$/i.test(this.s'  => array( 1, self::OPERATOR_COLOUR ),
+			'.style.x =: .style.cssText = textCss(el)'                                           => array( 1, self::OPERATOR_COLOUR ),
+			// The alignment guides a move lines up with (#2588).
+			'.style.x =: .style.left = x + "px"'                                                => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.top = y + "px"'                                                 => array( 1, self::RUNTIME_VALUE ),
+		),
+		'assets/js/ffc-certificate-render.js' => array(
+			'.style.x =: .style.fontSize = low + "px"'    => array( 2, self::RUNTIME_VALUE ),
+			'.style.x =: .style.fontSize = middle + "px"' => array( 1, self::RUNTIME_VALUE ),
 		),
 		'assets/js/ffc-audience-bookings.js' => array(
 			'style=: style="border-left: 4px solid' => array( 1, self::OPERATOR_COLOUR ),
@@ -139,8 +179,8 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="position:relative;z-index:1;'                                           => array( 1, self::SELF_CONTAINED ),
 			'<style>: <style id="ffc-spinner-animation"'                                            => array( 1, self::SELF_CONTAINED ),
 			'.css(): .css({'                                                                        => array( 16, self::SELF_CONTAINED ),
-			'.css(): .css("opacity", "1"'                                                           => array( 1, self::SELF_CONTAINED ),
 			'.style.x =: .style.cssText = "font-family:-apple-system,BlinkMacSystemFont,sans'       => array( 1, self::SELF_CONTAINED ),
+			'.style.x =: .style.opacity = "1"'                                                      => array( 1, self::SELF_CONTAINED ),
 		),
 		'assets/js/ffc-qr-generator.js' => array(
 			'<style>: <style'                       => array( 1, self::PRINT_DOCUMENT ),
@@ -218,6 +258,21 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #d' => array( 1, self::EMAIL_BODY ),
 			'style=: style="border: 1px solid #ddd;'                                                => array( 1, self::EMAIL_BODY ),
 		),
+		'includes/core/class-ffc-certificate-fonts.php' => array(
+			'wp_add_inline_style: wp_add_inline_style( self::STYLE_HANDLE' => array( 1, self::GENERATED ),
+		),
+		// A visual template renders to the positioned page html2canvas rasterises (#2584).
+		// An HTML block read from an HTML template carries the template's own
+		// style into the certificate document (#2587).
+		'includes/core/class-ffc-visual-layout-importer.php' => array(
+			'style=: style="' => array( 1, self::PDF_DOCUMENT ),
+		),
+		'includes/core/class-ffc-visual-layout.php' => array(
+			'style=: style="position:relative;width:%dpx;height:%dpx;overflow:hidden'           => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="%s'                                                                  => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="max-width:%s;max-height:%s'                                          => array( 2, self::PDF_DOCUMENT ),
+			'style=: style="position:absolute;left:%s;top:%s;width:%s;height:%s;max-width:none' => array( 1, self::PDF_DOCUMENT ),
+		),
 		'includes/core/class-ffc-public-design.php' => array(
 			'<style>: <style id="ffc-public-design"' => array( 1, self::GENERATED ),
 		),
@@ -231,6 +286,7 @@ final class InlineStyleTest extends TestCase {
 		),
 		'includes/generators/class-ffc-qrcode-generator.php' => array(
 			'style=: style="width:%dpx !important; height:%dpx !important; display:block !importan' => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="width:%dpx; margin:0 auto; font-size:10px; line-height:1.3; text-align' => array( 1, self::PDF_DOCUMENT ),
 		),
 		'includes/generators/class-ffc-validation-url-placeholders.php' => array(
 			'style=: style="color:' => array( 1, self::PDF_DOCUMENT ),
@@ -278,9 +334,6 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="margin: 0; color: #333;'                            => array( 2, self::EMAIL_BODY ),
 			'style=: style="margin: 0 0 10px 0;'                                => array( 1, self::EMAIL_BODY ),
 		),
-		'includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php' => array(
-			'<style>: <style' => array( 1, self::RECEIPT_PAGE ),
-		),
 		'includes/self-scheduling/class-ffc-self-scheduling-editor.php' => array(
 			'style=: style="display:none;' => array( 2, self::INITIAL_STATE ),
 		),
@@ -312,6 +365,8 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="margin: 20px; padding: 15px;'    => array( 1, self::QUOTED_EXAMPLE ),
 			'style=: style="font-family: Arial, sans-serif;' => array( 1, self::QUOTED_EXAMPLE ),
 			'style=: style="border: 2px solid #000;'         => array( 1, self::QUOTED_EXAMPLE ),
+			'style=: style="font-size: 30pt;'                => array( 1, self::QUOTED_EXAMPLE ),
+			'style=: style="font-family:'                    => array( 1, self::QUOTED_EXAMPLE ),
 		),
 		'includes/settings/views/ffc-tab-migrations.php' => array(
 			'style=: style="width: <?php echo esc_attr( number_format( $ffcertificate_percent, 1 )' => array( 1, self::RUNTIME_VALUE ),
@@ -344,6 +399,9 @@ final class InlineStyleTest extends TestCase {
 		),
 		'templates/url-shortener/inactive-link.php' => array(
 			'<style>: <style' => array( 1, self::INACTIVE_PAGE ),
+		),
+		'templates/signed-qr-verifier.php' => array(
+			'<style>: <style' => array( 1, self::OFFLINE_VERIFIER ),
 		),
 	);
 

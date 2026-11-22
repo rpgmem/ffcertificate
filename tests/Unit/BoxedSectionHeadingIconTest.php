@@ -41,7 +41,6 @@ class BoxedSectionHeadingIconTest extends TestCase {
 		'includes/generators/class-ffc-pdf-html-renderer.php'           => 'the PDF body',
 		'includes/privacy/class-ffc-privacy-handler.php'                => 'policy text for the WordPress privacy guide',
 		'includes/recruitment/class-ffc-recruitment-dashboard-section.php' => 'the public user dashboard',
-		'includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php' => 'the printable public receipt',
 	);
 
 	/**

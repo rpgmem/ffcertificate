@@ -1048,11 +1048,10 @@ class AudienceShortcode {
 				'nonce'                  => wp_create_nonce( 'wp_rest' ),
 				'searchUsersNonce'       => wp_create_nonce( 'ffc_search_users' ),
 				'locale'                 => get_locale(),
-				'dateFormat'             => \FreeFormCertificate\Core\DateFormatter::resolve_date_format(),
-				'timeFormat'             => \FreeFormCertificate\Core\DateFormatter::resolve_time_format(),
 				'firstDayOfWeek'         => (int) get_option( 'start_of_week', 0 ),
 				'multipleAudiencesColor' => get_option( 'ffc_aud_multiple_audiences_color', '' ),
 				'seriesMaxWeeks'         => AudienceBookingRules::SERIES_MAX_WEEKS,
+				'cancelReasonMin'        => AudienceBookingRules::CANCEL_REASON_MIN,
 				'strings'                => array_merge(
 					// The state names (#2215): the calendar's own (#2223), else the general ones, else the translated default.
 					\FreeFormCertificate\Scheduling\CalendarAppearance::strings( self::names_override( $schedules ) ),
@@ -1073,7 +1072,10 @@ class AudienceShortcode {
 						'descriptionRequired'    => __( 'Description is required (15-300 characters).', 'ffcertificate' ),
 						'conflictWarning'        => __( 'Warning: Conflicts detected with existing bookings.', 'ffcertificate' ),
 						'audienceSameDayWarning' => __( 'Warning: The following groups already have bookings on this day:', 'ffcertificate' ),
-						'membersOverlapping'     => __( 'member(s) have overlapping bookings.', 'ffcertificate' ),
+						/* translators: %d: always 1. */
+						'memberOverlapping'      => __( '%d member has overlapping bookings.', 'ffcertificate' ),
+						/* translators: %d: number of members, 2 or more. */
+						'membersOverlapping'     => __( '%d members have overlapping bookings.', 'ffcertificate' ),
 						/* translators: %d: number of further people not named */
 						'andMore'                => __( 'and %d more', 'ffcertificate' ),
 						'hardConflict'           => __( 'This time slot is already booked for this environment. You cannot create a booking at this time.', 'ffcertificate' ),
@@ -1111,6 +1113,9 @@ class AudienceShortcode {
 						'allDay'                 => __( 'All Day', 'ffcertificate' ),
 						'events'                 => __( 'Events', 'ffcertificate' ),
 						'noEvents'               => __( 'No events this month.', 'ffcertificate' ),
+						// The side panel's collapsed past days and today's mark (#2728).
+						'earlierDays'            => __( 'Earlier days', 'ffcertificate' ),
+						'today'                  => __( 'Today', 'ffcertificate' ),
 						'multipleAudiences'      => __( 'Multiple audiences', 'ffcertificate' ),
 						// The "all spaces" option of the filter (#1859): "All" before
 						// the calendar's own plural label.

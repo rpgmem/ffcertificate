@@ -330,12 +330,9 @@ class SettingsActionHandlerTest extends TestCase {
 
 	/** Alias-mock MaintenanceToolRegistry::create_default()->get() to return no tool. */
 	private function mock_tool_registry_without_tools(): void {
-		// Inner registry instance: anonymous mock so we don't autoload (and then
-		// collide with) the real MaintenanceToolRegistry class name.
-		$registry = Mockery::mock();
-		$registry->shouldReceive( 'get' )->andReturn( null );
-		$alias = Mockery::mock( 'alias:FreeFormCertificate\\Maintenance\\MaintenanceToolRegistry' );
-		$alias->shouldReceive( 'create_default' )->andReturn( $registry );
+		// A real registry with nothing registered, injected (#2567): the
+		// default set always holds every tool, so only an injected one lacks it.
+		$this->handler = new SettingsActionHandler( $this->save_handler, new \FreeFormCertificate\Maintenance\MaintenanceToolRegistry() );
 	}
 
 	// ==================================================================
@@ -588,12 +585,6 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->assertSame( self::fingerprint( array( 'days' => 90 ) ), $this->transients['ffc_obsolete_cleanup_preview_ok_7'], 'The preview records what it ran with.' );
 	}
 
-	/**
-	 * Its own process: the real registry always has the tool, so only a replaced one lacks it.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_obsolete_preview_tool_missing_redirects(): void {
 		$_REQUEST['ffc_obsolete_cleanup'] = 'preview';
 		$_REQUEST['_wpnonce']             = 'ok';
@@ -665,12 +656,6 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->handler->handle_url_shortener_cleanup();
 	}
 
-	/**
-	 * Its own process: the real registry always has the tool, so only a replaced one lacks it.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_url_cleanup_tool_missing_redirects(): void {
 		$_REQUEST['ffc_url_cleanup'] = 'preview';
 		$_REQUEST['_wpnonce']        = 'ok';
@@ -773,12 +758,6 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->handler->handle_public_access_disabler();
 	}
 
-	/**
-	 * Its own process: the real registry always has the tool, so only a replaced one lacks it.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_pubaccess_tool_missing_redirects(): void {
 		$_REQUEST['ffc_pubaccess'] = 'preview';
 		$_REQUEST['_wpnonce']      = 'ok';
@@ -878,12 +857,6 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->handler->handle_submission_link_audit();
 	}
 
-	/**
-	 * Its own process: the real registry always has the tool, so only a replaced one lacks it.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_submission_audit_tool_missing_redirects(): void {
 		$_REQUEST['ffc_submission_audit'] = 'scan';
 		$_REQUEST['_wpnonce']             = 'ok';
@@ -1220,12 +1193,6 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->assertStringNotContainsString( 'obsolete_cleanup_msg', $url );
 	}
 
-	/**
-	 * Its own process: the real registry always has the tool, so only a replaced one lacks it.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_obsolete_apply_without_the_tool_says_so(): void {
 		$_REQUEST['ffc_obsolete_cleanup'] = 'apply';
 		$_REQUEST['_wpnonce']             = 'ok';

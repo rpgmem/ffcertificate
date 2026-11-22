@@ -77,7 +77,7 @@ class RecruitmentNoticeWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$now    = current_time( 'mysql' );
+		$now    = time();
 		$config = '' === $public_columns_config ? RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG : $public_columns_config;
 
 		$result = $wpdb->insert(
@@ -91,7 +91,7 @@ class RecruitmentNoticeWriter {
 				'created_at'            => $now,
 				'updated_at'            => $now,
 			),
-			array( '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%d', '%s', '%d', '%d' )
 		);
 
 		if ( ! $result ) {
@@ -146,8 +146,8 @@ class RecruitmentNoticeWriter {
 			return false;
 		}
 
-		$update['updated_at'] = current_time( 'mysql' );
-		$format[]             = '%s';
+		$update['updated_at'] = time();
+		$format[]             = '%d';
 
 		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
 
@@ -178,10 +178,10 @@ class RecruitmentNoticeWriter {
 		$table = self::get_table_name();
 
 		$prepared = $wpdb->prepare(
-			'UPDATE %i SET status = %s, updated_at = %s WHERE id = %d AND status = %s',
+			'UPDATE %i SET status = %s, updated_at = %d WHERE id = %d AND status = %s',
 			$table,
 			$new_status,
-			current_time( 'mysql' ),
+			time(),
 			$id,
 			$expected_current
 		);
@@ -217,9 +217,9 @@ class RecruitmentNoticeWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$now      = current_time( 'mysql' );
+		$now      = time();
 		$prepared = $wpdb->prepare(
-			'UPDATE %i SET opened_at = %s, updated_at = %s WHERE id = %d AND opened_at IS NULL',
+			'UPDATE %i SET opened_at = %d, updated_at = %d WHERE id = %d AND opened_at IS NULL',
 			$table,
 			$now,
 			$now,
@@ -248,9 +248,9 @@ class RecruitmentNoticeWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$now      = current_time( 'mysql' );
+		$now      = time();
 		$prepared = $wpdb->prepare(
-			'UPDATE %i SET closed_at = %s, updated_at = %s WHERE id = %d',
+			'UPDATE %i SET closed_at = %d, updated_at = %d WHERE id = %d',
 			$table,
 			$now,
 			$now,
@@ -285,9 +285,9 @@ class RecruitmentNoticeWriter {
 		$table = self::get_table_name();
 
 		$prepared = $wpdb->prepare(
-			'UPDATE %i SET was_reopened = 1, updated_at = %s WHERE id = %d AND was_reopened = 0',
+			'UPDATE %i SET was_reopened = 1, updated_at = %d WHERE id = %d AND was_reopened = 0',
 			$table,
-			current_time( 'mysql' ),
+			time(),
 			$id
 		);
 

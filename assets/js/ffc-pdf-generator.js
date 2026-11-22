@@ -134,8 +134,6 @@
             ? ffc_ajax.strings.generatingPdf
             : (typeof ffcCalendar !== 'undefined' && ffcCalendar.strings && ffcCalendar.strings.generatingPdf)
             ? ffcCalendar.strings.generatingPdf
-            : (typeof ffcReceiptData !== 'undefined' && ffcReceiptData.strings && ffcReceiptData.strings.generatingPdf)
-            ? ffcReceiptData.strings.generatingPdf
             : 'Generating PDF...';
 
         var title = $('<h3 id="ffc-pdf-overlay-title"></h3>').css({
@@ -149,8 +147,6 @@
             ? ffc_ajax.strings.pleaseWait
             : (typeof ffcCalendar !== 'undefined' && ffcCalendar.strings && ffcCalendar.strings.pleaseWait)
             ? ffcCalendar.strings.pleaseWait
-            : (typeof ffcReceiptData !== 'undefined' && ffcReceiptData.strings && ffcReceiptData.strings.pleaseWait)
-            ? ffcReceiptData.strings.pleaseWait
             : 'Please wait, this may take a few seconds...';
 
         var message = $('<p id="ffc-pdf-overlay-message" aria-live="polite"></p>').css({
@@ -239,6 +235,23 @@
      * they are released once nothing on the page can follow them.
      */
     var pendingBlobUrls = [];
+
+    /**
+     * Make the certificate visible in the copy html2canvas renders (#2634).
+     *
+     * The temporary container is built at opacity 0 and stays so on the
+     * page; html2canvas clones the document before drawing and reads the
+     * opacity from the clone, so the capture shows it while the screen
+     * never does.
+     *
+     * @param {Document} clonedDocument The document html2canvas renders.
+     */
+    function revealCaptureClone(clonedDocument) {
+        var containers = clonedDocument.querySelectorAll('.ffc-pdf-temp-container');
+        for (var i = 0; i < containers.length; i++) {
+            containers[i].style.opacity = '1';
+        }
+    }
 
     /**
      * Keep a blob URL until the overlay that offers it goes.
@@ -557,9 +570,11 @@
                 });
 
                 setTimeout(function() {
-                    // Make container visible for html2canvas (it respects computed opacity)
-                    // Container is safely behind the overlay (z-index 999998 vs 999999)
-                    $tempContainer.css('opacity', '1');
+                    // The container stays at opacity 0 on the page: the
+                    // overlay lets a fifth of what is under it through, so
+                    // revealing it here made the certificate flash (#2634).
+                    // It is made visible in the copy html2canvas renders
+                    // instead (onclone below), which reads the opacity there.
 
                     // Restore img src that may have been hijacked by lazy-loading plugins
                     $tempContainer.find('img').each(function() {
@@ -586,14 +601,23 @@
                     // ~14 MP image that can exceed 100 MB of RAM).
                     var canvasScale = platform.mobile() ? 1.5 : 2;
 
-                    html2canvas(element, {
-                        scale: canvasScale,
-                        width: a4WidthPx,
-                        height: a4HeightPx,
-                        useCORS: true,
-                        allowTaint: false,
-                        logging: false,
-                        backgroundColor: '#ffffff'
+                    // The fonts the template names are ready, or the wait ran
+                    // out (#2569): the step the editor preview runs too.
+                    var prepared = window.FFCCertificateRender
+                        ? window.FFCCertificateRender.prepare(element)
+                        : Promise.resolve();
+
+                    prepared.then(function () {
+                        return html2canvas(element, {
+                            scale: canvasScale,
+                            width: a4WidthPx,
+                            height: a4HeightPx,
+                            useCORS: true,
+                            allowTaint: false,
+                            logging: false,
+                            backgroundColor: '#ffffff',
+                            onclone: revealCaptureClone
+                        });
                     }).then(function(canvas) {
                         try {
                             var ctx = canvas.getContext('2d');

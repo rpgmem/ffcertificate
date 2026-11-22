@@ -75,6 +75,7 @@ final class QrGeneratorDesignMemory {
 				'qr_design_frame_icon'      => $design['frame_icon'],
 				'qr_design_transparent'     => $design['transparent'],
 				'qr_design_logo_id'         => $form['logo_id'],
+				'qr_design_logo_enabled'    => $form['logo_enabled'],
 				'margin'                    => $form['margin'],
 				'error_level'               => $form['error_level'],
 			)
@@ -122,7 +123,7 @@ final class QrGeneratorDesignMemory {
 				'eye_ball_color'  => $state['qr_design_eye_ball_color'],
 				'gradient'        => $state['qr_design_gradient'],
 				'color_end'       => $state['qr_design_color_end'],
-				'logo'            => QrLogo::data_uri( (int) $state['qr_design_logo_id'] ),
+				'logo'            => $state['qr_design_logo_enabled'] ? QrLogo::data_uri( (int) $state['qr_design_logo_id'] ) : '',
 				'frame'           => $state['qr_design_frame'],
 				'frame_text'      => $state['qr_design_frame_text'],
 				'frame_color'     => $state['qr_design_frame_color'],
@@ -181,6 +182,8 @@ final class QrGeneratorDesignMemory {
 			'qr_design_frame_icon'      => (string) $design['frame_icon'],
 			'qr_design_transparent'     => ! empty( $get( 'qr_design_transparent' ) ),
 			'qr_design_logo_id'         => max( 0, $logo ),
+			// A design remembered before the switch existed had its logo on (#2686).
+			'qr_design_logo_enabled'    => null === $get( 'qr_design_logo_enabled' ) || ! empty( $get( 'qr_design_logo_enabled' ) ),
 			'margin'                    => max( 0, min( 10, $margin ) ),
 			'error_level'               => in_array( $level, self::LEVELS, true ) ? $level : 'M',
 		);

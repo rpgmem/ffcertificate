@@ -48,10 +48,8 @@ class PrivacyHandler {
 	 * @return void
 	 */
 	public static function add_privacy_policy_content(): void {
-		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
-			return;
-		}
-
+		// Hooked on admin_init, after wp-admin has loaded plugin.php, which
+		// declares wp_add_privacy_policy_content().
 		$retention_days = \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days();
 		$cleanup_days   = \FreeFormCertificate\Settings\SettingsReader::get_bool( 'cleanup_enabled', false )
 			? max( 0, \FreeFormCertificate\Settings\SettingsReader::get_int( 'cleanup_days', 365 ) )
@@ -96,7 +94,7 @@ class PrivacyHandler {
 
 		$content .= '<p>' . $hint . esc_html__( 'Some forms and check-ins are available only at certain places. Your browser may then ask for your device\'s location. The position is compared with the allowed areas and is not stored; a form remembers only that the check passed.', 'ffcertificate' ) . '</p>';
 
-		$content .= '<p>' . $hint . esc_html__( 'When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io, or ip-api.com on its paid plan) to find its approximate region.', 'ffcertificate' ) . '</p>';
+		$content .= '<p>' . $hint . esc_html__( 'When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io) to find its approximate region.', 'ffcertificate' ) . '</p>';
 
 		$content .= '<p>' . $hint . sprintf(
 			/* translators: %d: number of days device signals are retained. */
@@ -207,6 +205,12 @@ class PrivacyHandler {
 		$erasers['ffcertificate'] = array(
 			'eraser_friendly_name' => __( 'Free Form Certificate', 'ffcertificate' ),
 			'callback'             => array( PrivacyErasers::class, 'erase_personal_data' ),
+		);
+		// The copy of name and RF a certificate signer leaves behind when the
+		// account is deleted (#2582).
+		$erasers['ffcertificate-signers'] = array(
+			'eraser_friendly_name' => __( 'Free Form Certificate signers', 'ffcertificate' ),
+			'callback'             => array( \FreeFormCertificate\Core\CertificateSigners::class, 'erase' ),
 		);
 		return $erasers;
 	}

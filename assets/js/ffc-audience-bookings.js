@@ -113,18 +113,17 @@
                 html += '</div>';
             }
 
-            if (booking.status === 'active' && state.config.canBook) {
+            // Both actions follow the rule the cancel route applies (#2691).
+            if (booking.status === 'active' && state.config.canBook && booking.can_cancel) {
                 html += '<div class="ffc-booking-actions">';
                 // Who may cancel may edit or move (#2243).
-                if (booking.can_cancel) {
-                    html += FFC.buttonHtml({
-                        label: ffcAudience.strings.edit || 'Edit',
-                        category: 'neutral',
-                        icon: 'edit',
-                        className: 'ffc-edit-booking',
-                        attrs: { 'data-id': booking.id }
-                    });
-                }
+                html += FFC.buttonHtml({
+                    label: ffcAudience.strings.edit || 'Edit',
+                    category: 'neutral',
+                    icon: 'edit',
+                    className: 'ffc-edit-booking',
+                    attrs: { 'data-id': booking.id }
+                });
                 html += FFC.buttonHtml({
                     label: ffcAudience.strings.cancel,
                     category: 'danger',
@@ -174,7 +173,8 @@
             series: $button.attr('data-series') === '1',
             strings: ffcAudience.strings.cancelConfirm,
             // The reason is asked in the same dialog (#2534).
-            reasonField: { label: ffcAudience.strings.cancelReasonLabel || 'Cancel Reason', min: 1 }
+            // The server refuses a shorter reason (#2691).
+            reasonField: { label: ffcAudience.strings.cancelReasonLabel || 'Cancel Reason', min: parseInt(ffcAudience.cancelReasonMin, 10) || 5 }
         }).then(function(agreed) {
             if (!agreed) {
                 return;

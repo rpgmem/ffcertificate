@@ -271,7 +271,8 @@ class UrlShortenerActivatorTest extends TestCase {
 			}
 		);
 		$created = false;
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => (string) ( $args[0] ?? $q ) );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( self::prepared( ... ) );
+		$this->established_columns();
 		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			static function ( $q ) use ( &$created ) {
 				if ( 'wp_ffc_short_url_retired' === $q ) {
@@ -313,6 +314,45 @@ class UrlShortenerActivatorTest extends TestCase {
 		$this->assertArrayNotHasKey( UrlShortenerActivator::SCHEMA_REVISION_OPTION, $written, 'The next request tries again.' );
 	}
 
+	public function test_an_install_without_the_last_click_column_gains_it(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_url_shortener_schema_version' === $key ? FFC_VERSION : $default );
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static fn( $q, ...$args ) => 0 === strpos( (string) $q, 'ALTER' ) ? $q . ' ' . implode( ' ', $args ) : self::prepared( $q, ...$args )
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $table ) => $table );
+		$this->wpdb->last_error = '';
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $s ) => $s );
+		$this->wpdb->shouldReceive( 'suppress_errors' )->andReturn( false );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $q ) {
+				$column = (string) substr( (string) strrchr( (string) $q, '|' ), 1 );
+				if ( in_array( $column, array( 'created_at', 'updated_at' ), true ) ) {
+					return array( (object) array( 'Field' => $column, 'Type' => 'bigint(20) unsigned' ) );
+				}
+				return 'qr_cache' === $column ? array( (object) array( 'Field' => 'qr_cache' ) ) : array();
+			}
+		);
+		$alters = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$alters ) {
+				$alters[] = (string) $q;
+				return 1;
+			}
+		);
+
+		UrlShortenerActivator::maybe_migrate();
+
+		$this->assertNotEmpty( array_filter( $alters, static fn( $q ) => false !== strpos( $q, 'last_clicked_at' ) ), 'The column is added to the existing table.' );
+		$this->assertArrayNotHasKey( UrlShortenerActivator::SCHEMA_REVISION_OPTION, $written, 'The revision waits until the column reads back.' );
+	}
+
 	/**
 	 * Every `SHOW TABLES LIKE` answers with the table it asked about.
 	 */
@@ -339,7 +379,7 @@ class UrlShortenerActivatorTest extends TestCase {
 				if ( in_array( $column, array( 'created_at', 'updated_at' ), true ) ) {
 					return array( (object) array( 'Field' => $column, 'Type' => 'bigint(20) unsigned' ) );
 				}
-				return 'qr_cache' === $column ? array( (object) array( 'Field' => 'qr_cache' ) ) : array();
+				return in_array( $column, array( 'qr_cache', 'last_clicked_at' ), true ) ? array( (object) array( 'Field' => $column ) ) : array();
 			}
 		);
 	}

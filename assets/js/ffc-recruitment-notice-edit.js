@@ -392,6 +392,12 @@
 			window.FFC.reloadWithNotice('warning', strings.noEmailContactManually.replace('{count}', String(n)));
 			return;
 		}
+		// A bulk call's e-mails go out in the background (#2694).
+		var queued = (body && typeof body.queued === 'number') ? body.queued : 0;
+		if (queued > 0 && strings.callMailsQueued) {
+			window.FFC.reloadWithNotice('info', strings.callMailsQueued.replace('{count}', String(queued)));
+			return;
+		}
 		location.reload();
 	}
 
@@ -483,6 +489,21 @@
 				ffcRecruitmentRememberDateTime(values.date_to_assume, values.time_to_assume);
 				ffcRecruitmentDispatchCls(btn, base + id + '/call', { method: 'POST', headers: { 'X-WP-Nonce': nonce }, body: fd, credentials: 'same-origin' });
 			});
+			return;
+		}
+		if (action === 'resend') {
+			// Sends the call's e-mail again and says whether it went out (#2694).
+			var resendCall = btn.getAttribute('data-call-id');
+			if (!resendCall) { return; }
+			btn.disabled = true;
+			fetch(base + id + '/calls/' + resendCall + '/resend-email', { method: 'POST', headers: { 'X-WP-Nonce': nonce }, credentials: 'same-origin' })
+				.then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
+				.then(function (o) {
+					if (o.status >= 200 && o.status < 300) {
+						var sent = !!(o.body && o.body.sent);
+						window.FFC.reloadWithNotice(sent ? 'success' : 'warning', sent ? (strings.resendSent || '') : (strings.resendNotSent || ''));
+					} else { failNotice(o.body); btn.disabled = false; }
+				}).catch(function (e) { window.FFC.adminNotice('danger', (strings.networkError || 'Network error:') + ' ' + e.message); btn.disabled = false; });
 			return;
 		}
 		if (action === 'cancel' || action === 'reopen' || action === 'override') {

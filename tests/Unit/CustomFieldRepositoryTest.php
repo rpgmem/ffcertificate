@@ -1262,22 +1262,6 @@ class CustomFieldRepositoryTest extends TestCase {
 	// get_user_field_value() / set_user_field_value()
 	// ==================================================================
 
-	public function test_get_user_field_value_returns_value_when_exists(): void {
-		Functions\when('get_user_meta')->justReturn(['field_5' => 'hello']);
-
-		$result = CustomFieldReader::get_user_field_value(42, 5);
-
-		$this->assertSame('hello', $result);
-	}
-
-	public function test_get_user_field_value_returns_null_when_not_set(): void {
-		Functions\when('get_user_meta')->justReturn(['field_1' => 'something']);
-
-		$result = CustomFieldReader::get_user_field_value(42, 999);
-
-		$this->assertNull($result);
-	}
-
 	public function test_set_user_field_value_saves_correct_key(): void {
 		Functions\when('get_user_meta')->justReturn([]);
 
@@ -1545,40 +1529,6 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->assertSame( array( 'personal', 'contact', '' ), array_keys( $grouped ) );
 		$this->assertSame( array( 'name', 'cpf' ), array_column( $grouped['personal'], 'field_key' ) );
 		$this->assertSame( array( 'loose' ), array_column( $grouped[''], 'field_key' ), 'A field without a group lands under the empty key.' );
-	}
-
-	public function test_get_groups_for_audience_lists_the_group_keys(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
-
-		$this->assertSame( array( 'personal', 'contact', '' ), CustomFieldReader::get_groups_for_audience( 10 ) );
-	}
-
-	public function test_get_profile_fields_keeps_only_profile_mapped_fields(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
-
-		$this->assertSame( array( 'cpf', 'phone' ), array_column( CustomFieldReader::get_profile_fields( 10 ), 'field_key' ) );
-	}
-
-	public function test_get_sensitive_keys_for_audience_names_only_sensitive_fields(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
-
-		$this->assertSame( array( 'cpf' ), CustomFieldReader::get_sensitive_keys_for_audience( 10 ) );
-	}
-
-	public function test_get_by_audience_keyed_indexes_by_field_key(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $this->mixed_fields() );
-
-		$keyed = CustomFieldReader::get_by_audience_keyed( 10, false );
-
-		$this->assertSame( array( 'name', 'cpf', 'phone', 'loose' ), array_keys( $keyed ) );
-		$this->assertSame( 3, $keyed['phone']->id );
-	}
-
-	public function test_derived_views_are_empty_when_the_query_fails(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( null );
-
-		$this->assertSame( array(), CustomFieldReader::get_by_audience_grouped( 10 ) );
-		$this->assertSame( array(), CustomFieldReader::get_sensitive_keys_for_audience( 10 ) );
 	}
 
 	// ==================================================================

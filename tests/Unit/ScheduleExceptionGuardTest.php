@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -39,7 +40,7 @@ class ScheduleExceptionGuardTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\Frontend\\Submission\\ScheduleExceptionGuard' );
 
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		$this->spent = array();
 		Functions\when( 'get_option' )->alias(

@@ -161,18 +161,4 @@ class RecruitmentCapabilityManagerTest extends TestCase {
 			'Custom caps the admin added manually must survive role re-registration'
 		);
 	}
-
-	public function test_remove_recruitment_manager_role_calls_wp_remove_role(): void {
-		$captured_slug = null;
-
-		Functions\when( 'remove_role' )->alias(
-			function ( $slug ) use ( &$captured_slug ) {
-				$captured_slug = $slug;
-			}
-		);
-
-		RoleRegistrar::remove_recruitment_manager_role();
-
-		$this->assertSame( 'ffc_recruitment_manager', $captured_slug );
-	}
 }

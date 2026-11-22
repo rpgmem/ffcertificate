@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -78,7 +79,7 @@ class FormProcessorRestrictionsTest extends TestCase {
 	public function test_password_required_when_empty(): void {
 		$config = array(
 			'restrictions'    => array( 'password' => '1' ),
-			'validation_code' => 'secret123',
+			'validation_code' => FakeCredentials::FORM_PASSWORD,
 		);
 
 		// Simulate empty password in POST
@@ -97,10 +98,10 @@ class FormProcessorRestrictionsTest extends TestCase {
 	public function test_password_incorrect_blocks(): void {
 		$config = array(
 			'restrictions'    => array( 'password' => '1' ),
-			'validation_code' => 'secret123',
+			'validation_code' => FakeCredentials::FORM_PASSWORD,
 		);
 
-		$_POST['ffc_password'] = 'wrong';
+		$_POST['ffc_password'] = FakeCredentials::FORM_PASSWORD_WRONG;
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
@@ -115,10 +116,10 @@ class FormProcessorRestrictionsTest extends TestCase {
 	public function test_password_correct_allows(): void {
 		$config = array(
 			'restrictions'    => array( 'password' => '1' ),
-			'validation_code' => 'secret123',
+			'validation_code' => FakeCredentials::FORM_PASSWORD,
 		);
 
-		$_POST['ffc_password'] = 'secret123';
+		$_POST['ffc_password'] = FakeCredentials::FORM_PASSWORD;
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 

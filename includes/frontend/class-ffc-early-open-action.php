@@ -220,6 +220,38 @@ class EarlyOpenAction {
 	 * @return EarlyOpenRefusal|array{ok: true, original_start_iso: string, new_start_iso: string}
 	 */
 	public static function execute( int $form_id, string $hash, array $audit_meta = array(), string $cpf_digits = '' ): array {
+		// Two tabs could both read "not opened yet" and both write (#2695):
+		// the check and the write run under one lock per form, the one
+		// postponing the close takes too.
+		$lock = 'ffc_form_window_' . $form_id;
+		$held = \FreeFormCertificate\Core\NamedLock::acquire( $lock, 5 );
+		if ( false === $held ) {
+			return array(
+				'ok'     => false,
+				'reason' => 'already_opened',
+			);
+		}
+		try {
+			return self::execute_locked( $form_id, $hash, $audit_meta, $cpf_digits );
+		} finally {
+			if ( true === $held ) {
+				\FreeFormCertificate\Core\NamedLock::release( $lock );
+			}
+		}
+	}
+
+	/**
+	 * The check and the write, once the form's lock is held.
+	 *
+	 * @param int                  $form_id    Form ID.
+	 * @param string               $hash       The public hash.
+	 * @param array<string, mixed> $audit_meta Audit metadata.
+	 * @param string               $cpf_digits CPF digits for the audit ring.
+	 * @return EarlyOpenRefusal|array{ok: true, original_start_iso: string, new_start_iso: string}
+	 */
+	private static function execute_locked( int $form_id, string $hash, array $audit_meta, string $cpf_digits ): array {
+		// Read what another request wrote while this one waited.
+		wp_cache_delete( $form_id, 'post_meta' );
 		$eligibility = self::is_eligible( $form_id, $hash );
 		if ( ! $eligibility['ok'] ) {
 			return $eligibility;

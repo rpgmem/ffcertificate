@@ -34,6 +34,12 @@ class RequiredDataTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_is_block_theme' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias(
@@ -374,6 +380,26 @@ class RequiredDataTest extends TestCase {
 		);
 	}
 
+	public function test_the_event_date_tokens_keep_their_colon_and_only_print(): void {
+		$rows  = RequiredData::sanitize(
+			array(
+				array( 'name' => 'schedule:date', 'html' => true, 'form' => true ),
+				array( 'name' => 'Schedule:Dates', 'html' => true ),
+				array( 'name' => 'schedule:other', 'html' => true ),
+			)
+		);
+		$names = array_column( (array) $rows, 'name' );
+		$this->assertContains( 'schedule:date', $names );
+		$this->assertContains( 'schedule:dates', $names );
+		$this->assertContains( 'scheduleother', $names, 'a colon survives only in the two generated date tags' );
+		foreach ( (array) $rows as $row ) {
+			if ( 'schedule:date' === $row['name'] ) {
+				$this->assertFalse( $row['form'], 'a generated tag is never a form field' );
+				$this->assertTrue( $row['html'] );
+			}
+		}
+	}
+
 	public function test_sanitize_adds_the_two_locked_rows_when_absent(): void {
 		$this->assertSame(
 			array(
@@ -427,6 +453,12 @@ class RequiredDataTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( null );
+		// The Integrity signature card below the form (#2639).
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://site.test/wp-admin/' . $path );
+		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
+		Functions\when( 'wp_nonce_url' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'selected' )->alias(
 			static function ( $a, $b ): void {
 				echo (string) $a === (string) $b ? 'selected' : '';

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAttendanceWriter;
@@ -70,7 +71,7 @@ class AudienceCheckinTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'current_time' )->justReturn( self::DAY );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
@@ -297,6 +298,29 @@ class AudienceCheckinTest extends TestCase {
 		$this->window_row = null;
 
 		$result = AudienceCheckin::scan( $code, self::T0 );
+
+		$this->assertSame( AudienceCheckin::ERROR_INVALID_CODE, $result->get_error_code() );
+	}
+
+	public function test_after_midnight_the_window_opened_the_day_before_is_still_found(): void {
+		// The window closes at the booking's end plus a grace, which can fall
+		// after midnight; the scan looks up yesterday's window too (#2691).
+		$window = $this->window();
+		$this->window_is_open( $window );
+		Functions\when( 'current_time' )->justReturn( '2027-01-16' );
+
+		$receipt = AudienceCheckin::scan( AudienceCheckinCode::for_window( $window, self::T0 ), self::T0 + 10 );
+
+		$this->assertIsString( $receipt );
+		$this->assertSame( self::DAY, AudienceCheckinReceipt::verify( $receipt, self::T0 + 10 )['date'], 'The receipt names the day the window belongs to.' );
+	}
+
+	public function test_after_midnight_a_window_of_the_day_before_that_closed_is_not_found(): void {
+		$window = $this->window( array( 'closes_at' => self::T0 - 1 ) );
+		$this->window_is_open( $window );
+		Functions\when( 'current_time' )->justReturn( '2027-01-16' );
+
+		$result = AudienceCheckin::scan( AudienceCheckinCode::for_window( $window, self::T0 - 60 ), self::T0 );
 
 		$this->assertSame( AudienceCheckin::ERROR_INVALID_CODE, $result->get_error_code() );
 	}

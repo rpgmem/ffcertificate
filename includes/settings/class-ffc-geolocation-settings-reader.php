@@ -81,16 +81,6 @@ final class GeolocationSettingsReader {
 		return ! empty( self::all()['ip_cache_enabled'] );
 	}
 
-	/** IP-geolocation provider service id (default 'ipinfo', the HTTPS one — #2339). */
-	public static function ip_api_service(): string {
-		return self::all()['ip_api_service'] ?? 'ipinfo';
-	}
-
-	/** Whether both IP providers are used with fallback (default false). */
-	public static function ip_api_cascade(): bool {
-		return ! empty( self::all()['ip_api_cascade'] );
-	}
-
 	/**
 	 * TTL for cached IP-resolved locations, in seconds (default 600), kept
 	 * between 300 and 3600 on read as on save (#2339), so a value written

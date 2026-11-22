@@ -56,6 +56,8 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		// The event date column (#2579) reads the form's Event Schedule.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 
 		$ref          = new \ReflectionClass( SubmissionsExportSource::class );
 		$this->source = $ref->newInstanceWithoutConstructor();
@@ -121,15 +123,15 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 	}
 
 	// ==================================================================
-	// get_fixed_headers()  — 15 fixed, 18 with edit columns
+	// get_fixed_headers()  — 16 fixed, 19 with edit columns
 	// ==================================================================
 
-	public function test_fixed_headers_without_edit_columns_returns_15(): void {
-		$this->assertCount( 15, $this->invoke( 'get_fixed_headers', array( false ) ) );
+	public function test_fixed_headers_without_edit_columns_returns_16(): void {
+		$this->assertCount( 16, $this->invoke( 'get_fixed_headers', array( false ) ) );
 	}
 
-	public function test_fixed_headers_with_edit_columns_returns_18(): void {
-		$this->assertCount( 18, $this->invoke( 'get_fixed_headers', array( true ) ) );
+	public function test_fixed_headers_with_edit_columns_returns_19(): void {
+		$this->assertCount( 19, $this->invoke( 'get_fixed_headers', array( true ) ) );
 	}
 
 	public function test_fixed_headers_contains_expected_strings(): void {
@@ -141,9 +143,9 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 
 	public function test_fixed_headers_edit_columns_at_end(): void {
 		$headers = $this->invoke( 'get_fixed_headers', array( true ) );
-		$this->assertSame( 'Was Edited', $headers[15] );
-		$this->assertSame( 'Edit Date', $headers[16] );
-		$this->assertSame( 'Edited By', $headers[17] );
+		$this->assertSame( 'Was Edited', $headers[16] );
+		$this->assertSame( 'Edit Date', $headers[17] );
+		$this->assertSame( 'Edited By', $headers[18] );
 	}
 
 	// ==================================================================
@@ -152,7 +154,7 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 
 	public function test_format_csv_row_basic_returns_correct_count(): void {
 		$result = $this->invoke( 'format_csv_row', array( $this->sample_row(), array( 'field_name', 'field_city' ), false ) );
-		$this->assertCount( 17, $result ); // 15 fixed + 2 dynamic.
+		$this->assertCount( 18, $result ); // 16 fixed + 2 dynamic.
 	}
 
 	public function test_format_csv_row_fixed_columns_values(): void {
@@ -169,6 +171,24 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'abc123def456', $result[9] );
 		$this->assertSame( 'Yes', $result[10] );
 		$this->assertSame( 'publish', $result[14] );
+	}
+
+	public function test_format_csv_row_carries_the_form_event_date(): void {
+		$this->assertSame( '', $this->invoke( 'format_csv_row', array( $this->sample_row(), array(), false ) )[15], 'a form without an event date leaves the column empty' );
+
+		Functions\when( 'get_post_meta' )->justReturn(
+			array(
+				'class_date_start' => '2025-12-19',
+				'class_date_end'   => '2025-12-20',
+				// The opening window is a different date and must never fill the column.
+				'date_start'       => '2025-12-01',
+			)
+		);
+		Functions\when( '_x' )->returnArg();
+		$this->source = ( new \ReflectionClass( SubmissionsExportSource::class ) )->newInstanceWithoutConstructor();
+		$result       = $this->invoke( 'format_csv_row', array( $this->sample_row(), array(), false ) );
+		$this->assertSame( '19/12/2025 to 20/12/2025', $result[15] );
+		$this->assertSame( 'Event Date', $this->invoke( 'get_fixed_headers', array( false ) )[15] );
 	}
 
 	public function test_format_csv_row_consent_no(): void {
@@ -189,29 +209,29 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 		$row['edited_at'] = 1738400400; // 2025-02-01 09:00:00 UTC.
 		$row['edited_by'] = 5;
 		$result           = $this->invoke( 'format_csv_row', array( $row, array(), true ) );
-		$this->assertCount( 18, $result );
-		$this->assertSame( 'Yes', $result[15] );
-		$this->assertSame( '01/02/2025 09:00', $result[16] );
-		$this->assertSame( 'Admin User', $result[17] );
+		$this->assertCount( 19, $result );
+		$this->assertSame( 'Yes', $result[16] );
+		$this->assertSame( '01/02/2025 09:00', $result[17] );
+		$this->assertSame( 'Admin User', $result[18] );
 	}
 
 	public function test_format_csv_row_not_edited_empty_edit_columns(): void {
 		$result = $this->invoke( 'format_csv_row', array( $this->sample_row(), array(), true ) );
-		$this->assertSame( '', $result[15] );
 		$this->assertSame( '', $result[16] );
 		$this->assertSame( '', $result[17] );
+		$this->assertSame( '', $result[18] );
 	}
 
 	public function test_format_csv_row_dynamic_columns_values(): void {
 		$result = $this->invoke( 'format_csv_row', array( $this->sample_row(), array( 'field_name', 'field_city' ), false ) );
-		$this->assertSame( 'John', $result[15] );
-		$this->assertSame( 'SP', $result[16] );
+		$this->assertSame( 'John', $result[16] );
+		$this->assertSame( 'SP', $result[17] );
 	}
 
 	public function test_format_csv_row_missing_dynamic_key_returns_empty(): void {
 		$result = $this->invoke( 'format_csv_row', array( $this->sample_row(), array( 'field_name', 'nonexistent_field' ), false ) );
-		$this->assertSame( 'John', $result[15] );
-		$this->assertSame( '', $result[16] );
+		$this->assertSame( 'John', $result[16] );
+		$this->assertSame( '', $result[17] );
 	}
 
 	public function test_format_csv_row_rf_only(): void {
@@ -429,8 +449,8 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 			)
 		);
 
-		$this->assertCount( 16, $header );
-		$this->assertSame( 'Full Name', $header[15] );
+		$this->assertCount( 17, $header );
+		$this->assertSame( 'Full Name', $header[16] );
 		$this->assertSame( array( 'ffc_export_headers', array( false, array( 2 ) ) ), $seen );
 	}
 
@@ -475,7 +495,7 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 			)
 		);
 
-		$this->assertCount( 18, $row );
+		$this->assertCount( 19, $row );
 	}
 
 	public function test_build_context_freezes_a_masked_export_for_an_exporter_without_the_pii_cap(): void {

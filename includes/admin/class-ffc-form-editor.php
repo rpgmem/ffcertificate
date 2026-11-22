@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -44,6 +46,7 @@ class FormEditor {
 		add_action( 'add_meta_boxes', array( $this, 'add_custom_metaboxes' ), 20 );
 		add_action( 'save_post', array( $this->save_handler, 'save_form_data' ) );
 		add_action( 'admin_notices', array( $this->save_handler, 'display_save_errors' ) );
+		FormResignNotice::init();
 		// Priority 20 so we run AFTER AdminAssetsManager (default 10) has
 		// registered `ffc-admin-js`. The `wp_localize_script` call below
 		// attaches `ffcFormMetaAutosave` to that handle; calling localize
@@ -303,7 +306,7 @@ class FormEditor {
 			wp_send_json_error();
 		}
 
-		$qty   = isset( $_POST['qty'] ) ? absint( wp_unslash( $_POST['qty'] ) ) : 10;
+		$qty   = RequestInput::get_post_int( 'qty', 10 );
 		$codes = array();
 		for ( $i = 0; $i < $qty; $i++ ) {
 			$rnd     = strtoupper( bin2hex( random_bytes( 4 ) ) );
@@ -333,12 +336,20 @@ class FormEditor {
 		}
 
 		// Primary: DB-backed template pool, addressed by post id.
-		$template_id = isset( $_POST['template_id'] ) ? absint( wp_unslash( $_POST['template_id'] ) ) : 0;
+		$template_id = RequestInput::get_post_int( 'template_id' );
 		if ( $template_id > 0 ) {
 			$html = CertTemplateReader::get_html( $template_id );
 			if ( '' === $html ) {
 				wp_send_json_error();
 			}
+			// The form's own copy has no template fields of its own, so a
+			// `{{model:…}}` token would print as written: it takes the
+			// declared default instead (#2624).
+			$html = \FreeFormCertificate\Core\TemplateFields::replace_tokens(
+				$html,
+				\FreeFormCertificate\Core\CertificateTemplateLink::fields( $template_id ),
+				array()
+			);
 			// #865: structured payload so a loaded template carries its stored
 			// background image into the form's Background Image URL field. The JS
 			// load handler tolerates the legacy bare-string shape for safety.
@@ -375,10 +386,27 @@ class FormEditor {
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- layout HTML is filtered by wp_kses() below, as on save.
 		$raw    = isset( $_POST['html'] ) ? (string) wp_unslash( $_POST['html'] ) : '';
-		$layout = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		$layout = \FreeFormCertificate\Core\HtmlPolicy::kses_layout( $raw );
 		$title  = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
 		$image  = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
 		$color  = isset( $_POST['bg_color'] ) ? \FreeFormCertificate\Core\FormBackground::normalize_color( sanitize_text_field( wp_unslash( $_POST['bg_color'] ) ) ) : \FreeFormCertificate\Core\FormBackground::DEFAULT_COLOR;
+
+		// A form that references a template previews the template, with the
+		// values typed into its fields so far (#2581).
+		$template_id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'template_id', 0 );
+		$portrait    = false;
+		if ( \FreeFormCertificate\Core\CertificateTemplateLink::is_usable_template( $template_id ) ) {
+			$values = \FreeFormCertificate\Core\TemplateFields::sanitize_values(
+				\FreeFormCertificate\Core\CertificateTemplateLink::fields( $template_id ),
+				\FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'template_values' )
+			);
+			$layout = \FreeFormCertificate\Core\HtmlPolicy::kses_layout( \FreeFormCertificate\Core\CertificateTemplateLink::layout( $template_id, $values ) );
+			$image  = \FreeFormCertificate\Core\CertificateTemplateLink::bg_image( $template_id );
+			$color  = \FreeFormCertificate\Core\CertificateTemplateLink::bg_color( $template_id );
+			// A visual template carries its own page orientation (#2584).
+			$visual   = \FreeFormCertificate\Core\VisualLayout::is_visual( $template_id ) ? \FreeFormCertificate\Core\VisualLayout::stored( $template_id ) : null;
+			$portrait = null !== $visual && 'portrait' === $visual['page']['orientation'];
+		}
 
 		$fields = array();
 		foreach ( \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'fields' ) as $field ) {
@@ -395,17 +423,30 @@ class FormEditor {
 			);
 		}
 
-		$size    = \FreeFormCertificate\Generators\FormLayoutPreview::page_size();
+		$size    = \FreeFormCertificate\Generators\FormLayoutPreview::page_size( $portrait );
 		$samples = \FreeFormCertificate\Generators\FormLayoutPreview::with_field_labels(
 			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
 			$fields
 		);
-		$body    = \FreeFormCertificate\Generators\FormLayoutPreview::body(
+		// The signers chosen in the editor, unsaved (#2582, #2620); a sample
+		// person where a position names none.
+		$positions = array();
+		for ( $position = 1; $position <= \FreeFormCertificate\Core\CertificateSigners::MAX_PER_FORM; $position++ ) {
+			$field                  = 1 === $position ? 'signer_id' : 'signer_id_' . $position;
+			$positions[ $position ] = \FreeFormCertificate\Core\CertificateSigners::get( \FreeFormCertificate\Core\RequestInput::get_post_int( $field, 0 ) );
+		}
+		$samples = array_merge( $samples, \FreeFormCertificate\Core\CertificateSigners::preview_values( $positions ) );
+		list( $samples[ \FreeFormCertificate\Core\EventDate::DATA_START ], $samples[ \FreeFormCertificate\Core\EventDate::DATA_END ] ) = self::preview_event_date(
+			$samples[ \FreeFormCertificate\Core\EventDate::DATA_START ] ?? '',
+			$samples[ \FreeFormCertificate\Core\EventDate::DATA_END ] ?? ''
+		);
+		$body = \FreeFormCertificate\Generators\FormLayoutPreview::body(
 			$layout,
 			$title,
 			$image,
 			$color,
-			$samples
+			$samples,
+			$portrait
 		);
 
 		wp_send_json_success(
@@ -415,6 +456,35 @@ class FormEditor {
 				'height' => $size['height'],
 			)
 		);
+	}
+
+	/**
+	 * The event date the layout preview prints (#2626): what the Time tab
+	 * holds now, saved or not; else the form's saved date, when the user may
+	 * edit that form; else the sample's.
+	 *
+	 * @param string $sample_start The sample's start, `Y-m-d`.
+	 * @param string $sample_end   The sample's end, `Y-m-d` or ''.
+	 * @return array{0: string, 1: string}
+	 */
+	private static function preview_event_date( string $sample_start, string $sample_end ): array {
+		$typed = \FreeFormCertificate\Core\EventDate::range_from_config(
+			array(
+				'class_date_start' => \FreeFormCertificate\Core\RequestInput::get_post_string( 'event_date_start' ),
+				'class_date_end'   => \FreeFormCertificate\Core\RequestInput::get_post_string( 'event_date_end' ),
+			)
+		);
+		if ( '' !== $typed[0] ) {
+			return $typed;
+		}
+		$form_id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'post_id', 0 );
+		if ( $form_id > 0 && current_user_can( 'edit_post', $form_id ) ) {
+			$saved = \FreeFormCertificate\Core\EventDate::range( $form_id );
+			if ( '' !== $saved[0] ) {
+				return $saved;
+			}
+		}
+		return array( $sample_start, $sample_end );
 	}
 
 	/**
@@ -439,7 +509,7 @@ class FormEditor {
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Deliberately not sanitize_text_field: this is layout HTML, filtered on the next line by wp_kses() with the HtmlPolicy allowlist.
 		$raw  = isset( $_POST['html'] ) ? (string) wp_unslash( $_POST['html'] ) : '';
-		$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		$html = \FreeFormCertificate\Core\HtmlPolicy::kses_layout( $raw );
 		if ( '' === trim( $html ) ) {
 			wp_send_json_error();
 		}

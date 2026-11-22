@@ -78,6 +78,10 @@ final class SettingsReader {
 		'print_date',
 		'form_title',
 		'schedule',
+		// The event's date (#2579): the only tag names with a colon, since
+		// they are variants of `schedule` written in the modifier syntax.
+		'schedule:date',
+		'schedule:dates',
 		'score',
 		'max_score',
 		'score_percent',
@@ -485,18 +489,6 @@ final class SettingsReader {
 		return self::get_bool( 'url_shortener_enabled', true );
 	}
 
-	/**
-	 * Whether auto-creation of short URLs is enabled. Defaults to true.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function url_shortener_auto_create_enabled(): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return self::get_bool( 'url_shortener_auto_create', true );
-	}
-
 	// ──────────────────────────────────────────────────────────────.
 	// Feature-module on/off toggles (the "Modules" settings tab).
 	// ──────────────────────────────────────────────────────────────.
@@ -599,19 +591,6 @@ final class SettingsReader {
 	 */
 	public static function rereg_approved_banner_days(): int {
 		return self::get_int( 'rereg_approved_banner_days', 30 );
-	}
-
-	/**
-	 * TTL of the retired form-settings cache. The setting left with the
-	 * cache, so this answers the old default.
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function cache_expiration_seconds(): int {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return HOUR_IN_SECONDS;
 	}
 
 	/**

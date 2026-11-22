@@ -311,23 +311,31 @@ class AccessRestrictionChecker {
 		if ( '' === $ticket ) {
 			return;
 		}
-		// `get_post_meta( …, true )` returns '' when the key does not exist,
-		// and in PHP 8 assigning an offset on a string is fatal (#1087).
-		$current_config = get_post_meta( $form_id, '_ffc_form_config', true );
-		if ( ! is_array( $current_config ) ) {
-			$current_config = array();
-		}
-		$current_raw_codes = isset( $current_config['generated_codes_list'] ) && is_string( $current_config['generated_codes_list'] ) ? $current_config['generated_codes_list'] : '';
-		$current_list      = array_filter( array_map( 'trim', explode( "\n", $current_raw_codes ) ) );
-		$updated_list      = array_filter(
-			$current_list,
-			static fn( string $line ): bool => self::normalize_ticket( $line ) !== $ticket
+		// Two submissions removing tickets, or one beside an editor save,
+		// each rewrite the whole config: one lock per form serialises them
+		// (#2695).
+		\FreeFormCertificate\Core\NamedLock::with_form_config(
+			$form_id,
+			static function () use ( $form_id, $ticket ): void {
+				// `get_post_meta( …, true )` returns '' when the key does not exist,
+				// and in PHP 8 assigning an offset on a string is fatal (#1087).
+				$current_config = get_post_meta( $form_id, '_ffc_form_config', true );
+				if ( ! is_array( $current_config ) ) {
+					$current_config = array();
+				}
+				$current_raw_codes = isset( $current_config['generated_codes_list'] ) && is_string( $current_config['generated_codes_list'] ) ? $current_config['generated_codes_list'] : '';
+				$current_list      = array_filter( array_map( 'trim', explode( "\n", $current_raw_codes ) ) );
+				$updated_list      = array_filter(
+					$current_list,
+					static fn( string $line ): bool => self::normalize_ticket( $line ) !== $ticket
+				);
+				if ( count( $updated_list ) === count( $current_list ) ) {
+					return;
+				}
+				$current_config['generated_codes_list'] = implode( "\n", $updated_list );
+				update_post_meta( $form_id, '_ffc_form_config', $current_config );
+			}
 		);
-		if ( count( $updated_list ) === count( $current_list ) ) {
-			return;
-		}
-		$current_config['generated_codes_list'] = implode( "\n", $updated_list );
-		update_post_meta( $form_id, '_ffc_form_config', $current_config );
 	}
 
 	/**

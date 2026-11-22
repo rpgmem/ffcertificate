@@ -549,6 +549,9 @@ class AdminAssetsManager {
 				'html2canvasFailed'       => __( 'Error: html2canvas failed', 'ffcertificate' ),
 				/* translators: %s: value */
 				'confirmLoadTemplate'     => __( 'Load "%s"? This will replace your current certificate HTML.', 'ffcertificate' ),
+				/* translators: %s: name of a default certificate model */
+				'confirmUpdateLayout'     => __( 'Replace this layout with the current version of "%s"? The editor changes now; the form changes when you save it.', 'ffcertificate' ),
+				'updateLayout'            => __( 'Update layout', 'ffcertificate' ),
 				'loadTemplate'            => __( 'Load', 'ffcertificate' ),
 				'dismiss'                 => __( 'Dismiss', 'ffcertificate' ),
 

@@ -128,7 +128,8 @@ async function checkin(s) {
 }
 
 /**
- * One receipt download, on the receipt page or right after booking.
+ * One receipt download right after booking; the standalone receipt page is
+ * gone (#2732), so the magic link's own download covers the rest.
  *
  * @param {object} s Scenario.
  * @returns {Promise<object>}
@@ -137,36 +138,24 @@ async function receipt(s) {
 	installDevice(s.ua, true, 'granted');
 	window.ffcGeneratePDF = s.generator ? (data, filename) => generated.push(filename) : undefined;
 
-	if ('page' === s.path) {
-		document.body.innerHTML =
-			'<div id="ffc-receipt-content"><p>Receipt</p></div>' +
-			'<button id="ffc-download-pdf-btn" class="ffc-btn ffc-btn-primary">Download</button>';
-		window.ffcReceiptData = { pdfData: { html: '<b>x</b>', filename: 'r.pdf' }, errorMsg: 'Generator missing.' };
-		loadScript('assets/js/ffc-self-scheduling-receipt.js');
-		// jQuery runs a ready callback on a timer even when the document is
-		// already loaded.
-		await vi.advanceTimersByTimeAsync(10);
-		document.getElementById('ffc-download-pdf-btn').click();
-	} else {
-		document.body.innerHTML =
-			'<div class="ffc-booking-form-wrapper"><form></form></div>' +
-			'<div class="ffc-confirmation-wrapper" style="display:none;"><div class="ffc-confirmation-success"><h3>Done</h3></div>' +
-			'<div class="ffc-appointment-details"></div>' +
-			'<div class="ffc-confirmation-email" style="display:none;"></div></div>' +
-			'<div id="ffc-self-scheduling-modal"><div class="ffc-modal-content"><div class="ffc-modal-title"></div></div></div>';
-		window.ffcCalendar = { nonce: 'n', ajaxurl: '/wp-admin/admin-ajax.php', strings: { downloadReceipt: 'Download receipt', months: [] } };
-		loadScript('assets/js/ffc-calendar-frontend.js');
-		// The controller binds its handlers from its own ready callback.
-		await vi.advanceTimersByTimeAsync(10);
-		const ctl = window.ffcCalendarFrontend;
-		ctl.selectedDate = '2027-03-10';
-		ctl.selectedTime = '09:00';
-		ctl.showConfirmation({ pdf_data: { html: '<b>x</b>', filename: 'booking.pdf' } });
-		if ('button' === s.path) {
-			await vi.advanceTimersByTimeAsync(1000);
-			generated.length = 0;
-			document.querySelector('.ffc-download-receipt-btn').click();
-		}
+	document.body.innerHTML =
+		'<div class="ffc-booking-form-wrapper"><form></form></div>' +
+		'<div class="ffc-confirmation-wrapper" style="display:none;"><div class="ffc-confirmation-success"><h3>Done</h3></div>' +
+		'<div class="ffc-appointment-details"></div>' +
+		'<div class="ffc-confirmation-email" style="display:none;"></div></div>' +
+		'<div id="ffc-self-scheduling-modal"><div class="ffc-modal-content"><div class="ffc-modal-title"></div></div></div>';
+	window.ffcCalendar = { nonce: 'n', ajaxurl: '/wp-admin/admin-ajax.php', strings: { downloadReceipt: 'Download receipt', months: [] } };
+	loadScript('assets/js/ffc-calendar-frontend.js');
+	// The controller binds its handlers from its own ready callback.
+	await vi.advanceTimersByTimeAsync(10);
+	const ctl = window.ffcCalendarFrontend;
+	ctl.selectedDate = '2027-03-10';
+	ctl.selectedTime = '09:00';
+	ctl.showConfirmation({ pdf_data: { html: '<b>x</b>', filename: 'booking.pdf' } });
+	if ('button' === s.path) {
+		await vi.advanceTimersByTimeAsync(1000);
+		generated.length = 0;
+		document.querySelector('.ffc-download-receipt-btn').click();
 	}
 	await vi.advanceTimersByTimeAsync(1000);
 
@@ -184,7 +173,7 @@ function scenarios() {
 		OUTCOMES.forEach((outcome) => list.push({ flow: 'checkin', ua, secure, geofence: true, outcome }));
 		list.push({ flow: 'checkin', ua, secure, geofence: false, outcome: 'granted' });
 	}));
-	Object.keys(UAS).forEach((ua) => ['page', 'auto', 'button'].forEach((path) => [true, false].forEach((generator) =>
+	Object.keys(UAS).forEach((ua) => ['auto', 'button'].forEach((path) => [true, false].forEach((generator) =>
 		list.push({ flow: 'receipt', ua, path, generator })
 	)));
 	return list;

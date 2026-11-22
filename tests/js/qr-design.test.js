@@ -27,6 +27,7 @@ function mount() {
 			<input data-ffc-qr-design="qr_design_eye_ball_color" value="#778899">
 			<input type="checkbox" data-ffc-qr-design="qr_design_gradient">
 			<input data-ffc-qr-design="qr_design_color_end" value="#2271b1">
+			<input type="checkbox" data-ffc-qr-design="qr_design_logo_enabled" checked>
 			<input type="hidden" data-ffc-qr-design="qr_design_logo_id" value="7">
 			<select data-ffc-qr-design="qr_design_frame"><option value="badge" selected>badge</option></select>
 			<input data-ffc-qr-design="qr_design_frame_text" value="Scan me">
@@ -80,9 +81,18 @@ describe('ffc-qr-design.js', () => {
 				transparent: '',
 			},
 			logo_id: '7',
+			logo_on: '1',
 			margin: '3',
 			error_level: 'Q',
 		});
+	});
+
+	it('keeps the logo id and reports the switch off when the logo is turned off (#2686)', () => {
+		window.$('[data-ffc-qr-design="qr_design_logo_enabled"]').prop('checked', false);
+
+		const request = window.FFC.QrDesign.collect(window.$('form'));
+		expect(request.logo_id).toBe('7');
+		expect(request.logo_on).toBe('');
 	});
 
 	it('posts to the preview action and shows the SVG with a readable status', async () => {

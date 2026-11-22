@@ -91,14 +91,16 @@ class QrGeneratorAjaxEndpoint {
 			unset( $short['drawn'] );
 		}
 
+		// The logo's switch off keeps the image selected and draws without it (#2686).
 		$input         = RequestInput::get_post_array( 'design' );
-		$logo_id       = RequestInput::get_post_int( 'logo_id', 0 );
+		$logo_id       = '1' === RequestInput::get_post_string( 'logo_on', '1' ) ? RequestInput::get_post_int( 'logo_id', 0 ) : 0;
 		$input['logo'] = $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? QrLogo::data_uri( $logo_id ) : '';
 		$design        = new QrDesign( $input );
 
-		$ecc    = strtoupper( RequestInput::get_post_string( 'error_level', 'M' ) );
-		$ecc    = $design->error_level( in_array( $ecc, array( 'L', 'M', 'Q', 'H' ), true ) ? $ecc : 'M' );
-		$margin = max( 0, min( 10, RequestInput::get_post_int( 'margin', 2 ) ) );
+		$requested = strtoupper( RequestInput::get_post_string( 'error_level', 'M' ) );
+		$requested = in_array( $requested, array( 'L', 'M', 'Q', 'H' ), true ) ? $requested : 'M';
+		$ecc       = $design->error_level( $requested );
+		$margin    = max( 0, min( 10, RequestInput::get_post_int( 'margin', 2 ) ) );
 
 		$logo   = '' !== $input['logo'];
 		$matrix = QrSvgRenderer::matrix( $payload, $ecc );
@@ -112,6 +114,7 @@ class QrGeneratorAjaxEndpoint {
 						/* translators: 1: approximate number of bytes to remove, 2: error correction level (L, M, Q or H). */
 						: sprintf( __( 'This content is about %1$d bytes too long for error correction %2$s (a plain letter is one byte, an accented one two). Shorten it, or lower the level.', 'ffcertificate' ), max( 1, $usage['over'] ), $usage['level'] ),
 					'usage'   => $usage,
+					'fixes'   => self::fixes( $type, $payload, $logo, $requested, $short ),
 				),
 				400
 			);
@@ -353,6 +356,7 @@ class QrGeneratorAjaxEndpoint {
 				// A logo the user cannot read is not remembered: the page would
 				// otherwise embed it on the next visit.
 				'qr_design_logo_id'         => $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? $logo_id : 0,
+				'qr_design_logo_enabled'    => '1' === RequestInput::get_post_string( 'logo_on', '1' ),
 				'margin'                    => RequestInput::get_post_int( 'margin', 2 ),
 				'error_level'               => RequestInput::get_post_string( 'error_level', 'M' ),
 			)
@@ -393,5 +397,49 @@ class QrGeneratorAjaxEndpoint {
 			}
 		}
 		return $fields;
+	}
+
+	/**
+	 * What would make content that does not fit draw (#2660), for the
+	 * screen to offer as one click each instead of a dead end.
+	 *
+	 * Lowering the level is offered only when no logo forces H; removing the
+	 * logo only when the content then fits at a level; the short URL only for
+	 * an address type with the switch off, since a short URL always fits.
+	 * The order is the order to try them: the first keeps everything else.
+	 *
+	 * @param string                    $type      Content type.
+	 * @param string                    $payload   What was drawn.
+	 * @param bool                      $logo      Whether a logo forces H.
+	 * @param string                    $requested The level the user picked.
+	 * @param array<string, mixed>|null $short The short URL state, null when the switch is off.
+	 * @return list<array{action: string, value: string, label: string}>
+	 */
+	private static function fixes( string $type, string $payload, bool $logo, string $requested, ?array $short ): array {
+		$fixes = array();
+		$fit   = QrCapacity::fit_level( $payload, $requested );
+		if ( ! $logo && null !== $fit && $fit !== $requested ) {
+			$fixes[] = array(
+				'action' => 'level',
+				'value'  => $fit,
+				/* translators: %s: error correction level (L, M, Q or H). */
+				'label'  => sprintf( __( 'Use error correction %s', 'ffcertificate' ), $fit ),
+			);
+		}
+		if ( $logo && null !== $fit ) {
+			$fixes[] = array(
+				'action' => 'logo',
+				'value'  => '',
+				'label'  => __( 'Turn off the logo', 'ffcertificate' ),
+			);
+		}
+		if ( null === $short && in_array( $type, self::SHORTENABLE, true ) ) {
+			$fixes[] = array(
+				'action' => 'short',
+				'value'  => '',
+				'label'  => __( 'Use a short URL', 'ffcertificate' ),
+			);
+		}
+		return $fixes;
 	}
 }

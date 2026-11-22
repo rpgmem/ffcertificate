@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -312,7 +313,7 @@ class AudienceAdminImportTest extends TestCase {
 		Functions\when( 'sanitize_user' )->alias( static fn ( $v ) => preg_replace( '/[^a-z0-9_.-]/i', '', (string) $v ) );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'username_exists' )->justReturn( false );
-		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'is_wp_error' )->alias( static fn ( $thing ) => $thing instanceof \WP_Error );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'wp_update_user' )->justReturn( 77 );

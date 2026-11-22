@@ -10,17 +10,6 @@
     'use strict';
 
     /**
-     * Warn that a public function is deprecated and leaves in 6.45.0 (#2089).
-     *
-     * @param {string} name - Qualified function name.
-     */
-    function warnDeprecated(name) {
-        if (window.console && typeof window.console.warn === 'function') {
-            window.console.warn('FFC: ' + name + '() is deprecated since 6.43.0 and will be removed in 6.45.0.');
-        }
-    }
-
-    /**
      * Text made safe for an attribute value.
      *
      * @param {*} text - Raw text.
@@ -439,77 +428,12 @@
         },
 
         /**
-         * Go to specific date
-         *
-         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-         * @removal 6.45.0
-         */
-        goToDate: function(date) {
-            warnDeprecated('FFCCalendarCore.goToDate');
-            if (typeof date === 'string') {
-                var parts = date.split('-');
-                this.currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            } else {
-                this.currentDate = new Date(date);
-            }
-            this.renderDays();
-        },
-
-        /**
          * Select a date
          */
         selectDate: function(dateStr) {
             this.selectedDate = dateStr;
             this.$days.find('.ffc-day').removeClass('ffc-selected').removeAttr('aria-pressed');
             this.$days.find('.ffc-day[data-date="' + dateStr + '"]').addClass('ffc-selected').attr('aria-pressed', 'true');
-        },
-
-        /**
-         * Clear selection
-         *
-         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-         * @removal 6.45.0
-         */
-        clearSelection: function() {
-            warnDeprecated('FFCCalendarCore.clearSelection');
-            this.selectedDate = null;
-            this.$days.find('.ffc-day').removeClass('ffc-selected');
-        },
-
-        /**
-         * Update options
-         *
-         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-         * @removal 6.45.0
-         */
-        setOptions: function(newOptions) {
-            warnDeprecated('FFCCalendarCore.setOptions');
-            this.options = $.extend(this.options, newOptions);
-            this.renderDays();
-        },
-
-        /**
-         * Update holidays
-         *
-         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-         * @removal 6.45.0
-         */
-        setHolidays: function(holidays) {
-            warnDeprecated('FFCCalendarCore.setHolidays');
-            this.options.holidays = holidays;
-            this.renderDays();
-        },
-
-        /**
-         * Update disabled days
-         *
-         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-         * @removal 6.45.0
-         */
-        setDisabledDays: function(days) {
-            warnDeprecated('FFCCalendarCore.setDisabledDays');
-            this.options.disabledDays = days;
-            this.renderDays();
         },
 
         /**
@@ -535,31 +459,6 @@
         parseDate: function(dateStr) {
             var parts = dateStr.split('-');
             return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        },
-
-        /**
-         * Get current year and month
-         *
-         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-         * @removal 6.45.0
-         */
-        getCurrentMonth: function() {
-            warnDeprecated('FFCCalendarCore.getCurrentMonth');
-            return {
-                year: this.currentDate.getFullYear(),
-                month: this.currentDate.getMonth() + 1
-            };
-        },
-
-        /**
-         * Get filters container (for extending)
-         *
-         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-         * @removal 6.45.0
-         */
-        getFiltersContainer: function() {
-            warnDeprecated('FFCCalendarCore.getFiltersContainer');
-            return this.$container.find('.ffc-calendar-filters');
         },
 
         /**

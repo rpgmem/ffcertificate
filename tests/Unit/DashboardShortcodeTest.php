@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -93,6 +94,10 @@ class DashboardShortcodeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		// The campaign window is read on the site's clock (#2242).
 		Functions\when( 'current_time' )->alias(
 			static function ( $type ) {
@@ -265,6 +270,10 @@ class DashboardShortcodeTest extends TestCase {
 				}
 				// OptOut::among(): nobody turned announcements off.
 				if ( false !== strpos( $text, 'SELECT user_id, preferences FROM %i' ) ) {
+					return array();
+				}
+				// ReregistrationFieldOptions::second_post_answers() (#2688).
+				if ( false !== strpos( $text, "field_source = 'standard' AND field_key = %s" ) ) {
 					return array();
 				}
 				$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
@@ -738,7 +747,7 @@ class DashboardShortcodeTest extends TestCase {
 		Functions\when( 'get_bloginfo' )->justReturn( 'SME' );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias( static fn( $f, $ts ) => gmdate( (string) $f, (int) $ts ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.com' . $p );
 		Functions\when( 'add_query_arg' )->alias(
 			static fn( $key, $value = null, $url = '' ) => is_array( $key ) ? $value . '?' . http_build_query( $key ) : $url . '?' . $key . '=' . $value

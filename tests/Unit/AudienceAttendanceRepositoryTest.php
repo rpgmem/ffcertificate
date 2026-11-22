@@ -165,43 +165,6 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 		$this->assertSame( array(), AudienceAttendanceReader::present_counts( array() ), 'No query without a booking.' );
 	}
 
-	public function test_days_present_and_one_day_list(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( '2027-01-15', '2027-01-16' ) );
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
-			array(
-				array(
-					'id'              => '3',
-					'booking_id'      => '123',
-					'user_id'         => null,
-					'attendance_date' => '2027-01-15',
-					'checked_at'      => (string) self::NOW,
-					'method'          => 'manual',
-					'marked_by'       => '9',
-				),
-			)
-		);
-
-		$this->assertSame( array( '2027-01-15', '2027-01-16' ), AudienceAttendanceReader::days_present( 123, 42 ) );
-		$this->assertFalse( AudienceAttendanceReader::is_present( 123, 42, '2027-01-17' ) );
-		$this->assertSame(
-			array(
-				array(
-					'id'              => 3,
-					'booking_id'      => 123,
-					'user_id'         => null,
-					'attendance_date' => '2027-01-15',
-					'checked_at'      => self::NOW,
-					'method'          => 'manual',
-					'marked_by'       => 9,
-				),
-			),
-			AudienceAttendanceReader::for_day( 123, '2027-01-15' ),
-			'A row whose account was deleted keeps a null user.'
-		);
-	}
-
 	public function test_a_window_is_open_until_closed_or_past_its_close(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn(

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\Encryption;
@@ -99,7 +100,7 @@ class CandidatePersisterTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-06-28 10:00:00' );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 
 		// Account creation fails, which UserCreator reports as a WP_Error and
 		// the persister swallows: the candidate stays unpromoted.
@@ -107,7 +108,7 @@ class CandidatePersisterTest extends TestCase {
 		Functions\when( 'username_exists' )->justReturn( false );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'sanitize_user' )->returnArg();
-		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'wp_create_user' )->justReturn( new \WP_Error( 'existing_user_login', 'refused' ) );
 
 		$this->wpdb         = Mockery::mock( 'wpdb' );

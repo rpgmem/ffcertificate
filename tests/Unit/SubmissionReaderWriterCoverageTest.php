@@ -268,27 +268,6 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->assertSame( array(), $this->repo()->find_shared_identities() );
 	}
 
-	public function test_the_reader_audit_methods_announce_the_move_and_answer_the_same(): void {
-		$rows = array( array( 'id' => 9, 'user_id' => 4, 'form_id' => 2 ) );
-		$this->wpdb->shouldReceive( 'get_results' )->times( 4 )->andReturn( $rows, array(), array(), array() );
-
-		$reader = new \FreeFormCertificate\Repositories\SubmissionReader();
-		$this->assertSame( $rows, $reader->find_orphan_user_links( 5 ) );
-		$this->assertSame( array(), $reader->find_users_with_multiple_identities() );
-		$this->assertSame( array(), $reader->find_unlinked_with_matching_identity() );
-		$this->assertSame( array(), $reader->find_shared_identities() );
-
-		$this->assertSame(
-			array(
-				'FreeFormCertificate\\Repositories\\SubmissionReader::find_orphan_user_links',
-				'FreeFormCertificate\\Repositories\\SubmissionReader::find_users_with_multiple_identities',
-				'FreeFormCertificate\\Repositories\\SubmissionReader::find_unlinked_with_matching_identity',
-				'FreeFormCertificate\\Repositories\\SubmissionReader::find_shared_identities',
-			),
-			$this->deprecated
-		);
-	}
-
 	public function test_the_facade_reads_the_audit_without_a_deprecation(): void {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
@@ -385,95 +364,9 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	// READER — findByEmail / findByCpfRf / findByFormId
 	// ==================================================================
 
-	public function test_find_by_email_returns_rows(): void {
-		$rows = array( array( 'id' => 5 ), array( 'id' => 6 ) );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, $this->repo()->findByEmail( 'a@b.com', 10 ) );
-	}
-
-	public function test_find_by_email_returns_empty_array_when_no_rows(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
-
-		$this->assertSame( array(), $this->repo()->findByEmail( 'a@b.com' ) );
-	}
-
-	public function test_find_by_cpf_rf_uses_cpf_hash_column_for_11_digit(): void {
-		$rows = array( array( 'id' => 9 ) );
-		// 11-digit CPF → cpf_hash column branch.
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, $this->repo()->findByCpfRf( self::masked( Identifiers::CPF_A ), 5 ) );
-	}
-
-	public function test_find_by_cpf_rf_uses_rf_hash_column_for_7_digit(): void {
-		// 7-digit RF → rf_hash column branch.
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
-
-		$this->assertSame( array(), $this->repo()->findByCpfRf( Identifiers::RF_A ) );
-	}
-
-	public function test_find_by_form_id_returns_rows(): void {
-		$rows = array( array( 'id' => 11 ) );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, $this->repo()->findByFormId( 3, 50, 10 ) );
-	}
-
-	public function test_find_by_form_id_returns_empty_array_when_no_rows(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( false );
-
-		$this->assertSame( array(), $this->repo()->findByFormId( 3 ) );
-	}
-
 	// ==================================================================
 	// READER — getForExport (array branch + single/no-filter branch)
 	// ==================================================================
-
-	public function test_get_for_export_multiple_form_ids_with_status(): void {
-		$rows = array( array( 'id' => 1 ), array( 'id' => 2 ) );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, $this->repo()->getForExport( array( 1, 2, 3 ), 'publish' ) );
-	}
-
-	public function test_get_for_export_multiple_form_ids_null_status(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
-
-		$this->assertSame( array(), $this->repo()->getForExport( array( 4, 5 ), null ) );
-	}
-
-	public function test_get_for_export_single_form_id_delegates_to_find_all(): void {
-		$rows = array( array( 'id' => 42 ) );
-		// findAll() with a limit of null falls through to the no-limit branch.
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, $this->repo()->getForExport( 7, 'publish' ) );
-	}
-
-	public function test_get_for_export_no_filters_delegates_to_find_all(): void {
-		$rows = array( array( 'id' => 1 ) );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, $this->repo()->getForExport( null, null ) );
-	}
-
-	public function test_unused_lookups_announce_their_deprecation(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->times( 4 )->andReturn( array() );
-
-		$repo = $this->repo();
-		$repo->findByEmail( 'a@b.com' );
-		$repo->findByCpfRf( Identifiers::RF_A );
-		$repo->findByFormId( 3 );
-		$repo->getForExport( array( 1 ), null );
-
-		$expected = array();
-		foreach ( array( 'findByEmail', 'findByCpfRf', 'findByFormId', 'getForExport' ) as $method ) {
-			$expected[] = 'FreeFormCertificate\\Repositories\\SubmissionRepository::' . $method;
-			$expected[] = 'FreeFormCertificate\\Repositories\\SubmissionReader::' . $method;
-		}
-		$this->assertSame( $expected, $this->deprecated );
-	}
 
 	// ==================================================================
 	// READER — getExportBatch / getExportKeysBatch / countForExport

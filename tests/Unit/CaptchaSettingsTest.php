@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -95,7 +96,7 @@ class CaptchaSettingsTest extends TestCase {
 	}
 
 	public function test_the_issued_challenge_uses_the_configured_work_factor(): void {
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		$this->settings = array( 'captcha_altcha_complexity' => 20000 );
 
 		// The work factor is the ceiling the secret counter is drawn under,

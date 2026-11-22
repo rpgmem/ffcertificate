@@ -122,6 +122,12 @@ final class RecruitmentClassificationFilterManager {
 			return array();
 		}
 
+		// One read for every candidate the name search needs, instead of
+		// one per row (#2694).
+		$candidates = $has_q
+			? RecruitmentCandidateReader::get_by_ids( array_map( static fn( object $row ): int => (int) $row->candidate_id, $rows ) )
+			: array();
+
 		$out = array();
 		foreach ( $rows as $row ) {
 			if ( $adj_id > 0 && (int) $row->adjutancy_id !== $adj_id ) {
@@ -137,7 +143,7 @@ final class RecruitmentClassificationFilterManager {
 			// Only the name search needs the candidate row; PCD is the
 			// classification's own (#2245).
 			if ( $has_q ) {
-				$candidate = RecruitmentCandidateReader::get_by_id( $candidate_id );
+				$candidate = $candidates[ $candidate_id ] ?? null;
 				if ( null === $candidate ) {
 					continue;
 				}

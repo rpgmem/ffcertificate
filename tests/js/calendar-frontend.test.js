@@ -6,7 +6,7 @@
 // selectTimeSlot, openModal/closeModal, resetCalendar, validateForm,
 // showError) and the FFC.request integration for `loadTimeSlots` /
 // `submitBooking` via a mocked window.FFC.request.
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 // The real FFC.notice() (#1842), kept across the suite's FFC mock: every
@@ -57,6 +57,8 @@ function installGlobals() {
 		buttonCategories: realCore.buttonCategories,
 		button: realCore.button,
 		buttonHtml: realCore.buttonHtml,
+		todayYmd: realCore.todayYmd,
+		pastDaysGroup: realCore.pastDaysGroup,
 	};
 }
 
@@ -143,6 +145,18 @@ describe('ffc-calendar-frontend.js — renderTimeSlots', () => {
 		expect(slots[0].getAttribute('tabindex')).toBe('0');
 		expect(slots[1].classList.contains('ffc-timeslot-full')).toBe(true);
 		expect(slots[1].getAttribute('aria-disabled')).toBe('true');
+	});
+
+	it('prints a slot label as text, never as markup (#2689)', () => {
+		window.ffcCalendarFrontend.renderTimeSlots([
+			{ time: '09:00"><b id="x', display: '<img src=x onerror=alert(1)>9h', available: 1, total: 2 },
+		]);
+
+		const slot = document.querySelector('#ffc-timeslots-container .ffc-timeslot');
+		expect(slot.querySelector('img')).toBeNull();
+		expect(document.getElementById('x')).toBeNull();
+		expect(slot.querySelector('.ffc-timeslot-time').textContent).toBe('<img src=x onerror=alert(1)>9h');
+		expect(slot.getAttribute('data-time')).toBe('09:00"><b id="x');
 	});
 
 	it('renders a full slot with waitlist_available as a selectable waitlist option (#941)', () => {
@@ -1635,6 +1649,57 @@ describe('ffc-calendar-frontend.js — the free-slots panel (#2405)', () => {
 		);
 
 		expect(items()).toEqual(['Seus agendamentos', '8 March 2032 · 09:00–09:30Pendente']);
+	});
+
+	// In the month that holds today, the bookings already held wait in a
+	// collapsed group, and today's header carries a mark (#2728).
+	describe('bookings already held (#2728)', () => {
+		const mine = [
+			{ date: '2032-03-02', start: '09:00', end: '09:30', status: 'confirmed' },
+			{ date: '2032-03-05', start: '10:00', end: '10:30', status: 'confirmed' },
+			{ date: '2032-03-08', start: '11:00', end: '11:30', status: 'pending' },
+		];
+		const s = () => Object.assign(strings(), { alreadyHeld: 'Já realizados', today: 'Hoje' });
+
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('collapses the ones before today, closed, and marks today', () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2032, 2, 8, 12, 0, 0));
+			window.ffcCalendarFrontend.renderPanel(2032, 3, { days: { '2032-03-08': { free: 2, slots: 2 } }, mine: mine }, {}, s());
+
+			const group = document.querySelector('#ffc-event-list-content > details.ffc-past-days');
+			expect(group).not.toBeNull();
+			expect(group.open).toBe(false);
+			expect(group.querySelector('.ffc-past-days-summary').textContent).toBe('Já realizados2');
+			expect(group.querySelectorAll('.ffc-event-list-mine').length).toBe(2);
+			expect(items()).toEqual([
+				'Seus agendamentos',
+				'Já realizados2' + group.querySelector('.ffc-past-days-items').textContent,
+				'8 March 2032 · 11:00–11:30 HojePendente',
+				'8 March 2032 Hoje', '2 vagas2 horários',
+			]);
+		});
+
+		it('leaves a past month open', () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2032, 4, 8, 12, 0, 0));
+			window.ffcCalendarFrontend.renderPanel(2032, 3, { days: {}, mine: mine }, {}, s());
+
+			expect(document.querySelector('.ffc-past-days')).toBeNull();
+			expect(document.querySelectorAll('#ffc-event-list-content > .ffc-event-list-mine').length).toBe(3);
+		});
+
+		it('leaves a future month open', () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2032, 0, 8, 12, 0, 0));
+			window.ffcCalendarFrontend.renderPanel(2032, 3, { days: {}, mine: mine }, {}, s());
+
+			expect(document.querySelector('.ffc-past-days')).toBeNull();
+			expect(document.querySelector('.ffc-event-list-today')).toBeNull();
+		});
 	});
 
 	it('says so when the month has nothing to list', () => {

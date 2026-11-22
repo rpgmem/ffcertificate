@@ -343,18 +343,11 @@ class AppointmentHandler {
 			}
 		}
 
-		// Generate receipt URL (magic link to /valid/ page).
-		$confirmation_token = is_array( $appointment ) ? ( $appointment['confirmation_token'] ?? '' ) : '';
+		// The receipt is the magic link to the /valid/ page (#2732).
+		$confirmation_token = is_array( $appointment ) ? (string) ( $appointment['confirmation_token'] ?? '' ) : '';
 
 		try {
-			if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-				$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-			} elseif ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
-				$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-					$appointment_id,
-					$confirmation_token
-				);
-			}
+			$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url( $appointment_id, $confirmation_token );
 		} catch ( \Throwable $e ) {
 			$this->log_post_commit_failure( 'receipt_url', $appointment_id, $e );
 		}
@@ -514,9 +507,16 @@ class AppointmentHandler {
 	 */
 	public function month_panel( array $calendar, int $calendar_id, string $start_date, string $end_date ): array {
 		$today = wp_date( 'Y-m-d' );
-		$last  = wp_date( 'Y-m-d', time() + max( 0, (int) ( $calendar['advance_booking_max'] ?? 30 ) ) * DAY_IN_SECONDS );
 		$from  = max( $start_date, (string) $today );
-		$until = min( $end_date, (string) $last );
+		$until = $end_date;
+		// The advance window is the validator's rule, and it applies where the
+		// validator applies it: a regular calendar with a limit above 0. A
+		// custom calendar's blocks are bookable whatever their date, and 0
+		// means no limit, not "today only" (#2689).
+		$advance = (int) ( $calendar['advance_booking_max'] ?? 30 );
+		if ( 'custom' !== ( $calendar['schedule_type'] ?? 'regular' ) && $advance > 0 ) {
+			$until = min( $end_date, (string) wp_date( 'Y-m-d', time() + $advance * DAY_IN_SECONDS ) );
+		}
 
 		$sessions = CalendarSessions::in_use( CalendarSessions::of_calendar( $calendar ) );
 		$days     = array();

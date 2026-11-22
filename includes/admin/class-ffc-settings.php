@@ -316,6 +316,12 @@ class Settings {
 			// builds it from the two legacy keys, and until then the readers
 			// fall back to them, so nothing is required by an empty default.
 			'required_data'                     => array(),
+			// The two settings that table was built from, read only until
+			// it exists. Empty tags read as the historical defaults; absent
+			// fields read as the fields those tags require, so the field
+			// list has no stored default to declare.
+			'required_certificate_tags'         => '',
+			'required_form_fields'              => null,
 			'smtp_mode'                         => 'wp',
 			'smtp_host'                         => '',
 			'smtp_port'                         => 587,
@@ -340,6 +346,8 @@ class Settings {
 			'qr_design_eye_frame_color'         => '#000000',
 			'qr_design_eye_ball_color'          => '#000000',
 			'qr_design_logo_id'                 => 0,
+			// On by default, so a logo already set keeps being drawn (#2686).
+			'qr_design_logo_enabled'            => 1,
 			'qr_design_frame'                   => 'none',
 			'qr_design_frame_text'              => '',
 			'qr_design_frame_color'             => '#1d2327',

@@ -312,6 +312,8 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'canonicalisation_pending', $result->get_error_code() );
+		// It points at the card it waits for, which sits on the same screen (#2656).
+		$this->assertSame( '#ffc-migration-identity_normalization', $result->get_error_data()['action']['url'] );
 	}
 
 	public function test_it_runs_once_the_canonicalisation_card_is_done(): void {

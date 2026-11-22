@@ -598,6 +598,14 @@ class UrlShortenerServiceTest extends TestCase {
 		$this->assertTrue( $this->service->restore_short_url( 1 ) );
 	}
 
+	public function test_trash_and_restore_of_a_row_that_is_gone_report_no_change(): void {
+		// update() answers 0 rows for an id that no longer exists (#2693).
+		$this->repo->shouldReceive( 'update' )->twice()->andReturn( 0, false );
+
+		$this->assertFalse( $this->service->trash_short_url( 404 ) );
+		$this->assertFalse( $this->service->restore_short_url( 404 ) );
+	}
+
 	// ==================================================================
 	// set_active()
 	// ==================================================================

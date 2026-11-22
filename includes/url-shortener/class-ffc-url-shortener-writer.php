@@ -59,18 +59,19 @@ class UrlShortenerWriter extends AbstractRepository {
 	}
 
 	/**
-	 * Increment the click counter for a short URL.
+	 * Increment the click counter for a short URL and stamp the click (#2693).
 	 *
 	 * Uses a lightweight UPDATE without cache invalidation since
-	 * the click_count field is not needed for redirect resolution.
+	 * neither column is needed for redirect resolution.
 	 *
 	 * @param int $id Record ID.
 	 * @return bool
 	 */
 	public function incrementClickCount( int $id ): bool {
 		$sql = $this->wpdb->prepare(
-			'UPDATE %i SET click_count = click_count + 1 WHERE id = %d',
+			'UPDATE %i SET click_count = click_count + 1, last_clicked_at = %d WHERE id = %d',
 			$this->table,
+			time(),
 			$id
 		);
 		if ( ! is_string( $sql ) ) {

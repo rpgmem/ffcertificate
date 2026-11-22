@@ -214,11 +214,11 @@ final class RecruitmentPublicShortcodeRenderer {
 		}
 		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {
 			if ( $columns['date_to_assume'] ) {
-				$date  = null === $call ? '' : self::format_date_br( (string) $call->date_to_assume );
+				$date  = null === $call ? '' : \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $call->date_to_assume );
 				$html .= '<td>' . esc_html( $date ) . '</td>';
 			}
 			if ( $columns['time_to_assume'] ) {
-				$time  = null === $call ? '' : self::format_time_hm( (string) $call->time_to_assume );
+				$time  = null === $call ? '' : \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $call->time_to_assume );
 				$html .= '<td>' . esc_html( $time ) . '</td>';
 			}
 		}
@@ -726,37 +726,6 @@ final class RecruitmentPublicShortcodeRenderer {
 		);
 	}
 
-	/**
-	 * Format a `Y-m-d` date string as `d-m-Y` per the user request.
-	 *
-	 * Falls back to the original input when parsing fails (defensive —
-	 * the database stores dates in ISO already, so the strtotime path
-	 * should always succeed for non-empty input).
-	 *
-	 * @param string $iso ISO date.
-	 * @return string
-	 */
-	private static function format_date_br( string $iso ): string {
-		if ( '' === $iso ) {
-			return '';
-		}
-		$ts = strtotime( $iso );
-		return false === $ts ? $iso : gmdate( 'd-m-Y', $ts );
-	}
-
-	/**
-	 * Format a `H:i:s` time string as `H:i` per the user request.
-	 *
-	 * @param string $time DB time.
-	 * @return string
-	 */
-	private static function format_time_hm( string $time ): string {
-		if ( '' === $time ) {
-			return '';
-		}
-		// Strip seconds if present.
-		return substr( $time, 0, 5 );
-	}
 
 	/**
 	 * Render a styled message block (error/warning/info).

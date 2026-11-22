@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -366,7 +367,7 @@ class DebugTest extends TestCase {
 	 * @param string $key A key the redactor must treat as an address.
 	 */
 	public function test_an_ip_is_hashed_and_never_logged( string $key ): void {
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		$this->enable_area( 'debug_frontend' );
 
 		Debug::log_frontend( 'probe', array( $key => '152.249.52.217' ) );
@@ -378,7 +379,7 @@ class DebugTest extends TestCase {
 		$this->assertStringNotContainsString( '152.249.52', $out, 'Three octets is still the visitor.' );
 		$this->assertStringContainsString( $key . '_hash', $out, 'The hash must be labelled as one, matching the activity log context.' );
 		$this->assertStringContainsString(
-			substr( hash( 'sha256', '152.249.52.217' . 'test-salt' ), 0, 16 ),
+			substr( hash( 'sha256', '152.249.52.217' . FakeCredentials::WP_SALT ), 0, 16 ),
 			$out,
 			'The logged value must be the salted hash of the address.'
 		);
@@ -407,7 +408,7 @@ class DebugTest extends TestCase {
 	 * passes against an unsalted hash too.
 	 */
 	public function test_the_ip_hash_is_salted(): void {
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		$this->enable_area( 'debug_frontend' );
 
 		Debug::log_frontend( 'probe', array( 'ip' => '152.249.52.217' ) );
@@ -423,13 +424,13 @@ class DebugTest extends TestCase {
 	 * An empty address logs an empty hash rather than the hash of ''.
 	 */
 	public function test_an_absent_ip_hashes_to_nothing(): void {
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		$this->enable_area( 'debug_frontend' );
 
 		Debug::log_frontend( 'probe', array( 'ip' => '' ) );
 
 		$this->assertStringNotContainsString(
-			substr( hash( 'sha256', 'test-salt' ), 0, 16 ),
+			substr( hash( 'sha256', FakeCredentials::WP_SALT ), 0, 16 ),
 			$this->logged[0],
 			'Hashing an empty address produces a constant that reads like a real visitor.'
 		);
@@ -440,7 +441,7 @@ class DebugTest extends TestCase {
 	 * level down is the same leak.
 	 */
 	public function test_a_nested_ip_is_hashed(): void {
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		$this->enable_area( 'debug_frontend' );
 
 		Debug::log_frontend( 'probe', array( 'request' => array( 'ip' => '152.249.52.217' ) ) );

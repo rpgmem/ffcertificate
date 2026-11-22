@@ -29,7 +29,8 @@ beforeAll(() => {
 			selectUser: 'Select a user.',
 			hardConflict: 'Already booked for this environment.',
 			audienceSameDayWarning: 'This audience already has a booking today:',
-			membersOverlapping: 'member(s) overlap.',
+			memberOverlapping: '%d member overlaps.',
+			membersOverlapping: '%d members overlap.',
 			bookingCreated: 'Booking created.',
 			saveChanges: 'Save changes',
 			bookingChanged: 'Booking changed.',
@@ -406,7 +407,17 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
 		expect(window.$('#ffc-conflict-warning').prop('hidden')).toBe(false);
-		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('2 member(s) overlap.');
+		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('2 members overlap.');
+	});
+
+	it('reports how many clash when only the count is sent (#2691)', async () => {
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: { type: 'user', bookings: [{}], affected_users: [], affected_count: 3 },
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('3 members overlap.');
 	});
 
 	it('names the people who clash, and how many more (#2243)', async () => {
@@ -440,7 +451,7 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		const lines = Array.from(document.querySelectorAll('#ffc-conflict-error .ffc-notice-text')).map((p) => p.textContent);
 		expect(lines[0]).toBe('09:00–10:00');
 		expect(lines).toContain('Sub: 11:00–12:00');
-		expect(lines).toContain('1 member(s) overlap.');
+		expect(lines).toContain('1 member overlaps.');
 		expect(lines).toContain('Caio');
 		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
 	});

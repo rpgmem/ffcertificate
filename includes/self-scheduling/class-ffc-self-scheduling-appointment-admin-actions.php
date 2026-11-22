@@ -182,26 +182,121 @@ class AppointmentAdminActions {
 	}
 
 	/**
+	 * Whether an attendance mark may be written on an appointment now.
+	 *
+	 * Both marks need a confirmed appointment. Attended is marked from the
+	 * appointment's date on, since a person may arrive early; a no-show only
+	 * once the slot has started, since before that nobody has failed to come
+	 * (#2689). Dates and times are wall-clock, read in the site time zone.
+	 *
+	 * @param array<string, mixed> $appointment Appointment row.
+	 * @param string               $mark        `attended` or `no_show`.
+	 * @param int                  $now         Unix time.
+	 * @return bool
+	 */
+	public static function can_mark( array $appointment, string $mark, int $now ): bool {
+		$date = \FreeFormCertificate\Core\ArrayValue::string( $appointment, 'appointment_date' );
+		if ( 'confirmed' !== ( $appointment['status'] ?? '' ) || '' === $date ) {
+			return false;
+		}
+		if ( 'no_show' === $mark ) {
+			return self::has_started( $appointment, $now );
+		}
+		return 'attended' === $mark && $date <= (string) wp_date( 'Y-m-d', $now );
+	}
+
+	/**
+	 * Whether an appointment's slot has started, comparing its wall-clock
+	 * date and start time with the site's clock.
+	 *
+	 * @param array<string, mixed> $appointment Appointment row.
+	 * @param int                  $now         Unix time.
+	 * @return bool
+	 */
+	private static function has_started( array $appointment, int $now ): bool {
+		$date  = \FreeFormCertificate\Core\ArrayValue::string( $appointment, 'appointment_date' );
+		$today = (string) wp_date( 'Y-m-d', $now );
+		if ( $date !== $today ) {
+			return $date < $today;
+		}
+		$start = substr( \FreeFormCertificate\Core\ArrayValue::string( $appointment, 'start_time' ), 0, 5 );
+		return ( '' === $start ? '00:00' : $start ) <= (string) wp_date( 'H:i', $now );
+	}
+
+	/**
+	 * Undo an attendance mark, putting the appointment back to confirmed.
+	 *
+	 * A mark frees the appointment's place, so on a slot that has not started
+	 * the place may have been booked since: the slot is recounted under lock,
+	 * and a full one refuses the undo rather than overbook it (#2689). Once
+	 * the slot has started nobody can book it, so nothing is recounted.
+	 *
+	 * @param int $appointment_id Appointment ID.
+	 * @param int $now            Unix time.
+	 * @return true|\WP_Error
+	 */
+	public function undo_attendance( int $appointment_id, int $now ) {
+		$appointment = $this->appointments->findById( $appointment_id );
+		$status      = is_array( $appointment ) ? (string) ( $appointment['status'] ?? '' ) : '';
+		if ( ! is_array( $appointment ) || ! in_array( $status, \FreeFormCertificate\Repositories\AppointmentWriter::ATTENDANCE_STATUSES, true ) ) {
+			return new \WP_Error( 'status_changed', __( 'Failed to update the appointment status. It may have changed meanwhile; reload the list.', 'ffcertificate' ) );
+		}
+
+		if ( self::has_started( $appointment, $now ) ) {
+			return $this->appointments->revertAttendance( $appointment_id, $status )
+				? true
+				: new \WP_Error( 'status_changed', __( 'Failed to update the appointment status. It may have changed meanwhile; reload the list.', 'ffcertificate' ) );
+		}
+
+		$calendar = $this->calendars->findById( (int) $appointment['calendar_id'] );
+		if ( ! is_array( $calendar ) ) {
+			return new \WP_Error( 'calendar_not_found', __( 'Calendar not found.', 'ffcertificate' ) );
+		}
+		$date     = (string) $appointment['appointment_date'];
+		$time     = (string) $appointment['start_time'];
+		$capacity = WaitlistPromoter::slot_capacity( $calendar, $date, $time );
+		if ( ! $this->appointments->begin_transaction() ) {
+			return new \WP_Error( 'status_changed', __( 'Failed to update the appointment status. It may have changed meanwhile; reload the list.', 'ffcertificate' ) );
+		}
+		try {
+			// The marked row is not one of the active rows the count reads.
+			$session = \FreeFormCertificate\SelfScheduling\CalendarSessions::scope_of_appointment( $calendar, $appointment );
+			if ( $capacity <= 0 || ! $this->appointments->isSlotAvailable( (int) $appointment['calendar_id'], $date, $time, $capacity, true, $session ) ) {
+				$this->appointments->rollback();
+				return new \WP_Error( 'slot_full', __( 'The slot was booked again since the mark, so the mark cannot be undone.', 'ffcertificate' ) );
+			}
+			$changed = $this->appointments->revertAttendance( $appointment_id, $status );
+			$this->appointments->commit();
+		} catch ( \Throwable $e ) {
+			$this->appointments->rollback();
+			$changed = false;
+		}
+
+		return $changed
+			? true
+			: new \WP_Error( 'status_changed', __( 'Failed to update the appointment status. It may have changed meanwhile; reload the list.', 'ffcertificate' ) );
+	}
+
+	/**
 	 * Mark several appointments as no-show at once (#2244).
 	 *
-	 * Each is marked under the same rule as the row action: it must be
-	 * confirmed and its date must have come, in the site time zone. The
-	 * write is conditional on the status, so a row another request changed
-	 * meanwhile is skipped rather than overwritten.
+	 * Each is marked under the same rule as the row action
+	 * ({@see self::can_mark()}). The write is conditional on the status, so a
+	 * row another request changed meanwhile is skipped rather than
+	 * overwritten.
 	 *
 	 * @param array<int, int> $ids Appointment IDs.
 	 * @return array{marked: int, skipped: int}
 	 */
 	public function mark_no_show_many( array $ids ): array {
-		$today  = wp_date( 'Y-m-d' );
+		$now    = time();
 		$result = array(
 			'marked'  => 0,
 			'skipped' => 0,
 		);
 		foreach ( array_unique( array_filter( array_map( 'intval', $ids ) ) ) as $id ) {
 			$appointment = $this->appointments->findById( $id );
-			$date        = is_array( $appointment ) ? \FreeFormCertificate\Core\ArrayValue::string( $appointment, 'appointment_date' ) : '';
-			if ( ! is_array( $appointment ) || 'confirmed' !== ( $appointment['status'] ?? '' ) || '' === $date || $date > $today ) {
+			if ( ! is_array( $appointment ) || ! self::can_mark( $appointment, 'no_show', $now ) ) {
 				++$result['skipped'];
 				continue;
 			}

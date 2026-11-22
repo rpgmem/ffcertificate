@@ -262,6 +262,87 @@ class RateLimitActivatorTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @dataProvider legacy_log_schemas
+	 *
+	 * @param bool $has_index  Whether the duplicate index is still there.
+	 * @param bool $has_column Whether the plaintext column is still there.
+	 * @param int  $in_use     Rows the evidence count reports.
+	 * @param bool $index_goes Whether the index is dropped.
+	 * @param bool $column_goes Whether the column is dropped.
+	 */
+	public function test_the_legacy_log_schema_leaves_only_where_nothing_needs_it( bool $has_index, bool $has_column, int $in_use, bool $index_goes, bool $column_goes ): void {
+		// #2658: `idx_cleanup` duplicated `idx_created`; `ip_address` is dropped
+		// only once the encrypt-IP migration has nothing left to read from it.
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $s ) => $s );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . '|' . implode( ',', $args ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( $in_use ) {
+				if ( 0 === strpos( (string) $sql, 'SHOW TABLES LIKE %s|' ) ) {
+					return substr( (string) $sql, strlen( 'SHOW TABLES LIKE %s|' ) );
+				}
+				return false !== strpos( (string) $sql, 'ip_address IS NOT NULL' ) ? (string) $in_use : null;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) use ( $has_index, $has_column ) {
+				if ( false !== strpos( (string) $sql, 'Key_name' ) && false !== strpos( (string) $sql, 'wp_ffc_rate_limit_logs,idx_cleanup' ) ) {
+					return $has_index ? array( (object) array( 'Key_name' => 'idx_cleanup' ) ) : array();
+				}
+				if ( false !== strpos( (string) $sql, 'SHOW COLUMNS' ) && false !== strpos( (string) $sql, 'wp_ffc_rate_limit_logs,ip_address' ) && false === strpos( (string) $sql, 'ip_address_encrypted' ) ) {
+					return $has_column ? array( (object) array( 'Field' => 'ip_address' ) ) : array();
+				}
+				return array( (object) array( 'Field' => 'x' ) );
+			}
+		);
+		$queries = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$queries ) {
+				$queries[] = (string) $sql;
+				return 0;
+			}
+		);
+		Functions\when( 'dbDelta' )->justReturn( array() );
+
+		RateLimitActivator::create_tables();
+
+		$this->assertSame( $index_goes, in_array( 'ALTER TABLE %i DROP INDEX %i|wp_ffc_rate_limit_logs,idx_cleanup', $queries, true ) );
+		$this->assertSame( $column_goes, in_array( 'ALTER TABLE %i DROP COLUMN %i|wp_ffc_rate_limit_logs,ip_address', $queries, true ) );
+	}
+
+	/**
+	 * @return array<string, array{bool, bool, int, bool, bool}>
+	 */
+	public static function legacy_log_schemas(): array {
+		return array(
+			'both present, nothing left to encrypt' => array( true, true, 0, true, true ),
+			'an address still waits for the migration' => array( true, true, 3, true, false ),
+			'already clean'                          => array( false, false, 0, false, false ),
+		);
+	}
+
+	public function test_a_fresh_logs_table_declares_neither_legacy_name(): void {
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$logs = '';
+		Functions\when( 'dbDelta' )->alias(
+			static function ( $sql ) use ( &$logs ) {
+				if ( false !== strpos( (string) $sql, 'ffc_rate_limit_logs' ) ) {
+					$logs = (string) $sql;
+				}
+				return array();
+			}
+		);
+
+		RateLimitActivator::create_tables();
+
+		$this->assertStringContainsString( 'ip_address_encrypted', $logs );
+		$this->assertDoesNotMatchRegularExpression( '/\bip_address varchar/', $logs );
+		$this->assertStringNotContainsString( 'idx_cleanup', $logs );
+	}
+
 	public function test_create_tables_returns_true(): void {
 		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
@@ -278,82 +359,7 @@ class RateLimitActivatorTest extends TestCase {
 	// tables_exist()
 	// ==================================================================
 
-	public function test_tables_exist_returns_true_when_both_exist(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$this->wpdb->shouldReceive( 'get_var' )
-			->andReturnUsing( function () {
-				static $call = 0;
-				$call++;
-				if ( $call === 1 ) {
-					return 'wp_ffc_rate_limits';
-				}
-				if ( $call === 2 ) {
-					return 'wp_ffc_rate_limit_logs';
-				}
-				return 'wp_ffc_device_signals';
-			} );
-
-		$result = RateLimitActivator::tables_exist();
-
-		$this->assertTrue( $result );
-	}
-
-	public function test_tables_exist_returns_false_when_limits_missing(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		// First call (rate_limits) returns null — table missing
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
-
-		$result = RateLimitActivator::tables_exist();
-
-		$this->assertFalse( $result );
-	}
-
-	public function test_tables_exist_returns_false_when_logs_missing(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$this->wpdb->shouldReceive( 'get_var' )
-			->andReturnUsing( function () {
-				static $call = 0;
-				$call++;
-				if ( $call === 1 ) {
-					return 'wp_ffc_rate_limits'; // First table exists
-				}
-				return null; // Second table missing
-			} );
-
-		$result = RateLimitActivator::tables_exist();
-
-		$this->assertFalse( $result );
-	}
-
 	// ==================================================================
 	// drop_tables()
 	// ==================================================================
-
-	public function test_drop_tables_drops_both_and_deletes_option(): void {
-		$prepared_queries = array();
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$prepared_queries ) {
-			$args = func_get_args();
-			$prepared_queries[] = $args;
-			return 'PREPARED_QUERY';
-		} );
-		$this->wpdb->shouldReceive( 'query' )->with( 'PREPARED_QUERY' )->times( 3 )->andReturn( 1 );
-
-		$deleted_options = array();
-		Functions\when( 'delete_option' )->alias( function ( $option ) use ( &$deleted_options ) {
-			$deleted_options[] = $option;
-		} );
-
-		$result = RateLimitActivator::drop_tables();
-
-		$this->assertTrue( $result );
-
-		// Verify both DROP TABLE queries were prepared
-		$drop_queries = array_filter( $prepared_queries, function ( $args ) {
-			return strpos( $args[0], 'DROP TABLE IF EXISTS' ) !== false;
-		} );
-		$this->assertCount( 3, $drop_queries, 'Should prepare DROP TABLE for all three tables' );
-
-		// Verify the option was deleted
-		$this->assertContains( 'ffc_rate_limit_db_version', $deleted_options );
-	}
 }

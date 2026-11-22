@@ -87,6 +87,13 @@ class AdminLoader {
 	 */
 	protected ?CertificateOpenHandler $certificate_open_handler = null;
 
+	/**
+	 * The signing key route (#2639).
+	 *
+	 * @var SigningKeyHandler|null
+	 */
+	protected ?SigningKeyHandler $signing_key_handler = null;
+
 
 	/**
 	 * Inject the shared submission handler the Admin screens depend on.
@@ -165,5 +172,9 @@ class AdminLoader {
 		// audited admin-post route rather than the bare magic link (#2241).
 		$this->certificate_open_handler = new CertificateOpenHandler( $this->submission_handler );
 		$this->certificate_open_handler->init();
+
+		// Generating or rotating the certificate signing key (#2639).
+		$this->signing_key_handler = new SigningKeyHandler();
+		$this->signing_key_handler->init();
 	}
 }

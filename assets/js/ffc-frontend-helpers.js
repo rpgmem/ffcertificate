@@ -16,17 +16,6 @@
 (function($, window) {
     'use strict';
 
-    /**
-     * Warn that a public function is deprecated and leaves in 6.45.0 (#2089).
-     *
-     * @param {string} name - Qualified function name.
-     */
-    function warnDeprecated(name) {
-        if (window.console && typeof window.console.warn === 'function') {
-            window.console.warn('FFC: ' + name + '() is deprecated since 6.43.0 and will be removed in 6.45.0.');
-        }
-    }
-    
     // Initialize FFC namespace
     window.FFC = window.FFC || {};
     
@@ -45,21 +34,6 @@
 
         validateRF: function(rf) {
             return window.FFC.Fields.validateRf(rf);
-        },
-
-        /**
-         * Validate email format
-         * 
-         * @param {string} email - Email address
-         * @return {boolean} - True if valid format
-         *
-         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-         * @removal 6.45.0
-         */
-        validateEmail: function(email) {
-            warnDeprecated('FFC.Frontend.Validation.validateEmail');
-            var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
         }
     };
     
@@ -217,9 +191,12 @@ $inputs.each(function() {
             $inputs.each(function() {
                 var $input = $(this);
 
-                // Update maxlength to accommodate prefix format (P-XXXX-XXXX-XXXX = 16 chars)
-                if (!$input.attr('maxlength') || parseInt($input.attr('maxlength'), 10) < 16) {
-                    $input.attr('maxlength', 16);
+                // Room for a pasted code with its spacing: a maxlength of 16
+                // cut "A - FDVS - UJA0 - BAMQ" before the mask below could strip
+                // it, so the field only bounds the paste and the mask caps the
+                // code after cleaning (#2730).
+                if (!$input.attr('maxlength') || parseInt($input.attr('maxlength'), 10) < 64) {
+                    $input.attr('maxlength', 64);
                 }
 
                 // Remove existing handlers to avoid duplicates

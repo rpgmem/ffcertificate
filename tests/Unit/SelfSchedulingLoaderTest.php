@@ -14,6 +14,7 @@ use FreeFormCertificate\SelfScheduling\AppointmentCancellationHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentEmailHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentExportSource;
 use FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler;
+use FreeFormCertificate\SelfScheduling\AppointmentReceiptOpenHandler;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingAdmin;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingCPT;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
@@ -152,6 +153,8 @@ class SelfSchedulingLoaderTest extends TestCase {
 		return array(
 			'SelfSchedulingAdmin'  => array( 'action', 'admin_menu', SelfSchedulingAdmin::class, 'add_submenu_pages' ),
 			'SelfSchedulingEditor' => array( 'action', 'add_meta_boxes', SelfSchedulingEditor::class, 'add_custom_metaboxes' ),
+			// Staff open a receipt through the audited route (#2732).
+			'AppointmentReceiptOpenHandler' => array( 'action', 'admin_post_ffc_open_appointment_receipt', AppointmentReceiptOpenHandler::class, 'handle' ),
 		);
 	}
 

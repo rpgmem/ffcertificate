@@ -301,7 +301,11 @@ jQuery(function ($) {
 		var summaryOnly = '1' === String($option.attr('data-ffc-dm-summary-only') || '');
 		var from = String($box.find('.ffc-dm-from').val() || '');
 		var to = String($box.find('.ffc-dm-to').val() || '');
-		var range = announcement ? String(strings.today || 'today') : (from === to ? from : from + ' – ' + to);
+		// The fields hold Y-m-d; the dialog says the dates in the plugin's format (#2676).
+		var show = function (ymd) {
+			return (window.FFC && typeof FFC.formatDate === 'function') ? FFC.formatDate(ymd) : ymd;
+		};
+		var range = announcement ? String(strings.today || 'today') : (from === to ? show(from) : show(from) + ' – ' + show(to));
 
 		function ask(count) {
 			var template = summaryOnly ? strings.confirmSummary : strings.confirmSend;

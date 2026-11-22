@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -29,6 +30,9 @@ use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
 class ReregistrationEmailHandlerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** @var list<int> Users the campaign's audiences no longer hold (#2688). */
+	private array $non_members = array();
 
 	/**
 	 * Campaign rows by id.
@@ -88,6 +92,8 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign's audiences are expanded to their descendants (#2688).
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		// The campaign window is read on the site's clock (#2242); pin it
 		// inside the fixtures' campaigns.
 		Functions\when( 'current_time' )->alias(
@@ -229,7 +235,25 @@ class ReregistrationEmailHandlerTest extends TestCase {
 					);
 					return preg_match( '/LIMIT (\d+)/', $sql, $l ) ? array_slice( $rows, 0, (int) $l[1] ) : $rows;
 				}
+				// The campaign's audience has no children (#2688).
+				if ( str_contains( $sql, 'FROM wp_ffc_audiences' ) && str_contains( $sql, 'parent_id' ) ) {
+					return array();
+				}
 				throw new \LogicException( 'Unexpected get_results: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( str_contains( $sql, 'SELECT audience_id FROM wp_ffc_reregistration_audiences' ) ) {
+					return array( '1' );
+				}
+				// ReregistrationRepository::members_among() (#2688).
+				if ( preg_match( '/FROM wp_ffc_audience_members WHERE audience_id IN \\([\\d,]+\\) AND user_id IN \\(([\\d,]+)\\)/', $sql, $mm ) ) {
+					return array_map( 'strval', array_diff( array_map( 'intval', explode( ',', $mm[1] ) ), $this->non_members ) );
+				}
+				throw new \LogicException( 'Unexpected get_col: ' . $sql );
 			}
 		);
 
@@ -590,6 +614,27 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$this->assertSame( array( 101, 102 ), $this->invited, 'Whoever received it must be stamped, or the next send repeats it.' );
 	}
 
+	public function test_neither_the_invitation_nor_the_reminder_reaches_someone_who_left_the_campaign(): void {
+		// User 20 left the campaign's audiences; the row is still there (#2688).
+		$this->non_members = array( 20 );
+		$this->campaign(
+			array(
+				'id'                       => 1,
+				'email_invitation_enabled' => 1,
+				'email_reminder_enabled'   => 1,
+				'end_date'                 => '2099-12-31',
+			)
+		);
+		$this->submission( 101, 1, 10, 'pending' );
+		$this->submission( 102, 1, 20, 'pending' );
+		$this->users();
+
+		$this->assertSame( 1, ReregistrationEmailHandler::send_invitations( 1 ) );
+		$this->assertSame( array( 101 ), $this->invited );
+		$this->assertSame( 1, ReregistrationEmailHandler::send_reminders( 1, array( 10, 20 ) ), 'Not even when an operator names them.' );
+		$this->assertSame( array( 'user10@example.com', 'user10@example.com' ), $this->recipients() );
+	}
+
 	// ==================================================================
 	// send_invitations() — the wording follows the status (#1300)
 	// ==================================================================
@@ -705,7 +750,7 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	 * would ship to the recipient as literal text.
 	 */
 	public function test_send_invitations_resolves_every_token_for_both_audiences(): void {
-		Functions\when( 'wp_generate_password' )->justReturn( 'secret-key' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'add_query_arg' )->alias(
 			static function ( $args, $url ) {
 				return $url . '?' . http_build_query( (array) $args );

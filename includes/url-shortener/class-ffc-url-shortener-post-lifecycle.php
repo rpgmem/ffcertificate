@@ -2,8 +2,9 @@
 /**
  * URL Shortener Post Lifecycle
  *
- * A post's short URL follows the post (#2337): trashing the post disables
- * the link, publishing it again brings the link back, and deleting the post
+ * A post's short URL follows the post (#2337): taking the post off the
+ * public site (the trash, a draft, pending, private) disables the link
+ * (#2693), publishing it again brings the link back, and deleting the post
  * deletes the link and retires its code.
  *
  * @package FreeFormCertificate\UrlShortener
@@ -23,9 +24,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class UrlShortenerPostLifecycle {
 
 	/**
-	 * Post meta set when trashing the post switched its link off, so only a
-	 * link the plugin switched off is switched back on. A link an operator
-	 * disabled by hand stays disabled.
+	 * Post meta set when the post leaving `publish` switched its link off, so
+	 * only a link the plugin switched off is switched back on. A link an
+	 * operator disabled by hand stays disabled. The key keeps its first name
+	 * (the trash was the only way off when it was written) because installs
+	 * store it.
 	 */
 	public const PAUSED_META = '_ffc_short_url_paused_by_trash';
 
@@ -67,6 +70,15 @@ class UrlShortenerPostLifecycle {
 	 * @param int $post_id Post ID.
 	 */
 	public function on_trashed( int $post_id ): void {
+		$this->pause( $post_id );
+	}
+
+	/**
+	 * Switch a post's live link off, remembering that the plugin did.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	private function pause( int $post_id ): void {
 		$record = $this->service->get_repository()->findByPostId( $post_id );
 		if ( ! $record || 'active' !== ( $record['status'] ?? '' ) ) {
 			return;
@@ -78,13 +90,21 @@ class UrlShortenerPostLifecycle {
 	}
 
 	/**
-	 * The post is published again: bring back the link its trashing paused.
+	 * The post left `publish` or came back to it (#2693).
+	 *
+	 * Going back to draft, pending, private or a future date takes the page
+	 * off the public site as the trash does, so the link pauses too; it
+	 * comes back when the post is published again.
 	 *
 	 * @param string   $new_status New status.
 	 * @param string   $old_status Old status.
 	 * @param \WP_Post $post       Post.
 	 */
 	public function on_transition( string $new_status, string $old_status, \WP_Post $post ): void {
+		if ( 'publish' === $old_status && 'publish' !== $new_status ) {
+			$this->pause( $post->ID );
+			return;
+		}
 		if ( 'publish' !== $new_status || ! get_post_meta( $post->ID, self::PAUSED_META, true ) ) {
 			return;
 		}

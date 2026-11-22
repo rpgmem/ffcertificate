@@ -668,12 +668,35 @@ class AudienceAjaxControllerTest extends TestCase {
 		// UTC seconds, rendered in the site's zone and format (#2243).
 		$this->assertSame( gmdate( 'd/m/Y H:i', 1777629600 ), $data['created_at'] );
 		$this->assertSame( 1, $data['is_all_day'] );
+		// The day and hours in the plugin's formats (#2676).
+		$this->assertSame( '20/05/2026', $data['date_label'] );
+		$this->assertSame( '09:00 - 10:00', $data['time_label'] );
 		$this->assertSame( array( array( 'id' => 2, 'name' => 'Aud2' ) ), $data['audiences'] );
 		$this->assertSame( 7, $data['users'][0]['id'] );
 		// The address never travels in clear to someone who is not its owner (#2243).
 		$this->assertSame( DocumentFormatter::mask_email( 'm@e.com' ), $data['users'][0]['email'] );
 		$this->assertStringNotContainsString( 'm@e.com', $data['users'][0]['email_html'] );
 		$this->assertSame( $can_reveal, str_contains( $data['users'][0]['email_html'], 'ffc-reveal-pii' ), 'The Reveal button follows the policy.' );
+	}
+
+	public function test_get_booking_carries_the_stored_cancellation_reason(): void {
+		// The column is cancellation_reason; the modal read a field nothing set (#2691).
+		$this->stubDates();
+		$_POST          = array( 'nonce' => 'n', 'booking_id' => '4' );
+		$this->bookings = array(
+			4 => $this->booking(
+				array(
+					'id'                  => 4,
+					'status'              => 'cancelled',
+					'cancellation_reason' => 'Room flooded',
+				)
+			),
+		);
+		Functions\when( 'get_userdata' )->justReturn( false );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_get_booking() );
+
+		$this->assertSame( 'Room flooded', $this->responses[0]['data']['cancel_reason'] );
 	}
 
 	public function test_get_booking_shows_the_viewer_their_own_address(): void {

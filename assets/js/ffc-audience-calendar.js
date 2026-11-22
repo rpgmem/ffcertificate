@@ -841,10 +841,20 @@
             return 0;
         });
 
+        var strings = ffcAudience.strings || {};
+        var todayYmd = FFC.todayYmd();
+        // Only the month that holds today splits off its past days (#2728):
+        // a past or future month has nothing current to bring forward.
+        var shownMonth = state.currentDate.getFullYear() + '-' + ('0' + (state.currentDate.getMonth() + 1)).slice(-2);
+        var splitPast = todayYmd.slice(0, 7) === shownMonth;
+        var pastHtml = '';
+        var pastCount = 0;
         var html = '';
         var lastDate = '';
 
         allEvents.forEach(function(evt) {
+            var isPast = splitPast && evt.date < todayYmd;
+            var out = '';
             // Group header for each date
             if (evt.date !== lastDate) {
                 lastDate = evt.date;
@@ -854,7 +864,11 @@
                     day: 'numeric',
                     month: 'short'
                 });
-                html += '<div class="ffc-event-list-date">' + dateDisplay + '</div>';
+                out += '<div class="ffc-event-list-date">' + dateDisplay;
+                if (evt.date === todayYmd) {
+                    out += ' <span class="ffc-event-list-today">' + escapeHtml(strings.today || 'Today') + '</span>';
+                }
+                out += '</div>';
             }
 
             if (evt.type === 'holiday') {
@@ -862,57 +876,69 @@
                 var holidayOptional = holidayKind(evt.date) === 'optional';
                 var holidayLabel = kindStrings(holidayOptional ? 'optional' : 'holiday').label;
                 var holidayDesc = evt.data.description || '';
-                html += '<div class="ffc-event-list-item ffc-event-list-holiday' + (holidayOptional ? ' ffc-event-list-optional-holiday' : '') + '" data-date="' + evt.date + '">';
-                html += '<span class="ffc-event-list-time ffc-all-day">' + escapeHtml(holidayLabel) + '</span>';
+                out += '<div class="ffc-event-list-item ffc-event-list-holiday' + (holidayOptional ? ' ffc-event-list-optional-holiday' : '') + '" data-date="' + evt.date + '">';
+                out += '<span class="ffc-event-list-time ffc-all-day">' + escapeHtml(holidayLabel) + '</span>';
                 if (holidayDesc) {
-                    html += '<span class="ffc-event-list-desc">' + escapeHtml(holidayDesc) + '</span>';
+                    out += '<span class="ffc-event-list-desc">' + escapeHtml(holidayDesc) + '</span>';
                 }
-                html += '</div>';
+                out += '</div>';
             } else {
                 // Booking item
                 var booking = evt.data;
                 var evtColor = getEnvironmentColor(booking.environment_id);
-                html += '<div class="ffc-event-list-item" data-date="' + evt.date + '" style="border-left: 3px solid ' + escapeHtml(evtColor) + ';">';
+                out += '<div class="ffc-event-list-item" data-date="' + evt.date + '" style="border-left: 3px solid ' + escapeHtml(evtColor) + ';">';
 
                 // Time
                 if (parseInt(booking.is_all_day)) {
-                    html += '<span class="ffc-event-list-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</span>';
+                    out += '<span class="ffc-event-list-time ffc-all-day">' + ((ffcAudience.strings || {}).allDay || 'All Day') + '</span>';
                 } else {
                     var times = timesOn(booking, evt.date);
-                    html += '<span class="ffc-event-list-time">' + formatTime(times.start_time) + ' - ' + formatTime(times.end_time) + '</span>';
+                    out += '<span class="ffc-event-list-time">' + formatTime(times.start_time) + ' - ' + formatTime(times.end_time) + '</span>';
                 }
 
                 // Environment name
-                html += '<span class="ffc-event-list-env">' + escapeHtml(booking.environment_name) + '</span>';
+                out += '<span class="ffc-event-list-env">' + escapeHtml(booking.environment_name) + '</span>';
 
                 // Description (truncated)
                 var desc = booking.description || '';
                 if (desc.length > 60) {
                     desc = desc.substring(0, 57) + '...';
                 }
-                html += '<span class="ffc-event-list-desc">' + escapeHtml(desc) + '</span>';
+                out += '<span class="ffc-event-list-desc">' + escapeHtml(desc) + '</span>';
 
                 // Audiences (collapse parent groups, then show summary badge when more than 2)
                 if (booking.audiences && booking.audiences.length > 0) {
                     var displayAudiencesEL = collapseParentAudiences(booking.audiences);
                     var pMapEL = buildParentNameMap();
-                    html += '<span class="ffc-event-list-audiences">';
+                    out += '<span class="ffc-event-list-audiences">';
                     if (displayAudiencesEL.length > 2) {
                         var maColor = ffcAudience.multipleAudiencesColor || 'var(--ffc-gray-600)';
-                        html += '<span class="ffc-audience-tag-sm" style="background-color: ' + escapeHtml(maColor) + '">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + displayAudiencesEL.length + ')</span>';
+                        out += '<span class="ffc-audience-tag-sm" style="background-color: ' + escapeHtml(maColor) + '">' + escapeHtml(ffcAudience.strings.multipleAudiences) + ' (' + displayAudiencesEL.length + ')</span>';
                     } else {
                         displayAudiencesEL.forEach(function(audience) {
-                            html += '<span class="ffc-audience-tag-sm" style="background-color: ' + escapeHtml(audience.color) + '">' + escapeHtml(formatAudienceName(audience, pMapEL)) + '</span>';
+                            out += '<span class="ffc-audience-tag-sm" style="background-color: ' + escapeHtml(audience.color) + '">' + escapeHtml(formatAudienceName(audience, pMapEL)) + '</span>';
                         });
                     }
-                    html += '</span>';
+                    out += '</span>';
                 }
 
-                html += '</div>';
+                out += '</div>';
+            }
+
+            if (isPast) {
+                pastHtml += out;
+                pastCount++;
+            } else {
+                html += out;
             }
         });
 
         $panel.html(html);
+        if (pastCount) {
+            var group = FFC.pastDaysGroup(strings.earlierDays || 'Earlier days', String(pastCount));
+            $(group).find('.ffc-past-days-items').html(pastHtml);
+            $panel.prepend(group);
+        }
 
         // Click on event item opens day modal
         $panel.find('.ffc-event-list-item').on('click', function() {

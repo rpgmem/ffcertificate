@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
@@ -46,6 +47,9 @@ class DateMessagesRunnerTest extends TestCase {
 
 	/** @var list<int> Users the delivery log already holds for the occurrence. */
 	private array $delivered = array();
+
+	/** @var list<int> The delivered ids that run 7 itself sent, a replay's own (#2692). */
+	private array $delivered_here = array();
 
 	/** @var list<string> Members of the rule's audience, as `$wpdb` returns them. */
 	private array $members = array();
@@ -116,6 +120,8 @@ class DateMessagesRunnerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A single site: every account is a member (#2692 restricts a network).
+		Functions\when( 'is_multisite' )->justReturn( false );
 
 		$this->run          = array(
 			'id'        => '7',
@@ -127,6 +133,7 @@ class DateMessagesRunnerTest extends TestCase {
 		$this->candidates   = array();
 		$this->preferences  = array();
 		$this->delivered    = array();
+		$this->delivered_here = array();
 		$this->members      = array();
 		$this->claim_result = 1;
 		$this->mail_result  = true;
@@ -172,7 +179,7 @@ class DateMessagesRunnerTest extends TestCase {
 		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.org' . $p );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
 		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'get_user_meta' )->justReturn( '' );
 		Functions\when( 'get_userdata' )->alias(
 			static fn( $id ) => (object) array(
@@ -291,6 +298,10 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			function ( $q ) {
+				if ( 0 === strpos( $q['sql'], 'SELECT user_id FROM %i WHERE rule_id = %d AND occurrence_key = %s AND channel = %s AND run_id = %d' ) ) {
+					// This run's own deliveries only (#2692).
+					return 7 === $q['args'][4] ? array_map( 'strval', array_values( array_intersect( $this->delivered_here, array_slice( $q['args'], 5 ) ) ) ) : array();
+				}
 				if ( 0 === strpos( $q['sql'], 'SELECT user_id FROM %i WHERE rule_id = %d AND occurrence_key = %s' ) ) {
 					return array_map( 'strval', array_values( array_intersect( $this->delivered, array_slice( $q['args'], 4 ) ) ) );
 				}
@@ -321,6 +332,10 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'query' )->andReturnUsing(
 			function ( $q ) {
+				if ( 'UPDATE %i SET %i = GREATEST(%i - 1, 0) WHERE id = %d' === $q['sql'] ) {
+					$this->bumps[ $q['args'][1] ] = max( 0, ( $this->bumps[ $q['args'][1] ] ?? 0 ) - 1 );
+					return 1;
+				}
 				if ( 'UPDATE %i SET %i = %i + %d WHERE id = %d' === $q['sql'] ) {
 					$this->bumps[ $q['args'][1] ] = ( $this->bumps[ $q['args'][1] ] ?? 0 ) + $q['args'][3];
 					return 1;
@@ -353,6 +368,15 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
 			function ( $table, $where ) {
+				if ( 'wp_ffc_date_message_log' === $table && 'x' === substr( (string) $where['channel'], 0, 1 ) ) {
+					// A counted decision taken back (#2692): only one that was counted.
+					$key = $where['channel'] . ':' . $where['user_id'];
+					if ( ! isset( $this->noted[ $key ] ) ) {
+						return 0;
+					}
+					unset( $this->noted[ $key ] );
+					return 1;
+				}
 				if ( 'wp_ffc_date_message_log' === $table ) {
 					$this->released[] = $where;
 					return 1;
@@ -486,9 +510,10 @@ class DateMessagesRunnerTest extends TestCase {
 				'opted_out'       => 1,
 				'no_email'        => 1,
 				'out_of_audience' => 1,
+				'already_sent'    => 1,
 			),
 			$this->bumps,
-			'An already-sent person is neither sent nor counted again.'
+			'A person an earlier run reached is not sent again, and is counted as already sent (#2692).'
 		);
 	}
 
@@ -561,6 +586,63 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 		$this->assertSame( array( 7, 3, 1, '2026-10-10', 'xo7' ), $this->notes[0] );
 		$this->assertSame( array( 7, 3, 2, '2026-10-10', 'xn7' ), $this->notes[1] );
+	}
+
+	/**
+	 * A batch killed mid-way is replayed by its retry after the next batch has
+	 * already run (#2692). The replay must not queue that next batch again, or
+	 * the rest of the run is resolved a second time.
+	 */
+	public function test_a_replayed_batch_does_not_queue_its_follow_up_again(): void {
+		$this->one_sendable_candidate();
+		$this->run['target_to'] = '2026-10-11';
+
+		// The first attempt queues the next day, then (in the test) dies.
+		Runner::process( 7, '2026-10-10', 0 );
+		$this->assertSame( array( array( 7, '2026-10-11', 0 ) ), $this->scheduled );
+
+		// The next day ran and left the queue; now the retry fires.
+		$this->scheduled = array();
+		Runner::process( 7, '2026-10-10', 0, 1 );
+
+		$this->assertSame( array(), $this->scheduled, 'The retry queues no second follow-up.' );
+	}
+
+	/**
+	 * A send refused on the first attempt and accepted on the retry is one
+	 * person reached, not a failure and a delivery (#2692).
+	 */
+	public function test_a_send_that_fails_then_goes_out_on_the_retry_is_counted_once(): void {
+		$this->one_sendable_candidate();
+		$this->mail_result = false;
+		Runner::process( 7, '2026-10-10', 0 );
+
+		$this->mail_result = true;
+		Runner::process( 7, '2026-10-10', 0, 1 );
+
+		$this->assertSame(
+			array(
+				'failed' => 0,
+				'sent'   => 1,
+			),
+			$this->bumps
+		);
+	}
+
+	/**
+	 * A replay of this batch meets the people it already sent; they are
+	 * counted as sent once, not also as already sent (#2692).
+	 */
+	public function test_a_replay_does_not_count_its_own_deliveries_as_already_sent(): void {
+		$this->one_sendable_candidate();
+		Runner::process( 7, '2026-10-10', 0 );
+
+		// The send is now in the log, under this run.
+		$this->delivered      = array( 1 );
+		$this->delivered_here = array( 1 );
+		Runner::process( 7, '2026-10-10', 0, 1 );
+
+		$this->assertSame( array( 'sent' => 1 ), $this->bumps );
 	}
 
 	public function test_a_message_that_throws_is_one_failure_and_the_batch_goes_on(): void {

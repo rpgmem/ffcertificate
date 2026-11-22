@@ -104,7 +104,7 @@ final class RecruitmentNoticesRestController {
 		$status  = $request->get_param( 'status' );
 		$notices = RecruitmentNoticeReader::get_all( is_string( $status ) && '' !== $status ? $status : null );
 
-		return new \WP_REST_Response( $notices, 200 );
+		return new \WP_REST_Response( self::with_site_times( $notices ), 200 );
 	}
 
 	/**
@@ -126,7 +126,7 @@ final class RecruitmentNoticesRestController {
 			);
 		}
 
-		return new \WP_REST_Response( RecruitmentNoticeReader::get_by_id( $id ), 201 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentNoticeReader::get_by_id( $id ) ), 201 );
 	}
 
 	/**
@@ -179,6 +179,6 @@ final class RecruitmentNoticesRestController {
 			return new \WP_Error( 'recruitment_notice_not_found', RecruitmentErrorMessages::translate( 'recruitment_notice_not_found' ), array( 'status' => 404 ) );
 		}
 
-		return new \WP_REST_Response( $notice, 200 );
+		return new \WP_REST_Response( self::with_site_times( $notice ), 200 );
 	}
 }

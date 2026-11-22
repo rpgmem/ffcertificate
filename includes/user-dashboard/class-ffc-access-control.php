@@ -159,7 +159,8 @@ class AccessControl {
 		return array(
 			'block_wp_admin'    => false,
 			'blocked_roles'     => array( 'ffc_end_user' ),
-			'redirect_url'      => home_url( '/dashboard' ),
+			// The dashboard page the plugin manages, wherever its slug ended up (#2690).
+			'redirect_url'      => \FreeFormCertificate\Core\PasswordInvite::dashboard_url(),
 			'redirect_message'  => __( 'You were redirected from the admin panel. Use this dashboard to access your certificates.', 'ffcertificate' ),
 			'allow_admin_bar'   => false,
 			'bypass_for_admins' => true,

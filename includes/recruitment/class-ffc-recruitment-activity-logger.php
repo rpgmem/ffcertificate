@@ -77,37 +77,6 @@ final class RecruitmentActivityLogger {
 	}
 
 	/**
-	 * CSV import failed (validation error or DB failure).
-	 *
-	 * Caller passes the count of errors rather than the messages themselves
-	 * — line-numbered messages can name candidates indirectly (e.g. "line 7"),
-	 * but the messages themselves don't carry sensitive plaintext, so a
-	 * count keeps the audit trail compact.
-	 *
-	 * @param int    $notice_id Target notice.
-	 * @param string $list_type `preview` or `definitive`.
-	 * @param int    $error_count Number of validation/DB errors.
-	 * @return void
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function csv_import_failed( int $notice_id, string $list_type, int $error_count ): void {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		ActivityLog::log(
-			'recruitment_csv_import_failed',
-			ActivityLog::LEVEL_WARNING,
-			array(
-				'notice_id'   => $notice_id,
-				'list_type'   => $list_type,
-				'error_count' => $error_count,
-			),
-			get_current_user_id()
-		);
-	}
-
-	/**
 	 * Notice status transition succeeded.
 	 *
 	 * @param int         $notice_id Notice ID.
@@ -228,6 +197,25 @@ final class RecruitmentActivityLogger {
 				'call_id'           => $call_id,
 				'classification_id' => $classification_id,
 				'out_of_order'      => $out_of_order ? 1 : 0,
+			),
+			get_current_user_id()
+		);
+	}
+
+	/**
+	 * A call's convocation e-mail sent again by staff (#2694).
+	 *
+	 * @param int  $call_id Call ID.
+	 * @param bool $sent    Whether the message went out.
+	 * @return void
+	 */
+	public static function call_email_resent( int $call_id, bool $sent ): void {
+		ActivityLog::log(
+			'recruitment_call_email_resent',
+			$sent ? ActivityLog::LEVEL_INFO : ActivityLog::LEVEL_WARNING,
+			array(
+				'call_id' => $call_id,
+				'sent'    => $sent ? 1 : 0,
 			),
 			get_current_user_id()
 		);

@@ -842,6 +842,9 @@ class DocumentFormatterTest extends TestCase {
 			'no prefix no dashes'        => ['ABCD1234EFGH', '', 'ABCD1234EFGH'],
 			'lowercase input with C'     => ['c-abcd-1234-efgh', 'C', 'ABCD1234EFGH'],
 			'whitespace trimmed'         => ['  ABCD1234EFGH  ', '', 'ABCD1234EFGH'],
+			// Pasted from a receipt or a PDF without JavaScript (#2730).
+			'spaced A prefix'            => ['A - FDVS - UJA0 - BAMQ', 'A', 'FDVSUJA0BAMQ'],
+			'line break inside'          => ["A-FDVS\nUJA0-BAMQ", 'A', 'FDVSUJA0BAMQ'],
 			'short fallback no prefix'   => ['SHORT', '', 'SHORT'],
 			'empty string'               => ['', '', ''],
 		];
@@ -884,26 +887,6 @@ class DocumentFormatterTest extends TestCase {
 	// ==================================================================
 	// clean_identifier
 	// ==================================================================
-
-	public function test_clean_identifier_removes_special_chars(): void {
-		$this->assertSame('52998224725', DocumentFormatter::clean_identifier('529.982.247-25'));
-	}
-
-	public function test_clean_identifier_uppercases_letters(): void {
-		$this->assertSame('ABCDEF123', DocumentFormatter::clean_identifier('abcdef123'));
-	}
-
-	public function test_clean_identifier_strips_spaces_and_symbols(): void {
-		$this->assertSame('ABC123', DocumentFormatter::clean_identifier(' a!b@c#1$2%3 '));
-	}
-
-	public function test_clean_identifier_empty_string_returns_empty(): void {
-		$this->assertSame('', DocumentFormatter::clean_identifier(''));
-	}
-
-	public function test_clean_identifier_already_clean(): void {
-		$this->assertSame('ABC123', DocumentFormatter::clean_identifier('ABC123'));
-	}
 
 	// ==================================================================
 	// Moved from UtilsTest (#2092)
@@ -1022,10 +1005,6 @@ class DocumentFormatterTest extends TestCase {
 		$this->assertSame( 'ABCD', DocumentFormatter::clean_auth_code( 'ABCD' ) );
 	}
 
-	public function test_clean_identifier_uppercases(): void {
-		$this->assertSame( 'ABCDEF', DocumentFormatter::clean_identifier( 'abc-def' ) );
-	}
-
 	public function test_phone_regex_constant_matches_validate_phone(): void {
 		// The constant and the method should agree
 		$phone = '(11) 99876-5432';
@@ -1086,12 +1065,5 @@ class DocumentFormatterTest extends TestCase {
 		Functions\when( 'is_email' )->alias( static fn( $email ) => false !== strpos( $email, '@' ) && trim( $email ) === $email );
 
 		$this->assertSame( 'j***@gmail.com', DocumentFormatter::mask_email( '  joao@gmail.com ' ) );
-	}
-
-	public function test_clean_identifier_still_announces_its_deprecation(): void {
-		$deprecated = CallLog::record( '_deprecated_function' );
-
-		$this->assertSame( 'ABC123', DocumentFormatter::clean_identifier( 'abc-123' ) );
-		$this->assertSame( 1, $deprecated->count() );
 	}
 }

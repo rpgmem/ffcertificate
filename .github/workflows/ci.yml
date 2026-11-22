@@ -423,7 +423,7 @@ jobs:
       mariadb:
         image: mariadb:11.8
         env:
-          MARIADB_ROOT_PASSWORD: wordpress
+          MARIADB_ROOT_PASSWORD: fake-db-password
           MARIADB_DATABASE: wordpress
         ports:
           - 3306:3306
@@ -513,10 +513,10 @@ jobs:
             sleep 10
           done
           wp config create --path="$HOME/wp" \
-            --dbname=wordpress --dbuser=root --dbpass=wordpress --dbhost=127.0.0.1
+            --dbname=wordpress --dbuser=root --dbpass=fake-db-password --dbhost=127.0.0.1
           wp core install --path="$HOME/wp" \
             --url=http://localhost --title="FFC fresh install" \
-            --admin_user=admin --admin_password=admin \
+            --admin_user=admin --admin_password=fake-admin-password \
             --admin_email=ci@example.invalid --skip-email
       - name: Activate the plugin into an empty database
         run: |

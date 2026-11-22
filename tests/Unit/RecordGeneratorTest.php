@@ -30,6 +30,9 @@ class RecordGeneratorTest extends TestCase {
 	use MockeryPHPUnitIntegration;
 
 	/** @var Mockery\MockInterface */
+	/** @var array<int, list<string>> Stored acumulo_cargos choices by field id, as a seed in another language left them. */
+	private array $stored_dual_post_choices = array();
+
 	private $wpdb;
 
 	/**
@@ -183,6 +186,14 @@ class RecordGeneratorTest extends TestCase {
 				return array_map(static function ($row) {
 					return clone $row;
 				}, $this->fields_by_audience[(int) $args[1]] ?? []);
+			}
+			// ReregistrationFieldOptions::second_post_answers() (#2688).
+			if ("SELECT id, field_options FROM %i WHERE field_source = 'standard' AND field_key = %s" === $sql && 'acumulo_cargos' === $args[1]) {
+				$rows = array();
+				foreach ($this->stored_dual_post_choices as $id => $choices) {
+					$rows[] = array('id' => (string) $id, 'field_options' => (string) json_encode(array('choices' => $choices)));
+				}
+				return $rows;
 			}
 			$this->fail('Unexpected get_results(): ' . $sql . ' with ' . var_export($args, true));
 		});
@@ -1097,6 +1108,23 @@ class RecordGeneratorTest extends TestCase {
 		$values['acumulo_cargos'] = 'I do not hold';
 		$none = $this->runRecordWithStatus('approved', 'MA6DE5LHPFTC', $seen, $fields, $values);
 		$this->assertSame('', $none['acumulo_details'], 'No second post, no Workload and Post/Role rows.');
+	}
+
+	public function test_a_second_post_answered_in_the_seeding_language_is_held_in_any_other(): void {
+		// Seeded in Portuguese, read on an English request: the third choice
+		// declares the second post whatever its text (#2688).
+		$this->stored_dual_post_choices = array(9 => array('Não acumulo', 'Aposentadoria (Holerite Anexo)', 'Acumulo'));
+		$fields                         = array(
+			$this->standardField(1, 'acumulo_cargos', 'select'),
+			$this->standardField(2, 'jornada_acumulo', 'select'),
+		);
+
+		$seen = null;
+		$held = $this->runRecordWithStatus('approved', 'MA6DE5LHPFTC', $seen, $fields, array('acumulo_cargos' => 'Acumulo', 'jornada_acumulo' => 'JB - 20h/a'));
+		$this->assertStringContainsString('JB - 20h/a', $held['acumulo_details']);
+
+		$none = $this->runRecordWithStatus('approved', 'MA6DE5LHPFTC', $seen, $fields, array('acumulo_cargos' => 'Não acumulo', 'jornada_acumulo' => 'JB - 20h/a'));
+		$this->assertSame('', $none['acumulo_details']);
 	}
 
 	public function test_the_edu_email_is_its_own_line_and_the_sme_one_no_longer_borrows_the_account(): void {

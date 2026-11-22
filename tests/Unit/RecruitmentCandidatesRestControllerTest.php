@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -119,7 +120,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
 		// The activity log is on, so an audited reveal reaches the buffer.

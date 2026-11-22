@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use FreeFormCertificate\Core\RequestInput;
 
 use Brain\Monkey;
@@ -71,7 +72,7 @@ class PreflightTelemetryTest extends TestCase {
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'absint' )->alias( 'intval' );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'fresh-nonce-xyz' );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'current_time' )->justReturn( '2026-04-23 00:00:00' );

@@ -563,7 +563,10 @@ class AppointmentsListViewTest extends TestCase {
 
 		$this->assertSame( array(), $this->updates );
 		$this->assertSame(
-			array( 'type' => 'error', 'message' => 'Attendance can only be marked from the appointment date on.' ),
+			array(
+				'type'    => 'error',
+				'message' => 'no_show' === $action ? 'A no-show can only be marked once the appointment has started.' : 'Attendance can only be marked from the appointment date on.',
+			),
 			$notice
 		);
 	}
@@ -925,7 +928,7 @@ class AppointmentsListViewTest extends TestCase {
 		$this->include_view();
 		$out = ob_get_clean();
 
-		$this->assertStringContainsString( 'dated 7 or more days ago are still open: 3 confirmed (will be marked completed) and 1 pending (will be cancelled)', $out );
+		$this->assertStringContainsString( 'dated 7 or more days ago are still open: 3 confirmed (will be marked completed) and 1 pending or waitlisted (will be cancelled)', $out );
 		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-caution ffc-icon-calendar-check"', $out );
 		$this->assertStringContainsString( '_wpnonce=ffc_close_old_appointments', $out );
 		$this->assertStringContainsString( 'data-confirm="Close 4 old appointments? This cannot be undone in bulk."', $out );
@@ -967,7 +970,7 @@ class AppointmentsListViewTest extends TestCase {
 		$this->assertSame( array( 'ffc_close_old_appointments' ), $referers );
 		$this->assertCount( 2, $queries, 'One short batch each: confirmed, then pending.' );
 		$this->assertSame(
-			array( 'type' => 'success', 'message' => 'Old appointments closed: 2 marked completed, 1 pending cancelled.' ),
+			array( 'type' => 'success', 'message' => 'Old appointments closed: 2 marked completed, 1 pending or waitlisted cancelled.' ),
 			$this->transients[0][1]
 		);
 	}

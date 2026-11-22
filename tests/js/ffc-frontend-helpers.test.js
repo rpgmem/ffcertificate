@@ -9,10 +9,12 @@
 // Sprint E of #170.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 beforeAll(() => {
 	// ffc-core.js needs `window.ffc_ajax` (and friends) set for `getString`
-	// / `getAjaxUrl`. The actual values don't matter — just their presence.
+	// / the nonce. The actual values don't matter — just their presence.
 	window.ffc_ajax = {
 		ajax_url: '/wp-admin/admin-ajax.php',
 		nonce: 'test-nonce',
@@ -63,26 +65,13 @@ describe('FFC.getString', () => {
 	});
 });
 
-describe('FFC.getAjaxUrl / getNonce', () => {
-	it('returns the ajax_url from the localized object', () => {
-		expect(window.FFC.getAjaxUrl()).toBe('/wp-admin/admin-ajax.php');
-	});
+describe('FFC.getNonce', () => {
 
 	it('returns the nonce from the localized object', () => {
 		expect(window.FFC.getNonce()).toBe('test-nonce');
 	});
 });
 
-describe('FFC.isModuleLoaded', () => {
-	it('returns true when FFC.<module> exists', () => {
-		// FFC.Frontend was registered by ffc-frontend-helpers.js.
-		expect(window.FFC.isModuleLoaded('Frontend')).toBe(true);
-	});
-
-	it('returns false when the module is not registered', () => {
-		expect(window.FFC.isModuleLoaded('Nonexistent')).toBe(false);
-	});
-});
 
 // ----------------------------------------------------------------------
 // FFC.Frontend.Validation
@@ -148,30 +137,6 @@ describe('FFC.Frontend.Validation.validateRF', () => {
 	});
 });
 
-describe('FFC.Frontend.Validation.validateEmail', () => {
-	const V = () => window.FFC.Frontend.Validation;
-
-	it('accepts a well-formed email', () => {
-		expect(V().validateEmail('user@example.com')).toBe(true);
-		expect(V().validateEmail('first.last+tag@sub.domain.co')).toBe(true);
-	});
-
-	it('rejects emails missing the @ sign', () => {
-		expect(V().validateEmail('userexample.com')).toBe(false);
-	});
-
-	it('rejects emails missing the local part', () => {
-		expect(V().validateEmail('@example.com')).toBe(false);
-	});
-
-	it('rejects emails missing the TLD', () => {
-		expect(V().validateEmail('user@example')).toBe(false);
-	});
-
-	it('rejects emails with whitespace', () => {
-		expect(V().validateEmail('user @example.com')).toBe(false);
-	});
-});
 
 // ----------------------------------------------------------------------
 // FFC.Frontend.UI — DOM injection of error / success
@@ -299,6 +264,47 @@ describe('FFC.Frontend.Masks', () => {
 		// code clamped to 12 → "C-XXXX-XXXX-XXXX".
 		$i.val('C1234567890123').trigger('input');
 		expect($i.val()).toBe('C-1234-5678-9012');
+	});
+
+	// A pasted code keeps its tail: the browser no longer cuts it at 16
+	// before the mask strips the spacing a receipt or a PDF carries (#2730).
+	describe('pasted codes with spacing (#2730)', () => {
+		it.each([
+			['A - FDVS - UJA0 - BAMQ', 'A-FDVS-UJA0-BAMQ'],
+			['  A-FDVS-UJA0-BAMQ\n', 'A-FDVS-UJA0-BAMQ'],
+			['A-FDVS\nUJA0-BAMQ', 'A-FDVS-UJA0-BAMQ'],
+			['a-fdvs-uja0-bamq', 'A-FDVS-UJA0-BAMQ'],
+			['FDVS UJA0 BAMQ', 'FDVS-UJA0-BAMQ'],
+		])('masks %j as %s', (pasted, expected) => {
+			const $i = window.$('#t');
+			M().applyAuthCode($i);
+			$i.val(pasted).trigger('input');
+			expect($i.val()).toBe(expected);
+		});
+
+		it('raises a maxlength too short for a spaced paste to 64', () => {
+			document.body.innerHTML = '<input id="t" type="text" maxlength="16" />';
+			const $i = window.$('#t');
+			M().applyAuthCode($i);
+			expect($i.attr('maxlength')).toBe('64');
+		});
+
+		it('caps a long paste at the prefix and 12 characters', () => {
+			const $i = window.$('#t');
+			M().applyAuthCode($i);
+			$i.val('A-' + 'X'.repeat(30)).trigger('input');
+			expect($i.val()).toBe('A-XXXX-XXXX-XXXX');
+		});
+
+		it('the verification page leaves room for spacing and accepts it without JavaScript', () => {
+			const tpl = fs.readFileSync(path.resolve(__dirname, '../../templates/verification-page.php'), 'utf8');
+			// The tag spans several lines and holds `?>`, so it ends at the line that is only `>`.
+			const input = tpl.match(/<input[^<]*?name="ffc_auth_code"[\s\S]*?\n\s*>/)[0];
+			// Room for a spaced code ("A - FDVS - UJA0 - BAMQ" is 22 characters).
+			expect(Number(input.match(/maxlength="(\d+)"/)[1])).toBeGreaterThanOrEqual(22);
+			const pattern = input.match(/pattern="([^"]+)"/)[1];
+			expect(new RegExp('^(?:' + pattern + ')$').test('A - FDVS - UJA0 - BAMQ')).toBe(true);
+		});
 	});
 
 	it('applyAuthCode applies the mask to a pre-filled initial value', () => {

@@ -74,7 +74,6 @@ class SchemaRevisionRegisterTest extends TestCase {
 		'includes/core/class-ffc-database-helper-trait.php'        => 'The schema helpers themselves: they declare no column of their own.',
 		'includes/migrations/class-ffc-migration-dynamic-rereg-fields.php' => 'A one-shot migration of two tables their activators also declare; SchemaAgreementTest keeps the declarations equal, and the activators carry the revision.',
 		'includes/generators/class-ffc-qrcode-generator.php'       => 'Adds its cache column to the submissions table on first use, not behind a gate.',
-		'includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php' => 'A Settings → Migrations card the administrator runs: it drops the legacy combined columns once they are empty, by hand, never on a request.',
 		'includes/submissions/class-ffc-submission-lifecycle-service.php' => 'Resets AUTO_INCREMENT after a bulk delete; data maintenance, not a schema declaration.',
 	);
 

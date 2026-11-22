@@ -153,7 +153,7 @@ final class CsvStagingService {
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
 		$job_id = wp_generate_uuid4();
-		$now    = current_time( 'mysql' );
+		$now    = time();
 		$user   = (int) get_current_user_id();
 
 		// Job row first so a partially-ingested staging set without an
@@ -172,7 +172,7 @@ final class CsvStagingService {
 				'created_at'      => $now,
 				'updated_at'      => $now,
 			),
-			array( '%s', '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
+			array( '%s', '%d', '%s', '%s', '%d', '%d', '%d', '%d', '%d' )
 		);
 		if ( false === $inserted ) {
 			return array(
@@ -282,21 +282,20 @@ final class CsvStagingService {
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
-		// `created_at` is written with current_time( 'mysql' ), the site's
-		// time zone, so the cutoff is computed in that zone too; the
-		// database's NOW() is in the server's, and the two can be hours
-		// apart (#2245).
-		$cutoff = wp_date( 'Y-m-d H:i:s', time() - self::STAGING_JOB_TTL_SECONDS );
+		// `created_at` is an instant (#2679), so the cutoff is UTC seconds and
+		// no timezone enters the comparison; the database's NOW() would be in
+		// the server's zone (#2245).
+		$cutoff = time() - self::STAGING_JOB_TTL_SECONDS;
 
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
+				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
 				$cutoff
 			)
 		);
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$jobs_table} WHERE created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
+				"DELETE FROM {$jobs_table} WHERE created_at < %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 				$cutoff
 			)
 		);
@@ -334,18 +333,19 @@ final class CsvStagingService {
 	 *   ingested → invalid    (errors collected; staging preserved)
 	 *   ingested → needs_ack  (rows differ from stored candidates, #2245)
 	 *
-	 * @param string $job_id Job identifier.
+	 * @param string $job_id    Job identifier.
+	 * @param int    $notice_id The notice the request names; the job must belong to it and to the current user (#2694).
 	 * @return array{ok: true, errors: list<string>, mismatches: list<array{line: int, candidate_id: int, fields: list<string>}>}|array{ok: false, errors: list<string>}
 	 */
-	public static function validate_job( string $job_id ) {
+	public static function validate_job( string $job_id, int $notice_id ) {
 		global $wpdb;
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
 		$job = $wpdb->get_row(
-			$wpdb->prepare( "SELECT job_id, status FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from $wpdb->prefix.
+			$wpdb->prepare( "SELECT job_id, status, notice_id, user_id FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from $wpdb->prefix.
 		);
-		if ( null === $job ) {
+		if ( null === $job || self::is_foreign_job( $job, $notice_id ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_import_job_not_found' ),
@@ -513,10 +513,10 @@ final class CsvStagingService {
 			$jobs_table,
 			array(
 				'status'     => $next_status,
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			),
 			array( 'job_id' => $job_id ),
-			array( '%s', '%s' ),
+			array( '%s', '%d' ),
 			array( '%s' )
 		);
 
@@ -554,11 +554,12 @@ final class CsvStagingService {
 	 * acknowledged the identity mismatches (#2245).
 	 *
 	 * @param string $job_id               Job identifier.
+	 * @param int    $notice_id            The notice the request names (#2694).
 	 * @param int    $size                 Rows to process in this batch (clamped to 10–100).
 	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches.
 	 * @return array{ok: true, processed: int, total: int, done: bool}|array{ok: false, errors: list<string>}
 	 */
-	public static function promote_batch( string $job_id, int $size, bool $acknowledge_identity = false ) {
+	public static function promote_batch( string $job_id, int $notice_id, int $size, bool $acknowledge_identity = false ) {
 		global $wpdb;
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
@@ -566,7 +567,7 @@ final class CsvStagingService {
 		$job = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 		);
-		if ( null === $job ) {
+		if ( null === $job || self::is_foreign_job( $job, $notice_id ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_import_job_not_found' ),
@@ -614,10 +615,10 @@ final class CsvStagingService {
 				$jobs_table,
 				array(
 					'status'     => 'promoting',
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				),
 				array( 'job_id' => $job_id ),
-				array( '%s', '%s' ),
+				array( '%s', '%d' ),
 				array( '%s' )
 			);
 		}
@@ -665,9 +666,9 @@ final class CsvStagingService {
 		// with a concurrent retry from a frantic JS retry loop.
 		$wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$jobs_table} SET processed_count = processed_count + %d, updated_at = %s WHERE job_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
+				"UPDATE {$jobs_table} SET processed_count = processed_count + %d, updated_at = %d WHERE job_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$processed_now,
-				current_time( 'mysql' ),
+				time(),
 				$job_id
 			)
 		);
@@ -726,10 +727,11 @@ final class CsvStagingService {
 	 * call. The manual preliminary marks are carried onto the new rows.
 	 *
 	 * @param string $job_id           Job identifier.
+	 * @param int    $notice_id        The notice the request names (#2694).
 	 * @param bool   $confirm_reimport The operator confirmed the comparison.
 	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>, diff?: Diff}
 	 */
-	public static function commit_job( string $job_id, bool $confirm_reimport = false ) {
+	public static function commit_job( string $job_id, int $notice_id, bool $confirm_reimport = false ) {
 		global $wpdb;
 		$jobs_table           = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table        = $wpdb->prefix . 'ffc_recruitment_import_staging';
@@ -738,7 +740,7 @@ final class CsvStagingService {
 		$job = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 		);
-		if ( null === $job ) {
+		if ( null === $job || self::is_foreign_job( $job, $notice_id ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_import_job_not_found' ),
@@ -768,14 +770,13 @@ final class CsvStagingService {
 			);
 		}
 
-		// Re-checked at the swap: calls may have been made while the job was
-		// promoting, and a definitive swap must never wipe a called row.
-		if ( 'definitive' === (string) $job->list_type ) {
-			$notice  = RecruitmentNoticeReader::get_by_id( (int) $job->notice_id );
-			$blocked = null === $notice
-				? 'recruitment_notice_not_found'
-				: RecruitmentCsvImporter::definitive_import_block( (int) $job->notice_id, (string) $notice->status );
-			if ( null !== $blocked && 'committed' !== $job->status ) {
+		// Re-checked at the swap: the notice may have moved on while the job
+		// was promoting. A definitive swap must never wipe a called row, and
+		// a preliminary list must not replace one once the notice has become
+		// definitive or closed (#2694).
+		if ( 'committed' !== $job->status ) {
+			$blocked = self::commit_block( $job );
+			if ( null !== $blocked ) {
 				return array(
 					'ok'     => false,
 					'errors' => array( $blocked ),
@@ -804,15 +805,15 @@ final class CsvStagingService {
 				$wpdb->prepare(
 					'INSERT INTO %i
 						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, pcd_hash, status, created_at, updated_at)
-					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, pcd_hash, %s, %s, %s
+					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, pcd_hash, %s, %d, %d
 					 FROM %i
 					 WHERE job_id = %s AND processed = 1
 					 ORDER BY row_no',
 					$classification_table,
 					(string) $job->list_type,
 					'empty',
-					current_time( 'mysql' ),
-					current_time( 'mysql' ),
+					time(),
+					time(),
 					$staging_table,
 					$job_id
 				)
@@ -850,10 +851,10 @@ final class CsvStagingService {
 				$jobs_table,
 				array(
 					'status'     => 'committed',
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				),
 				array( 'job_id' => $job_id ),
-				array( '%s', '%s' ),
+				array( '%s', '%d' ),
 				array( '%s' )
 			);
 
@@ -914,6 +915,46 @@ final class CsvStagingService {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * Whether a job belongs to another notice or another operator (#2694).
+	 *
+	 * The route names the notice and the job id arrives in the body, so a
+	 * job id from elsewhere must not run under this notice's permission. It
+	 * reads as "not found", which reveals nothing about the job.
+	 *
+	 * @param object $job       Job row; carries notice_id and user_id.
+	 * @param int    $notice_id The notice the request names.
+	 * @return bool
+	 */
+	private static function is_foreign_job( object $job, int $notice_id ): bool {
+		$job_notice = isset( $job->notice_id ) && is_numeric( $job->notice_id ) ? (int) $job->notice_id : 0;
+		$job_user   = isset( $job->user_id ) && is_numeric( $job->user_id ) ? (int) $job->user_id : 0;
+		return $notice_id !== $job_notice || (int) get_current_user_id() !== $job_user;
+	}
+
+	/**
+	 * Why the staged list may not replace the live one now, or null.
+	 *
+	 * The notice is read again at the swap, with the same rules the import
+	 * used when it started.
+	 *
+	 * @param object $job Job row; carries notice_id and list_type.
+	 * @return string|null Error code, or null.
+	 */
+	private static function commit_block( object $job ): ?string {
+		$notice_id = isset( $job->notice_id ) && is_numeric( $job->notice_id ) ? (int) $job->notice_id : 0;
+		$notice    = RecruitmentNoticeReader::get_by_id( $notice_id );
+		if ( null === $notice ) {
+			return 'recruitment_notice_not_found';
+		}
+		if ( 'definitive' === (string) ( $job->list_type ?? '' ) ) {
+			return RecruitmentCsvImporter::definitive_import_block( $notice_id, (string) $notice->status );
+		}
+		return RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::IMPORT_PREVIEW, (string) $notice->status )
+			? null
+			: 'recruitment_invalid_state_for_preview_import';
 	}
 
 	/**

@@ -62,7 +62,7 @@ class Frontend {
 	public function __construct( SubmissionHandler $submission_handler ) {
 		$this->verification_handler = new VerificationHandler( $submission_handler );
 		$this->form_processor       = new FormProcessor( $submission_handler );
-		$this->shortcodes           = new Shortcodes();
+		$this->shortcodes           = new Shortcodes( $this->verification_handler );
 		$this->public_csv_download  = new PublicCsvDownload();
 
 		// DynamicFragments registers AJAX hooks in its constructor; WP holds the reference.
@@ -368,6 +368,10 @@ class Frontend {
 
 			// ffc-preflight: the boot watchdog this script reports to (#2030).
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-preflight' );
+			// The signed QR verifier (#2639), before the script that reads it.
+			if ( $has_verification ) {
+				SignedQrVerifier::enqueue();
+			}
 			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit', 'ffc-preflight' ), FFC_VERSION, true );
 
 			// The geofence core runs the visitor pre-flight on every form, and

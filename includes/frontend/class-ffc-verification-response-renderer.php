@@ -56,7 +56,10 @@ class VerificationResponseRenderer {
 		$form_title = $form ? $form->post_title : __( 'N/A', 'ffcertificate' );
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		$date_generated = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $submission->submission_date );
-		$display_code   = isset( $data['auth_code'] )
+		// The event's date (#2579), shown only when the form has one.
+		list( $event_start, $event_end ) = \FreeFormCertificate\Core\EventDate::range( (int) $submission->form_id );
+		$event_date                      = \FreeFormCertificate\Core\EventDate::format_range( $event_start, $event_end );
+		$display_code                    = isset( $data['auth_code'] )
 			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
 
@@ -77,11 +80,86 @@ class VerificationResponseRenderer {
 		// a legitimate adjustment rather than as tampering.
 		$schedule_exception_block = $this->build_schedule_exception_block( $submission );
 
+		// Whether the certificate still matches its signed record (#2639).
+		$integrity_notice = $this->integrity_notice( $submission );
+
 		// Render template.
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/certificate-preview.php';
 		$preview_html = ob_get_clean();
 		return $preview_html ? $preview_html : '';
+	}
+
+	/**
+	 * The notice saying whether the certificate still matches the record it
+	 * was signed with (#2639); '' for a certificate that was never signed.
+	 *
+	 * The signature is checked against the database here, on the server: a
+	 * changed value names the field, and a signature row that no longer
+	 * verifies says so rather than vouching for anything.
+	 *
+	 * @param object $submission The submission row.
+	 */
+	public function integrity_notice( object $submission ): string {
+		$row       = ( new \FreeFormCertificate\Submissions\SubmissionHandler() )->decrypt_submission_data( (array) $submission );
+		$integrity = \FreeFormCertificate\Submissions\CertificateSigner::integrity( $row );
+
+		switch ( $integrity['state'] ) {
+			case \FreeFormCertificate\Submissions\CertificateSigner::STATE_INTACT:
+				// A certificate signed later than it was issued (the backfill
+				// card, or a key generated after the form switched) says both
+				// dates (#2674). Dating the signature to the issue would claim
+				// an attestation that did not exist then, and could predate
+				// the key that made it.
+				if ( $integrity['issued'] > 0 && \FreeFormCertificate\Core\CertificateRecord::date( $integrity['signed_at'] ) > \FreeFormCertificate\Core\CertificateRecord::date( $integrity['issued'] ) ) {
+					return \FreeFormCertificate\Core\Notice::render(
+						'success',
+						'shield',
+						sprintf(
+							/* translators: 1: date the certificate was issued, 2: later date it was signed */
+							__( 'This certificate was issued on %1$s and signed by this site later, on %2$s. Its data still matches what was signed.', 'ffcertificate' ),
+							\FreeFormCertificate\Core\DateFormatter::format_date( $integrity['issued'] ),
+							\FreeFormCertificate\Core\DateFormatter::format_date( $integrity['signed_at'] )
+						),
+						__( 'Integrity confirmed', 'ffcertificate' ),
+						array( 'role' => 'note' )
+					);
+				}
+				return \FreeFormCertificate\Core\Notice::render(
+					'success',
+					'shield',
+					sprintf(
+						/* translators: %s: date the certificate was signed */
+						__( 'This certificate was signed by this site on %s, and its data still matches what was signed.', 'ffcertificate' ),
+						\FreeFormCertificate\Core\DateFormatter::format_date( $integrity['signed_at'] )
+					),
+					__( 'Integrity confirmed', 'ffcertificate' ),
+					array( 'role' => 'note' )
+				);
+			case \FreeFormCertificate\Submissions\CertificateSigner::STATE_CHANGED:
+				$labels  = \FreeFormCertificate\Core\CertificateRecord::field_labels();
+				$changed = array_values( array_unique( array_map( static fn( string $field ): string => $labels[ $field ] ?? $field, $integrity['changed'] ) ) );
+				return \FreeFormCertificate\Core\Notice::render(
+					'warning',
+					'warning',
+					sprintf(
+						/* translators: %s: list of changed fields, such as "Name, Course" */
+						__( 'Data changed after the certificate was signed: %s. Ask the issuer which version is the right one.', 'ffcertificate' ),
+						implode( ', ', $changed )
+					),
+					__( 'Changed after signing', 'ffcertificate' ),
+					array( 'role' => 'note' )
+				);
+			case \FreeFormCertificate\Submissions\CertificateSigner::STATE_INVALID:
+				return \FreeFormCertificate\Core\Notice::render(
+					'danger',
+					'warning',
+					__( 'The signature stored for this certificate does not verify, so this page cannot vouch for its data. Ask the issuer.', 'ffcertificate' ),
+					__( 'Signature not valid', 'ffcertificate' ),
+					array( 'role' => 'note' )
+				);
+		}
+		return '';
 	}
 
 	/**
@@ -204,12 +282,11 @@ class VerificationResponseRenderer {
 		}
 
 		// Format created_at.
+		// An instant (#2679); a legacy DATETIME reads in the site's timezone.
 		$formatted_created = __( 'N/A', 'ffcertificate' );
-		if ( ! empty( $appointment['created_at'] ) ) {
-			$ts = strtotime( $appointment['created_at'] );
-			if ( false !== $ts ) {
-				$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts );
-			}
+		$created_ts        = \FreeFormCertificate\Core\DateFormatter::instant_of( $appointment['created_at'] ?? null );
+		if ( $created_ts > 0 ) {
+			$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $created_ts );
 		}
 
 		// Status labels.
@@ -219,6 +296,7 @@ class VerificationResponseRenderer {
 			'cancelled' => __( 'Cancelled', 'ffcertificate' ),
 			'completed' => __( 'Completed', 'ffcertificate' ),
 			'no_show'   => __( 'No Show', 'ffcertificate' ),
+			'waitlist'  => __( 'Waitlist', 'ffcertificate' ),
 		);
 		$status        = $appointment['status'] ?? 'pending';
 		$status_label  = $status_labels[ $status ] ?? $status;
@@ -240,10 +318,12 @@ class VerificationResponseRenderer {
 		}
 
 		// Build HTML.
-		$html = '<div class="ffc-certificate-preview ffc-appointment-verification">';
+		$verdict = self::appointment_verdict( $status );
+
+		$html = '<div class="ffc-certificate-preview ffc-appointment-verification' . ( 'error' === $verdict['tone'] ? ' ffc-error' : '' ) . '">';
 
 		$html .= '<div class="ffc-preview-header">';
-		$html .= '<span class="ffc-status-badge ffc-status-badge-success ffc-icon-success">' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="ffc-status-badge' . ( '' !== $verdict['tone'] ? ' ffc-status-badge-' . esc_attr( $verdict['tone'] ) : '' ) . ' ffc-icon-' . esc_attr( $verdict['icon'] ) . '">' . esc_html( $verdict['label'] ) . '</span>';
 		$html .= '<br><span class="ffc-verification-status ffc-verification-status-' . esc_attr( $status ) . '">' . esc_html( $status_label ) . '</span>';
 		$html .= '</div>';
 
@@ -309,16 +389,21 @@ class VerificationResponseRenderer {
 
 		$html .= '</div>'; // .ffc-preview-body
 
-		$html .= '<div class="ffc-preview-actions">';
-		$html .= \FreeFormCertificate\Core\Button::html(
-			array(
-				'label'    => __( 'Download Receipt (PDF)', 'ffcertificate' ),
-				'category' => 'primary',
-				'icon'     => 'download',
-				'class'    => 'ffc-download-btn ffc-download-pdf-btn',
-			)
-		);
-		$html .= '</div>';
+		// A cancelled appointment has no receipt to hand out: the record is
+		// shown so the code is answered, but nothing downloadable says it
+		// still holds (#2689).
+		if ( 'cancelled' !== $status ) {
+			$html .= '<div class="ffc-preview-actions">';
+			$html .= \FreeFormCertificate\Core\Button::html(
+				array(
+					'label'    => __( 'Download Receipt (PDF)', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'download',
+					'class'    => 'ffc-download-btn ffc-download-pdf-btn',
+				)
+			);
+			$html .= '</div>';
+		}
 
 		$html .= '</div>'; // .ffc-certificate-preview
 
@@ -326,13 +411,57 @@ class VerificationResponseRenderer {
 	}
 
 	/**
+	 * What the verification headline says about an appointment in a status.
+	 *
+	 * Only a confirmed or completed appointment is a valid receipt. The others
+	 * are genuine records whose code still answers, so the headline names what
+	 * they are instead of calling them valid (#2689).
+	 *
+	 * @param string $status Appointment status.
+	 * @return array{label: string, tone: string, icon: string} Tone is a badge
+	 *         variant (`success`, `error`) or `''` for the neutral badge.
+	 */
+	public static function appointment_verdict( string $status ): array {
+		switch ( $status ) {
+			case 'confirmed':
+			case 'completed':
+				return array(
+					'label' => __( 'Appointment Receipt Valid', 'ffcertificate' ),
+					'tone'  => 'success',
+					'icon'  => 'success',
+				);
+			case 'cancelled':
+				return array(
+					'label' => __( 'Appointment Cancelled', 'ffcertificate' ),
+					'tone'  => 'error',
+					'icon'  => 'error',
+				);
+			case 'no_show':
+				return array(
+					'label' => __( 'Participant Did Not Attend', 'ffcertificate' ),
+					'tone'  => '',
+					'icon'  => 'warning',
+				);
+			default:
+				return array(
+					'label' => __( 'Appointment Not Confirmed Yet', 'ffcertificate' ),
+					'tone'  => '',
+					'icon'  => 'clock',
+				);
+		}
+	}
+
+	/**
 	 * Generate appointment PDF data for verification context
 	 *
 	 * @param array<string, mixed>                         $result Search result array.
 	 * @param \FreeFormCertificate\Generators\PdfGenerator $pdf_generator PDF generator instance.
+	 * @param bool                                         $masked        Mask CPF/RF and e-mail and leave the
+	 *                                                                    magic token out: the receipt reached
+	 *                                                                    by a validation code (#2689).
 	 * @return array<string, mixed> PDF data array
 	 */
-	public function generate_appointment_verification_pdf( array $result, \FreeFormCertificate\Generators\PdfGenerator $pdf_generator ): array {
+	public function generate_appointment_verification_pdf( array $result, \FreeFormCertificate\Generators\PdfGenerator $pdf_generator, bool $masked = false ): array {
 		$appointment = $result['appointment'];
 		$calendar    = array( 'title' => $result['data']['calendar_title'] ?? __( 'N/A', 'ffcertificate' ) );
 
@@ -344,7 +473,7 @@ class VerificationResponseRenderer {
 			}
 		}
 
-		return $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
+		return $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar, $masked );
 	}
 
 	/**

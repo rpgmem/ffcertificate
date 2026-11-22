@@ -18,6 +18,9 @@ class AppointmentValidatorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** A date still ahead whenever the suite runs: an upcoming slot counts toward the cap. */
+	private const UPCOMING = '2030-01-14';
+
 	/** @var AppointmentValidator */
 	private $validator;
 
@@ -82,6 +85,8 @@ class AppointmentValidatorTest extends TestCase {
 
 		// Default repo behavior: everything available
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( true )->byDefault();
+		// Nobody already on the slot (#2689) unless a test says so.
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() )->byDefault();
 		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false )->byDefault();
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() )->byDefault();
 
@@ -430,14 +435,26 @@ class AppointmentValidatorTest extends TestCase {
 		// The user (user_id=1) already holds two blocks in this calendar — one
 		// confirmed, one waitlisted (waitlist counts toward the cap).
 		$this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
-			array( 'calendar_id' => 1, 'status' => 'confirmed' ),
-			array( 'calendar_id' => 1, 'status' => 'waitlist' ),
+			array( 'calendar_id' => 1, 'status' => 'confirmed', 'appointment_date' => self::UPCOMING, 'start_time' => '09:00:00' ),
+			array( 'calendar_id' => 1, 'status' => 'waitlist', 'appointment_date' => self::UPCOMING, 'start_time' => '10:00:00' ),
 		) );
 
 		$result = $this->validator->validate( $this->valid_data(), $calendar );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'block_limit', $result->get_error_code() );
+	}
+
+	public function test_validate_block_cap_ignores_slots_that_have_already_started(): void {
+		// A waitlist row whose slot went by holds nobody's place, so it no
+		// longer bars the person; nor does a past confirmed one (#2689).
+		$calendar = array_merge( $this->custom_calendar(), array( 'max_blocks_per_user' => 1 ) );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
+			array( 'calendar_id' => 1, 'status' => 'waitlist', 'appointment_date' => '2020-01-06', 'start_time' => '09:00:00' ),
+			array( 'calendar_id' => 1, 'status' => 'confirmed', 'appointment_date' => '2020-01-07', 'start_time' => '09:00:00' ),
+		) );
+
+		$this->assertTrue( $this->validator->validate( $this->valid_data(), $calendar ) );
 	}
 
 	public function test_validate_block_cap_allows_user_below_limit(): void {
@@ -661,16 +678,6 @@ class AppointmentValidatorTest extends TestCase {
 		$this->assertTrue( $this->validator->validate( $data, $calendar ) );
 	}
 
-	public function test_validate_interval_resolves_identifier_from_email(): void {
-		$calendar                                      = $this->permissive_calendar();
-		$calendar['minimum_interval_between_bookings'] = 24;
-		$this->appointmentRepo->shouldReceive( 'findByEmail' )->andReturn( array() );
-		$data = $this->valid_data();
-		unset( $data['user_id'] ); // no user id → falls back to the email identifier.
-
-		$this->assertTrue( $this->validator->validate( $data, $calendar ) );
-	}
-
 	public function test_validate_interval_resolves_identifier_from_cpf_rf(): void {
 		$calendar                                      = $this->permissive_calendar();
 		$calendar['minimum_interval_between_bookings'] = 24;
@@ -679,6 +686,59 @@ class AppointmentValidatorTest extends TestCase {
 		unset( $data['user_id'], $data['email'] ); // no user id / email → CPF-RF identifier (logged-in skips email check).
 
 		$this->assertTrue( $this->validator->validate( $data, $calendar ) );
+	}
+
+	public function test_the_per_person_limits_key_on_the_document_before_the_email(): void {
+		// A new address must not reset the interval or the cap (#2689).
+		$calendar                                      = $this->permissive_calendar();
+		$calendar['minimum_interval_between_bookings'] = 24;
+		$this->appointmentRepo->shouldReceive( 'findByEmail' )->never();
+		$this->appointmentRepo->shouldReceive( 'findByCpfRf' )->once()->with( '5181780' )->andReturn( array() );
+		$data = $this->valid_data();
+		unset( $data['user_id'] );
+
+		$this->assertTrue( $this->validator->validate( $data, $calendar ) );
+	}
+
+	/**
+	 * A second active place on one slot for one person is refused (#2689).
+	 *
+	 * @dataProvider same_person_rows
+	 */
+	public function test_the_same_person_cannot_hold_two_places_on_one_slot( array $data_change, array $row ): void {
+		Functions\when( 'wp_salt' )->justReturn( \FreeFormCertificate\Tests\Support\FakeCredentials::WP_SALT );
+		$data = array_merge( $this->valid_data(), $data_change );
+		$row  = array_merge( array( 'calendar_id' => 1, 'appointment_date' => '2030-01-15', 'start_time' => '10:00:00', 'status' => 'confirmed', 'user_id' => 0 ), $row );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->with( 1, '2030-01-15', array( 'pending', 'confirmed', 'waitlist' ), true )->andReturn( array( $row ) );
+
+		$result = $this->validator->validate( $data, $this->permissive_calendar(), true );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'already_on_slot', $result->get_error_code() );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, mixed>, 1: array<string, mixed>}>
+	 */
+	public static function same_person_rows(): array {
+		$doc   = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '5181780' );
+		$email = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', 'test@example.com' );
+		return array(
+			'the account'                  => array( array(), array( 'user_id' => 1 ) ),
+			'the document, another e-mail' => array( array( 'user_id' => 0, 'email' => 'other@example.com' ), array( 'rf_hash' => $doc ) ),
+			'the e-mail, no document'      => array( array( 'user_id' => 0, 'cpf_rf' => '' ), array( 'email_hash' => $email ) ),
+		);
+	}
+
+	public function test_another_person_or_another_slot_is_not_the_same_place(): void {
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn(
+			array(
+				array( 'calendar_id' => 1, 'appointment_date' => '2030-01-15', 'start_time' => '10:00:00', 'status' => 'confirmed', 'user_id' => 2 ),
+				array( 'calendar_id' => 1, 'appointment_date' => '2030-01-15', 'start_time' => '11:00:00', 'status' => 'confirmed', 'user_id' => 1 ),
+			)
+		);
+
+		$this->assertTrue( $this->validator->validate( $this->valid_data(), $this->permissive_calendar() ) );
 	}
 
 	// ==================================================================
@@ -794,19 +854,23 @@ class AppointmentValidatorTest extends TestCase {
 		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-11', '10:00' ), 'Exactly the interval apart is allowed.' );
 	}
 
-	public function test_interval_uses_only_the_last_booked_appointment(): void {
+	public function test_interval_compares_with_the_appointment_nearest_in_time(): void {
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn(
 			array(
 				array( 'id' => 9, 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2030-06-01', 'start_time' => '10:00:00' ),
 				array( 'id' => 4, 'status' => 'completed', 'calendar_id' => 1, 'appointment_date' => '2030-03-10', 'start_time' => '10:00:00' ),
-				array( 'id' => 12, 'status' => 'cancelled', 'calendar_id' => 1, 'appointment_date' => '2030-03-10', 'start_time' => '11:00:00' ),
+				array( 'id' => 12, 'status' => 'cancelled', 'calendar_id' => 1, 'appointment_date' => '2030-03-12', 'start_time' => '11:00:00' ),
 			)
 		);
 
-		// An older appointment the same day does not count; the cancelled
-		// newest one neither — a reschedule is never held up by it.
-		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-10', '14:00' ) );
+		// The appointment booked most recently (id 9) is months away; the one
+		// beside the requested slot (id 4) is what decides (#2689).
+		$refused = $this->validator->check_booking_interval( 1, 1, 24, '2030-03-10', '14:00' );
+		$this->assertInstanceOf( \WP_Error::class, $refused );
+		$this->assertStringContainsString( '2030', $refused->get_error_message() );
+		// A cancelled one never counts, so a reschedule is not held up by it.
+		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-12', '12:00' ) );
 		$this->assertInstanceOf( \WP_Error::class, $this->validator->check_booking_interval( 1, 1, 24, '2030-06-01', '15:00' ) );
 	}
 

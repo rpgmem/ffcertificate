@@ -59,6 +59,11 @@ final class BulkIssueTemplateSource implements SyncSourceInterface {
 			wp_die( esc_html__( 'Invalid form.', 'ffcertificate' ) );
 		}
 
+		// The same gate as the preview, start and batch steps (#2696).
+		if ( ! current_user_can( 'edit_post', $this->form_id ) ) {
+			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
+		}
+
 		nocache_headers();
 	}
 

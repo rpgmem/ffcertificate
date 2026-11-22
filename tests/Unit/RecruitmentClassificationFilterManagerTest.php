@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -60,6 +61,16 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 	 */
 	private array $cpf_lookups = array();
 
+	/**
+	 * Every batched candidate read: the ids it asked for.
+	 *
+	 * @var list<list<int>>
+	 */
+	private array $batch_reads = array();
+
+	/** @var int Single-candidate reads by id. */
+	private int $single_reads = 0;
+
 	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
 	private $wpdb_backup;
 
@@ -73,8 +84,10 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
 
-		$this->candidates  = array();
-		$this->by_cpf_hash = array();
+		$this->candidates   = array();
+		$this->batch_reads  = array();
+		$this->single_reads = 0;
+		$this->by_cpf_hash  = array();
 		$this->cpf_lookups = array();
 
 		Functions\when( '__' )->returnArg();
@@ -84,7 +97,7 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
-		Functions\when( 'wp_salt' )->justReturn( 'test-auth-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
@@ -103,9 +116,25 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 					return $this->by_cpf_hash[ $value ] ?? null;
 				}
 				if ( str_contains( $query['sql'], 'WHERE id = %d' ) ) {
+					++$this->single_reads;
 					return $this->candidates[ (int) $value ] ?? null;
 				}
 				return null;
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) {
+				$this->assertStringContainsString( 'WHERE id IN (', $query['sql'] );
+				$args = $query['args'][0];
+				$this->assertSame( 'wp_ffc_recruitment_candidate', array_shift( $args ) );
+				$this->batch_reads[] = array_map( 'intval', $args );
+				$out                 = array();
+				foreach ( $args as $id ) {
+					if ( isset( $this->candidates[ (int) $id ] ) ) {
+						$out[] = (object) array_merge( array( 'id' => (string) $id ), (array) $this->candidates[ (int) $id ] );
+					}
+				}
+				return $out;
 			}
 		);
 		$GLOBALS['wpdb'] = $wpdb;
@@ -255,6 +284,8 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 
 		$this->assertCount( 1, $out );
 		$this->assertSame( 1, $out[0]->candidate_id );
+		$this->assertSame( array( array( 1, 2 ) ), $this->batch_reads, 'One read for every row (#2694).' );
+		$this->assertSame( 0, $this->single_reads, 'No read per row.' );
 	}
 
 	public function test_apply_filters_drops_rows_when_candidate_lookup_fails_during_name_search(): void {

@@ -253,7 +253,7 @@ class IpGeolocationTest extends TestCase {
 		// Stub both the namespaced and global call sites: which one the
 		// reader's all() resolves to depends on whether another test in the
 		// same process already declared FreeFormCertificate\Settings\get_option.
-		$geo = array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' );
+		$geo = array( 'ip_api_enabled' => '1' );
 		Functions\when( 'get_option' )->justReturn( $geo );
 
 		$result = IpGeolocation::get_location( '192.168.1.1' );
@@ -305,23 +305,28 @@ class IpGeolocationTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_location() — fetch / cache / cascade paths
+	// get_location() — fetch / cache paths
 	// ==================================================================
 
 	/**
 	 * Enable the geolocation API with the given extra settings.
 	 *
-	 * @param array<string, mixed> $extra       Settings over the defaults.
-	 * @param bool                 $ipapi_https Whether the site has ip-api.com's HTTPS plan
-	 *                                          (the `ffc_ipapi_use_https` filter, #2339).
+	 * @param array<string, mixed> $extra Settings over the defaults.
 	 */
-	private function enable_geo( array $extra = array(), bool $ipapi_https = true ): void {
-		$geo = array_merge( array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' ), $extra );
+	private function enable_geo( array $extra = array() ): void {
+		$geo = array_merge( array( 'ip_api_enabled' => '1' ), $extra );
 		Functions\when( 'get_option' )->justReturn( $geo );
-		Functions\when( 'apply_filters' )->alias(
-			static function ( $tag, $val = null ) use ( $ipapi_https ) {
-				return 'ffc_ipapi_use_https' === $tag ? $ipapi_https : $val;
-			}
+	}
+
+	/** An ipinfo.io answer for Mountain View. */
+	private function ipinfo_body(): string {
+		return (string) wp_json_encode(
+			array(
+				'country' => 'US',
+				'region'  => 'California',
+				'city'    => 'Mountain View',
+				'loc'     => '37.4,-122.0',
+			)
 		);
 	}
 
@@ -341,7 +346,7 @@ class IpGeolocationTest extends TestCase {
 
 	public function test_get_location_returns_cached_when_present(): void {
 		$this->enable_geo( array( 'ip_cache_enabled' => '1' ) );
-		$cached = array( 'ip' => '8.8.8.8', 'country' => 'US', 'service' => 'ip-api' );
+		$cached = array( 'ip' => '8.8.8.8', 'country' => 'US', 'service' => 'ipinfo' );
 		Functions\when( 'get_transient' )->justReturn( $cached );
 
 		$result = IpGeolocation::get_location( '8.8.8.8' );
@@ -350,51 +355,28 @@ class IpGeolocationTest extends TestCase {
 		$this->assertSame( 'US', $result['country'] );
 	}
 
-	public function test_get_location_ipapi_success_and_caches(): void {
+	public function test_get_location_success_is_cached(): void {
 		$this->enable_geo( array( 'ip_cache_enabled' => '1', 'ip_cache_ttl' => 600 ) );
 		Functions\when( 'get_transient' )->justReturn( false );
-		$body = (string) wp_json_encode(
-			array(
-				'status'      => 'success',
-				'country'     => 'United States',
-				'countryCode' => 'US',
-				'regionName'  => 'California',
-				'region'      => 'CA',
-				'city'        => 'Mountain View',
-				'lat'         => 37.4,
-				'lon'         => -122.0,
-			)
-		);
-		$this->stub_http(
-			static function () use ( $body ) {
-				return array( 'body' => $body );
+		$stored = array();
+		Functions\when( 'set_transient' )->alias(
+			static function ( $k, $v ) use ( &$stored ) {
+				$stored[ $k ] = $v;
+				return true;
 			}
 		);
+		$body = $this->ipinfo_body();
+		$this->stub_http( static fn() => array( 'body' => $body ) );
 
 		$result = IpGeolocation::get_location( '8.8.8.8' );
 
 		$this->assertIsArray( $result );
-		$this->assertSame( 'ip-api', $result['service'] );
-		$this->assertSame( 'US', $result['country_code'] );
+		$this->assertSame( 'ipinfo', $result['service'] );
 		$this->assertSame( 'Mountain View', $result['city'] );
+		$this->assertCount( 1, $stored, 'A successful lookup is cached.' );
 	}
 
-	public function test_get_location_ipapi_api_error_status(): void {
-		$this->enable_geo();
-		$body = (string) wp_json_encode( array( 'status' => 'fail', 'message' => 'reserved range' ) );
-		$this->stub_http(
-			static function () use ( $body ) {
-				return array( 'body' => $body );
-			}
-		);
-
-		$result = IpGeolocation::get_location( '8.8.8.8' );
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'api_error', $result->get_error_code() );
-	}
-
-	public function test_get_location_ipapi_invalid_response(): void {
+	public function test_get_location_invalid_response(): void {
 		$this->enable_geo();
 		$this->stub_http(
 			static function () {
@@ -409,7 +391,7 @@ class IpGeolocationTest extends TestCase {
 	}
 
 	public function test_get_location_ipinfo_success(): void {
-		$this->enable_geo( array( 'ip_api_service' => 'ipinfo', 'ipinfo_api_key' => 'k' ) );
+		$this->enable_geo( array( 'ipinfo_api_key' => 'k' ) );
 		$body = (string) wp_json_encode(
 			array(
 				'country' => 'BR',
@@ -433,7 +415,7 @@ class IpGeolocationTest extends TestCase {
 	}
 
 	public function test_get_location_ipinfo_api_error(): void {
-		$this->enable_geo( array( 'ip_api_service' => 'ipinfo' ) );
+		$this->enable_geo();
 		$body = (string) wp_json_encode( array( 'error' => array( 'title' => 'rate limited' ) ) );
 		$this->stub_http(
 			static function () use ( $body ) {
@@ -447,29 +429,12 @@ class IpGeolocationTest extends TestCase {
 		$this->assertSame( 'api_error', $result->get_error_code() );
 	}
 
-	public function test_an_unknown_service_falls_to_the_https_default(): void {
-		$this->enable_geo( array( 'ip_api_service' => 'bogus' ) );
-		$urls = array();
-		$this->stub_http(
-			static function ( $url ) use ( &$urls ) {
-				$urls[] = $url;
-				return new \WP_Error( 'http_fail', 'down' );
-			}
-		);
-
-		IpGeolocation::get_location( '8.8.8.8' );
-
-		$this->assertCount( 1, $urls );
-		$this->assertStringStartsWith( 'https://ipinfo.io/', $urls[0] );
-	}
-
 	/**
-	 * #2339: a visitor address is never sent in clear text. Without the HTTPS
-	 * plan, a site configured for ip-api.com asks ipinfo.io instead, and the
-	 * cascade does not fall back to ip-api.com either.
+	 * ip-api.com is gone (#2690): a site that stored it as its service, or
+	 * the cascade, still asks ipinfo.io, once, over HTTPS.
 	 */
-	public function test_ipapi_is_not_asked_without_its_https_plan(): void {
-		$this->enable_geo( array( 'ip_api_service' => 'ip-api', 'ip_api_cascade' => '1' ), false );
+	public function test_a_stored_ipapi_service_asks_ipinfo_once(): void {
+		$this->enable_geo( array( 'ip_api_service' => 'ip-api', 'ip_api_cascade' => '1' ) );
 		$urls = array();
 		$this->stub_http(
 			static function ( $url ) use ( &$urls ) {
@@ -481,21 +446,6 @@ class IpGeolocationTest extends TestCase {
 		IpGeolocation::get_location( '8.8.8.8' );
 
 		$this->assertSame( array( 'https://ipinfo.io/8.8.8.8/json' ), $urls );
-	}
-
-	public function test_ipapi_is_asked_over_https(): void {
-		$this->enable_geo();
-		$urls = array();
-		$this->stub_http(
-			static function ( $url ) use ( &$urls ) {
-				$urls[] = $url;
-				return new \WP_Error( 'http_fail', 'down' );
-			}
-		);
-
-		IpGeolocation::get_location( '8.8.8.8' );
-
-		$this->assertStringStartsWith( 'https://ip-api.com/', $urls[0] );
 	}
 
 	public function test_a_failed_lookup_is_remembered_and_not_repeated(): void {
@@ -534,7 +484,7 @@ class IpGeolocationTest extends TestCase {
 				return true;
 			}
 		);
-		$body = (string) wp_json_encode( array( 'status' => 'success', 'country' => 'US', 'countryCode' => 'US', 'lat' => 1, 'lon' => 2 ) );
+		$body = $this->ipinfo_body();
 		$this->stub_http( static fn() => array( 'body' => $body ) );
 
 		$result = IpGeolocation::get_location( '8.8.8.8' );
@@ -545,33 +495,6 @@ class IpGeolocationTest extends TestCase {
 		$this->assertNotContains( '8.8.8.8', array_values( $stored )[0] );
 	}
 
-	public function test_get_location_cascades_to_alternative_on_primary_failure(): void {
-		$this->enable_geo( array( 'ip_api_service' => 'ip-api', 'ip_api_cascade' => '1' ) );
-		$ipinfo_body = (string) wp_json_encode(
-			array(
-				'country' => 'BR',
-				'region'  => 'SP',
-				'city'    => 'Campinas',
-				'loc'     => '-22.9,-47.0',
-			)
-		);
-		// ip-api (primary) fails; ipinfo (alternative) succeeds.
-		$this->stub_http(
-			static function ( $url ) use ( $ipinfo_body ) {
-				if ( false !== strpos( $url, 'ip-api.com' ) ) {
-					return new \WP_Error( 'http_fail', 'down' );
-				}
-				return array( 'body' => $ipinfo_body );
-			}
-		);
-
-		$result = IpGeolocation::get_location( '8.8.8.8' );
-
-		$this->assertIsArray( $result );
-		$this->assertSame( 'ipinfo', $result['service'] );
-		$this->assertSame( 'Campinas', $result['city'] );
-	}
-
 	public function test_get_location_defaults_to_request_ip_when_omitted(): void {
 		$this->enable_geo();
 		// Drive the real RequestInput::get_user_ip() via $_SERVER (no alias mock —
@@ -580,18 +503,7 @@ class IpGeolocationTest extends TestCase {
 		$_SERVER['REMOTE_ADDR'] = '8.8.8.8';
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		$body = (string) wp_json_encode(
-			array(
-				'status'      => 'success',
-				'country'     => 'United States',
-				'countryCode' => 'US',
-				'regionName'  => 'California',
-				'region'      => 'CA',
-				'city'        => 'Mountain View',
-				'lat'         => 37.4,
-				'lon'         => -122.0,
-			)
-		);
+		$body = $this->ipinfo_body();
 		$this->stub_http(
 			static function () use ( $body ) {
 				return array( 'body' => $body );

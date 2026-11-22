@@ -46,7 +46,7 @@ class SelfSchedulingActivatorTest extends TestCase {
 				$args = func_get_args();
 				$sql  = $args[0];
 				for ( $i = 1; $i < count( $args ); $i++ ) {
-					$val = is_string( $args[ $i ] ) ? "'{$args[$i]}'" : $args[ $i ];
+					$val = is_string( $args[ $i ] ) ? "'{$args[$i]}'" : (string) $args[ $i ];
 					$sql = preg_replace( '/%[sidf]/', $val, $sql, 1 );
 				}
 				return $sql;
@@ -212,24 +212,6 @@ class SelfSchedulingActivatorTest extends TestCase {
 	// drop_tables()
 	// ==================================================================
 
-	public function test_drop_tables_drops_all_three(): void {
-		$prepared_queries = [];
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$prepared_queries ) {
-			$args = func_get_args();
-			$prepared_queries[] = $args;
-			return 'PREPARED_QUERY';
-		} );
-		$this->wpdb->shouldReceive( 'query' )->with( 'PREPARED_QUERY' )->andReturn( 1 );
-
-		SelfSchedulingActivator::drop_tables();
-
-		$drop_queries = array_filter( $prepared_queries, function ( $args ) {
-			return stripos( $args[0], 'DROP TABLE IF EXISTS' ) !== false;
-		} );
-
-		$this->assertCount( 3, $drop_queries, 'Should prepare DROP TABLE for all 3 self-scheduling tables' );
-	}
-
 	// ==================================================================
 	// maybe_heal_columns() — the panel columns between releases (#2405)
 	// ==================================================================
@@ -241,9 +223,10 @@ class SelfSchedulingActivatorTest extends TestCase {
 	 * @param string $revision  The revision option's stored value.
 	 * @param bool   $has_cols  Whether `SHOW COLUMNS` finds the columns.
 	 * @param array  $written   Receives the options written.
+	 * @param string $time_type The type `SHOW COLUMNS` reports for `created_at` / `updated_at`.
 	 * @return list<string>
 	 */
-	private function heal( string $revision, bool $has_cols, array &$written ): array {
+	private function heal( string $revision, bool $has_cols, array &$written, string $time_type = 'bigint(20) unsigned' ): array {
 		Functions\when( 'get_option' )->alias(
 			static fn( string $name, $default = '' ) => SelfSchedulingActivator::SCHEMA_REVISION_OPTION === $name ? $revision : FFC_VERSION
 		);
@@ -254,7 +237,26 @@ class SelfSchedulingActivatorTest extends TestCase {
 			}
 		);
 		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( $has_cols ? array( (object) array( 'Field' => 'x' ) ) : array() );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		// `SHOW COLUMNS … LIKE '<col>'` answers with that column; the
+		// timestamps carry $time_type, and no `_ts` staging column exists.
+		// Any other read (an index probe) finds something; the backfill's
+		// row read finds nothing.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) use ( $has_cols, $time_type ): array {
+				if ( ! $has_cols || 0 === stripos( (string) $query, 'SELECT id' ) ) {
+					return array();
+				}
+				if ( ! preg_match( "/SHOW COLUMNS FROM .* LIKE '([a-z_]+)'/", (string) $query, $m ) ) {
+					return array( (object) array( 'Field' => 'x' ) );
+				}
+				if ( '_ts' === substr( $m[1], -3 ) ) {
+					return array();
+				}
+				$type = in_array( $m[1], array( 'created_at', 'updated_at' ), true ) ? $time_type : 'varchar(20)';
+				return array( (object) array( 'Field' => $m[1], 'Type' => $type ) );
+			}
+		);
 
 		$alters = array();
 		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
@@ -293,6 +295,17 @@ class SelfSchedulingActivatorTest extends TestCase {
 
 		$this->assertSame( array(), $alters, 'Columns already there are not added again.' );
 		$this->assertSame( SelfSchedulingActivator::SCHEMA_REVISION, $written[ SelfSchedulingActivator::SCHEMA_REVISION_OPTION ] ?? null );
+	}
+
+	public function test_the_heal_converts_the_appointment_timestamps_and_waits_for_them(): void {
+		$written = array();
+		$alters  = $this->heal( '', true, $written, 'datetime' );
+
+		// Each DATETIME gets its staging column (#2679); the rows are read in
+		// the site's timezone and swapped in by the shared helper.
+		$this->assertNotEmpty( preg_grep( "/ADD COLUMN 'created_at_ts' BIGINT UNSIGNED NOT NULL DEFAULT 0/", $alters ) );
+		$this->assertNotEmpty( preg_grep( "/ADD COLUMN 'updated_at_ts' BIGINT UNSIGNED DEFAULT NULL/", $alters ) );
+		$this->assertArrayNotHasKey( SelfSchedulingActivator::SCHEMA_REVISION_OPTION, $written, 'The revision waits until both columns are BIGINT.' );
 	}
 
 	public function test_the_heal_does_nothing_at_the_current_revision(): void {

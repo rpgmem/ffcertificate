@@ -21,6 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Certificates Dashboard', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Certificates → Dashboard opens with a summary row (forms in the month shown, submissions today and over the last 7 days, GeoFence windows open now) above a calendar of forms by GeoFence start date, or by publication date when a form has none. Picking a day lists its forms beside the calendar. It needs ffc_view_certificates.', 'ffcertificate' ); ?></p>
 
+	<h4><?php esc_html_e( 'Signers', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Certificates → Signers lists the people a form can name as its signer. Each is a WordPress user who has an RF on their profile, with a role or sector, an optional signature image and an active flag; adding one needs ffc_manage_forms and is recorded in the activity log, because it lets that RF print on other people\'s certificates. The form chooses up to three signers on the Layout tab, and the layout prints each as {{signer1:name}}, {{signer1:rf}}, {{signer1:role}} and {{signer1:signature}} (the image URL, for an img tag), then {{signer2:…}} and {{signer3:…}}; {{signer:…}} is the same as {{signer1:…}}.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Add signer finds the person by search rather than a list, so it works on a site with thousands of accounts: type at least two letters of the name, login or e-mail, or the full RF, and pick the account from the results with the mouse or the arrow keys and Enter. Only accounts with an RF on their profile that are not signers yet are found, and the results name each one by display name and login.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Name and RF are read from the profile each time a certificate is generated, so a profile correction reaches every certificate; the role is read the same way. The RF prints in full on the certificate only: previews and the signer list show it masked, and the list reveals it, audited, to holders of ffc_view_certificates_pii. An inactive signer leaves the choice for new forms while the forms that use them keep them. When the user is deleted the signer keeps an encrypted copy of name and RF and becomes inactive, so issued certificates do not change; a personal data erasure request for that e-mail removes the copy, and certificates then print the RF masked.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Issuing certificates in bulk', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'When the participants are already known — an attendance sheet, a course roster — open the form in the form editor and use its Bulk issue tab, the last one, which appears only to users who hold the Issue certificates in bulk capability. Download the CSV template for the form, upload your file (up to 2 MB) and map each column to a form field. Name, CPF/RF and e-mail are required, the fields marked * must be mapped, and a row that leaves one of them empty is skipped. The preview then says how many certificates would be issued and how many rows would be skipped, with the reason for each skipped row. Nothing is issued until you confirm, and the certificates are issued in batches with a progress indicator.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'On a quiz form the tab also asks for the score of each participant: take the points from a column of the file, which must not exceed the maximum and must reach the passing score, or issue every certificate with a zero score, in which case the passing score does not apply and the preview warns you first. The issue date is the day each certificate is issued, one date you choose for all of them, or a column of the file. Choose whether to send the magic-link e-mail as each certificate is issued or not at all; a link that was not sent can be sent later from the submissions list with Send link by e-mail.', 'ffcertificate' ); ?></p>
@@ -113,16 +118,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Example 1: Simple Certificate', 'ffcertificate' ); ?></h4>
 		<pre><code>&lt;div style="text-align: center; font-family: Arial; padding: 50px;"&gt;
-	&lt;h1&gt;CERTIFICADO&lt;/h1&gt;
+	&lt;h1&gt;CERTIFICATE&lt;/h1&gt;
 	
 	&lt;p&gt;
-		Certificamos que &lt;strong&gt;{{name}}&lt;/strong&gt;, 
+		We certify that &lt;strong&gt;{{name}}&lt;/strong&gt;, 
 		CPF &lt;strong&gt;{{cpf_rf}}&lt;/strong&gt;, 
-		participou do evento &lt;strong&gt;{{form_title}}&lt;/strong&gt;.
+		attended the event &lt;strong&gt;{{form_title}}&lt;/strong&gt;.
 	&lt;/p&gt;
 	
-	&lt;p&gt;Data: {{submission_date}}&lt;/p&gt;
-	&lt;p&gt;Código: {{auth_code}}&lt;/p&gt;
+	&lt;p&gt;Date: {{submission_date}}&lt;/p&gt;
+	&lt;p&gt;Code: {{auth_code}}&lt;/p&gt;
 	
 	{{qr_code:size=150}}
 &lt;/div&gt;</code></pre>

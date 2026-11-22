@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -61,7 +62,7 @@ class CompositeCaptchaTest extends TestCase {
 		// the widget follows onto every surface rather than a list of them.
 		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_rand' )->alias( static fn( int $min = 0, int $max = 0 ): int => random_int( $min, $max ) );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'get_option' )->alias(
 			fn( string $key, $default = false ) => 'ffc_settings' === $key ? $this->settings : $default
 		);
@@ -111,22 +112,6 @@ class CompositeCaptchaTest extends TestCase {
 			$this->settings = array( CaptchaProvider::SETTING_KEY => $id );
 
 			$this->assertInstanceOf( $class, CaptchaProvider::resolve() );
-		}
-	}
-
-	public function test_only_the_two_widget_modes_load_the_bundle(): void {
-		// A site on the math challenge must not ship 111 KB it cannot use.
-		$expected = array(
-			MathCaptcha::ID      => false,
-			AltchaCaptcha::ID    => true,
-			CompositeCaptcha::ID => true,
-		);
-
-		foreach ( $expected as $id => $needed ) {
-			CaptchaProvider::reset();
-			$this->settings = array( CaptchaProvider::SETTING_KEY => $id );
-
-			$this->assertSame( $needed, CaptchaProvider::needs_altcha_widget(), "mode {$id}" );
 		}
 	}
 

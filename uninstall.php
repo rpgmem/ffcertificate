@@ -51,8 +51,9 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
 	wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
 	wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
-	// @removal 6.45.0 -- the names these hooks had before #2323; an event
-	// may still be pending under one.
+	wp_unschedule_hook( 'ffc_audience_invite_all_batch' );
+	// The names these hooks had before #2323: an install that skipped the
+	// releases carrying the relay may still hold an event under one.
 	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
@@ -70,6 +71,7 @@ if ( ! $ffcertificate_purge ) {
 	wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
 	wp_unschedule_hook( 'ffc_audience_notification_batch' );
 	wp_unschedule_hook( 'ffc_recruitment_account_link_batch' );
+	wp_unschedule_hook( 'ffc_recruitment_call_mail_batch' );
 	wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 	wp_unschedule_hook( 'ffc_date_messages_batch' );
 	wp_unschedule_hook( 'ffc_date_messages_digest' );
@@ -175,6 +177,8 @@ $ffcertificate_tables = array(
 	// Bulk-issue staging (#1945): rows hold personal data until the job ends.
 	$wpdb->prefix . 'ffc_bulk_issue_rows',
 	$wpdb->prefix . 'ffc_bulk_issue_jobs',
+	// Signed certificate records (#2639): the record is encrypted, it names the holder.
+	$wpdb->prefix . 'ffc_certificate_signatures',
 );
 
 // The discovered half. `esc_like()` is load-bearing on the underscore: `_` is a
@@ -210,6 +214,8 @@ $ffcertificate_options = array(
 	'ffc_rate_limit_keyed_cutover',
 	'ffc_encryption_v1_reads',
 	'ffc_bulk_issue_db_version',
+	'ffc_certificate_signatures_db_version',
+	'ffc_signing_keys', // Written only when a signing key is generated (#2639).
 	'ffc_user_access_settings',
 	'ffc_global_holidays',
 	'ffc_calendar_appearance', // Written only when the calendar colours and labels are saved (#2215).
@@ -312,6 +318,11 @@ $ffcertificate_options = array(
 	'ffc_display_name_backfill_state',
 	// The birth-date backfill cursor (#1538), written only when that card runs.
 	'ffc_birth_date_backfill_state',
+	'ffc_event_date_migration_state',
+	'ffc_shared_template_migration_state',
+	// Cursor of the card that signs certificates already issued (#2639), written only when it runs.
+	'ffc_certificate_signing_backfill_state',
+	'ffc_certificate_signers',
 	// The reregistration draft-encryption cursor (#2242), written only when that card runs.
 	'ffc_rereg_draft_encryption_state',
 	// The name-parts backfill cursor (#1552), written only when that card runs.
@@ -453,8 +464,9 @@ wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
 wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
 wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
 wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
-// @removal 6.45.0 -- the names these hooks had before #2323; an event
-// may still be pending under one.
+wp_unschedule_hook( 'ffc_audience_invite_all_batch' );
+// The names these hooks had before #2323: an install that skipped the
+// releases carrying the relay may still hold an event under one.
 wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
@@ -468,6 +480,7 @@ wp_unschedule_hook( 'ffc_reregistration_reminder_batch' );
 wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
 wp_unschedule_hook( 'ffc_audience_notification_batch' );
 wp_unschedule_hook( 'ffc_recruitment_account_link_batch' );
+wp_unschedule_hook( 'ffc_recruitment_call_mail_batch' );
 wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 wp_unschedule_hook( 'ffc_date_messages_batch' );
 wp_unschedule_hook( 'ffc_date_messages_digest' );

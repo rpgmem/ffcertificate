@@ -236,9 +236,10 @@ class PrivacyHandlerTest extends TestCase {
 
 		PrivacyHandler::add_privacy_policy_content();
 
-		foreach (['ip-api.com', 'location', 'cookie', 'ViaCEP', 'quiz', 'birthday', 'Short links', 'exceed the limits'] as $flow) {
+		foreach (['ipinfo.io', 'location', 'cookie', 'ViaCEP', 'quiz', 'birthday', 'Short links', 'exceed the limits'] as $flow) {
 			$this->assertStringContainsStringIgnoringCase($flow, $captured, "The suggested text omits: {$flow}.");
 		}
+		$this->assertStringNotContainsString('ip-api.com', $captured, 'ip-api.com is no longer asked (#2690).');
 		$this->assertStringContainsString('for 30 days', $captured, 'Device signals use the configured retention.');
 		$this->assertStringContainsString('400 days after', $captured, 'The submission cleanup is named when it is on.');
 		$this->resetRateLimitSettings();
@@ -272,33 +273,6 @@ class PrivacyHandlerTest extends TestCase {
 		$prop = new \ReflectionProperty(\FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache');
 		$prop->setAccessible(true);
 		$prop->setValue(null, null);
-	}
-
-	/**
-	 * Runs in a separate process because once Brain Monkey defines
-	 * wp_add_privacy_policy_content() in another test, PHP keeps it defined
-	 * for the rest of the process and function_exists() can no longer be
-	 * false. A fresh process guarantees the core function is absent.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_add_privacy_policy_content_noop_when_core_function_missing(): void {
-		// wp_add_privacy_policy_content is intentionally NOT stubbed here, so
-		// function_exists() is false and the method must return without error
-		// and without touching settings. That second half was only ever a
-		// comment; read the settings and check it.
-		$read = array();
-		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default_value = false ) use ( &$read ) {
-				$read[] = (string) $key;
-				return $default_value;
-			}
-		);
-
-		PrivacyHandler::add_privacy_policy_content();
-
-		$this->assertSame( array(), $read, 'Nothing should be read when core cannot accept the content.' );
 	}
 
 	// ==================================================================
@@ -353,11 +327,13 @@ class PrivacyHandlerTest extends TestCase {
 	// register_erasers()
 	// ==================================================================
 
-	public function test_register_erasers_adds_one_entry(): void {
+	public function test_register_erasers_adds_the_plugin_and_the_signer_erasers(): void {
 		$result = PrivacyHandler::register_erasers(array());
 
-		$this->assertCount(1, $result);
+		$this->assertCount(2, $result);
 		$this->assertArrayHasKey('ffcertificate', $result);
+		// The copy of name and RF a deleted signer leaves behind (#2582).
+		$this->assertSame(array(\FreeFormCertificate\Core\CertificateSigners::class, 'erase'), $result['ffcertificate-signers']['callback']);
 	}
 
 	public function test_register_erasers_preserves_existing_entries(): void {
@@ -370,7 +346,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$result = PrivacyHandler::register_erasers($existing);
 
-		$this->assertCount(2, $result);
+		$this->assertCount(3, $result);
 		$this->assertArrayHasKey('other-eraser', $result);
 		$this->assertArrayHasKey('ffcertificate', $result);
 	}
@@ -942,13 +918,16 @@ class PrivacyHandlerTest extends TestCase {
 		$user = $this->make_user();
 		Functions\when('get_user_by')->justReturn($user);
 		$this->mock_all_tables_exist();
+		// Date and time go through DateFormatter, in the plugin's format (#2676).
+		Functions\when('get_option')->justReturn(array());
+		Functions\when('wp_date')->alias(static fn($format, $ts) => gmdate($format, (int) $ts));
 
 		$bookings = array(
 			array(
 				'id' => 301,
 				'booking_date' => '2024-08-01',
-				'start_time' => '09:00',
-				'end_time' => '10:00',
+				'start_time' => '09:00:00',
+				'end_time' => '10:00:00',
 				'description' => 'Team standup',
 				'status' => 'confirmed',
 				'is_all_day' => 0,
@@ -977,7 +956,9 @@ class PrivacyHandlerTest extends TestCase {
 			}
 		}
 		$this->assertNotNull($time_data);
-		$this->assertSame('09:00 - 10:00', $time_data['value']);
+		$this->assertSame('09:00 - 10:00', $time_data['value'], 'The stored seconds never reach the export.');
+		$dates = array_column($item['data'], 'value', 'name');
+		$this->assertSame('01/08/2024', $dates['Date']);
 	}
 
 	public function test_export_audience_form_invites_returns_empty_without_a_user_or_a_table(): void {

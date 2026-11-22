@@ -535,49 +535,6 @@ class CustomFieldReader {
 	}
 
 	/**
-	 * Get the ordered list of groups for an audience.
-	 *
-	 * Groups are ordered by the minimum sort_order of their fields.
-	 *
-	 * @param int  $audience_id Audience ID.
-	 * @param bool $active_only Only consider active fields.
-	 * @return array<string> Ordered group keys.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_groups_for_audience( int $audience_id, bool $active_only = true ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$grouped = self::get_by_audience_grouped( $audience_id, $active_only );
-		return array_keys( $grouped );
-	}
-
-	/**
-	 * Get fields that map to a user profile key (field_profile_key IS NOT NULL).
-	 *
-	 * @param int  $audience_id Audience ID.
-	 * @param bool $active_only Only active fields.
-	 * @return list<CustomFieldRow>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_profile_fields( int $audience_id, bool $active_only = true ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$fields = self::get_by_audience( $audience_id, $active_only );
-		return array_values(
-			array_filter(
-				$fields,
-				static function ( $field ) {
-					return ! empty( $field->field_profile_key );
-				}
-			)
-		);
-	}
-
-	/**
 	 * Get sensitive (is_sensitive=1) fields for an audience.
 	 *
 	 * Used by the data processor to know which values must be encrypted
@@ -597,49 +554,6 @@ class CustomFieldReader {
 				}
 			)
 		);
-	}
-
-	/**
-	 * Get the set of sensitive field_keys for an audience.
-	 *
-	 * @param int  $audience_id Audience ID.
-	 * @param bool $active_only Only active fields.
-	 * @return array<string> field_keys of sensitive fields.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_sensitive_keys_for_audience( int $audience_id, bool $active_only = true ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$fields = self::get_sensitive_fields( $audience_id, $active_only );
-		return array_map(
-			static function ( $field ) {
-				return (string) $field->field_key;
-			},
-			$fields
-		);
-	}
-
-	/**
-	 * Get fields for an audience indexed by field_key.
-	 *
-	 * @param int  $audience_id Audience ID.
-	 * @param bool $active_only Only active fields.
-	 * @return array<string, object>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_by_audience_keyed( int $audience_id, bool $active_only = true ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$fields = self::get_by_audience( $audience_id, $active_only );
-		$keyed  = array();
-		foreach ( $fields as $field ) {
-			$keyed[ (string) $field->field_key ] = $field;
-		}
-		return $keyed;
 	}
 
 	/**
@@ -693,24 +607,6 @@ class CustomFieldReader {
 		// Answers under an audience's former copy of a field read as the
 		// field's own until the migration rewrites them (#2502).
 		return CustomFieldAnswerMerge::converge( $user_id, $data )['data'];
-	}
-
-	/**
-	 * Get a single field value for a user.
-	 *
-	 * @param int $user_id  User ID.
-	 * @param int $field_id Field ID.
-	 * @return mixed|null Field value or null if not set.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_user_field_value( int $user_id, int $field_id ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$data = self::get_user_data( $user_id );
-		$key  = 'field_' . $field_id;
-		return $data[ $key ] ?? null;
 	}
 
 	/**

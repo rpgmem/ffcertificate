@@ -49,12 +49,34 @@ class SettingsActionHandler {
 	private $save_handler;
 
 	/**
+	 * The maintenance tools the Danger Zone actions run (#2567); built on
+	 * first use, so a request that runs none of them builds none.
+	 *
+	 * @var \FreeFormCertificate\Maintenance\MaintenanceToolRegistry|null
+	 */
+	private $tools;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param \FreeFormCertificate\Admin\SettingsSaveHandler $save_handler Save handler.
+	 * @param \FreeFormCertificate\Admin\SettingsSaveHandler                $save_handler Save handler.
+	 * @param \FreeFormCertificate\Maintenance\MaintenanceToolRegistry|null $tools        Maintenance tools; the default set when null.
 	 */
-	public function __construct( \FreeFormCertificate\Admin\SettingsSaveHandler $save_handler ) {
+	public function __construct( \FreeFormCertificate\Admin\SettingsSaveHandler $save_handler, ?\FreeFormCertificate\Maintenance\MaintenanceToolRegistry $tools = null ) {
 		$this->save_handler = $save_handler;
+		$this->tools        = $tools;
+	}
+
+	/**
+	 * The maintenance tools, the default set unless the constructor was given one.
+	 *
+	 * @return \FreeFormCertificate\Maintenance\MaintenanceToolRegistry
+	 */
+	private function tools(): \FreeFormCertificate\Maintenance\MaintenanceToolRegistry {
+		if ( null === $this->tools ) {
+			$this->tools = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default();
+		}
+		return $this->tools;
 	}
 
 	/**
@@ -385,7 +407,7 @@ class SettingsActionHandler {
 				break;
 
 			case 'preview':
-				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
+				$tool = $this->tools()->get( 'obsolete_shortcode' );
 				if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
 					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 					break;
@@ -415,7 +437,7 @@ class SettingsActionHandler {
 					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', self::preview_changed_message() );
 					break;
 				}
-				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
+				$tool = $this->tools()->get( 'obsolete_shortcode' );
 				if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
 					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 					break;
@@ -507,7 +529,7 @@ class SettingsActionHandler {
 			$settings = array();
 		}
 
-		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'url_shortener_cleanup' );
+		$tool = $this->tools()->get( 'url_shortener_cleanup' );
 		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
 			$redirect_url = SettingsNotice::add( $redirect_url, 'url_cleanup', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 			wp_safe_redirect( $redirect_url );
@@ -670,7 +692,7 @@ class SettingsActionHandler {
 			$settings = array();
 		}
 
-		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'public_access_disabler' );
+		$tool = $this->tools()->get( 'public_access_disabler' );
 		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
 			$redirect_url = SettingsNotice::add( $redirect_url, 'pubaccess', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 			wp_safe_redirect( $redirect_url );
@@ -797,7 +819,7 @@ class SettingsActionHandler {
 			admin_url( 'admin.php' )
 		);
 
-		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'submission_link_audit' );
+		$tool = $this->tools()->get( 'submission_link_audit' );
 		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
 			$redirect_url = SettingsNotice::add( $redirect_url, 'submission_audit', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 			wp_safe_redirect( $redirect_url );

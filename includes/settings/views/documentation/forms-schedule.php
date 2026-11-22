@@ -43,6 +43,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p>
 			<?php esc_html_e( 'The "Event Schedule (Reference)" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. When Settings → Certificates requires {{schedule}}, the certificate layout must contain it. The tokens use a per-participant exception first, then the Event Schedule, then the window\'s start/end time. See', 'ffcertificate' ); ?> <a href="#reference-tokens"><?php esc_html_e( 'Template Variables / Tokens', 'ffcertificate' ); ?></a>.
 		</p>
+		<p>
+			<?php esc_html_e( 'The Event Schedule also holds the event\'s date: Start, and End for an event of several days. {{schedule:date}} and {{schedule:dates}} print it on the certificate, in the submissions export and on the verification page. It is a different date from the opening window and never follows it; "Use the opening date" copies it only when clicked. Saving a form whose layout prints the date without an event date shows a warning.', 'ffcertificate' ); ?>
+		</p>
 	<?php
 	\FreeFormCertificate\Core\AdminNotice::callout(
 		'info',

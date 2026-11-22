@@ -254,6 +254,55 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$this->page->handle_actions();
 	}
 
+	/**
+	 * Run one row action as a manager, and return where it redirected.
+	 *
+	 * @param string $action Row action.
+	 */
+	private function run_row_action( string $action ): string {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) {
+				throw new \RuntimeException( (string) $url );
+			}
+		);
+		$_GET['page']       = 'ffc-short-urls';
+		$_GET['ffc_action'] = $action;
+		$_GET['id']         = '5';
+		$_GET['_wpnonce']   = 'valid_nonce';
+
+		try {
+			$this->page->handle_actions();
+		} catch ( \RuntimeException $e ) {
+			return $e->getMessage();
+		}
+		$this->fail( 'The action ends in a redirect.' );
+	}
+
+	/**
+	 * A row action that changed nothing (the link is gone already) says so
+	 * instead of reporting success (#2693).
+	 *
+	 * @dataProvider row_actions
+	 */
+	public function test_a_row_action_that_changed_nothing_reports_a_failure( string $action, string $method, string $done ): void {
+		$this->service->shouldReceive( $method )->with( 5 )->andReturn( false, true );
+
+		$this->assertStringEndsWith( 'msg=action_failed', $this->run_row_action( $action ) );
+		$this->assertStringEndsWith( 'msg=' . $done, $this->run_row_action( $action ) );
+	}
+
+	/** @return array<string, array{string, string, string}> */
+	public static function row_actions(): array {
+		return array(
+			'trash'   => array( 'trash', 'trash_short_url', 'trashed' ),
+			'restore' => array( 'restore', 'restore_short_url', 'restored' ),
+			'delete'  => array( 'delete', 'delete_short_url', 'deleted' ),
+		);
+	}
+
 	public function test_a_viewer_gets_no_write_controls_in_the_list(): void {
 		$_GET['status'] = 'all';
 		// Unfiltered: a search another test left behind would draw Clear.

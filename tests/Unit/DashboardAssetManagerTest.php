@@ -30,6 +30,10 @@ class DashboardAssetManagerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -72,6 +76,7 @@ class DashboardAssetManagerTest extends TestCase {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
 		Functions\when( 'wp_timezone_string' )->justReturn( 'America/Sao_Paulo' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'get_option' )->justReturn( array() );
 
 		// Global stubs only: stubbing a namespaced copy would define it for
@@ -170,6 +175,8 @@ class DashboardAssetManagerTest extends TestCase {
 		$this->assertArrayHasKey( 'nonce', $dashboard );
 		$this->assertArrayHasKey( 'strings', $dashboard );
 		$this->assertFalse( $dashboard['viewAsUserId'] );
+		$this->assertSame( 'America/Sao_Paulo', $dashboard['icsZone']['tzid'], 'The .ics the dashboard builds names the site zone (#2689).' );
+		$this->assertStringStartsWith( "BEGIN:VTIMEZONE\r\nTZID:America/Sao_Paulo\r\n", $dashboard['icsZone']['vtimezone'] );
 	}
 
 	// ==================================================================

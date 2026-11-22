@@ -545,15 +545,15 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Cancel one batch of pending appointments up to $cutoff.
+	 * Cancel one batch of pending and waitlisted appointments up to $cutoff.
 	 *
 	 * @param string $cutoff Last appointment date, `Y-m-d`.
 	 * @param string $reason Cancellation reason.
 	 * @param int    $limit  Rows per batch.
 	 * @return int|false
 	 */
-	public function expirePendingUpTo( string $cutoff, string $reason, int $limit ) {
-		return $this->writer->expirePendingUpTo( $cutoff, $reason, $limit );
+	public function expireUnconfirmedUpTo( string $cutoff, string $reason, int $limit ) {
+		return $this->writer->expireUnconfirmedUpTo( $cutoff, $reason, $limit );
 	}
 
 	/**

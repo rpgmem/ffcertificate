@@ -124,9 +124,10 @@ class PdfGenerator {
 		$data = apply_filters( 'ffcertificate_certificate_data', $data, $submission_id, $sub_array );
 
 		// Get form data (convert form_id to int - wpdb returns strings).
-		$form_id      = (int) $sub_array['form_id'];
-		$form_title   = get_the_title( $form_id );
-		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
+		$form_id    = (int) $sub_array['form_id'];
+		$form_title = get_the_title( $form_id );
+		// The layout of the template the form references, or its own copy (#2581).
+		$form_config  = \FreeFormCertificate\Core\CertificateTemplateLink::form_config( $form_id );
 		$bg_image_url = \FreeFormCertificate\Core\FormBackground::url( $form_id );
 
 		// `{{schedule}}` / `{{schedule_total}}` (#366 Sprint 7). Resolve
@@ -139,6 +140,11 @@ class PdfGenerator {
 		list( $sched_start, $sched_end ) = $this->resolve_effective_schedule( $form_id, $sub_array );
 		$data['schedule']                = \FreeFormCertificate\Core\DateFormatter::format_schedule( $sched_start, $sched_end );
 		$data['schedule_total']          = \FreeFormCertificate\Core\DateFormatter::format_schedule_total( $sched_start, $sched_end );
+		// The event's date (#2579), read by the renderer for {{schedule:date}}
+		// and {{schedule:dates}}. Never the opening window.
+		list( $event_start, $event_end )                         = \FreeFormCertificate\Core\EventDate::range( $form_id );
+		$data[ \FreeFormCertificate\Core\EventDate::DATA_START ] = $event_start;
+		$data[ \FreeFormCertificate\Core\EventDate::DATA_END ]   = $event_end;
 
 		// A field the form has but this submission lacks prints blank, not as
 		// a literal `{{tag}}` (#2241): the layout is regenerated from its
@@ -147,6 +153,12 @@ class PdfGenerator {
 		// An unknown tag is not a field and stays visible, so a typo in the
 		// layout is still noticed.
 		$data += array_fill_keys( self::field_names( $form_id ), '' );
+
+		// {{signerN:name|rf|role|signature}} and the {{signer:…}} alias of
+		// position 1 (#2582, #2620): the form's signers, read from their
+		// profiles now. The RF prints in full on the certificate, a
+		// documented exception (CLAUDE.md "Security & PII conventions").
+		$data = array_merge( $data, \FreeFormCertificate\Core\CertificateSigners::form_token_values( $form_id ) );
 
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		$submission_ts = isset( $sub_array['submission_date'] ) ? (int) $sub_array['submission_date'] : null;
@@ -214,6 +226,11 @@ class PdfGenerator {
 			'bg_image'      => $bg_image_url,
 			'bg_color'      => \FreeFormCertificate\Core\FormBackground::color( $form_id ),
 		);
+		// A portrait page, which a visual template can declare (#2584); the
+		// capture prints landscape otherwise.
+		if ( 'portrait' === ( $form_config['orientation'] ?? '' ) ) {
+			$pdf_data['orientation'] = 'portrait';
+		}
 
 		/**
 		 * Fires after PDF data is fully generated.
@@ -285,66 +302,6 @@ class PdfGenerator {
 	}
 
 	/**
-	 * Generate PDF data from form submission (for frontend)
-	 *
-	 * @param array<string, mixed> $submission_data Posted form data.
-	 * @param int                  $form_id Form ID.
-	 * @param int|null             $submission_date Submission instant (unix UTC seconds since 6.6.0).
-	 * @return array<string, mixed>|\WP_Error PDF data array
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?int $submission_date = null ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		// Get form data.
-		$form_post = get_post( $form_id );
-		if ( ! $form_post ) {
-			return new WP_Error( 'form_not_found', __( 'Form not found.', 'ffcertificate' ) );
-		}
-
-		$form_title   = $form_post->post_title;
-		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
-		$bg_image_url = \FreeFormCertificate\Core\FormBackground::url( $form_id );
-
-		// Add formatted date.
-		if ( $submission_date ) {
-			$formatted_date               = \FreeFormCertificate\Core\DateFormatter::format_datetime( $submission_date, 'pdf' );
-			$submission_data['fill_date'] = $formatted_date;
-			$submission_data['date']      = $formatted_date;
-		}
-
-		$html = $this->html_renderer->generate_html( $submission_data, $form_title, $form_config, $submission_date );
-
-		// Get verification code.
-		$auth_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
-
-		// 6.6.11 — standardized filename pattern (shared helper). See the
-		// sibling site in generate_pdf_data() for the full rationale.
-		$filename = \FreeFormCertificate\Core\FilenameHelper::build_pdf_filename( 'certificate', (int) $form_id, (string) $auth_code );
-
-		// Log generation.
-		\FreeFormCertificate\Core\Debug::log_pdf(
-			'PDF data generated from form',
-			array(
-				'form_id'      => $form_id,
-				'form_title'   => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
-				'html_length'  => strlen( $html ),
-				'has_bg_image' => ! empty( $bg_image_url ),
-			)
-		);
-
-		return array(
-			'html'       => $html,
-			'filename'   => $filename,
-			'form_title' => $form_title,
-			'bg_image'   => $bg_image_url,
-			'bg_color'   => \FreeFormCertificate\Core\FormBackground::color( (int) $form_id ),
-		);
-	}
-
-	/**
 	 * Generate PDF data for appointment receipt
 	 *
 	 * Uses the same HTML→canvas→PDF pipeline as certificates.
@@ -387,12 +344,11 @@ class PdfGenerator {
 		// receipts. Falls back to the start alone when no end is stored.
 		$formatted_range = '' !== $formatted_end ? $formatted_start . ' – ' . $formatted_end : $formatted_start;
 
+		// An instant (#2679); a legacy DATETIME reads in the site's timezone.
 		$formatted_created = __( 'N/A', 'ffcertificate' );
-		if ( ! empty( $appointment['created_at'] ) ) {
-			$ts = strtotime( $appointment['created_at'] );
-			if ( false !== $ts ) {
-				$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts, 'pdf' );
-			}
+		$created_ts        = \FreeFormCertificate\Core\DateFormatter::instant_of( $appointment['created_at'] ?? null );
+		if ( $created_ts > 0 ) {
+			$formatted_created = \FreeFormCertificate\Core\DateFormatter::format_datetime( $created_ts, 'pdf' );
 		}
 
 		// Decrypt sensitive data if needed.
@@ -418,6 +374,9 @@ class PdfGenerator {
 		);
 		$status        = $appointment['status'] ?? 'pending';
 		$status_label  = $status_labels[ $status ] ?? $status;
+		// The badge's colours follow the status (#2732): the default receipts
+		// printed every status, Cancelled included, in the Confirmed green.
+		$status_colors = self::receipt_status_colors( (string) $status );
 
 		// Build data array for placeholder replacement.
 		$data = array(
@@ -435,6 +394,8 @@ class PdfGenerator {
 			'appointment_time_range' => $formatted_range,
 			'created_at'             => $formatted_created,
 			'status'                 => $status_label,
+			'status_bg'              => $status_colors['bg'],
+			'status_color'           => $status_colors['text'],
 			'validation_code'        => ! empty( $appointment['validation_code'] )
 				? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
 				: '',
@@ -462,16 +423,11 @@ class PdfGenerator {
 
 		// Generate HTML using the existing generate_html() method.
 		//
-		// `appointment.created_at` is a DATETIME string (housekeeping
-		// column kept as DATETIME per the Category A exception in
-		// CLAUDE.md). `generate_html()` expects a unix timestamp
-		// (`?int`) for the PDF date stamp — convert here. UTC because
-		// `created_at` is auto-set by MySQL `DEFAULT CURRENT_TIMESTAMP`
-		// which writes in the DB's timezone (UTC by convention).
+		// `generate_html()` takes the PDF date stamp as unix seconds, which
+		// `created_at` stores (#2679).
 		$calendar_title = $calendar['title'] ?? __( 'Appointment Receipt', 'ffcertificate' );
-		$created_at_str = isset( $appointment['created_at'] ) ? (string) $appointment['created_at'] : '';
-		$created_at_ts  = '' !== $created_at_str ? strtotime( $created_at_str . ' UTC' ) : false;
-		$html           = $this->html_renderer->generate_html( $data, $calendar_title, $form_config, false !== $created_at_ts ? $created_at_ts : null );
+		$created_at_ts  = \FreeFormCertificate\Core\DateFormatter::instant_of( $appointment['created_at'] ?? null );
+		$html           = $this->html_renderer->generate_html( $data, $calendar_title, $form_config, $created_at_ts > 0 ? $created_at_ts : null );
 
 		// 6.6.11 — standardized filename pattern via the shared helper
 		// (`recibo_{calendar_id}_{validation_code}.pdf` in PT-BR sites).
@@ -556,5 +512,40 @@ class PdfGenerator {
 		}
 
 		return array( $start, $end );
+	}
+
+	/**
+	 * The receipt badge's colours for a status (#2732), for the
+	 * `{{status_bg}}` and `{{status_color}}` placeholders. A PDF is a printed
+	 * document, light by definition, so these are literals, not theme tokens.
+	 *
+	 * @param string $status Appointment status.
+	 * @return array{bg: string, text: string}
+	 */
+	public static function receipt_status_colors( string $status ): array {
+		$colors = array(
+			'pending'   => array(
+				'bg'   => '#f0f0f1',
+				'text' => '#50575e',
+			),
+			'confirmed' => array(
+				'bg'   => '#d5e8d4',
+				'text' => '#1e5a22',
+			),
+			'cancelled' => array(
+				'bg'   => '#f8d7da',
+				'text' => '#8a1f1f',
+			),
+			'completed' => array(
+				'bg'   => '#cfe2ff',
+				'text' => '#004085',
+			),
+			'no_show'   => array(
+				'bg'   => '#fff3cd',
+				'text' => '#6b4e00',
+			),
+		);
+
+		return $colors[ $status ] ?? $colors['pending'];
 	}
 }

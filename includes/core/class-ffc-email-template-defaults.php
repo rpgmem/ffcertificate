@@ -32,25 +32,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class EmailTemplateDefaults {
 
 	/**
-	 * Default email subject (with `{{form_title}}` placeholder).
-	 *
-	 * Reads the shipped subject from the same `certificate-user` template file as
-	 * the body, so the SMTP email-body hub (#964) and the send path share one
-	 * source of truth for both fields (a hub global-subject override then applies
-	 * uniformly, exactly like the body).
-	 *
-	 * @return string
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function user_email_subject(): string {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return \FreeFormCertificate\Core\EmailTemplates::body( 'certificate-user', 'subject' );
-	}
-
-	/**
 	 * Default email body HTML (with placeholders + the download-button box).
 	 *
 	 * @return string

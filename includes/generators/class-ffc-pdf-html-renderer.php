@@ -137,6 +137,19 @@ class PdfHtmlRenderer {
 			$layout     = str_replace( '{{' . $key . '}}', $safe_value, $layout );
 		}
 
+		// {{schedule:date}} / {{schedule:dates}} (#2579): the event's date, with
+		// an optional format, from the keys the generator and the preview pass.
+		$layout = \FreeFormCertificate\Core\EventDate::replace_tokens(
+			$layout,
+			(string) ( $data[ \FreeFormCertificate\Core\EventDate::DATA_START ] ?? '' ),
+			(string) ( $data[ \FreeFormCertificate\Core\EventDate::DATA_END ] ?? '' )
+		);
+
+		// An image whose source a token left empty (#2624) — a signer position
+		// with no signer, or one with no signature image — is removed rather
+		// than drawn as a broken image.
+		$layout = self::drop_empty_images( $layout );
+
 		// Fix relative URLs to absolute.
 		$site_url = untrailingslashit( get_home_url() );
 		$layout   = preg_replace( '/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $layout ) ?? $layout;
@@ -191,12 +204,21 @@ class PdfHtmlRenderer {
 		// Get submission ID for caching.
 		$submission_id = isset( $data['submission_id'] ) ? absint( $data['submission_id'] ) : 0;
 
+		// The signed payload of a form in a signed QR mode (#2639), fitted to
+		// each placeholder's printed size.
+		$fragments = \FreeFormCertificate\Generators\SignedQrLink::fragments( $submission_id );
+
 		// Replace all QR Code placeholders.
 		$layout = preg_replace_callback(
 			'/\{\{qr_code(?::([^}]+))?\}\}/',
-			function ( $matches ) use ( $qr_generator, $target_url, $submission_id ) {
+			function ( $matches ) use ( $qr_generator, $target_url, $submission_id, $fragments ) {
 				$placeholder = $matches[0];
-				$result      = $qr_generator->parse_and_generate( $placeholder, $target_url, $submission_id );
+				$url         = $target_url;
+				$placement   = null === $fragments ? null : ( $qr_generator->placements( $placeholder )[0] ?? null );
+				if ( null !== $placement ) {
+					$url = \FreeFormCertificate\Generators\SignedQrLink::for_placement( $target_url, $fragments, $placement['size'], $placement['margin'], $placement['error_level'] );
+				}
+				$result = $qr_generator->parse_and_generate( $placeholder, $url, $submission_id );
 
 				\FreeFormCertificate\Core\Debug::log_pdf(
 					'QR Code placeholder replaced',
@@ -353,5 +375,17 @@ class PdfHtmlRenderer {
 			. '<p><strong>' . esc_html__( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
 			. '<p><strong>' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</strong> {{validation_code}}</p>'
 			. '</div>';
+	}
+
+	/**
+	 * Remove every `<img>` whose `src` is empty or only whitespace.
+	 *
+	 * @param string $layout Layout HTML.
+	 */
+	private static function drop_empty_images( string $layout ): string {
+		if ( false === stripos( $layout, '<img' ) ) {
+			return $layout;
+		}
+		return (string) preg_replace( '/<img\b[^>]*?\ssrc\s*=\s*(["\'])\s*\1[^>]*>/i', '', $layout );
 	}
 }

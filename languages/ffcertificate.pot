@@ -579,10 +579,6 @@ msgstr ""
 msgid "(built-in default)"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:107
-msgid "(Calendar Deleted)"
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:432
 msgid "(connecting directly to this server)"
 msgstr ""
@@ -1209,10 +1205,6 @@ msgstr ""
 msgid "Activity Log Plaintext Cleanup Batch"
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:169
-msgid "Activity log plaintext leak: nothing left to clear."
-msgstr ""
-
 #: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:221
 msgid "Activity log table is missing — re-activate the plugin to create it."
 msgstr ""
@@ -1223,14 +1215,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:28
 msgid "Activity Log tracks important actions in your system for audit and compliance purposes (LGPD)."
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:233
-msgid "Activity Log: Clear Plaintext Context on Encrypted Rows"
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:88
-msgid "Activity Log: Clear Plaintext on Encrypted Rows"
 msgstr ""
 
 #: includes/admin/views/ffc-admin-activity-log.php:20
@@ -1369,9 +1353,6 @@ msgstr ""
 msgid "Address"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-record.php:78
-msgid "Address (Endereço)"
-msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:89
 msgid "Address complement"
@@ -2028,6 +2009,7 @@ msgid "Appointment booking confirmation"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:277
+#: includes/frontend/class-ffc-verification-response-renderer.php
 msgid "Appointment Cancelled"
 msgstr ""
 
@@ -2097,14 +2079,6 @@ msgstr ""
 
 #: includes/api/class-ffc-calendar-rest-controller.php:311 includes/api/class-ffc-appointment-rest-controller.php:214 includes/api/class-ffc-appointment-rest-controller.php:326
 msgid "Appointment handler not available"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:431
-msgid "Appointment ID:"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:429
-msgid "Appointment Information"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:39
@@ -3362,10 +3336,6 @@ msgstr ""
 msgid "Cancellation Reason"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-rest-controller.php:683
-msgid "Cancellation reason is required."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:204
 msgid "Cancellation Reason:"
 msgstr ""
@@ -3675,7 +3645,7 @@ msgid "The administrator turned off Preview Certificate for this form."
 msgstr ""
 
 #: includes/frontend/class-ffc-public-csv-download.php:505
-msgid "Certificate preview is only available before the form collection period begins."
+msgid "Certificate preview is only available until the form collection period ends."
 msgstr ""
 
 #: includes/frontend/submission/class-ffc-success-responder.php:60
@@ -3908,11 +3878,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:69
 msgid "Clear WordPress cache"
-msgstr ""
-
-#. %d: number of activity log rows whose plaintext context column was nulled.
-#: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:205
-msgid "Cleared plaintext context on %d activity log rows."
 msgstr ""
 
 
@@ -4467,12 +4432,6 @@ msgstr ""
 msgid "Could not decrypt %1$s on reregistration submission %2$d — left unchanged (the key may be unrecoverable)."
 msgstr ""
 
-#. 1: record ID, 2: table name
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:332
-#, php-format
-msgid "Could not decrypt email for ID %1$d in %2$s"
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:132
 msgid "Could not delete the adjutancy. Please try again."
 msgstr ""
@@ -4505,24 +4464,12 @@ msgstr ""
 msgid "Could not read CSV file."
 msgstr ""
 
-#. %s: template filename
-#: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:144
-#, php-format
-msgid "Could not read legacy template file: %s"
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:154
 msgid "Could not register the call. Please try again."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:147
 msgid "Could not remove the classification entry. Please try again."
-msgstr ""
-
-#. 1: record ID, 2: table name
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:306
-#, php-format
-msgid "Could not resolve plain value for ID %1$d in %2$s"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:137
@@ -4689,10 +4636,6 @@ msgstr ""
 
 #: includes/frontend/submission/class-ffc-field-sanitizer.php:65
 msgid "CPF/RF must be exactly 7 or 11 digits."
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:191
-msgid "CPF/RF Split Migration"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:312
@@ -6346,14 +6289,6 @@ msgstr ""
 msgid "Email Handler"
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:221
-msgid "Email Hash Rehash"
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:142
-msgid "Email hash rehash already completed."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:314
 msgid "Email Hash Rehash Batch"
 msgstr ""
@@ -6502,10 +6437,6 @@ msgstr ""
 msgid "Enable browser-environment diagnostic log"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:255
-msgid "Enable cascade: if primary fails, try the other service"
-msgstr ""
-
 #: includes/settings/views/documentation/forms-schedule.php:32
 msgid "Enable date/time restriction"
 msgstr ""
@@ -6648,14 +6579,6 @@ msgstr ""
 msgid "Encryption at rest (LGPD):"
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:162
-msgid "Encryption class not found. Required for CPF/RF split migration."
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:201
-msgid "Encryption class not found. Required for email hash rehash migration."
-msgstr ""
-
 #: includes/migrations/strategies/class-ffc-key-rotation-migration-strategy.php:269
 msgid "Encryption class not found. Required for key rotation."
 msgstr ""
@@ -6690,14 +6613,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:694
 msgid "Encryption key source"
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:169
-msgid "Encryption keys not configured. Required for CPF/RF split migration."
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:208
-msgid "Encryption keys not configured. Required for email hash rehash migration."
 msgstr ""
 
 #: includes/migrations/strategies/class-ffc-key-rotation-migration-strategy.php:276
@@ -7049,10 +6964,6 @@ msgstr ""
 msgid "Error: PDF container not found"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:507
-msgid "Error: PDF generator not loaded. Please refresh the page."
-msgstr ""
-
 #: includes/core/captcha/class-ffc-math-captcha.php:123
 msgid "Error: Please answer the security question."
 msgstr ""
@@ -7087,10 +6998,6 @@ msgstr ""
 
 #: templates/admin/recruitment/candidate-edit/history-section.php:40
 msgid "Event"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:415
-msgid "Event Details"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:339
@@ -7305,6 +7212,7 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php
 msgid "Destructive"
+msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php
 msgid "Details"
@@ -7692,10 +7600,6 @@ msgid "The link follows its post"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
-msgid "Trashing a post disables its short URL; restoring and publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php
 msgid "Retired codes"
 msgstr ""
 
@@ -7708,15 +7612,7 @@ msgid "When a link is not active"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
-msgid "An unknown, disabled, trashed or retired code shows a short page of its own, without the site's theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) for a disabled, trashed or retired code and 404 for a code that never existed, and asks search engines not to index it."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php
 msgid "Changing the prefix"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php
-msgid "Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
@@ -7737,14 +7633,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
 msgid "The \"Generate missing short URLs\" button creates short URLs for already-published posts of the saved shortened types that have none, in any state. It runs in batches while the page stays open; leaving the page stops it, and running it again picks up where it stopped. If the Shorten column was changed and not saved, it asks to save first. This only creates the short URLs — turn on \"Expose\" to publish them as shortlinks."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php
-msgid "The list shows each link's title, short URL, destination, click count and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php
-msgid "Each visit increments a click count; the plugin does not store per-click timestamps, referrers or IPs. Inactive links show the page above and are not counted, and neither are HEAD requests or link previews (WhatsApp, Slack, social networks…). Redirects are sent with no-cache headers; a click that a page cache answers anyway never reaches the counter."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php
@@ -7772,7 +7660,7 @@ msgid "The design sections are the same as on Settings → QR Code, and start fr
 msgstr ""
 
 #: includes/settings/views/documentation/config-qr-code.php
-msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
+msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. The level is a starting point for certificates and short-URL codes: when the content leaves room in its grid, they are drawn at the highest level that keeps the same size; when it does not fit, the level is lowered until it does, and a logo, which needs H, is left out. A certificate whose code still cannot be drawn prints its verification link instead. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
 msgstr ""
 
 #: includes/settings/views/documentation/config-qr-code.php
@@ -7969,6 +7857,7 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
 msgid "The unsubscribe link at the end of these e-mails turns off the same preference."
+msgstr ""
 
 #: templates/admin/scheduling/calendar-names.php
 msgid "Word for a session (%s)"
@@ -7980,6 +7869,7 @@ msgstr ""
 
 #: templates/admin/audience/general-tab.php
 msgid "The word for a session on personal calendars, shown when booking, on the receipt, in e-mails and on the verification page. A calendar can set its own on its Names tab."
+msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php
 msgid "{{date}}, {{age}} and {{days_until}} need a date, so an announcement does not offer them."
@@ -8434,18 +8324,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:102
 msgid "Failed to fetch logs."
-msgstr ""
-
-#. 1: file path, 2: context
-#: includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:392
-#, php-format
-msgid "Failed to import html/ file \"%1$s\" into the Media Library (%2$s)"
-msgstr ""
-
-#. %s: template filename
-#: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:153
-#, php-format
-msgid "Failed to import legacy template: %s"
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-admin.php:224
@@ -9084,9 +8962,6 @@ msgstr ""
 msgid "Free Form Certificate"
 msgstr ""
 
-#: includes/admin/class-ffc-device-threshold-upgrade-notice.php:93
-msgid "Free Form Certificate v6.3.2"
-msgstr ""
 
 #: includes/admin/class-ffc-captcha-mode-notice.php:95
 msgid "Free Form Certificate — captcha"
@@ -9215,12 +9090,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:176
 msgid "Generate Tickets"
-msgstr ""
-
-#. %s: date and time of generation
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:485
-#, php-format
-msgid "Generated on %s"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:290
@@ -9827,10 +9696,6 @@ msgstr ""
 msgid "ID/CPF/RF entered by user"
 msgstr ""
 
-#: includes/settings/views/documentation/config-geolocation.php:36
-msgid "If the primary provider fails, try the other one."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-advanced.php:30
 msgid "If this option is disabled, debug logging will also be disabled."
 msgstr ""
@@ -9903,10 +9768,6 @@ msgstr ""
 msgid "Import candidates (CSV)"
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:100
-msgid "Import certificate layouts left in the plugin's html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once."
-msgstr ""
-
 #. 1: number imported, 2: number skipped
 #: includes/audience/class-ffc-audience-admin-import.php:344 includes/audience/class-ffc-audience-admin-import.php:391
 #, php-format
@@ -9919,10 +9780,6 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/csv-import-section.php:29
 msgid "Import is disabled for notices in `definitive` or `closed` status. Move the notice back to `preliminary` (allowed only when zero calls have been issued) to re-import."
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:99 includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:198
-msgid "Import Legacy Certificate Templates"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:70 includes/audience/class-ffc-audience-admin-import.php:135
@@ -9943,11 +9800,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:50
 msgid "Important:"
-msgstr ""
-
-#. %d: number of templates imported
-#: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:170
-msgid "Imported %d legacy certificate template(s)"
 msgstr ""
 
 #: includes/api/class-ffc-user-reregistrations-rest-controller.php:89 includes/reregistration/class-ffc-reregistration-submission-reader.php:60
@@ -10247,10 +10099,6 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-frontend.php:52 includes/reregistration/class-ffc-reregistration-frontend.php:90 includes/reregistration/class-ffc-reregistration-frontend.php:143
 msgid "Invalid request."
-msgstr ""
-
-#: includes/integrations/class-ffc-ip-geolocation.php:155
-msgid "Invalid response from ip-api.com"
 msgstr ""
 
 #: includes/integrations/class-ffc-ip-geolocation.php:211
@@ -11376,8 +11224,16 @@ msgstr ""
 msgid "Member Since:"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-shortcode.php:801
-msgid "member(s) have overlapping bookings."
+#. translators: %d: always 1.
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d member has overlapping bookings."
+msgstr ""
+
+#. translators: %d: number of members, 2 or more.
+#: includes/audience/class-ffc-audience-shortcode.php
+#, php-format
+msgid "%d members have overlapping bookings."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:57 includes/audience/class-ffc-audience-admin-audience-renderer.php:134
@@ -11471,10 +11327,6 @@ msgstr ""
 msgid "Minimum log level"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:44
-msgid "Minimum notice (hours) and how far ahead bookings are allowed (default 30 days)."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
 msgid "Minimum notice required to cancel (e.g., 24 hours)"
 msgstr ""
@@ -11505,12 +11357,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-features-ajax-endpoint.php:82
 msgid "Missing form id."
-msgstr ""
-
-#. 1: file path, 2: context
-#: includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:386
-#, php-format
-msgid "Missing html/ file \"%1$s\" (%2$s)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:598
@@ -11589,10 +11435,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin.php:407
 msgid "Move failed: the selected target form does not exist."
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:112
-msgid "Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:334
@@ -11776,10 +11618,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:541
 msgid "New close time:"
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:178
-msgid "New cpf/rf columns not found. Please re-activate the plugin to create them."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:560
@@ -12318,10 +12156,6 @@ msgstr ""
 msgid "now"
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:89
-msgid "NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:78 includes/admin/class-ffc-admin-assets-manager.php:620 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:264 includes/reregistration/class-ffc-custom-field-reader.php:77
 msgid "Number"
 msgstr ""
@@ -12428,10 +12262,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:39
 msgid "On by default, but only unlocks after the form's end date has passed and while download quota remains."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:41
-msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block's live booked / capacity, occupancy % and waitlist length."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:713
@@ -13098,10 +12928,6 @@ msgstr ""
 msgid "Personal email"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:455
-msgid "Personal Information"
-msgstr ""
-
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:247
 msgid "Personal notes..."
 msgstr ""
@@ -13194,10 +13020,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:266
 msgid "Please confirm that you want to cancel the following appointment."
-msgstr ""
-
-#: includes/class-ffc-deactivator.php:52
-msgid "Please confirm the uninstallation to proceed."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:362
@@ -13560,14 +13382,6 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/status-section.php:38
 msgid "previously reopened — hired/withdrew/not_shown classifications are frozen"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:227
-msgid "Primary Service"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:35
-msgid "Primary service"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:399
@@ -14108,10 +13922,6 @@ msgstr ""
 msgid "Recommended: 100-200px for certificates"
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:66
-msgid "Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:446
 msgid "Record blocked device-fingerprint attempts in the rate-limit log"
 msgstr ""
@@ -14277,15 +14087,6 @@ msgstr ""
 msgid "Regular:"
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:65
-msgid "Rehash Email Lookup Hashes"
-msgstr ""
-
-#. %d: number of records rehashed
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:185
-msgid "Rehashed email_hash for %d records"
-msgstr ""
-
 #: templates/admin/reregistration/submission-row.php:36
 msgid "Reject"
 msgstr ""
@@ -14407,7 +14208,7 @@ msgid "Removes the reregistration campaign flow and its admin."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:38
-msgid "Render the certificate template (on by default)."
+msgid "Render the certificate template with sample data, from before the start until the form closes (on by default)."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1049
@@ -14546,16 +14347,8 @@ msgstr ""
 msgid "Required column \"email\" not found in CSV."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-csv-importer.php:461
-msgid "Required column \"email\" not found."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-csv-importer.php:231
 msgid "Required column \"name\" not found in CSV."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-csv-importer.php:464
-msgid "Required column \"name\" not found."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:87
@@ -14870,17 +14663,8 @@ msgstr ""
 msgid "Revoke all"
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:111 includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:207
-msgid "Rewrite html/ Image References"
-msgstr ""
-
 #: includes/settings/views/documentation/developer-hooks-api.php:35
 msgid "Rewrite the certificate HTML before it is rendered to PDF."
-msgstr ""
-
-#. %d: number of posts rewritten
-#: includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:185
-msgid "Rewrote html/ image references on %d item(s)"
 msgstr ""
 
 #: includes/admin/class-ffc-submissions-export-source.php:364 includes/admin/class-ffc-admin-submission-edit-page.php:461 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:150 includes/frontend/class-ffc-verification-response-renderer.php:461 templates/public/recruitment/section-open.php:41 includes/self-scheduling/views/appointments-list.php:265 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:71 templates/admin/recruitment/candidate-edit/sensitive-section.php:46
@@ -15770,10 +15554,6 @@ msgstr ""
 msgid "Sent when a candidate is called — subject/body edited globally in the hub above."
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:56
-msgid "Separate combined CPF/RF column into individual CPF and RF columns"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-conditional-assets.php:206 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:183 includes/audience/class-ffc-audience-shortcode.php:813
 msgid "September"
 msgstr ""
@@ -15797,14 +15577,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:268
 msgid "Service"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:247
-msgid "Service Cascade"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:36
-msgid "Service cascade"
 msgstr ""
 
 #: includes/admin/class-ffc-activity-log-export-source.php:98 includes/admin/class-ffc-activity-log-export-source.php:116 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:132 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:150 includes/reregistration/class-ffc-reregistration-export-source.php:92 includes/reregistration/class-ffc-reregistration-export-source.php:110 includes/url-shortener/class-ffc-url-shortener-export-source.php:112 includes/url-shortener/class-ffc-url-shortener-export-source.php:130 includes/audience/class-ffc-audience-booking-export-source.php:97 includes/audience/class-ffc-audience-booking-export-source.php:115 includes/frontend/class-ffc-public-forms-export-source.php:154 includes/frontend/class-ffc-public-forms-export-source.php:170
@@ -16300,15 +16072,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:355
 msgid "Something went wrong while building the PDF. Try again — if it keeps failing, use a different browser or contact the organizer."
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:55
-msgid "Split CPF/RF"
-msgstr ""
-
-#. %d: number of records migrated
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:143
-msgid "Split CPF/RF for %d records"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:521
@@ -16961,10 +16724,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:697
 msgid "Template options"
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:186
-msgid "Template pool writer not found. Required to import legacy templates."
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:610
@@ -17672,10 +17431,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:581
 msgid "This appointment is already cancelled."
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:94
-msgid "This appointment is awaiting admin approval. The receipt will be available after confirmation."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:338
@@ -18492,10 +18247,6 @@ msgstr ""
 msgid "Unknown Calendar"
 msgstr ""
 
-#: includes/integrations/class-ffc-ip-geolocation.php:159
-msgid "Unknown error from ip-api.com"
-msgstr ""
-
 #: includes/integrations/class-ffc-ip-geolocation.php:216
 msgid "Unknown error from ipinfo.io"
 msgstr ""
@@ -18510,10 +18261,6 @@ msgstr ""
 
 #: includes/api/class-ffc-user-certificates-rest-controller.php:137
 msgid "Unknown Form"
-msgstr ""
-
-#: includes/integrations/class-ffc-ip-geolocation.php:123
-msgid "Unknown geolocation service."
 msgstr ""
 
 #: includes/admin/class-ffc-migration-actions-ajax-endpoint.php:82
@@ -18546,12 +18293,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:903
 msgid "Unlinked but CPF matches a linked record"
-msgstr ""
-
-#. 1: reference URL, 2: context
-#: includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:378
-#, php-format
-msgid "Unrecognized html/ reference \"%1$s\" (%2$s)"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-ajax.php:119
@@ -19272,6 +19013,7 @@ msgid "Waiting for location permission… Check if a browser prompt appeared."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:262 includes/settings/views/documentation/feature-self-scheduling.php:43
+#: includes/frontend/class-ffc-verification-response-renderer.php
 msgid "Waitlist"
 msgstr ""
 
@@ -19507,9 +19249,6 @@ msgstr ""
 msgid "When checked, next submission will start from ID #1. Only works if table becomes empty."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:129
-msgid "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When Settings → Certificates requires {{schedule}}, the template must contain it — the form save is blocked until the placeholder is present."
-msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:43
 msgid "When enabled, a full slot/block lets users join a queue (with an optional waitlist capacity) instead of being turned away. Off by default."
@@ -19521,10 +19260,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:24
 msgid "When enabled, each form gets its own secret hash. The operator opens a page carrying the"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:261
-msgid "When enabled, if the primary service fails, automatically try the alternative service."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php:58
@@ -22772,9 +22507,6 @@ msgstr ""
 msgid "On by default: an administrator is never redirected, even when holding a blocked role."
 msgstr ""
 
-msgid "Where blocked users land — by default the site's /dashboard page."
-msgstr ""
-
 msgid "The notice shown on the dashboard page after a redirect."
 msgstr ""
 
@@ -23215,7 +22947,7 @@ msgstr ""
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
 msgstr ""
 
-msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
+msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically); its Use the logo switch draws the code without it while keeping the image selected. A frame (banner, badge, bubble, pill, speech, circle, brackets or double) can carry a short caption such as \"Scan to verify\", optionally with an icon. A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
 msgstr ""
 
 msgid "With the design applied to certificates, the {{qr_code}} placeholder is drawn as an SVG and is not cached; without it, a PNG is generated and may be served from the QR Code cache."
@@ -23427,6 +23159,48 @@ msgstr ""
 
 msgid "Date-message e-mails are listed there too, but each rule's subject and body are edited on the rule itself, on the Date Messages screen. The hub's \"Birthday message (default for new rules)\" only sets the text a new rule starts from; existing rules keep their own."
 msgstr ""
+
+msgid "A long name or course title can shrink to fit its box:"
+msgstr ""
+
+msgid "keeps the value on one line and shrinks it until it fits the width, and"
+msgstr ""
+
+msgid "lets it wrap and shrinks it until it fits the height, so give that box a height."
+msgstr ""
+
+msgid "A value that already fits is untouched, and none shrinks below half its size. Put the class on a block, such as a div, paragraph, heading or table cell; on a span, the box is the element around it. Example:"
+msgstr ""
+
+msgid "The default templates name these Google Fonts, each followed by the system font they used before, so they draw as they always did until the fonts are installed:"
+msgstr ""
+
+msgid "certificate titles."
+msgstr ""
+
+msgid "the participant’s name in certificates 1 and 3."
+msgstr ""
+
+msgid "the name, the course and the italic lines of the classic certificates."
+msgstr ""
+
+msgid "certificates 5 and 6."
+msgstr ""
+
+msgid "the small text of the certificates, the record and the appointment receipts; it has Arial’s measurements, so nothing moves."
+msgstr ""
+
+msgid "the verification code of the receipts; it has Courier New’s measurements."
+msgstr ""
+
+msgid "The template editor and the form layout warn when a template names, as the first font of a list, one that is neither installed on the site nor a system font such as Arial, Georgia, Times New Roman or Courier New. Only the first font counts: the rest of the list is what the device uses meanwhile."
+msgstr ""
+
+#. translators: %s: comma-separated font names
+msgid "This template asks for %s, which is not installed on this site. Until it is, each device draws the text in the next font of its list, so the document can look different from one device to another."
+msgid_plural "This template asks for %s, which are not installed on this site. Until they are, each device draws the text in the next font of its list, so the document can look different from one device to another."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Images take"
 msgstr ""
@@ -23701,8 +23475,6 @@ msgstr ""
 msgid "What a visitor sees when the location check fails."
 msgstr ""
 
-msgid "When the event takes place, printed as {{schedule}} on the certificate."
-msgstr ""
 
 msgid "When the form accepts submissions, and what visitors see outside that window."
 msgstr ""
@@ -24224,9 +23996,6 @@ msgstr ""
 msgid "Requires JavaScript and HTTPS. A visitor with JavaScript disabled cannot submit the form at all — acceptable when the audience is known, such as staff filling in forms on a workstation."
 msgstr ""
 
-msgid "schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin's REST API and can target one or more audiences or an individual, and are cancelled with a required reason."
-msgstr ""
-
 msgid "See Audience Calendars"
 msgstr ""
 
@@ -24339,16 +24108,10 @@ msgstr ""
 msgid "shows a selector of every notice in its preliminary or definitive list (drafts and closed notices are left out); the visitor picks one and its list appears below. With a single notice on offer it opens directly. The notice edit screen has the shortcode ready to copy."
 msgstr ""
 
-msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy."
-msgstr ""
-
 msgid "without a notice, a selector of every notice in its preliminary or definitive list; drafts and closed notices are left out. The chosen notice's list appears below it. Add list=\"preliminary\" or list=\"definitive\" to offer only one kind."
 msgstr ""
 
 msgid "The history keeps the last %d days. Older runs and their deliveries are removed automatically by the daily run."
-msgstr ""
-
-msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year."
 msgstr ""
 
 msgid "A person receives the message when they belong to any audience on the right; members of sub-audiences are included. With none selected, the rule reaches everyone."
@@ -26139,9 +25902,6 @@ msgid "Public (IP rate-limited). A private calendar answers only a logged-in use
 msgstr ""
 
 msgid "Authenticated — ffc_manage_appointments. Staff book on behalf of a person: the booking belongs to the account matched or created from the CPF/RF and email sent, and the activity log records who booked it. The public booking form does not use this route."
-msgstr ""
-
-msgid "Logged-in — the environment must belong to a schedule the caller may read, and only bookings in readable schedules are reported."
 msgstr ""
 
 msgid "submit a form. Needs ffc_submit_forms_api, which existing holders of ffc_view_forms_api received automatically on update. The JSON body carries the form's fields and ffc_lgpd_consent set to 1; the checks are the public form's: only the fields the form defines are stored, hidden fields keep the form's value, field rules, password, allowlist, denylist and ticket restrictions, quiz scoring and the per-form limits all apply, and the authentication code is always generated by the plugin. There is no captcha or form nonce, since the Application Password is the proof, and no per-address limit, since every request comes from the integration's server: a per-account limit (300/hour, 2000/day) applies instead. The public form itself does not use this route. When the CPF/RF already holds a certificate that is not the caller's own, its link goes to the address stored on it and the response carries reprint set to true and that notice, never the code."
@@ -28241,10 +28001,6 @@ msgid "Invitations go out on their own once the event ends, and can be sent agai
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Invitations sent to everyone eligible who has not answered."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Invited"
 msgstr ""
 
@@ -28257,15 +28013,7 @@ msgid "No published page embeds the post-event form. Add the form to a page, the
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Nobody was sent an invitation: everyone eligible has answered, or the form is not open."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Not yet"
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person or to everyone who has not answered; this needs ffc_checkin_audiences."
 msgstr ""
 
 #: templates/emails/audience-post-event-invite.php
@@ -28582,9 +28330,6 @@ msgid "This browser is missing features needed to build your receipt. Open this 
 msgstr ""
 
 msgid "This browser cannot build the receipt"
-msgstr ""
-
-msgid "The receipt PDF is built in the visitor's browser, after booking or from the receipt page, and the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr ""
 
 msgid "Allowed"
@@ -29360,7 +29105,7 @@ msgstr ""
 msgid "Work Hours"
 msgstr ""
 
-msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
+msgid "A field shows once even when several of the campaign's audiences, or an audience and its parent, carry it; the most specific audience's version of the field wins. The form opens filled in: first with this campaign's own saved draft, then with the answers the member gave most recently in another campaign (in progress, submitted or approved, never a rejected one), then with the profile. Everything else stays editable, and what is typed is saved to this campaign only. A workload answered with one of the former codes (JBD.30, JEIF.40, JB.20) is carried over as its current option; JB.30 has no equivalent and is left for the member to choose."
 msgstr ""
 
 msgid "Has bookings, kept"
@@ -29765,9 +29510,6 @@ msgstr ""
 msgid "The public /valid page confirms an approved record by its authentication code or its magic link, showing the campaign, the name and the masked CPF and e-mail, and never the PDF. A submission that is not approved does not verify. Every check writes an activity-log entry"
 msgstr ""
 
-msgid "Admins review and approve or reject each submission (unless auto-approve is on). Bulk Approve acts only on submissions awaiting review and says how many of the selection it skipped."
-msgstr ""
-
 msgid "sent after a member submits; its button leads to the dashboard, where the Record downloads once the submission is approved."
 msgstr ""
 
@@ -29811,9 +29553,6 @@ msgid "A submission returned to draft or retracted is in_progress again; a retur
 msgstr ""
 
 msgid "Campaign invitation, reminder, confirmation, not approved and returned for revision"
-msgstr ""
-
-msgid "Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve. The not-approved and returned-for-revision e-mails are always sent and are edited in Settings → Email texts."
 msgstr ""
 
 msgid "Could not retract the submission."
@@ -29976,9 +29715,6 @@ msgid "Filter by status, by \"not finished\" (pending or in progress: the member
 msgstr ""
 
 msgid "Each status card links to the list filtered by that status; the Total card clears every filter."
-msgstr ""
-
-msgid "Export CSV exports what the list shows: the same filters, every page."
 msgstr ""
 
 msgid "Draft saved automatically."
@@ -30358,16 +30094,8 @@ msgstr ""
 msgid "No-show"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:60
-msgid "On the Appointments list, a confirmed appointment whose date has come offers Attended and No-show; either mark is replaced by Undo attendance, which puts the appointment back to confirmed. Marking attendance needs ffc_manage_appointments and sends no e-mail."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:209
 msgid "Undo attendance"
-msgstr ""
-
-#: includes/self-scheduling/views/appointments-list.php:457
-msgid "Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending (will be cancelled). The daily run closes them; you can close them now."
 msgstr ""
 
 #: templates/admin/audience/self-scheduling-tab.php:187
@@ -30380,10 +30108,6 @@ msgstr ""
 
 #: includes/self-scheduling/views/appointments-list.php:464
 msgid "Close old appointments now"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-closeout.php:130
-msgid "Closed automatically: the date passed without approval."
 msgstr ""
 
 #: templates/admin/audience/self-scheduling-tab.php:195
@@ -30404,14 +30128,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-settings.php:274
 msgid "Old appointment close-out saved."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:61
-msgid "Old appointments close themselves: once a day, an appointment whose date passed the number of days set under Close Old Appointments on the Personal Calendars tab of the Scheduling settings (default 7, 0 turns it off) and that is still confirmed is marked completed, and one still pending is cancelled with a reason saying nobody approved it in time. No e-mail is sent. When any are due, the Appointments list says how many and offers Close old appointments now, which runs the same close-out at once; each run that changed something leaves one Activity Log entry."
-msgstr ""
-
-#: includes/self-scheduling/views/appointments-list.php:49
-msgid "Old appointments closed: %1$d marked completed, %2$d pending cancelled."
 msgstr ""
 
 #: templates/admin/audience/self-scheduling-tab.php:189
@@ -30447,10 +30163,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php:80
 msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:68
-msgid "An hourly task sends each reminder once, to a confirmed appointment that starts within the calendar's reminder hours, measured in the timezone set in WordPress. A run that was missed is caught up by the next one; an appointment booked closer than that is reminded at the next run."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:39
@@ -30507,10 +30219,6 @@ msgid "Deleting this calendar cancels %d open appointment (pending, confirmed or
 msgid_plural "Deleting this calendar cancels %d open appointments (pending, confirmed or waitlisted) and e-mails each person. Delete it permanently?"
 msgstr[0] ""
 msgstr[1] ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:93
-msgid "The receipt opens unmasked only for the person it belongs to: signed in as its owner, or through the link in their e-mails, which carries their confirmation token. Staff who can open the Appointments list reach it from View Receipt with the e-mail, phone and CPF/RF masked and without the token, which no staff screen shows, so a member of staff cannot cancel as the guest; the audited Reveal stays on the appointment's admin screen. View as user shows no receipt link."
-msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php
 msgid "%1$d open appointment(s) of the calendar \"%2$s\" fall on what you are blocking. They will be cancelled, and each person booked will receive the calendar's cancellation e-mail with the reason."
@@ -30712,19 +30420,6 @@ msgstr ""
 msgid "This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else."
 msgstr ""
 
-#. translators: 1: date and time of the last appointment, 2: minimum hours between appointments.
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:607
-msgid "Your last appointment on this calendar is on %1$s. A new one must be at least %2$d hours before or after it."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:46
-msgid "A new booking must start at least this many hours before or after the person's last booking on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-self-scheduling.php:64
-msgid "Mark as no-show in the bulk actions does the same for several rows at once; a selected row that is not confirmed, or whose date has not come, is skipped and counted in the notice."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:62
 msgid "Wherever cancelling is allowed and the calendar is published on a page, the dashboard offers Reschedule and the cancellation link offers Cancel and book a new time: the appointment is cancelled with the reason \"Rescheduled by the participant\" (unless the person typed one) and the calendar's page opens to pick a new time. The old time is released at once, so it is not held for the new booking."
 msgstr ""
@@ -30832,10 +30527,6 @@ msgstr ""
 #. translators: {n}: number of lines not listed
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:124
 msgid "+{n} more, listed below the form"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php:71
-msgid "A candidate is shared by every notice and is recognised by CPF, then by RF. Before anything is written, each line is compared with the candidate it matches. A line whose CPF belongs to one candidate and whose RF belongs to another refuses the whole file. A line whose name, CPF, RF or e-mail differs from the stored candidate is listed, and the import waits for confirmation: confirming attaches the line to that candidate and keeps the stored data. An import never overwrites a stored name or identifier; it only fills in one the candidate lacks. To correct a candidate, edit it on its own screen."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:122
@@ -30958,10 +30649,6 @@ msgid "Module-wide options: convocation email, public-queue tuning and status co
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
-msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
 msgid "The REST API edits a candidate under the edit screen's rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate's own API answer carries the score only when the notice shows it, never the staff fields of a call."
 msgstr ""
 
@@ -30979,10 +30666,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php
 msgid "The file is not UTF-8. Excel often saves CSV as Windows-1252: in Excel choose \"CSV UTF-8\", or re-save the file as UTF-8 in your editor, and import it again."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
-msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
 msgstr ""
 
 #: templates/admin/recruitment/admin-page/settings-tab.php
@@ -31010,17 +30693,8 @@ msgstr ""
 msgid "Open My Calls"
 msgstr ""
 
-#. translators: {count} is replaced in JS with the number of candidates
-#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
-msgid "{count} called candidate(s) have no email on file and were not notified. Contact them manually."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
 msgid "No email — contact manually"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
-msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php
@@ -31100,10 +30774,6 @@ msgid "A definitive list from an earlier cycle exists (%s row). Either option be
 msgid_plural "A definitive list from an earlier cycle exists (%s rows). Either option below replaces it."
 msgstr[0] ""
 msgstr[1] ""
-
-#: includes/settings/views/documentation/feature-recruitment.php
-msgid "A file that replaces a list that already has rows shows what it changes before anything is written: the rows that enter, leave, or change rank or score. Nothing is imported until the operator confirms. The preliminary status and reason set by hand stay with each candidate and adjutancy that remains; only those of the rows that leave are lost, and the comparison says how many."
-msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "A preliminary notice is promoted only by \"Copy preliminary as definitive\" or by importing a definitive list. When a definitive list remains from an earlier cycle, because the notice went back to preliminary, both replace it, so the definitive list always comes from the corrected preliminary one or from the new file."
@@ -31819,6 +31489,7 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:158
 msgid "Sensitive data"
+msgstr ""
 
 
 #: includes/audience/class-ffc-audience-admin-attendance.php:595
@@ -32175,40 +31846,20 @@ msgstr ""
 msgid "Optional. Without a key ipinfo.io answers a limited number of lookups a day; a free key raises that to 50,000 a month."
 msgstr ""
 
-#: includes/settings/views/documentation/developer-hooks-api.php:63
-msgid "Says the site has ip-api.com's paid HTTPS plan, so ip-api.com may be asked; without it ipinfo.io is asked instead, since visitor addresses are never sent in clear text — args ( false )."
-msgstr ""
-
 #: includes/integrations/class-ffc-ip-geolocation.php:82
 msgid "The IP geolocation service failed a moment ago. It will be asked again in a few minutes."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:263
-msgid "Visitor addresses are sent over HTTPS only. ip-api.com serves HTTPS on its paid plan, so it is asked only when the ffc_ipapi_use_https filter says the site has one; otherwise ipinfo.io is asked instead. A failed lookup is not repeated for 5 minutes."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:211
 msgid "Visitor addresses leave this site:"
 msgstr ""
 
-#: includes/privacy/class-ffc-privacy-handler.php:99
-msgid "When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io, or ip-api.com on its paid plan) to find its approximate region."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:209
 msgid "When this is on, the IP address of each visitor who submits a geofenced form is sent, over HTTPS, to the service chosen below, which answers with its approximate location. The site's privacy policy should say so; the text the plugin suggests for it does."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:259
-msgid "ip-api.com (HTTPS on its paid plan only)"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:256
 msgid "ipinfo.io (HTTPS on the free tier; a free key raises the limit)"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:36
-msgid "ipinfo.io (the default, HTTPS on its free tier; a free key raises the limit) or ip-api.com, which serves HTTPS only on its paid plan and is asked only when the ffc_ipapi_use_https filter says the site has one. Visitor addresses are never sent in clear text."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-geolocation.php:38
@@ -33840,4 +33491,1992 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php
 msgid "Save template"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-fonts.php
+msgid "Fonts installed on this site, for certificate templates. Name one in a style, and every device draws the certificate in it:"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-fonts.php
+msgid "No font is installed for certificates, so each one is drawn in whatever typeface the participant’s device has, and can look different on another device."
+msgstr ""
+
+#. translators: %s: link to the WordPress Fonts screen#: includes/core/class-ffc-certificate-fonts.php
+msgid "Install a font in %s, then name it in the template."
+msgstr ""
+
+#: includes/core/class-ffc-certificate-fonts.php
+msgid "Appearance → Fonts"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-fonts.php
+msgid "An administrator can install a font in Appearance → Fonts."
+msgstr ""
+
+#. translators: %s: link to the WordPress Site Editor#: includes/core/class-ffc-certificate-fonts.php
+msgid "Install a font in the %s, under Styles → Typography, then name it in the template."
+msgstr ""
+
+#: includes/core/class-ffc-certificate-fonts.php
+msgid "Site Editor"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-fonts.php
+msgid "An administrator can install a font in the Site Editor, under Styles → Typography."
+msgstr ""
+
+#: includes/core/class-ffc-certificate-fonts.php
+msgid "This WordPress has no font screen for a classic theme. WordPress 7.0 adds Appearance → Fonts for every theme; update to install fonts there."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php
+msgid "Certificate fonts"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-html-styling.php
+msgid "Certificate fonts:"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-html-styling.php
+msgid "A certificate is drawn in the participant’s browser, so a font the device does not have is replaced by another one, and the certificate can look different on another device. To use the same typeface everywhere, install the font through WordPress and name it in the template: the plugin loads every font installed on the site on the pages that draw a certificate, and waits for it before drawing."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-html-styling.php
+msgid "WordPress 7.0 or later, any theme: Appearance → Fonts."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-html-styling.php
+msgid "Earlier versions with a block theme: Appearance → Editor → Styles → Typography."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-html-styling.php
+msgid "Earlier versions with a classic theme have no font screen; update WordPress to install fonts."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-html-styling.php
+msgid "Settings → Certificates lists the fonts installed on the site with the exact value to write, for example"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-html-styling.php
+msgid "The fonts stay on the site, under the uploads folder; nothing is fetched from another server when a certificate is drawn. Removing a font from the site makes certificates that name it fall back to the device’s fonts again."
+msgstr ""
+
+msgid "Update layout"
+msgstr ""
+
+#. translators: %s: name of a default certificate model
+msgid "This layout is an earlier version of %s. The current version of that model may draw differently, for instance with other fonts. Updating replaces the HTML, the background and the page colour in the editor; nothing changes until you save the form."
+msgstr ""
+
+#. translators: %s: name of a default certificate model
+msgid "Replace this layout with the current version of \"%s\"? The editor changes now; the form changes when you save it."
+msgstr ""
+
+msgid "Loading a certificate model copies its HTML into the form, so when a release improves a default, forms that copied an earlier version keep it: certificates are regenerated from the form's layout, and changing it silently would change certificates already issued. The form's layout box says so instead, when the layout is an unedited copy of an earlier version, with an Update layout button that loads the current version into the editor. Nothing changes until the form is saved; an edited copy is never offered one."
+msgstr ""
+
+msgid "Event Date"
+msgstr ""
+
+msgid "Event date:"
+msgstr ""
+
+msgid "Leave End empty for a one-day event. The opening window below is a different date: copy it here only when the two coincide."
+msgstr ""
+
+msgid "The Event Schedule also holds the event's date: Start, and End for an event of several days. {{schedule:date}} and {{schedule:dates}} print it on the certificate, in the submissions export and on the verification page. It is a different date from the opening window and never follows it; \"Use the opening date\" copies it only when clicked. Saving a form whose layout prints the date without an event date shows a warning."
+msgstr ""
+
+msgid "The certificate layout prints the event date ({{schedule:date}} or {{schedule:dates}}), but this form has no event date. Set it under Time → Event Schedule, or certificates print nothing there."
+msgstr ""
+
+msgid "The event's day for a one-day event, or its first and last days. Takes the same format as {{schedule:date}}."
+msgstr ""
+
+msgid "The event's first day, from the Event Schedule date on the Time tab — never the form's opening date. Empty when the form has no event date. Add a PHP date format to choose how it prints, as in {{schedule:date:format=d/m/Y}}; without one it uses the PDF date format from Settings → General."
+msgstr ""
+
+msgid "Use the opening date"
+msgstr ""
+
+msgid "When does this event take place? On the certificate, {{schedule}} prints the hours, {{schedule:date}} the first day and {{schedule:dates}} the day or the first and last days. Both date tokens take a format, as in {{schedule:date:format=d/m/Y}}; without one they use the PDF date format from Settings → General. When Settings → Certificates requires a token, the template must contain it — the form save is blocked until it is present."
+msgstr ""
+
+msgid "When the event takes place, printed on the certificate. It does not open or close the form."
+msgstr ""
+
+#. translators: 1: first day of an event, 2: last day of the event
+msgctxt "event date range"
+msgid "%1$s to %2$s"
+msgstr ""
+
+#. translators: 1: form title and id, 2: event date, 3: opening date or a dash
+msgid "%1$s — event date %2$s (opens %3$s)"
+msgstr ""
+
+msgid "Certificates: Move the Typed Event Date to Its Field"
+msgstr ""
+
+#. translators: 1: forms examined, 2: forms whose event date was set
+msgid "Examined %1$d forms and moved the typed event date of %2$d; the rest are listed with the reason."
+msgstr ""
+
+msgid "For each form whose certificate layout types exactly one date (as 19/12/2025) and has no event date yet, set the event date from it and put {{schedule:date}} in its place, in the format it was typed, so certificates print exactly what they printed before; each form is checked before it is written. The opening date is never used. A form that types several dates, already has an event date, or would print differently is left alone and listed with the reason."
+msgstr ""
+
+#. translators: %s: how many pending items are not listed.
+msgid "Only the first ones are listed; %s more are pending."
+msgstr ""
+
+msgid "What the next run changes:"
+msgstr ""
+
+msgid "the certificate would print differently; left as it is"
+msgstr ""
+
+msgid "the form already has an event date"
+msgstr ""
+
+msgid "the layout types more than one date; set the event date by hand"
+msgstr ""
+
+msgid "the layout types no date"
+msgstr ""
+
+msgid "the typed date is not a real date"
+msgstr ""
+
+msgid "Certificate layouts"
+msgstr ""
+
+msgid "move the event date typed into a layout onto the form's event date, with {{schedule:date}} in its place, in the format it was typed. The card lists what the next run changes before it runs, checks that each certificate prints the same text, and lists every form it left alone with the reason."
+msgstr ""
+
+msgid "Template fields"
+msgstr ""
+
+msgid "Each form that references this template fills these fields on its Layout tab. Print one in the HTML as {{model:key}}; a date also takes {{model:key:format=d/m/Y}}."
+msgstr ""
+
+msgid "Key"
+msgstr ""
+
+msgid "Add field"
+msgstr ""
+
+msgid "Removing a field leaves the values forms filled stored and unused. A required field the forms have not filled is reported when each form is saved."
+msgstr ""
+
+msgid "Short text"
+msgstr ""
+
+msgid "Long text"
+msgstr ""
+
+msgid "Remove field"
+msgstr ""
+
+msgid "Layout source"
+msgstr ""
+
+msgid "Own layout"
+msgstr ""
+
+msgid "The form keeps its own copy of the HTML; editing a template does not change it."
+msgstr ""
+
+msgid "The form prints a template from the pool; editing the template changes this form and its certificates."
+msgstr ""
+
+msgid "The template this form referenced is no longer available, so it prints its own layout. Choose another template or keep the own layout."
+msgstr ""
+
+msgid "The template pool has no certificate template to reference."
+msgstr ""
+
+msgid "— Choose a template —"
+msgstr ""
+
+msgid "Edit template"
+msgstr ""
+
+msgid "This template declares no fields for the form to fill."
+msgstr ""
+
+msgid "(required)"
+msgstr ""
+
+msgid "An empty field prints the template’s default, shown in grey."
+msgstr ""
+
+msgid "A field the certificate template declares, filled by each form that references the template, or the field's default when the form leaves it empty. A date field takes a format, as in {{model:key:format=d/m/Y}}. A key the template does not declare prints as written."
+msgstr ""
+
+msgid "Copy or reference a certificate template"
+msgstr ""
+
+msgid "The Layout tab of a form chooses its Layout source. Own layout is the copy described above. Template makes the form print a certificate template from the pool, with its background: editing that template changes every form that references it, and their certificates already issued, the next time they are generated or verified. The template's edit screen says how many forms and certificates that is before you save."
+msgstr ""
+
+msgid "A template can declare fields that each referencing form fills — a place, the description of the activity, a date. Declare them in the template's Template fields box (key, label, short text, long text or date, required, default) and print them as {{model:key}}. On the form they appear under the chosen template; an empty field prints the default, and a required field left empty saves with a warning. Removing a field leaves the values forms filled stored and unused."
+msgstr ""
+
+msgid "Where it is stored: the form keeps the template's id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too. The certificate models declare two fields, place and workload, whose defaults are the examples they print, and print the form's event date as the completion date, the submission date as the issue date, and signers 1 and 2 in their right and left signature columns; loading one into the form's own layout fills its fields with their defaults."
+msgstr ""
+
+msgid "The certificate template asks this form for values it has not filled: %s. Fill them on the Layout tab, or certificates print them blank."
+msgstr ""
+
+#. translators: 1: number of forms, 2: number of issued certificates
+msgid "%1$s form prints this template, with %2$s issued certificates. A change you save here applies to them the next time they are generated or verified."
+msgid_plural "%1$s forms print this template, with %2$s issued certificates. A change you save here applies to them the next time they are generated or verified."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of forms
+msgid "Used by %s form."
+msgid_plural "Used by %s forms."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Choose a WordPress user."
+msgstr ""
+
+msgid "This user has no RF on their profile, so they cannot sign certificates."
+msgstr ""
+
+msgid "This user is already a signer."
+msgstr ""
+
+msgid "Signers"
+msgstr ""
+
+msgid "Who can sign certificates"
+msgstr ""
+
+msgid "A form names up to three of these people as its signers. Listing someone here lets their RF print in full on the certificates they sign, so adding a signer is recorded in the activity log. An inactive signer leaves the choice for new forms; forms that already use them keep them."
+msgstr ""
+
+msgid "No signer yet."
+msgstr ""
+
+msgid "Person"
+msgstr ""
+
+msgid "Role or sector"
+msgstr ""
+
+msgid "Signature"
+msgstr ""
+
+msgid "Signer added."
+msgstr ""
+
+msgid "Signer updated."
+msgstr ""
+
+msgid "Account deleted; name and RF were kept"
+msgstr ""
+
+msgid "No RF"
+msgstr ""
+
+msgid "Edit signer"
+msgstr ""
+
+msgid "Add signer"
+msgstr ""
+
+msgid "WordPress user"
+msgstr ""
+
+msgid "Name, login, e-mail or RF"
+msgstr ""
+
+msgid "Matching accounts"
+msgstr ""
+
+msgid "Type at least two letters of the name, login or e-mail, or the full RF. Only users with an RF on their profile who are not signers yet are found. Their RF prints in full on the certificates they sign."
+msgstr ""
+
+msgid "No account with an RF matches."
+msgstr ""
+
+#. translators: %d: number of accounts found
+#, php-format
+msgid "%d accounts found."
+msgstr ""
+
+msgid "The search failed. Try again."
+msgstr ""
+
+msgid "Type at least two characters."
+msgstr ""
+
+msgid "Signature image"
+msgstr ""
+
+msgid "Choose from the media library"
+msgstr ""
+
+msgid "Optional. Print it in the layout as <img src=\"{{signer:signature}}\">."
+msgstr ""
+
+msgid "Active: new forms may choose this signer"
+msgstr ""
+
+msgid "Save signer"
+msgstr ""
+
+msgid "You do not have permission to manage signers."
+msgstr ""
+
+#. translators: %d: signer position, 1 to 3
+#, php-format
+msgid "Signer %d"
+msgstr ""
+
+msgid "— No signer —"
+msgstr ""
+
+#. translators: %s: signer name and role
+msgid "%s (no RF on the profile)"
+msgstr ""
+
+msgid "Signer 1 prints as {{signer1:name}}, {{signer1:rf}}, {{signer1:role}} and {{signer1:signature}}, and signers 2 and 3 as {{signer2:…}} and {{signer3:…}}. {{signer:…}} is the same as {{signer1:…}}. Name and RF come from the person's WordPress profile when the certificate is generated; the RF prints in full on the certificate only."
+msgstr ""
+
+msgid "Certificate Signer Added"
+msgstr ""
+
+msgid "Certificate Signer RF Revealed"
+msgstr ""
+
+msgid "Free Form Certificate signers"
+msgstr ""
+
+msgid "Certificates → Signers lists the people a form can name as its signer. Each is a WordPress user who has an RF on their profile, with a role or sector, an optional signature image and an active flag; adding one needs ffc_manage_forms and is recorded in the activity log, because it lets that RF print on other people's certificates. The form chooses up to three signers on the Layout tab, and the layout prints each as {{signer1:name}}, {{signer1:rf}}, {{signer1:role}} and {{signer1:signature}} (the image URL, for an img tag), then {{signer2:…}} and {{signer3:…}}; {{signer:…}} is the same as {{signer1:…}}."
+msgstr ""
+
+msgid "Add signer finds the person by search rather than a list, so it works on a site with thousands of accounts: type at least two letters of the name, login or e-mail, or the full RF, and pick the account from the results with the mouse or the arrow keys and Enter. Only accounts with an RF on their profile that are not signers yet are found, and the results name each one by display name and login."
+msgstr ""
+
+msgid "Name and RF are read from the profile each time a certificate is generated, so a profile correction reaches every certificate; the role is read the same way. The RF prints in full on the certificate only: previews and the signer list show it masked, and the list reveals it, audited, to holders of ffc_view_certificates_pii. An inactive signer leaves the choice for new forms while the forms that use them keep them. When the user is deleted the signer keeps an encrypted copy of name and RF and becomes inactive, so issued certificates do not change; a personal data erasure request for that e-mail removes the copy, and certificates then print the RF masked."
+msgstr ""
+
+msgid "The form's signers, up to three, chosen on the Layout tab from Certificates → Signers: {{signer1:…}}, {{signer2:…}} and {{signer3:…}}, with {{signer:…}} the same as {{signer1:…}}. Name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews; a position with no signer prints blank."
+msgstr ""
+
+msgid "The layout is too large."
+msgstr ""
+
+msgid "The layout is not valid JSON."
+msgstr ""
+
+#. translators: %d: the schema version this release reads
+msgid "The layout must declare \"version\": %d."
+msgstr ""
+
+msgid "The layout must carry an \"elements\" list."
+msgstr ""
+
+#. translators: %d: maximum number of elements
+msgid "A layout holds at most %d elements."
+msgstr ""
+
+#. translators: %d: element position, starting at 1
+msgid "Element %d is not an object."
+msgstr ""
+
+#. translators: 1: element position, starting at 1, 2: the type it declares
+msgid "Element %1$d has an unknown type \"%2$s\"."
+msgstr ""
+
+msgid "Visual"
+msgstr ""
+
+msgid "Write the certificate as HTML."
+msgstr ""
+
+msgid "Place elements on the page; the HTML is generated from the layout. Save to start editing it."
+msgstr ""
+
+msgid "The layout was not saved."
+msgstr ""
+
+msgid "Visual layout (JSON)"
+msgstr ""
+
+
+msgid "Visual certificate templates"
+msgstr ""
+
+
+msgid "The format: {\"version\": 1, \"page\": {\"orientation\": \"landscape\"}, \"elements\": [ … ]}. Positions and sizes are page pixels — 1123 × 794 landscape, 794 × 1123 portrait — as x, y, w and h, with rotation in degrees and locked. The list order is the stacking order, the first element at the back; the background image and the page colour sit beneath every element."
+msgstr ""
+
+msgid "text — literal text, tokens allowed, with font_family, font_size, font_weight, font_style, color, align, letter_spacing, line_height, text_transform and fit (none, line or box: the text shrinks to fit the width, or the box)."
+msgstr ""
+
+msgid "field — one token, as {{name}} or {{model:place}}, with the same text properties."
+msgstr ""
+
+msgid "image — attachment_id, a Media Library image, or token {{signer:signature}}, {{signer2:signature}} or {{signer3:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit."
+msgstr ""
+
+msgid "qr — the validation QR code, sized to the shorter side of its box; margin."
+msgstr ""
+
+msgid "frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, each hex or transparent, with fill as the fallback); the border is drawn inside the box."
+msgstr ""
+
+msgid "html — a block of HTML, filtered by the same rules as an HTML template."
+msgstr ""
+
+msgid "An out-of-range number is brought into range, an unknown value takes its default and an unknown key is dropped; text is printed as text. Duplicating a visual template keeps it visual. Only certificates can be visual; the record and the receipts stay HTML."
+msgstr ""
+
+msgid "Editor"
+msgstr ""
+
+msgid "HTML"
+msgstr ""
+
+msgid "Certificates: Move Copied Layouts onto a Shared Template"
+msgstr ""
+
+msgid "For each form that prints its own copy of a layout, look for a certificate template using {{model:…}} or {{signer:…}} tokens whose text the copy follows, fill the form's fields with what it typed in place of each token, pick the signer whose name and RF it typed, and switch the form to the template, but only when its certificate then prints exactly what it printed before, background included. The form keeps its own copy. Every other form is left alone and listed with the reason; adding a signer or a template brings those forms back. Run the event date card first."
+msgstr ""
+
+msgid "No certificate template uses {{model:…}} or {{signer:…}} tokens yet. Write the shared template first: copy one form's layout into a new template, put a token where the forms differ, declare the fields and add the signers; then this card lists what it would switch."
+msgstr ""
+
+#. translators: 1: forms examined, 2: forms switched to a shared template
+msgid "Examined %1$d forms and switched %2$d to a shared template; the rest are listed with the reason."
+msgstr ""
+
+#. translators: %s: signer name
+msgid "signer %s"
+msgstr ""
+
+#. translators: 1: form title and id, 2: template title, 3: extracted values and signer
+msgid "%1$s — switches to “%2$s”: %3$s"
+msgstr ""
+
+#. translators: 1: template title, 2: the template text where the layout differs
+msgid "the layout differs from “%1$s” at “%2$s”"
+msgstr ""
+
+#. translators: %s: the signer name typed in the layout
+msgid "no signer on the list matches “%s”; add them under Certificates → Signers"
+msgstr ""
+
+#. translators: %s: the image address the layout shows
+msgid "the signer's signature image is not the one the layout shows (%s); choose that image for the signer"
+msgstr ""
+
+#. translators: %s: the role typed in the layout
+msgid "the signer's role is not the one the layout types (“%s”)"
+msgstr ""
+
+msgid "the form already names a different signer"
+msgstr ""
+
+msgid "the form has no event date; run the event date card first"
+msgstr ""
+
+msgid "the text in place of a token holds markup a field would print as text"
+msgstr ""
+
+#. translators: %s: template title
+msgid "the certificate would print differently with “%s”; left as it is"
+msgstr ""
+
+#. translators: %s: template title
+msgid "the background differs from “%s”"
+msgstr ""
+
+msgid "the form has no layout of its own"
+msgstr ""
+
+msgid "no certificate template uses {{model:…}} or {{signer:…}} tokens"
+msgstr ""
+
+
+msgid "A second card moves forms carrying copies of one layout onto a shared template you wrote with {{model:…}} and {{signer:…}} tokens, filling each form's fields from what it typed, only when the certificate prints the same; adding a signer or a template brings the forms it left alone back."
+msgstr ""
+
+msgid "Many forms carrying copies of one layout can be moved onto a shared template at once. Copy one form's layout into a new certificate template, put a {{model:key}} token where the forms differ (the place, the action) and the {{signer:…}} tokens where the signer is typed, declare the fields and add the signers under Certificates → Signers. The \"Move Copied Layouts onto a Shared Template\" card under Settings → Data Migrations then fills each form's fields with what it typed in place of each token and switches it, but only when its certificate prints exactly what it printed before; it previews each form first and lists the rest with the reason. Several families of copies take one template each."
+msgstr ""
+
+msgid "Align bottom"
+msgstr ""
+
+msgid "Align left"
+msgstr ""
+
+msgid "Align right"
+msgstr ""
+
+
+msgid "Align top"
+msgstr ""
+
+msgid "Back to the last save. Save with the Update button."
+msgstr ""
+
+msgid "Background (page colour and image)"
+msgstr ""
+
+msgid "Bring forward"
+msgstr ""
+
+msgid "Centre horizontally"
+msgstr ""
+
+msgid "Centre vertically"
+msgstr ""
+
+
+msgid "Data field"
+msgstr ""
+
+msgid "Discard changes"
+msgstr ""
+
+msgid "Discard changes?"
+msgstr ""
+
+msgid "Editing the page needs a window at least 1280 pixels wide and a mouse or trackpad. Your changes are kept: widen the window to go on. Meanwhile you can still open the template list or the test PDF."
+msgstr ""
+
+msgid "Fit to screen"
+msgstr ""
+
+msgid "HTML block"
+msgstr ""
+
+msgid "Image"
+msgstr ""
+
+msgid "Insert"
+msgstr ""
+
+msgid "Landscape"
+msgstr ""
+
+msgid "Layers"
+msgstr ""
+
+msgid "Lock"
+msgstr ""
+
+msgid "Orientation"
+msgstr ""
+
+msgid "Portrait"
+msgstr ""
+
+msgid "QR code"
+msgstr ""
+
+msgid "Send backward"
+msgstr ""
+
+msgid "Snap to a 10 px grid"
+msgstr ""
+
+msgid "Template list"
+msgstr ""
+
+msgid "Test PDF"
+msgstr ""
+
+msgid "The first in the list is in front. Drag to reorder, or use the arrows."
+msgstr ""
+
+msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait); the editor above keeps it current. Saving checks the layout and generates the certificate HTML from it. The format is described under Settings → Documentation → Document Templates."
+msgstr ""
+
+
+msgid "Unlock"
+msgstr ""
+
+msgid "Zoom"
+msgstr ""
+
+msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. A layout that does not check out is not saved and says why."
+msgstr ""
+
+
+msgid "An image from the Media Library"
+msgstr ""
+
+msgid "As typed"
+msgstr ""
+
+msgid "Black (900)"
+msgstr ""
+
+msgid "Bold (700)"
+msgstr ""
+
+msgid "Capitalised"
+msgstr ""
+
+msgid "Case"
+msgstr ""
+
+msgid "Centre"
+msgstr ""
+
+msgid "Choose a tag to insert…"
+msgstr ""
+
+msgid "Colour"
+msgstr ""
+
+msgid "Contain: the whole image shows"
+msgstr ""
+
+msgid "Convert this template to HTML? The page becomes the HTML generated at the last save, edited as code from then on; the visual layout is dropped and cannot be brought back. Forms that use the template keep printing the same document. Save any change first."
+msgstr ""
+
+msgid "Convert to HTML"
+msgstr ""
+
+msgid "Cover: the image fills the box"
+msgstr ""
+
+msgid "Dashed"
+msgstr ""
+
+msgid "Double"
+msgstr ""
+
+msgid "Drawing the page…"
+msgstr ""
+
+msgid "Element properties"
+msgstr ""
+
+msgid "Family"
+msgstr ""
+
+msgid "Fill"
+msgstr ""
+
+msgid "Filtered on save like the HTML templates; tags work here too."
+msgstr ""
+
+msgid "Fit"
+msgstr ""
+
+msgid "Height"
+msgstr ""
+
+#. translators: %d: Media Library attachment id
+msgid "Image #%d"
+msgstr ""
+
+msgid "Insert a tag"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "Justify"
+msgstr ""
+
+msgid "Letter spacing (px)"
+msgstr ""
+
+msgid "Light (300)"
+msgstr ""
+
+msgid "Line colour"
+msgstr ""
+
+msgid "Line height"
+msgstr ""
+
+msgid "Medium (500)"
+msgstr ""
+
+msgid "No fill"
+msgstr ""
+
+msgid "No image chosen yet."
+msgstr ""
+
+msgid "Normal"
+msgstr ""
+
+#. translators: %s: comma-separated font names
+msgid "Not installed on this site: %s. The preview and the PDF draw the next font of each list."
+msgstr ""
+
+#. translators: %s: the font that prints instead
+msgid "Not installed on this site: the text prints in %s until it is."
+msgstr ""
+
+msgid "Off: the text keeps its size"
+msgstr ""
+
+msgid "One tag, such as {{name}}. The preview shows it with sample data."
+msgstr ""
+
+msgid "One way: from then on the template is edited as HTML."
+msgstr ""
+
+msgid "Only a visual template you can edit can be converted to HTML."
+msgstr ""
+
+msgid "Page default"
+msgstr ""
+
+msgid "Position and size (page pixels)"
+msgstr ""
+
+msgid "Preview of the certificate page"
+msgstr ""
+
+msgid "Preview with sample data"
+msgstr ""
+
+msgid "Quiet zone (modules)"
+msgstr ""
+
+msgid "Regular (400)"
+msgstr ""
+
+msgid "Required fields are missing"
+msgstr ""
+
+msgid "Rotation (degrees)"
+msgstr ""
+
+msgid "Select an element on the page, or in the Layers list, to change it here."
+msgstr ""
+
+msgid "Semibold (600)"
+msgstr ""
+
+#. translators: %s: comma-separated tags, such as {{auth_code}}
+msgid "Settings → Certificates requires %s, and the layout does not carry it yet."
+msgstr ""
+
+#. translators: %s: comma-separated tags, such as {{auth_code}}
+msgid "Settings → Certificates requires every certificate to carry %s, and this layout does not. Insert a Data field for each one; a form using this template is refused on save until it does."
+msgstr ""
+
+msgid "Shrink to fit the box"
+msgstr ""
+
+msgid "Shrink to one line"
+msgstr ""
+
+msgid "Shrinking keeps a long name inside its box; the preview applies it as the PDF does."
+msgstr ""
+
+msgid "Size (px)"
+msgstr ""
+
+msgid "Solid"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "The code links to the validation page; its size is the box."
+msgstr ""
+
+msgid "Signer 1’s signature"
+msgstr ""
+
+msgid "Signer 2’s signature"
+msgstr ""
+
+msgid "Signer 3’s signature"
+msgstr ""
+
+msgid "The template is now an HTML template. Its HTML is what the visual layout generated, so the forms that use it print the same document."
+msgstr ""
+
+msgid "The unsaved layout, drawn by the PDF renderer with sample data: the fit options and the fonts apply as they will print."
+msgstr ""
+
+msgid "Thickness (px)"
+msgstr ""
+
+msgid "Thin (100)"
+msgstr ""
+
+msgid "Top"
+msgstr ""
+
+msgid "UPPERCASE"
+msgstr ""
+
+#. translators: %d: model number, 1 to 6
+msgid "Visual certificate model %d"
+msgstr ""
+
+msgid "Weight"
+msgstr ""
+
+msgid "Width"
+msgstr ""
+
+msgid "lowercase"
+msgstr ""
+
+msgid "the device’s default font"
+msgstr ""
+
+msgid "The template screen edits the page on a canvas, drawn over the template's page colour and background image as the PDF prints them: Insert adds an element in the middle of the page; drag it to move it and its handles to resize it, on a 10 px grid unless snapping is off; the arrow keys move the selected element 1 px, 10 with Shift, and Delete removes it. Page sets the orientation and the zoom, which changes only the view, and aligns the selected element to a side or the middle of the page. Layers lists the elements front first: drag a row, or use its arrows, to restack, and lock an element to keep it in place; the background is always the bottom layer. Discard changes goes back to the last save. Editing needs a window at least 1280 pixels wide and a mouse or trackpad; on a smaller one the screen says so and keeps the work. The layout JSON stays under the canvas, for hand edits."
+msgstr ""
+
+msgid "Element properties, in the side column, change the selected element: its position, size and rotation; a text's content, with a tag picker, and a data field's tag; the font family, size, weight, style, colour, alignment, letter spacing, line height, case and fit; an image's file, from the Media Library, or the signer's signature, contained or covering its box; a frame's line, fill and gradient (an angle and two to five colours, each at a position); an HTML block's code. The font list offers the Font Library families and the system fonts, and marks a font the site lacks with the one that prints instead. Preview with sample data draws the unsaved page through the PDF renderer, so fit and fonts look as they will print, and names the required tags and fonts the layout lacks; the saved layout is checked the same way."
+msgstr ""
+
+msgid "Convert to HTML turns a visual template into an HTML template, after a confirmation. It is one way: the HTML generated at the last save becomes the template, so the forms that use it print the same document, and the layout is dropped. The six certificate models also ship as visual models; duplicate one to start a visual template from it."
+msgstr ""
+
+#. translators: %d: number of elements
+msgid "%d added"
+msgstr ""
+
+#. translators: %d: number of elements
+msgid "%d copied"
+msgstr ""
+
+#. translators: %d: number of elements
+msgid "%d elements selected"
+msgstr ""
+
+#. translators: %s: an element's name, such as "Text: Certificate"
+msgid "%s selected"
+msgstr ""
+
+msgid "Align"
+msgstr ""
+
+msgid "Arrows"
+msgstr ""
+
+msgid "arrows"
+msgstr ""
+
+msgid "Bring forward or send backward"
+msgstr ""
+
+msgid "Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it. The keyboard shortcuts are listed under the page."
+msgstr ""
+
+msgid "Copied elements can be pasted into another visual template."
+msgstr ""
+
+msgid "Copy, paste or duplicate"
+msgstr ""
+
+msgid "Distribute horizontally"
+msgstr ""
+
+msgid "Distribute vertically"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Lock or unlock"
+msgstr ""
+
+msgid "Move 1 px; with Shift, 10 px"
+msgstr ""
+
+msgid "Nothing selected"
+msgstr ""
+
+msgid "One element aligns to the page; several align to each other. Shift-click adds an element to the selection."
+msgstr ""
+
+msgid "Paste"
+msgstr ""
+
+msgid "Redo"
+msgstr ""
+
+msgid "Redone"
+msgstr ""
+
+msgid "Resize from the right and bottom edges"
+msgstr ""
+
+msgid "Rotate 15° clockwise or back; with Alt, 1°"
+msgstr ""
+
+msgid "Select every element"
+msgstr ""
+
+msgid "Select one to change its properties."
+msgstr ""
+
+msgid "Select the next or previous element"
+msgstr ""
+
+msgid "The page goes back to the last save; Undo brings back what changed since."
+msgstr ""
+
+msgid "Undo"
+msgstr ""
+
+msgid "Undo or redo"
+msgstr ""
+
+msgid "Undone"
+msgstr ""
+
+msgid "Undo and Redo step back and forward through every change since the page opened, Discard changes included. Shift-click, a rectangle dragged over the page (or from a locked element), or Ctrl+A selects several elements: they move together, and Align lines them up with each other, while one element aligns to the page; Distribute spaces three or more evenly. Guides show when a moved element lines up with another or with the middle of the page, and it snaps to them. A single selected element has a rotate handle; Shift keeps it to 15° steps. Copy and Paste carry elements between visual templates, and Duplicate copies them in place. Every action has a key, listed under Keyboard shortcuts below the page."
+msgstr ""
+
+#. translators: %s: source template title
+msgid "%s (visual)"
+msgstr ""
+
+msgid "A new visual template read from this one; this template stays as it is."
+msgstr ""
+
+msgid "A shape (border or fill)"
+msgstr ""
+
+msgid "An empty box with no border or fill"
+msgstr ""
+
+msgid "An image"
+msgstr ""
+
+msgid "Converted to elements"
+msgstr ""
+
+msgid "Create visual version"
+msgstr ""
+
+msgid "Dropped"
+msgstr ""
+
+msgid "Kept as HTML blocks"
+msgstr ""
+
+msgid "Only an HTML certificate template can have a visual version."
+msgstr ""
+
+msgid "The page colour, as the template's page colour"
+msgstr ""
+
+#. translators: 1: a CSS property, 2: its value
+msgid "The rule %1$s: %2$s, which a visual element does not draw"
+msgstr ""
+
+msgid "The visual version could not be created."
+msgstr ""
+
+msgid "The whole template, which has no page with a width and height in pixels"
+msgstr ""
+
+msgid "This visual template was read from the HTML template; the original is unchanged. Check the page and the preview before using it."
+msgstr ""
+
+msgid "Visual version created"
+msgstr ""
+
+#. translators: %s: the first words of an element
+msgid "“%s”"
+msgstr ""
+
+msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. The browser draws the template as the PDF does and reads where each part landed: a border, a fill or a plain linear gradient becomes a frame, each line of text a text, or a data field when it is one tag, an image from the Media Library or one shipped with the plugin an image, and the signer's signature and the QR code their own elements. A line whose words are styled differently becomes one text in the style of its block. An underlined or shadowed text, an image from elsewhere, a turned box and any other background image stay HTML blocks in their place. Word spacing, which the visual elements do not have, is dropped. The new template opens with a report of what was converted, kept as HTML, merged and dropped. Without JavaScript the copy is read on the server instead, where only boxes placed in pixels become elements."
+msgstr ""
+
+msgid "Reading the template…"
+msgstr ""
+
+msgid "Off the page"
+msgstr ""
+
+msgid "Page colour"
+msgstr ""
+
+msgid "Word spacing"
+msgstr ""
+
+msgid "background image"
+msgstr ""
+
+msgid "mixed text styles"
+msgstr ""
+
+msgid "rotated"
+msgstr ""
+
+msgid "underline or shadow"
+msgstr ""
+
+msgid "Styles inside one line merged"
+msgstr ""
+
+msgid "Angle (degrees)"
+msgstr ""
+
+#. translators: %d: the colour's number in the gradient, from 1
+#, php-format
+msgid "Colour %d"
+msgstr ""
+
+msgid "Position (%)"
+msgstr ""
+
+msgid "Add colour"
+msgstr ""
+
+msgid "Remove last colour"
+msgstr ""
+
+msgid "Drag over the page"
+msgstr ""
+
+msgid "Select what the rectangle touches; with Shift, add it"
+msgstr ""
+
+msgid "Transparent"
+msgstr ""
+
+msgid "Place"
+msgstr ""
+
+msgid "Workload"
+msgstr ""
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php
+msgid "The model with sample data"
+msgstr ""
+
+msgid "Public CSV panel opened (hash and CPF accepted)"
+msgstr ""
+
+msgid "Public CSV panel refused (hash, CPF, captcha or other)"
+msgstr ""
+
+msgid "Public CSV Panel Opened"
+msgstr ""
+
+msgid "Public CSV Panel Refused"
+msgstr ""
+
+msgid "Two items cover the public CSV download panel: one records who opens it (the form, and the CPF masked), the other every refused attempt and why (access hash, CPF, captcha, missing fields, an expired page or too many attempts). The access hash itself is never recorded."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:73
+msgid "A form chooses what its certificate's QR code carries on the Layout tab of the form editor, under QR code: Link only (the default, as before), Signed, compact, or Signed, full. A signed mode signs a record of each certificate when it is issued: form, certificate number, validation code, issue date, name, a keyed fingerprint of the CPF/RF (never the number itself), course, workload and event dates. The layout is not part of the record, so changing the design never breaks a signature."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:306
+msgid "A previous key is never deleted: it keeps verifying the certificates it signed."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:76
+msgid "A signed QR code carries more data, so it needs more room on the page and is drawn without the logo of the QR Code design. The form editor warns when the layout's QR code is smaller than the mode needs to be read reliably on paper, and the visual editor's QR code panel says which modes the selected code's size prints readably."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:259
+msgid "Active key"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:267
+msgid "Algorithm"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-record.php:82
+msgid "Authentication code"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:315
+msgid "Certificate Not Signed"
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:134
+msgid "Changed after signing"
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:131
+#, php-format
+msgid "Data changed after the certificate was signed: %s. Ask the issuer which version is the right one."
+msgstr ""
+
+#: includes/core/class-ffc-certificate-record.php:88 includes/core/class-ffc-certificate-record.php:89
+msgid "Event date"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:269
+msgid "Fingerprint"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:247
+msgid "Forms with a signed QR mode sign a record of each certificate with this site's key. The verification page checks the record against the database and says when a certificate changed after it was signed. Choose the mode per form, on its Layout tab."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:325
+msgid "Generate a new signing key?\n\nCertificates issued from now on are signed with the new key. The current key is retired and keeps verifying the certificates it signed."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:314
+msgid "Generate key"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:331
+msgid "Generating or rotating the key needs the Danger Zone capability."
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:120
+msgid "Integrity confirmed"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:245
+msgid "Integrity signature"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:297
+msgid "Link only"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:278
+msgid "No signing key exists yet: until one is generated under Settings → Certificates, this form prints the link only."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:254
+msgid "No signing key yet. Forms with a signed QR mode print the link only until one is generated."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:285
+msgid "Previous keys"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:273
+msgid "Public key"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:320
+msgid "Rotate key"
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:142
+msgid "Signature not valid"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:72
+msgid "Signed QR codes"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:271 includes/settings/views/ffc-tab-certificates.php:292
+msgid "Signed certificates"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:298
+msgid "Signed, compact"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:299
+msgid "Signed, full"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:363
+msgid "Signing Key Generated"
+msgstr ""
+
+#: includes/admin/class-ffc-signing-key-handler.php:106
+#, php-format
+msgid "Signing key %1$s is now active. Key %2$s is retired and still verifies the certificates it signed."
+msgstr ""
+
+#: includes/admin/class-ffc-signing-key-handler.php:104
+#, php-format
+msgid "Signing key %s generated. Forms with a signed QR mode now sign every certificate they issue."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:273
+msgid "The QR code carries the link and a signature over the code, the date, the name, the course and the workload. Without internet it shows them to compare with the paper; a name or course too long for the template's QR falls back to compact."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:272
+msgid "The QR code carries the link and a signature over the code, the issue date and a digest of the certificate. Without internet it confirms the code and the date."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:271
+msgid "The QR code carries the verification link only, as before. Checking the certificate needs the site."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:281
+msgid "The global QR design has a logo, which the signed modes do not print: it would force a much larger code."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:325
+msgid "The layout prints no QR code, so the signature has nowhere to go."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php:335
+#, php-format
+msgid "The layout prints the QR code at %1$d px; this mode needs at least %2$d px to be read reliably. Enlarge it in the template."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:278
+msgid "The private key is stored unencrypted, because this site has no encryption key. Configure one under Settings → Advanced and generate a new signing key."
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:141
+msgid "The signature stored for this certificate does not verify, so this page cannot vouch for its data. Ask the issuer."
+msgstr ""
+
+#: includes/admin/class-ffc-signing-key-handler.php:89
+msgid "The signing key could not be generated: this server cannot create Ed25519 keys."
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php:117
+#, php-format
+msgid "This certificate was signed by this site on %s, and its data still matches what was signed."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:290
+msgid "Used from"
+msgstr ""
+
+#: includes/admin/class-ffc-signing-key-handler.php:69
+msgid "You do not have permission to manage the signing key."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:264
+#, php-format
+msgid "created on %s"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:99
+msgid "Certificate QR code verifier"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:70
+msgid "Changed after issue"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:100
+msgid "Checks the signature a certificate's QR code carries, with no internet connection. Scan the QR code with the phone's camera, copy the link it opens, and paste it below."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:80
+msgid "Course:"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:317
+msgid "Download offline verifier"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "Each QR code is drawn with the largest payload its printed size can carry readably: the full one where it fits, else the compact one, else the link only."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:101
+msgid "Link the QR code opens"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:103
+msgid "No signature in this link"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:313
+msgid "Offline verifier"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:314
+msgid "One HTML file that checks a signed QR code with no internet connection: it carries this site's public keys, every one listed above included. Download it again after rotating the key, so it knows the new one."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:75
+msgid "Signature not checked"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:68
+msgid "Signed by the issuer"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:69
+msgid "The QR code carries this site's signature over the data below. Compare it with the paper."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:71
+msgid "The QR code is genuine but was signed for an earlier version of this certificate: its data has changed since. Ask the issuer which version is the right one."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:74
+msgid "The QR code names a signing key this site does not have."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:73
+msgid "The QR code's signature does not match its data. It was not issued this way by this site."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:76
+msgid "The signature rides in the part of the link after #, which a browser never sends to the server. The verification page checks it in the browser with the site's public keys and lists what was signed, even when the site does not answer; when it does, a QR code printed for an earlier version of the certificate is reported as changed after issue. Without internet, the offline verifier downloaded from the Integrity signature card checks a pasted link the same way. QR codes printed before a form switched to a signed mode carry the link only and verify as before."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:76
+msgid "This browser cannot check the QR code's signature. Use an up-to-date browser, or rely on the result from the site."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:104
+msgid "This link carries no signature: the certificate was issued with the link only, or the link was cut short. Paste the whole link, including the part after #."
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:77
+msgid "Validation code:"
+msgstr ""
+
+#: includes/frontend/class-ffc-signed-qr-verifier.php:81
+msgid "Workload (hours):"
+msgstr ""
+
+#: includes/admin/class-ffc-signing-key-handler.php:70
+msgid "You do not have permission to download the verifier."
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:182
+msgid "Certificates: Sign Certificates Already Issued"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:183
+msgid "Sign every published certificate of a form on a signed QR mode (Compact or Full) that has no signed record yet: those issued before the form chose the mode, or before the site had a signing key. Forms on Link only are never touched. The record is signed as the certificate reads today, with its original issue date, and a PDF already downloaded keeps the plain link until it is downloaded again. Generate a signing key first. Completion here means every such certificate was EXAMINED: one that cannot be signed is listed in the activity log and counted as done; switching another form to a signed mode starts the walk again."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:124
+msgid "Every certificate of a form on a signed QR mode has been examined."
+msgstr ""
+
+#. translators: %d: number of certificates signed.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:147
+#, php-format
+msgid "Signed %d certificate."
+msgid_plural "Signed %d certificates."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: number of certificates signed, 2: number that could not be signed.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:152
+#, php-format
+msgid "Signed %1$d certificates; %2$d could not be signed and are listed in the activity log."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php:168
+msgid "Generate a signing key first, under Settings → Certificates."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "Certificates issued before their form chose a signed mode, or before the first key, have no signed record. The Certificates: Sign Certificates Already Issued card on Settings → Data Migrations signs them, for the forms on a signed mode only, as each certificate reads today and with its original issue date. A PDF already downloaded keeps the plain link until it is downloaded again. The card counts the forms on a signed mode and their certificates, and the forms on Link only it leaves out, so a 100% over a few forms is not read as every certificate signed. The verification page of such a certificate gives both dates, the issue and the later signing; the signature is never dated back to the issue."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:284
+msgid "Copy public key"
+msgstr ""
+
+#. translators: %s: comma-separated QR modes, such as "Signed, compact; Link only"
+#: includes/admin/class-ffc-cert-template-admin-screen.php:879
+#, php-format
+msgid "At this size the code is read reliably on paper in: %s."
+msgstr ""
+
+#. translators: %d: minimum size, in px
+#: includes/admin/class-ffc-cert-template-admin-screen.php:881
+#, php-format
+msgid "Too small to be read reliably on paper: even the link alone needs %d px."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-migrations.php
+msgid "This migration cannot run yet on this site."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+msgid "Generate a signing key"
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Go to Canonicalise Stored Identifiers"
+msgstr ""
+
+#: includes/generators/class-ffc-qrcode-generator.php
+msgid "Verify this document at:"
+msgstr ""
+
+#. translators: %s: error correction level (L, M, Q or H).
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+#, php-format
+msgid "Use error correction %s"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+msgid "Turn off the logo"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-qr-generator-ajax-endpoint.php
+msgid "Use a short URL"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-qr-generator.php
+msgid "When the content is too long for the chosen error correction, the message says how much to remove and offers one button for each way out: the lower level that holds it, turning off the logo that forces H (the image stays selected), or a short URL for a website or a social profile. A button only changes its own control, so the form always shows what the code is drawn with; the generator never changes the level by itself."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "The link does not fit in a QR code at any error correction: the certificate prints it as text instead."
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+msgid "The logo is left out: the link does not fit at error correction H, which the logo needs."
+msgstr ""
+
+#. translators: 1: error correction level printed, 2: level asked for (L, M, Q or H)
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+#, php-format
+msgid "The QR code is printed at error correction %1$s, above the %2$s asked for: the link leaves room, so it survives more damage at the same size."
+msgstr ""
+
+#. translators: 1: error correction level printed, 2: level asked for (L, M, Q or H)
+#: includes/admin/class-ffc-form-editor-layout-metabox.php
+#, php-format
+msgid "The QR code is printed at error correction %1$s, below the %2$s asked for: the link does not fit at %2$s."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php
+msgid "Each option of the form editor's QR code row says when the certificate's code is printed at another error correction than the layout asks for: above it when the link leaves room in the grid, below it when the link does not fit, and when the logo is left out or the link is printed as text instead."
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Permanent"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Basic Education Teacher"
+msgstr ""
+
+#. translators: sample work hours on a certificate preview.
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "08:00 to 17:00"
+msgstr ""
+
+#. translators: sample work hours on a certificate preview.
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "18:00 to 22:00"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Pedagogical Sector"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Sample Program"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-preview-samples.php
+msgid "Certificate Title"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "Pedagogical Coordination"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "School Principal"
+msgstr ""
+
+#: includes/core/class-ffc-certificate-signers.php
+msgid "School Supervision"
+msgstr ""
+
+#. translators: 1: number of forms on a signed QR mode, 2: number of their published certificates.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+#, php-format
+msgid "Covered: forms on a signed QR mode: %1$d, certificates: %2$d."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+msgid "No form on Link only has certificates."
+msgstr ""
+
+#. translators: 1: number of forms on Link only, 2: number of their published certificates.
+#: includes/migrations/strategies/class-ffc-certificate-signing-backfill-migration-strategy.php
+#, php-format
+msgid "Not covered: forms on Link only: %1$d, certificates: %2$d. To include a form, choose \"Signed, compact\" or \"Signed, full\" under QR code in its editor."
+msgstr ""
+
+#. translators: 1: date the certificate was issued, 2: later date it was signed
+#: includes/frontend/class-ffc-verification-response-renderer.php
+#, php-format
+msgid "This certificate was issued on %1$s and signed by this site later, on %2$s. Its data still matches what was signed."
+msgstr ""
+
+#: includes/settings/views/documentation/config-general.php:44
+msgid "The same formats apply on the admin screens, in the CSV exports, on the user dashboard, in the audience calendars and in the signed QR code verifier, offline included. Calendar day headings are the one exception: they write the month by name, in the site language."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "A CPF or RF already on the member's profile is shown read-only, and only an administrator changes it. Fields mapped to the profile reach it when the submission is approved, not when it is sent, and a CPF or RF another account already holds is refused, so one person's records never move onto another's account."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-form-renderer.php
+msgid "Already on your profile. Contact the administrator to change it."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-data-processor.php
+#, php-format
+msgid "This %s is already linked to another account. Contact the administrator."
+msgstr ""
+
+#: templates/admin/qr/design-fields.php
+msgid "Use the logo"
+msgstr ""
+
+#: templates/admin/qr/design-fields.php
+msgid "Turn off to draw the code without the logo while keeping the image selected."
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-handler.php
+msgid "This appointment is awaiting approval and cannot be verified yet."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php
+msgid "Visitor addresses are sent over HTTPS only. A failed lookup is not repeated for 5 minutes."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php
+msgid "When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io) to find its approximate region."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php
+msgid "ipinfo.io, over HTTPS on its free tier; a free key raises the limit. Visitor addresses are never sent in clear text."
+msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "A value in that format is read only with the key derived from the WordPress salts, which is the key it was written with, so a defined FFC_ENCRYPTION_KEY can never read it as a different value."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "A page already at either address is used only when it is published and holds that shortcode; any other page there, a draft or one of the site's own, is left alone and the plugin's page is created beside it under the address WordPress gives it."
+msgstr ""
+
+#: includes/settings/views/documentation/config-user-access.php
+msgid "Where blocked users land — by default the dashboard page the plugin manages, wherever its address ended up."
+msgstr ""
+
+#: includes/api/class-ffc-user-profile-rest-controller.php
+msgid "A privacy request cannot be made while viewing as another account."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Nor can a privacy request be made there, since it is the data subject's own, and a profile edit made while viewing as someone is logged under the account that made it, naming the account edited."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "Once an hour the plugin e-mails each eligible participant of a booking whose form has opened the personal link, once. The e-mail is \"Audience post-event form invitation\" under Settings → Email texts. It needs a published page that embeds the form, since the link points there; without one nothing is sent. The Attendance screen lists who was invited and when, who answered and whose certificate was issued, and while the form is open it resends to one person at once, or to everyone who has not answered in the background, in batches of 200 a minute apart; this needs ffc_checkin_audiences."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Invitations are being sent to everyone eligible who has not answered. A large booking takes a few minutes."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php
+msgid "Nobody can be invited: the form is not open."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Audience post-event invitations to everyone who has not answered (one per batch)"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The names reach only someone who may book people by name; anyone else is told how many."
+msgstr ""
+
+#: includes/settings/views/documentation/developer-hooks-api.php
+msgid "Booking access, as for creating a booking — the people and audiences named are checked the way a booking checks them, at most 500 of each; the environment must belong to a schedule the caller may read; only bookings in readable schedules are reported; and names reach only a caller who may book people by name."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+#, php-format
+msgid "A booking can name at most %d people or audiences."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "schedule_id/environment_id of 0 show everything the visitor may access; view is month or week. Bookings are made through the plugin's REST API and can target one or more audiences or an individual, and are cancelled with a reason of at least 5 characters. The day's list draws Edit and Cancel only on a booking the person may cancel: their own, any booking when their User access row carries Cancel Others, or any booking for a bypass holder where the calendar allows it."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php
+#, php-format
+msgid "Write a cancellation reason of at least %d characters."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On custom calendars, the maximum number of distinct blocks one user may hold (max_blocks_per_user). Counts their active and waitlisted bookings whose slot has not started; 0 = no limit. A read-only Occupancy tab, shown once a custom calendar is saved, lists each block's live booked / capacity, occupancy % and waitlist length."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Old appointments close themselves: once a day, an appointment whose date passed the number of days set under Close Old Appointments on the Personal Calendars tab of the Scheduling settings (default 7, 0 turns it off) and that is still confirmed is marked completed, and one still pending or on the waitlist is cancelled with a reason saying it was never confirmed. No e-mail is sent. When any are due, the Appointments list says how many and offers Close old appointments now, which runs the same close-out at once; each run that changed something leaves one Activity Log entry."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-closeout.php
+msgid "Closed automatically: the date passed before the appointment was confirmed."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php
+#, php-format
+msgid "Old appointments closed: %1$d marked completed, %2$d pending or waitlisted cancelled."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php
+#, php-format
+msgid "Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending or waitlisted (will be cancelled). The daily run closes them; you can close them now."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Minimum notice (hours) and how far ahead bookings are allowed (default 30 days; 0 = no limit). How far ahead applies to regular calendars only: a custom calendar's blocks are bookable whatever their date, and the free slots panel follows the same rule."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "A new booking must start at least this many hours before or after the person's booking nearest to it on the same calendar (default 24; 0 disables it). Cancelled bookings do not count, so cancelling to rebook is never blocked by the old time. The person is the account, else the CPF/RF, so a new e-mail address resets neither this nor the block cap; and on any calendar one person may hold only one place on a slot."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php
+msgid "You already have an appointment at this time."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php
+#, php-format
+msgid "You have an appointment on this calendar on %1$s. A new one must be at least %2$d hours before or after it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On the verification page, a validation code confirms an appointment and downloads its receipt with the CPF/RF and e-mail masked. The validation code is printed on the receipt, so anyone holding a copy can type it. The full receipt and the cancellation link stay behind the magic link the person received. An appointment awaiting approval cannot be verified until it is approved. Only a confirmed or completed appointment is shown as a valid receipt: a waitlisted one says it is not confirmed yet, a no-show says the participant did not attend, and a cancelled one says so and offers no receipt to download."
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php
+msgid "Appointment Not Confirmed Yet"
+msgstr ""
+
+#: includes/frontend/class-ffc-verification-response-renderer.php
+msgid "Participant Did Not Attend"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On the Appointments list, a confirmed appointment offers Attended from its date on and No-show once its start time has passed; either mark is replaced by Undo attendance, which puts the appointment back to confirmed. A mark frees the place, so undoing one before the slot starts recounts the slot and is refused when the place was booked again since. Marking attendance needs ffc_manage_appointments and sends no e-mail."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "Mark as no-show in the bulk actions does the same for several rows at once; a selected row that is not confirmed, or whose start time has not passed, is skipped and counted in the notice."
+msgstr ""
+
+#: includes/self-scheduling/views/appointments-list.php
+msgid "A no-show can only be marked once the appointment has started."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-admin-actions.php
+msgid "The slot was booked again since the mark, so the mark cannot be undone."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "An hourly task sends each reminder once, to a confirmed appointment that starts within the calendar's reminder hours, measured in the timezone set in WordPress. A run that was missed is caught up by the next one. An appointment booked or approved less than that ahead gets no reminder, since its confirmation has just gone out, and a reminder the mail server refuses is tried again at the next run, until the appointment starts."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "The confirmation, approval and promotion e-mails of a confirmed appointment carry a calendar file (.ics), and the cancellation carries one that takes the appointment off the calendar. Every calendar file the plugin makes, these and the one on the user dashboard, is written in the time zone set in WordPress."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "The answer that declares a second post is the third option of the Position Accumulation field, whatever its text and whatever language it was saved in, so rewording the options keeps the second post's fields working as long as that answer stays third."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "A required checkbox has to be ticked: the form and the import both refuse one left unticked, whether it arrives as 0 or as No."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "Someone who leaves the campaign's audiences, or whose audience is taken off the campaign, no longer receives its invitation or reminder, even when sent by hand, and can no longer open the form. The daily run removes their submission if it was never started; one with answers stays as a record."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:28
+msgid "Configure the emails (invitation, reminder, confirmation) and whether submissions auto-approve. The approved, not-approved and returned-for-revision e-mails are always sent and are edited in Settings → Email texts."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:31
+msgid "Admins review and approve or reject each submission (unless auto-approve is on). Approve, for one submission or a selection, acts only on this campaign's submissions awaiting review, says how many of the selection it skipped, and e-mails each approved member their verification code. Approvals, rejections, returns to draft and campaign deletions are recorded in the activity log."
+msgstr ""
+
+#: templates/emails/reregistration-approved.php:25
+msgid "Reregistration approved: {{reregistration_title}}"
+msgstr ""
+
+#: templates/emails/reregistration-approved.php:26 includes/settings/tabs/class-ffc-tab-email-texts.php:225
+msgid "Reregistration approved"
+msgstr ""
+
+#: templates/emails/reregistration-approved.php:28
+msgid "Your reregistration was reviewed and approved. Your record (PDF) is ready to download from your dashboard."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:309
+msgid "Reregistration Submission Approved"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:313
+msgid "Reregistration Campaign Deleted"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:111
+msgid "Export CSV exports what the list shows: the same filters, every page, with each status written as the list names it."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:635
+msgid "Choose a valid campaign status. Nothing was saved."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:83
+msgid "The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a dated delivery is recorded per date including its year, and an announcement's deliveries are kept when their run goes, so a later Send now does not reach the same people again."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:84
+msgid "On a multisite network a rule reaches only the members of this site, whether it follows a date or is an announcement without an audience. A batch that stops halfway is retried; the retry does not send the rest of the run a second time, and a message that failed and then went out on the retry is counted once, as sent."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:85
+msgid "In the history, \"Already sent before\" counts the people an earlier run had already reached, who are not sent the message again. When a run failed for someone, a viewer allowed to see who receives date messages (ffc_view_date_messages_pii, or an administrator) can open the list of who failed, with each name masked, as in the summary e-mail."
+msgstr ""
+
+#: templates/admin/date-messages/history.php:107
+msgid "Already sent before"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php:43
+msgid "Taking a post off the site (the trash, a draft, pending review, private or a future date) disables its short URL; publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php:49
+msgid "A disabled, trashed or retired code shows a short page of its own, without the site's theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) and asks search engines not to index it. An address under the prefix that is not a code the site issued is left to WordPress, so a page whose address starts with the prefix still opens, and anything else gets the site's own 404."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php:52
+msgid "Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty or be changed to the address of a page, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes."
+msgstr ""
+
+#: templates/admin/url-shortener/short-urls-page.php:104
+msgid "The short URL could not be changed. It may have been changed or deleted in the meantime; reload the list and try again."
+msgstr ""
+
+#: includes/admin/class-ffc-settings-save-handler.php:866
+#, php-format
+msgid "The prefix \"%1$s\" is the address of \"%2$s\". Short URLs would sit over that page and the pages under it, so choose another prefix."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A file that replaces a list that already has rows shows what it changes before anything is written: the rows that enter, leave, or change rank or score. Nothing is imported until the operator confirms. The preliminary status and reason set by hand stay with each candidate and adjutancy that remains; only those of the rows that leave are lost, and the comparison says how many. The notice is read again when the list is replaced: a preliminary list is refused once the notice has become definitive or closed, even if its import started earlier. Each step of an import must name the notice it was started for, by the operator who started it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A candidate is shared by every notice and is recognised by CPF, then by RF. Before anything is written, each line is compared with the candidate it matches. A line whose CPF belongs to one candidate and whose RF belongs to another refuses the whole file. A line whose name, CPF, RF or e-mail differs from the stored candidate is listed, and the import waits for confirmation: confirming attaches the line to that candidate and keeps the stored data. An import never overwrites a stored name or identifier; it only fills in one the candidate lacks. To correct a candidate, edit it on its own screen. An e-mail typed there that is not a valid address is refused and nothing is saved; an empty field clears the e-mail."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Nothing was saved: the e-mail is not a valid address. Correct it, or leave the field empty to clear it."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The e-mail is not a valid address. Correct it, or send it empty to clear it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "the public classification list for a notice. Shows only the columns the notice marks public. Accepts an optional adjutancy=\"slug\" attribute, and honors the ?q (name search), ?adjutancy, ?subscription (pcd/geral) and ?page_top / ?page_bottom URL filters. The \"Show on the site\" card on the notice edit screen has it ready to copy. Only the plain list, a pinned adjutancy and the first 20 pages of each section are cached; a name search, an adjutancy chosen in the address and a later page are rendered fresh each time."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Every line is checked before anything is imported, on the screen's import and through the API alike: identifiers, score, time points, rank and adjutancy. Each rank is one place in its adjutancy, so two lines with the same rank in one adjutancy are refused. One invalid line refuses the whole file, and the report names each line, each problem and the value at fault (never a CPF or RF, which are personal data). The file must be UTF-8: Excel's plain \"CSV\" is Windows-1252, so choose \"CSV UTF-8\" when saving. Promoting the preliminary list keeps every column, time points and the EMEBS qualification included."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate's history. An unlink is kept: neither the background linking nor a new account with the same CPF or RF links the candidate again, until someone links it by hand."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "Another line of the same adjutancy has this rank. Each rank is one place in the list."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "The list shows each link's title, short URL, destination, click count with the date of the last click, and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Each visit increments a click count and records when the last one happened; the plugin does not store per-click timestamps, referrers or IPs. Inactive links show the page above and are not counted, and neither are HEAD requests, link previews (WhatsApp, Slack, social networks…) or search and AI crawlers that announce themselves (Googlebot, Bingbot, GPTBot…). Redirects are sent with no-cache headers; a click that a page cache answers anyway never reaches the counter."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-export-source.php
+msgid "Last Click"
+msgstr ""
+
+#: templates/admin/url-shortener/short-urls-page.php
+#, php-format
+msgid "Last: %s"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:76
+msgid "The verification page checks the certificate against its signed record and says one of three things: integrity confirmed, changed after signing (naming the fields that changed), or signature not valid. Editing a signed certificate signs it again only when something the record covers changed. Changing the site's timezone does not affect signatures already made."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "Signing needs a key, generated once on Settings → Certificates, in the Integrity signature card, by someone with the Danger Zone capability. Rotating it retires the old key, which keeps verifying what it signed. Until a key exists, forms with a signed mode print the link only, and each certificate that could not be signed is recorded in the activity log. The private key is stored encrypted: rotating the site's encryption key re-encrypts it with the records, and the card warns when it can no longer be read."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-certificates.php:298
+msgid "The private key cannot be read with the current encryption key, so new certificates are issued unsigned. Restore the previous encryption key and run the key rotation under Settings → Data Migrations, or generate a new signing key."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-qr-codes.php:77
+msgid "The title, the workload and the event dates belong to the form, and every signed certificate of the form carries them. While signed certificates exist, the QR code row of the form editor says so before you save. After a save that changed them, the form screen offers \"Re-sign with current data\", which signs those certificates again, a hundred per click, and records it in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:95
+msgid "Continue signing again"
+msgstr ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:95
+msgid "Re-sign with current data"
+msgstr ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:102
+msgid "Signing this form's certificates again stopped before the end. Continue to sign the rest."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:318
+msgid "Certificates Signed Again"
+msgstr ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:78
+#, php-format
+msgid "%d certificate was signed again with the current data."
+msgid_plural "%d certificates were signed again with the current data."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:104
+#, php-format
+msgid "The title, workload or event dates of this form changed after its %d signed certificate was signed, so its verification page says it changed after signing. Signing it again attests the data as it is now, and is recorded in the activity log."
+msgid_plural "The title, workload or event dates of this form changed after its %d signed certificates were signed, so their verification pages say they changed after signing. Signing them again attests the data as it is now, and is recorded in the activity log."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-ffc-form-resign-notice.php:178
+#, php-format
+msgid "%d certificate of this form is signed. Changing the title, workload or event dates makes it read as changed after signing, until it is signed again from the notice the save shows."
+msgid_plural "%d certificates of this form are signed. Changing the title, workload or event dates makes them read as changed after signing, until they are signed again from the notice the save shows."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/frontend/submission/class-ffc-submission-identity-lock.php:69
+msgid "Another submission with these details is still being processed. Wait a moment and try again."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The call e-mail gives the presentation date and time in the site's formats, attaches the call's .ics, links to \"My calls\" and asks the candidate to confirm by replying. The \"Days to answer a call\" option of the Recruitment settings adds a deadline, counted from the day of the call and never later than the presentation; 0 names none. The e-mail also carries a link to define a password, which is how a candidate whose account the import created signs in for the first time. A candidate with no e-mail on file is marked \"No email — contact manually\" on the definitive list, and calling one says so, since nobody was notified. Calling says the same when the e-mail could not go out, because e-mails are switched off or the send failed, and no new password link is issued for a message that is not sent. A bulk call saves the calls at once and sends their e-mails in the background, a few at a time. The Calls tab shows each call's e-mail as sent, not sent or waiting to be sent, with its time, and Send the e-mail again sends a call still in force once more."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "{count} called candidate(s) were not notified by e-mail: no address on file, e-mails switched off or the send failed. Contact them another way, or use Send again on the Calls tab."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The e-mails of {count} call(s) are being sent in the background. The Calls tab shows each delivery."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The call e-mail was sent again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The call e-mail did not go out: no address on file, e-mails switched off or the send failed."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "This call was cancelled, so its e-mail is not sent again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "The date and time to assume are over, so no e-mail is sent for this call."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Send the e-mail again"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Recruitment Call E-mail Sent Again"
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php
+msgid "Recruitment: call e-mails of a bulk call (one per batch)"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Sent"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Not sent"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgctxt "call e-mail status"
+msgid "Waiting to be sent"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "The same person appears twice in this adjutancy. A candidate holds one place per adjutancy."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:265
+msgid "This person appears on another line with different details (name, RF, e-mail, phone or PCD). The lines of one candidate must agree."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php:1117
+msgid "Earlier days"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:243
+msgid "Already held"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:55
+msgid "In the month that holds today, the visitor's bookings already held wait in a collapsed group, and today's date carries a Today mark."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:82
+msgid "In the event list, the past days of the month that holds today wait in a collapsed group at the top, with their count, and today's date carries a Today mark; a past or future month lists every day open."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:336
+msgid "Open receipt"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-open-handler.php:114
+msgid "You do not have permission to open this receipt."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:125
+msgid "The status badge's background and text colours, which follow the status"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:107
+msgid "The receipt is the appointment's magic link on the verification page: the link in the person's e-mails and on their dashboard opens it with the data as it is, and a pending appointment shows there as Pending Approval. The older receipt address still works: it sends the holder of the link or the signed-in owner to the magic link, and staff to the Appointments list. Staff who may reveal personal data open a receipt from Open receipt on that list, which writes an Activity Log entry; without that permission the action is not shown. View as user shows no receipt link."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:108
+msgid "The receipt PDF is built in the visitor's browser. Right after booking, the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr ""

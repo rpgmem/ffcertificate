@@ -86,7 +86,7 @@ class RestControllerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// suppress_rest_api_notices() — no-op when not REST_REQUEST
+	// suppress_rest_api_notices() — no-op outside a REST request
 	// ==================================================================
 
 	public function test_suppress_notices_noop_when_not_rest_request(): void {
@@ -95,6 +95,7 @@ class RestControllerTest extends TestCase {
 		// The constructor registers rest_post_dispatch through add_filter(), so
 		// the count starts after it. The old expect()->never() was never
 		// consulted, which is how that call went unnoticed (#1699).
+		Functions\when( 'wp_is_serving_rest_request' )->justReturn( false );
 		$controller = new RestController();
 		$add_filter = CallLog::record( 'add_filter', true );
 
@@ -104,20 +105,11 @@ class RestControllerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// suppress_rest_api_notices() — starts buffer when REST_REQUEST
+	// suppress_rest_api_notices() — starts buffer in a REST request
 	// ==================================================================
 
-	/**
-	 * Its own process: REST_REQUEST is a constant, and once defined it would
-	 * make every later test in the process a REST request (#2123).
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_suppress_notices_starts_buffer_when_rest_request(): void {
-		if ( ! defined( 'REST_REQUEST' ) ) {
-			define( 'REST_REQUEST', true );
-		}
+		Functions\when( 'wp_is_serving_rest_request' )->justReturn( true );
 
 		$filter_added = false;
 		Functions\when( 'add_filter' )->alias( function ( $tag ) use ( &$filter_added ) {
@@ -164,17 +156,8 @@ class RestControllerTest extends TestCase {
 	// suppress_rest_api_notices() — the rest_pre_serve_request closure
 	// ==================================================================
 
-	/**
-	 * Its own process: REST_REQUEST is a constant, and once defined it would
-	 * make every later test in the process a REST request (#2123).
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_suppress_notices_closure_cleans_active_buffer(): void {
-		if ( ! defined( 'REST_REQUEST' ) ) {
-			define( 'REST_REQUEST', true );
-		}
+		Functions\when( 'wp_is_serving_rest_request' )->justReturn( true );
 
 		$captured = null;
 		Functions\when( 'add_filter' )->alias( function ( $tag, $cb = null ) use ( &$captured ) {

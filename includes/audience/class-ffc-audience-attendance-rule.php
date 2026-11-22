@@ -134,25 +134,4 @@ class AudienceAttendanceRule {
 
 		return count( $counted ) >= self::required_days( $booking );
 	}
-
-	/**
-	 * Whether a person attended a booking, by its rule.
-	 *
-	 * @param int $booking_id Booking ID.
-	 * @param int $user_id    User ID.
-	 * @return bool False for an unknown or cancelled booking.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function has_attended( int $booking_id, int $user_id ): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$booking = AudienceBookingReader::get_by_id( $booking_id );
-		if ( null === $booking || 'cancelled' === ( $booking->status ?? '' ) || $user_id <= 0 ) {
-			return false;
-		}
-
-		return self::satisfied_by( $booking, AudienceAttendanceReader::days_present( $booking_id, $user_id ) );
-	}
 }

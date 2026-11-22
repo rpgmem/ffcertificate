@@ -16,9 +16,10 @@
  * {@see \FreeFormCertificate\Core\RequestInput::get_post_int()} or
  * `get_get_int()`, which guard the scalar and then call `absint()`.
  *
- * **No allowlist, and that is measured rather than assumed.** Every site in
- * the baseline uses `absint()`; there is no `intval()` and no `(int)` cast over
- * a superglobal in `includes/`. Since both accessors are themselves built on
+ * **No allowlist, and that is measured rather than assumed.** Every site the
+ * baseline held used `absint()`; there was no `intval()` and no `(int)` cast
+ * over a superglobal in `includes/`, and #2557 routed all 43 through the
+ * accessors, so the baseline is empty and the guard blocks at zero. Since both accessors are themselves built on
  * `absint()`, they are a drop-in for all of them — there is no signed-integer
  * case needing an exception. Should one ever appear, add the accessor it needs
  * rather than an exception here.
@@ -67,8 +68,27 @@ final class RequestInputCastTest extends TestCase {
 	 * @return list<string> Sorted entries.
 	 */
 	public static function collect_casts(): array {
+		return self::scan()['entries'];
+	}
+
+	/**
+	 * The files the scan read, relative to `includes/`.
+	 *
+	 * @return list<string> Sorted.
+	 */
+	private static function scanned_files(): array {
+		return self::scan()['files'];
+	}
+
+	/**
+	 * One walk over `includes/`.
+	 *
+	 * @return array{entries: list<string>, files: list<string>}
+	 */
+	private static function scan(): array {
 		$root    = dirname( __DIR__, 2 ) . '/includes';
 		$entries = array();
+		$files   = array();
 		$seen    = array();
 
 		$iter = new \RecursiveIteratorIterator(
@@ -91,49 +111,72 @@ final class RequestInputCastTest extends TestCase {
 			if ( false === $text ) {
 				continue;
 			}
+			$files[] = $relative;
 
-			// Prose that QUOTES the shape is not the shape. The scan read the file
-			// as plain text, so a comment explaining why a given read does NOT use
-			// `absint()` on the superglobal was counted as a dynamic-key cast --
-			// failing the very PR that wrote the comment (#1212 spent a CI run on
-			// it). It is the same distinction CLAUDE.md already pins for
-			// suppression annotations: only the token that OPENS the comment
-			// counts, not one that appears inside it.
-			//
-			// `token_get_all()` rather than a regex: recognising a comment with a
-			// regular expression requires knowing when `//` is inside a string,
-			// and PHP's lexer already knows.
-			$text = self::strip_comments( $text );
-
-			// `absint( … )` / `intval( … )` and the `(int)` cast, each of them
-			// optionally wrapping a `wp_unslash()`, applied to a superglobal.
-			$pattern = '/(?:\b(?:absint|intval)\s*\(\s*|\(\s*int\s*\)\s*)'
-				. '(?:wp_unslash\s*\(\s*)?'
-				. '\$_(POST|GET|REQUEST)\s*\[\s*([^\]]*?)\s*\]/';
-
-			if ( ! preg_match_all( $pattern, $text, $matches, PREG_SET_ORDER ) ) {
-				continue;
-			}
-
-			foreach ( $matches as $match ) {
-				$superglobal = $match[1];
-				$key_expr    = $match[2];
-
-				// A quoted literal is reported by name; anything computed is
-				// reported as `$dynamic`, because the concatenation itself is
-				// not a stable identifier.
-				$key = preg_match( "/^'([^']*)'$/", $key_expr, $literal )
-					? $literal[1]
-					: '$dynamic';
-
-				$base                = $relative . '::' . $superglobal . '[' . $key . ']';
-				$seen[ $base ]       = ( $seen[ $base ] ?? 0 ) + 1;
-				$entries[]           = $base . '#' . $seen[ $base ];
+			foreach ( self::casts_in( $relative, $text, $seen ) as $entry ) {
+				$entries[] = $entry;
 			}
 		}
 
 		sort( $entries );
-		return $entries;
+		sort( $files );
+		return array(
+			'entries' => $entries,
+			'files'   => $files,
+		);
+	}
+
+	/**
+	 * The casts one file's source carries.
+	 *
+	 * A method of its own so the self-check can run it over synthetic source:
+	 * the baseline is empty since #2557, and a pattern that stopped matching
+	 * would pass the ratchet in silence.
+	 *
+	 * @param string             $relative Path under `includes/`.
+	 * @param string             $text     Source.
+	 * @param array<string, int> $seen     Occurrences so far, per (file, key).
+	 * @return list<string> Entries, in source order.
+	 */
+	public static function casts_in( string $relative, string $text, array &$seen ): array {
+		// Prose that QUOTES the shape is not the shape. The scan read the file
+		// as plain text, so a comment explaining why a given read does NOT use
+		// `absint()` on the superglobal was counted as a dynamic-key cast --
+		// failing the very PR that wrote the comment (#1212 spent a CI run on
+		// it). It is the same distinction CLAUDE.md already pins for
+		// suppression annotations: only the token that OPENS the comment
+		// counts, not one that appears inside it.
+		//
+		// `token_get_all()` rather than a regex: recognising a comment with a
+		// regular expression requires knowing when `//` is inside a string,
+		// and PHP's lexer already knows.
+		$text = self::strip_comments( $text );
+
+		// `absint( … )` / `intval( … )` and the `(int)` cast, each of them
+		// optionally wrapping a `wp_unslash()`, applied to a superglobal.
+		$pattern = '/(?:\b(?:absint|intval)\s*\(\s*|\(\s*int\s*\)\s*)'
+			. '(?:wp_unslash\s*\(\s*)?'
+			. '\$_(POST|GET|REQUEST)\s*\[\s*([^\]]*?)\s*\]/';
+
+		if ( ! preg_match_all( $pattern, $text, $matches, PREG_SET_ORDER ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $matches as $match ) {
+			// A quoted literal is reported by name; anything computed is
+			// reported as `$dynamic`, because the concatenation itself is
+			// not a stable identifier.
+			$key = preg_match( "/^'([^']*)'$/", $match[2], $literal )
+				? $literal[1]
+				: '$dynamic';
+
+			$base          = $relative . '::' . $match[1] . '[' . $key . ']';
+			$seen[ $base ] = ( $seen[ $base ] ?? 0 ) + 1;
+			$out[]         = $base . '#' . $seen[ $base ];
+		}
+
+		return $out;
 	}
 
 	/**
@@ -212,14 +255,53 @@ final class RequestInputCastTest extends TestCase {
 	}
 
 	/**
-	 * The scan itself must keep working — an empty result would pass the ratchet
-	 * silently on the day the pattern stops matching, which is the same class of
-	 * defect as a gate that reports success on a missing report (#1071).
+	 * The scan itself must keep working.
+	 *
+	 * The baseline is empty since #2557, so an empty result is the expected
+	 * one and cannot prove the scan ran — the same class of defect as a gate
+	 * that reports success on a missing report (#1071). Two checks stand in
+	 * for it: every shape the pattern reads is found in synthetic source, and
+	 * a second traversal, repeating the filter, lists the files the walk read.
 	 */
 	public function test_the_scan_still_finds_the_known_population(): void {
-		$this->assertNotEmpty(
-			self::collect_casts(),
-			'The scan found nothing at all — the pattern or the path is broken, not the codebase fixed.'
+		$seen  = array();
+		$cases = array(
+			"absint( \$_POST['a'] )"                => 'x.php::POST[a]#1',
+			"absint( wp_unslash( \$_GET['b'] ) )"   => 'x.php::GET[b]#1',
+			"intval( \$_REQUEST['c'] )"             => 'x.php::REQUEST[c]#1',
+			"(int) \$_POST['a']"                    => 'x.php::POST[a]#2',
+			"absint( \$_GET[ 'p' . \$i ] )"        => 'x.php::GET[$dynamic]#1',
+			"// absint( \$_POST['quoted'] ) in prose" => null,
 		);
+		foreach ( $cases as $source => $entry ) {
+			$this->assertSame(
+				null === $entry ? array() : array( $entry ),
+				self::casts_in( 'x.php', "<?php\n" . $source . ";\n", $seen ),
+				'The scan no longer reads: ' . $source
+			);
+		}
+
+		$root    = dirname( __DIR__, 2 ) . '/includes';
+		$recount = array();
+		$walk    = static function ( string $dir ) use ( &$walk, &$recount, $root ): void {
+			foreach ( (array) scandir( $dir ) as $name ) {
+				if ( '.' === $name || '..' === $name ) {
+					continue;
+				}
+				$path = $dir . '/' . $name;
+				if ( is_dir( $path ) ) {
+					if ( 'libraries' !== $name ) {
+						$walk( $path );
+					}
+				} elseif ( '.php' === substr( $name, -4 ) ) {
+					$recount[] = substr( $path, strlen( $root ) + 1 );
+				}
+			}
+		};
+		$walk( $root );
+		$recount = array_values( array_diff( $recount, array( self::ACCESSOR_FILE ) ) );
+		sort( $recount );
+
+		$this->assertSame( $recount, self::scanned_files(), 'The scan does not walk the files a second traversal finds.' );
 	}
 }

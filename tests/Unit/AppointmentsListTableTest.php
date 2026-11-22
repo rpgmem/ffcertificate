@@ -308,6 +308,9 @@ class AppointmentsListTableTest extends TestCase {
 
 	public function test_column_id_pending_editable_builds_all_actions(): void {
 		Functions\when( 'current_user_can' )->justReturn( true ); // manage → can edit.
+		// The receipt asks the PII policy, which reads the user by id (#2732).
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=1' );
 
 		$table = new AppointmentsListTable();
@@ -315,15 +318,15 @@ class AppointmentsListTableTest extends TestCase {
 
 		// Buttons of the family in the Actions column (#2486), in the order a
 		// reader scans: open it, the day's work, the destructive one last.
-		$this->assertMatchesRegularExpression( '#>View</a><a[^>]*>View Receipt</a><a[^>]*ffc-icon-checkmark">Confirm</a><a[^>]*>Cancel</a></div>$#', $html );
+		$this->assertMatchesRegularExpression( '#>View</a><a[^>]*>Open receipt</a><a[^>]*ffc-icon-checkmark">Confirm</a><a[^>]*>Cancel</a></div>$#', $html );
 		// Cancel keeps the record, so it is caution, and keeps its script hook.
 		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-caution ffc-icon-cross ffc-appointment-cancel"', $html );
 		$this->assertStringContainsString( 'data-cancel-url="https://example.com/wp-admin/admin.php?page=ffc-appointments&ffc_action=cancel&appointment=7&_n=1"', $html );
 		$this->assertStringContainsString( '>View<', $html, 'A manager is offered the manage-gated detail view.' );
 		$this->assertStringContainsString( 'appointment=7', $html );
-		// The real MagicLinkHelper: no verification page stored, so /valid/.
-		// Staff get the bare receipt link, never the person's token (#2244).
-		$this->assertStringContainsString( 'https://example.com?ffc_appointment_receipt=7"', $html );
+		// The receipt opens through the audited route (#2732), never with the
+		// person's token in the page (#2244).
+		$this->assertStringContainsString( 'admin-post.php?action=ffc_open_appointment_receipt&appointment_id=7&_n=1"', $html );
 		$this->assertStringNotContainsString( 'tok', $html );
 	}
 
@@ -341,18 +344,27 @@ class AppointmentsListTableTest extends TestCase {
 		// viewer is not offered it (#1769).
 		$this->assertStringNotContainsString( '>View<', $html );
 		$this->assertStringNotContainsString( 'appointment=9', $html );
-		$this->assertStringNotContainsString( 'View Receipt', $html ); // cancelled → no receipt.
+		$this->assertStringNotContainsString( 'Open receipt', $html ); // cancelled → no receipt.
 	}
 
-	public function test_column_id_receipt_falls_back_to_handler_when_token_empty(): void {
+	public function test_the_receipt_is_offered_only_to_who_may_reveal_the_data(): void {
+		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=1' );
+		$row = array( 'id' => 11, 'status' => 'confirmed', 'user_id' => 0, 'confirmation_token' => '' );
+
 		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 
-		$table = new AppointmentsListTable();
-		$html  = $table->column_actions( array( 'id' => 11, 'status' => 'confirmed', 'confirmation_token' => '' ) );
+		// A viewer of the list without the module's PII capability (#2732).
+		Functions\when( 'user_can' )->alias( fn( $uid, $cap ) => 'ffc_view_appointments' === $cap );
+		$html = ( new AppointmentsListTable() )->column_actions( $row );
+		$this->assertStringNotContainsString( 'Open receipt', $html );
+		$this->assertStringNotContainsString( 'ffc_open_appointment_receipt', $html );
 
-		// The real AppointmentReceiptHandler::get_receipt_url( 11, '' ).
-		$this->assertStringContainsString( 'https://example.com?ffc_appointment_receipt=11', $html );
-		$this->assertStringNotContainsString( '#token=', $html );
+		// With it, the audited route.
+		Functions\when( 'user_can' )->alias( fn( $uid, $cap ) => in_array( $cap, array( 'ffc_view_appointments', 'ffc_view_appointments_pii' ), true ) );
+		$html = ( new AppointmentsListTable() )->column_actions( $row );
+		$this->assertStringContainsString( 'action=ffc_open_appointment_receipt&appointment_id=11', $html );
+		$this->assertStringNotContainsString( 'ffc_appointment_receipt=11', $html );
 	}
 
 	public function test_column_calendar_links_to_post_when_found(): void {
@@ -503,6 +515,9 @@ class AppointmentsListTableTest extends TestCase {
 		$table                   = new AppointmentsListTable();
 
 		$this->assertSame( '21-10-2026', $table->column_appointment_date( array( 'appointment_date' => '2026-10-21' ) ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		// An instant since #2679; a row not converted yet still reads as the same time.
+		$this->assertSame( '01-10-2026 14h05', $table->column_created_at( array( 'created_at' => '1790863500' ) ) );
 		$this->assertSame( '01-10-2026 14h05', $table->column_created_at( array( 'created_at' => '2026-10-01 14:05:00' ) ) );
 		$this->assertSame( '-', $table->column_appointment_date( array( 'appointment_date' => '' ) ) );
 		$this->assertSame( '-', $table->column_created_at( array() ) );

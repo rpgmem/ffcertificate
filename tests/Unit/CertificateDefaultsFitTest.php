@@ -75,6 +75,30 @@ class CertificateDefaultsFitTest extends TestCase {
 			$limit -= max( array_map( 'intval', $frames[1] ) );
 		}
 
+		// A QR in the signer row (#2639): its cell holds the whole code, and
+		// the code ends inside the frame.
+		if ( preg_match( '/<(?:td|div) style="(width:\s*(\d+)(px|%)[^"]*)">\s*\{\{qr_code:size=(\d+)/', $html, $cell, PREG_OFFSET_CAPTURE ) ) {
+			$size  = (int) $cell[4][0];
+			$width = (int) $cell[2][0];
+			if ( '%' === $cell[3][0] ) {
+				// The cell's percentage is of the positioned block that holds it: the last one opened before it.
+				$this->assertGreaterThan( 0, preg_match_all( '/position:\s*absolute;\s*top:\s*(\d+)px;\s*left:\s*\d+px;\s*width:\s*(\d+)px/', substr( $html, 0, $cell[0][1] ), $blocks ), basename( $file ) . ' should hold its QR cell in a positioned block.' );
+				$width = (int) floor( (int) end( $blocks[2] ) * $width / 100 );
+			}
+			$inset = 0;
+			foreach ( array( 'padding', 'border' ) as $edge ) {
+				if ( preg_match( '/' . $edge . ':\s*(\d+)px/', $cell[1][0], $px ) ) {
+					$inset += 2 * (int) $px[1];
+				}
+			}
+			$this->assertGreaterThanOrEqual( $size, $width - $inset, basename( $file ) . " prints a {$size}px QR code in a cell {$width}px wide." );
+
+			preg_match_all( '/position:\s*absolute;\s*top:\s*(\d+)px/', substr( $html, 0, $cell[0][1] ), $tops );
+			$top = (int) end( $tops[1] );
+			$this->assertLessThanOrEqual( $limit, $top + $size + $inset, basename( $file ) . ' ends its QR code past the frame.' );
+			return;
+		}
+
 		if ( ! preg_match( '/<div style="position:\s*absolute;\s*top:\s*(\d+)px[^"]*">\s*((?:(?!<div|<p[ >]).)*?)\{\{qr_code:size=(\d+)[^}]*\}\}(.*?)<\/div>/s', $html, $m ) ) {
 			// A QR in a box of its own fills that box, no more and no less
 			// (model 5 printed a 50px code in a 170px box).

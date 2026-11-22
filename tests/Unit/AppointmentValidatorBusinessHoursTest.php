@@ -48,6 +48,8 @@ class AppointmentValidatorBusinessHoursTest extends TestCase {
 		$this->appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
 		$this->blockedDateRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( true )->byDefault();
+		// Nobody already on the slot (#2689) unless a test says so.
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() )->byDefault();
 		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false )->byDefault();
 
 		$this->validator = new AppointmentValidator( $this->appointmentRepo, $this->blockedDateRepo );

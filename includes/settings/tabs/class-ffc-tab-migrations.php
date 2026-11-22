@@ -76,6 +76,58 @@ class TabMigrations extends SettingsTab {
 	}
 
 	/**
+	 * The prerequisite a card still lacks, or '' when it can run (#2651).
+	 *
+	 * Takes what `MigrationManager::can_run()` answered, so the screen shows
+	 * the strategy's own refusal under a disabled button instead of offering
+	 * one that execution then refuses.
+	 *
+	 * @param mixed $can_run True, or a WP_Error naming the prerequisite.
+	 * @return string
+	 */
+	public static function unmet_prerequisite( $can_run ): string {
+		if ( $can_run instanceof \WP_Error ) {
+			$message = $can_run->get_error_message();
+			return '' !== $message ? $message : __( 'This migration cannot run yet on this site.', 'ffcertificate' );
+		}
+		return true === $can_run ? '' : __( 'This migration cannot run yet on this site.', 'ffcertificate' );
+	}
+
+	/**
+	 * The action a refusal offers to meet its prerequisite, or null (#2656).
+	 *
+	 * A strategy may put `action => {label, url, cap, icon?}` in its refusal's
+	 * error data. The card shows it as a button under the refusal, and only to
+	 * a user who holds `cap`, so it never offers a link that ends in `wp_die`.
+	 * Anything malformed reads as no action, never as a half-drawn button.
+	 *
+	 * @param mixed $can_run True, or a WP_Error naming the prerequisite.
+	 * @return array{label: string, url: string, icon: string}|null
+	 */
+	public static function prerequisite_action( $can_run ): ?array {
+		if ( ! $can_run instanceof \WP_Error ) {
+			return null;
+		}
+		$data   = $can_run->get_error_data();
+		$action = is_array( $data ) && isset( $data['action'] ) && is_array( $data['action'] ) ? $data['action'] : array();
+		$label  = isset( $action['label'] ) && is_string( $action['label'] ) ? $action['label'] : '';
+		$url    = isset( $action['url'] ) && is_string( $action['url'] ) ? $action['url'] : '';
+		$cap    = isset( $action['cap'] ) && is_string( $action['cap'] ) ? $action['cap'] : '';
+		if ( '' === $label || '' === $url || '' === $cap ) {
+			return null;
+		}
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $cap ) ) {
+			return null;
+		}
+
+		return array(
+			'label' => $label,
+			'url'   => $url,
+			'icon'  => isset( $action['icon'] ) && is_string( $action['icon'] ) ? $action['icon'] : 'link',
+		);
+	}
+
+	/**
 	 * Render.
 	 */
 	public function render(): void {

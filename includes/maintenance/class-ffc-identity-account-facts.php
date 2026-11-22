@@ -45,32 +45,6 @@ class IdentityAccountFacts {
 	);
 
 	/**
-	 * The stores whose activity column is a unix instant rather than a DATETIME.
-	 *
-	 * **This split is the whole reason the comparison is not done in SQL.**
-	 * `submission_date` is a Category A instant -- unix UTC seconds, written
-	 * by `time()`. The other three are the housekeeping DATETIMEs that
-	 * `CLAUDE.md`'s date convention carves out, written through
-	 * `current_time( 'mysql' )` and therefore already in the SITE's timezone.
-	 *
-	 * `UNIX_TIMESTAMP()` would reinterpret those DATETIMEs in the MySQL
-	 * server's timezone, which is not necessarily WordPress's, so a single
-	 * `MAX()` across the union would silently skew three stores against one.
-	 * Both categories render to the same site-local calendar date, so the
-	 * comparison happens on `Y-m-d` strings instead: chronological, because
-	 * that format sorts lexicographically, and with no timezone arithmetic
-	 * anywhere.
-	 *
-	 * A list and not a map: the only thing an entry carries is membership, so
-	 * a `=> true` beside each name would be a value that says nothing -- and
-	 * PHPStan is right to call the `$is_unix &&` it invites a condition that
-	 * is always true.
-	 *
-	 * @var array<int, string>
-	 */
-	private const ACTIVITY_UNIX_STORES = array( 'ffc_submissions' );
-
-	/**
 	 * What is true of each account a finding names: does it exist, and how
 	 * much data hangs off it.
 	 *
@@ -200,9 +174,9 @@ class IdentityAccountFacts {
 	 *
 	 * One `MAX()` per store, then the latest of those per account. The
 	 * comparison is on `Y-m-d` strings rather than on timestamps, for the
-	 * reason {@see self::ACTIVITY_UNIX_STORES} records: the stores disagree
-	 * about how a moment is stored, and only the rendered site-local date is
-	 * a like-for-like value across all four.
+	 * reason {@see self::activity_date()} records: a store may hold a unix
+	 * instant or a site-local DATETIME, and only the rendered site-local date
+	 * is a like-for-like value across them.
 	 *
 	 * A store missing its mapped column is skipped rather than fatal, and an
 	 * account with nothing anywhere is simply absent from the result -- which
@@ -227,8 +201,7 @@ class IdentityAccountFacts {
 			$values = array();
 
 			foreach ( $stores as $table => $column ) {
-				$parts[]  = "SELECT user_id, %s AS src, MAX(%i) AS last_seen FROM %i WHERE user_id IN ({$slots}) GROUP BY user_id";
-				$values[] = (string) $table;
+				$parts[]  = "SELECT user_id, MAX(%i) AS last_seen FROM %i WHERE user_id IN ({$slots}) GROUP BY user_id";
 				$values[] = $column;
 				$values[] = (string) $table;
 				foreach ( $chunk as $user_id ) {
@@ -243,7 +216,6 @@ class IdentityAccountFacts {
 			foreach ( (array) $rows as $row ) {
 				$row = (array) $row;
 				$id  = isset( $row['user_id'] ) && is_numeric( $row['user_id'] ) ? (int) $row['user_id'] : 0;
-				$src = isset( $row['src'] ) && is_string( $row['src'] ) ? $row['src'] : '';
 				// Two arms where its siblings need one, and the reason is the
 				// union itself: `MAX()` over a bigint branch and a DATETIME branch
 				// can come back as either, depending on the driver. What must not
@@ -253,7 +225,7 @@ class IdentityAccountFacts {
 				$last = ( isset( $row['last_seen'] ) && ( is_string( $row['last_seen'] ) || is_int( $row['last_seen'] ) ) )
 					? (string) $row['last_seen']
 					: '';
-				$date = self::activity_date( $src, $last );
+				$date = self::activity_date( $last );
 
 				// `Y-m-d` sorts lexicographically, so the later string is the
 				// later date and no parsing is needed to compare them.
@@ -305,9 +277,17 @@ class IdentityAccountFacts {
 	 * One store's stored value as the site-local calendar date it means.
 	 *
 	 * The two shapes are not interchangeable and the difference is not
-	 * cosmetic: a unix instant has to be rendered through the site timezone
-	 * to become a date, while a housekeeping DATETIME was written in that
-	 * timezone already and only needs its date half.
+	 * cosmetic: a unix instant (Category A, written by `time()`) has to be
+	 * rendered through the site timezone to become a date, while a
+	 * housekeeping DATETIME written through `current_time( 'mysql' )` is in
+	 * that timezone already and only needs its date half. `UNIX_TIMESTAMP()`
+	 * would reinterpret such a DATETIME in the MySQL server's timezone, which
+	 * is not necessarily WordPress's, so the comparison is not done in SQL.
+	 *
+	 * The shape is read off the value, not off a list of stores: the
+	 * appointment and candidate columns move from DATETIME to instants on a
+	 * request (#2679), so the same store holds either, depending on whether
+	 * that install has converted yet.
 	 *
 	 * `wp_date()` rather than `DateFormatter::format_date()` on purpose. This
 	 * is a machine column -- it is compared, sorted and filtered in a CSV --
@@ -316,23 +296,20 @@ class IdentityAccountFacts {
 	 * `DTSTAMP`. The screen shows the identical string, which is what keeps
 	 * the file and the table corroborating each other.
 	 *
-	 * @param string $table Prefixed table the value came from.
 	 * @param string $value Stored value, as the driver returned it.
 	 * @return string `Y-m-d`, or '' when there is nothing to report.
 	 */
-	private static function activity_date( string $table, string $value ): string {
+	private static function activity_date( string $value ): string {
 		if ( '' === $value ) {
 			return '';
 		}
 
-		foreach ( self::ACTIVITY_UNIX_STORES as $suffix ) {
-			if ( substr( $table, -strlen( $suffix ) ) === $suffix ) {
-				$stamp = (int) $value;
+		if ( ctype_digit( $value ) ) {
+			$stamp = (int) $value;
 
-				return ( $stamp > 0 && function_exists( 'wp_date' ) )
-					? (string) wp_date( 'Y-m-d', $stamp )
-					: '';
-			}
+			return ( $stamp > 0 && function_exists( 'wp_date' ) )
+				? (string) wp_date( 'Y-m-d', $stamp )
+				: '';
 		}
 
 		// A DATETIME the site's own timezone already wrote. Anything that is

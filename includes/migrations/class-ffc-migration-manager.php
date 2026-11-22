@@ -100,19 +100,16 @@ class MigrationManager {
 	}
 
 	/**
-	 * Check if migration can be executed
+	 * Whether a migration's prerequisites are met.
 	 *
-	 * Delegates to Status Calculator.
+	 * Delegates to the strategy's `can_run()`, the same check execution
+	 * makes, so the card can refuse before the button is pressed (#2651).
 	 *
+	 * @since 6.45.0
 	 * @param string $migration_key Migration identifier.
-	 * @return bool|WP_Error True if can run, WP_Error if cannot
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
+	 * @return bool|WP_Error True when it can run, or the refusal.
 	 */
-	public function can_run_migration( string $migration_key ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
+	public function can_run( string $migration_key ) {
 		return $this->status_calculator->can_run( $migration_key );
 	}
 

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -666,7 +667,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$_POST['_ffc_tab'] = 'smtp';
 		$new = array(
 			'smtp_user'      => 'mailer@example.com',
-			'smtp_pass'      => 's3cret',
+			'smtp_pass'      => FakeCredentials::SMTP_PASSWORD,
 			'smtp_from_name' => 'Acme Certs',
 		);
 		$_POST['ffc_settings'] = $new;
@@ -674,7 +675,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 'mailer@example.com', $result['smtp_user'] );
 		// Stored encrypted, never as typed (#2342).
 		$this->assertStringStartsWith( 'v2:', $result['smtp_pass'] );
-		$this->assertSame( 's3cret', \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
+		$this->assertSame( FakeCredentials::SMTP_PASSWORD, \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
 		$this->assertSame( 'Acme Certs', $result['smtp_from_name'] );
 	}
 
@@ -715,9 +716,9 @@ class SettingsSaveHandlerTest extends TestCase {
 	public function test_smtp_pass_is_not_saved_without_the_smtp_capability(): void {
 		$_POST['_ffc_tab'] = 'smtp';
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$_POST['ffc_settings'] = array( 'smtp_pass' => 'intruder' );
+		$_POST['ffc_settings'] = array( 'smtp_pass' => 'fake-intruder' );
 
-		$result = $this->invoke( 'save_smtp_settings', array( array( 'smtp_pass' => 'old' ), array( 'smtp_pass' => 'intruder' ) ) );
+		$result = $this->invoke( 'save_smtp_settings', array( array( 'smtp_pass' => 'old' ), array( 'smtp_pass' => 'fake-intruder' ) ) );
 
 		$this->assertSame( 'old', $result['smtp_pass'] );
 	}
@@ -810,6 +811,9 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( '#2271b1', $result['qr_design_color_end'] );
 		$this->assertSame( 0, $result['qr_design_on_certificate'] );
 		$this->assertSame( 1, $result['qr_design_on_short_urls'] );
+		// An unticked logo switch is absent from the POST: off (#2686).
+		$this->assertSame( 0, $result['qr_design_logo_enabled'] );
+		$this->assertSame( 1, $this->invoke( 'save_qrcode_settings', array( array(), $new + array( 'qr_design_logo_enabled' => '1' ) ) )['qr_design_logo_enabled'] );
 		// Absent from the POST: the default icon, and an opaque ground.
 		$this->assertSame( 'scan', $result['qr_design_frame_icon'] );
 		$this->assertSame( 0, $result['qr_design_transparent'] );
@@ -1112,6 +1116,28 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 'go', $result['url_shortener_prefix'], 'The links printed with "go" would share addresses with the page.' );
 		$this->assertArrayNotHasKey( 'url_shortener_previous_prefixes', $result );
 		$this->assertSame( array( array( 'ffc_short_url_prefix_taken', 'error' ) ), $this->prefix_notices );
+	}
+
+	public function test_a_new_prefix_that_is_a_page_address_is_refused(): void {
+		// /events is a page with children such as /events/2026 (#2693).
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save( array( 'events' => 'Events' ) );
+
+		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'go' ), array( 'url_shortener_prefix' => 'events' ) ) );
+
+		$this->assertSame( 'go', $result['url_shortener_prefix'] );
+		$this->assertSame( array( array( 'ffc_short_url_prefix_page', 'error' ) ), $this->prefix_notices );
+	}
+
+	public function test_an_unchanged_prefix_saves_even_where_a_page_shares_it(): void {
+		// A site already in that state can still save the rest of the tab.
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save( array( 'events' => 'Events' ) );
+
+		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'events' ), array( 'url_shortener_prefix' => 'events' ) ) );
+
+		$this->assertSame( 'events', $result['url_shortener_prefix'] );
+		$this->assertSame( array(), $this->prefix_notices );
 	}
 
 	public function test_url_shortener_prefix_unchanged_no_flush(): void {

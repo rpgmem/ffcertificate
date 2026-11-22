@@ -185,7 +185,7 @@ class AdminConditionalAssets {
 		wp_enqueue_script(
 			'ffc-certificates-dashboard',
 			FFC_PLUGIN_URL . "assets/js/ffc-certificates-dashboard{$s}.js",
-			array( 'jquery', 'ffc-calendar-core' ),
+			array( 'jquery', 'ffc-core', 'ffc-calendar-core' ),
 			FFC_VERSION,
 			true
 		);

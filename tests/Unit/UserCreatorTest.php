@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -160,7 +161,7 @@ class UserCreatorTest extends TestCase {
 		Functions\when( 'sanitize_user' )->returnArg();
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'username_exists' )->justReturn( false );
-		Functions\when( 'wp_generate_password' )->justReturn( 'abcd1234' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 
 		$username = UserCreator::generate_username(
 			'x@example.com',
@@ -174,12 +175,12 @@ class UserCreatorTest extends TestCase {
 		Functions\when( 'sanitize_user' )->returnArg();
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'username_exists' )->justReturn( false );
-		Functions\when( 'wp_generate_password' )->justReturn( 'xyz78901' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 
 		$username = UserCreator::generate_username( '', array() );
 
 		$this->assertStringStartsWith( 'ffc_', $username );
-		$this->assertSame( 'ffc_xyz78901', $username );
+		$this->assertSame( 'ffc_' . FakeCredentials::GENERATED_PASSWORD, $username );
 	}
 
 	public function test_generate_username_strips_special_characters(): void {

@@ -236,10 +236,18 @@ class ReregistrationEmailHandler {
 			$limit
 		);
 
+		$members = ReregistrationRepository::members_among( $reregistration_id, array_map( static fn( $sub ): int => (int) $sub->user_id, $submissions ) );
+
 		$count   = 0;
 		$last_id = $after_id;
 		foreach ( $submissions as $sub ) {
 			$last_id = (int) $sub->id;
+
+			// A row outlives its member: whoever left the campaign's audiences
+			// is not invited (#2688). The cursor has already moved past it.
+			if ( ! isset( $members[ (int) $sub->user_id ] ) ) {
+				continue;
+			}
 
 			// The password-setting link is issued PER USER and per send
 			// (#1212). Issuing rotates the key, so the last email is always the
@@ -499,6 +507,7 @@ class ReregistrationEmailHandler {
 		}
 
 		$days_left = ReregistrationWindow::days_left( (string) $rereg->end_date );
+		$members   = ReregistrationRepository::members_among( $reregistration_id, array_map( static fn( $sub ): int => (int) $sub->user_id, $submissions ) );
 
 		$count   = 0;
 		$last_id = $after_id;
@@ -507,6 +516,11 @@ class ReregistrationEmailHandler {
 			// submission whose user was deleted from jamming the queue: it is
 			// stepped past today and retried in tomorrow's sweep.
 			$last_id = (int) $sub->id;
+
+			// Nor is anybody who left the campaign's audiences reminded (#2688).
+			if ( ! isset( $members[ (int) $sub->user_id ] ) ) {
+				continue;
+			}
 
 			// In the reminder too: whoever never set a password can act on
 			// neither the invitation NOR the reminder, and the dashboard button
@@ -588,6 +602,49 @@ class ReregistrationEmailHandler {
 				'magic_link_url'    => $magic_link_url,
 				'auth_code'         => $auth_code_formatted,
 			)
+		);
+	}
+
+	/**
+	 * Tell the member a reviewer approved their submission (#2688).
+	 *
+	 * Sent for a manual approval only: an auto-approved submission is told by
+	 * the confirmation e-mail, which carries its status. Not gated on a
+	 * campaign toggle, like the other review decisions; the global kill
+	 * switch still applies.
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return bool Whether the e-mail went out.
+	 */
+	public static function send_approval( int $submission_id ): bool {
+		if ( self::emails_disabled() ) {
+			return false;
+		}
+
+		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
+		if ( ! $submission ) {
+			return false;
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( (int) $submission->reregistration_id );
+		if ( ! $rereg ) {
+			return false;
+		}
+
+		$template = self::effective_template( 'reregistration-approved' );
+		if ( ! $template ) {
+			return false;
+		}
+
+		$auth_code = ! empty( $submission->auth_code )
+			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission->auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION )
+			: '';
+
+		return self::send_to_user(
+			(int) $submission->user_id,
+			$rereg,
+			$template,
+			array( 'auth_code' => $auth_code )
 		);
 	}
 

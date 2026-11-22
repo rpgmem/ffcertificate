@@ -1,0 +1,17 @@
+{
+	"version": 1,
+	"page": { "orientation": "landscape" },
+	"elements": [
+		{ "id": "frame", "type": "frame", "x": 20, "y": 20, "w": 1083, "h": 754, "border_width": 4, "border_style": "double", "border_color": "#1D3557", "radius": 8 },
+		{ "id": "title", "type": "text", "x": 100, "y": 80, "w": 923, "h": 110, "text": "Certificado\nde participação", "font_family": "Cinzel, Georgia, serif", "font_size": 40, "font_weight": "bold", "align": "center", "letter_spacing": 2, "text_transform": "uppercase", "color": "#1d3557" },
+		{ "id": "name", "type": "field", "x": 100, "y": 300, "w": 923, "h": 50, "token": "{{name}}", "font_size": 32, "align": "center", "fit": "line" },
+		{ "id": "place", "type": "field", "x": 100, "y": 380, "w": 923, "h": 80, "token": "{{model:place}}", "font_size": 18, "line_height": 1.5, "fit": "box", "font_style": "italic" },
+		{ "id": "date", "type": "field", "x": 700, "y": 480, "w": 300, "h": 30, "token": "{{schedule:date:format=d/m/Y}}", "align": "right", "rotation": -2 },
+		{ "id": "seal", "type": "image", "x": 80, "y": 520, "w": 120, "h": 120, "attachment_id": 41, "fit": "cover" },
+		{ "id": "logo", "type": "image", "x": 220, "y": 520, "w": 200, "h": 120, "attachment_id": 41 },
+		{ "id": "signature", "type": "image", "x": 700, "y": 560, "w": 200, "h": 80, "token": "{{signer:signature}}" },
+		{ "id": "signer", "type": "field", "x": 650, "y": 645, "w": 300, "h": 24, "token": "{{signer:name}}", "align": "center", "font_weight": 700 },
+		{ "id": "qr", "type": "qr", "x": 40, "y": 660, "w": 90, "h": 100 },
+		{ "id": "footer", "type": "html", "x": 150, "y": 700, "w": 500, "h": 50, "html": "<p style=\"font-size:10px\">Código: <strong>{{auth_code}}</strong></p>" }
+	]
+}

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -31,6 +32,10 @@ class AccessRestrictionCheckerTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// No database unless a test installs one: a `$wpdb` an earlier test
+		// left would answer the config lock (#2695).
+		unset( $GLOBALS['wpdb'] );
 	}
 
 	protected function tearDown(): void {
@@ -229,7 +234,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_password_checked_before_denylist(): void {
 		$config = array(
 			'restrictions'      => array( 'password' => '1', 'denylist' => '1' ),
-			'validation_code'   => 'secret',
+			'validation_code'   => FakeCredentials::FORM_PASSWORD,
 			'denied_users_list' => Identifiers::CPF_A,
 		);
 
@@ -245,11 +250,11 @@ class AccessRestrictionCheckerTest extends TestCase {
 	public function test_password_passes_then_denylist_blocks(): void {
 		$config = array(
 			'restrictions'      => array( 'password' => '1', 'denylist' => '1' ),
-			'validation_code'   => 'secret',
+			'validation_code'   => FakeCredentials::FORM_PASSWORD,
 			'denied_users_list' => Identifiers::CPF_A,
 		);
 
-		$_POST['ffc_password'] = 'secret';
+		$_POST['ffc_password'] = FakeCredentials::FORM_PASSWORD;
 
 		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
@@ -265,12 +270,12 @@ class AccessRestrictionCheckerTest extends TestCase {
 				'denylist'  => '1',
 				'allowlist' => '1',
 			),
-			'validation_code'    => 'mypass',
+			'validation_code'    => FakeCredentials::FORM_PASSWORD,
 			'denied_users_list'  => "99999999999",
 			'allowed_users_list' => Identifiers::CPF_A . "\n" . Identifiers::CPF_B,
 		);
 
-		$_POST['ffc_password'] = 'mypass';
+		$_POST['ffc_password'] = FakeCredentials::FORM_PASSWORD;
 
 		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 		$this->assertTrue( $result['allowed'] );
@@ -523,6 +528,42 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$this->assertSame( 'edited meanwhile', $saved['success_message'] );
 	}
 
+	/**
+	 * The config is read and written under the form's config lock, the one
+	 * the editor's save takes, so neither write drops the other (#2695).
+	 */
+	public function test_consume_ticket_reads_and_writes_under_the_form_config_lock(): void {
+		$events = array();
+		global $wpdb;
+		$wpdb = Mockery::mock( 'wpdb' );
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => vsprintf( str_replace( '%s', "'%s'", (string) $sql ), $args ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) use ( &$events ) {
+				$events[] = (string) $sql;
+				return '1';
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			static function () use ( &$events ) {
+				$events[] = 'read';
+				return array( 'generated_codes_list' => "T-1\nT-2" );
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function () use ( &$events ) {
+				$events[] = 'write';
+				return true;
+			}
+		);
+
+		AccessRestrictionChecker::consume_ticket( 3, 'T-1' );
+
+		$this->assertSame(
+			array( "SELECT GET_LOCK('ffc_form_config_3', 5)", 'read', 'write', "SELECT RELEASE_LOCK('ffc_form_config_3')" ),
+			$events
+		);
+	}
+
 	public function test_consume_ticket_writes_nothing_when_the_ticket_is_not_listed(): void {
 		Functions\when( 'get_post_meta' )->justReturn( array( 'generated_codes_list' => 'T-2' ) );
 		Functions\expect( 'update_post_meta' )->never();
@@ -676,11 +717,11 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$_POST  = array();
 		$config = array(
 			'restrictions'    => array( 'password' => '1' ),
-			'validation_code' => 'open-sesame',
+			'validation_code' => FakeCredentials::FORM_PASSWORD,
 		);
 
-		$this->assertTrue( AccessRestrictionChecker::check( $config, '', '', 1, 'open-sesame' )['allowed'] );
-		$wrong = AccessRestrictionChecker::check( $config, '', '', 1, 'open-sesamE' );
+		$this->assertTrue( AccessRestrictionChecker::check( $config, '', '', 1, FakeCredentials::FORM_PASSWORD )['allowed'] );
+		$wrong = AccessRestrictionChecker::check( $config, '', '', 1, strtoupper( FakeCredentials::FORM_PASSWORD ) );
 		$this->assertFalse( $wrong['allowed'] );
 		$this->assertSame( 'Incorrect password.', $wrong['message'] );
 	}
@@ -691,7 +732,7 @@ class AccessRestrictionCheckerTest extends TestCase {
 			'validation_code' => '',
 		);
 
-		$this->assertFalse( AccessRestrictionChecker::check( $config, '', '', 1, 'anything' )['allowed'] );
+		$this->assertFalse( AccessRestrictionChecker::check( $config, '', '', 1, FakeCredentials::FORM_PASSWORD_WRONG )['allowed'] );
 	}
 
 	public function test_password_is_compared_in_constant_time(): void {

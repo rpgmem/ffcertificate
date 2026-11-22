@@ -58,6 +58,26 @@ class BulkIssueTemplateSourceTest extends TestCase {
 		$this->assertSame( array(), iterator_to_array( ( new BulkIssueTemplateSource( 12 ) )->rows() ) );
 	}
 
+	/**
+	 * The template is refused to someone who cannot edit the form, as the
+	 * preview, start and batch steps refuse them (#2696).
+	 */
+	public function test_the_template_is_refused_without_edit_post_on_the_form(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( string $cap ): bool => 'edit_post' !== $cap );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\expect( 'nocache_headers' )->never();
+		Functions\when( 'wp_die' )->alias(
+			static function ( string $message ): void {
+				throw new \RuntimeException( $message );
+			}
+		);
+
+		$this->expectExceptionMessage( 'Access denied.' );
+		( new BulkIssueTemplateSource( 12 ) )->authorize();
+	}
+
 	public function test_the_filename_names_the_form(): void {
 		$this->assertSame( 'ffc-issue-form-12.csv', ( new BulkIssueTemplateSource( 12 ) )->filename() );
 	}

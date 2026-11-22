@@ -242,15 +242,18 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		// Attendance (completed / no-show) is marked on a confirmed appointment
-		// from its date on, and either mark can be undone back to confirmed.
+		// Attendance is marked on a confirmed appointment: attended from its
+		// date on, a no-show once its slot has started (#2689); either mark
+		// can be undone back to confirmed.
 		$attendance_actions = array();
-		$appointment_date   = (string) ( $item['appointment_date'] ?? '' );
-		if ( $ffc_can_edit_appt && 'confirmed' === $item['status'] && '' !== $appointment_date && $appointment_date <= wp_date( 'Y-m-d' ) ) {
-			$attendance_actions = array(
-				'attended' => array( __( 'Attended', 'ffcertificate' ), 'neutral', 'user-check' ),
-				'no_show'  => array( __( 'No-show', 'ffcertificate' ), 'neutral', 'user-minus' ),
-			);
+		if ( $ffc_can_edit_appt && 'confirmed' === $item['status'] ) {
+			$now = time();
+			if ( \FreeFormCertificate\SelfScheduling\AppointmentAdminActions::can_mark( $item, 'attended', $now ) ) {
+				$attendance_actions['attended'] = array( __( 'Attended', 'ffcertificate' ), 'neutral', 'user-check' );
+			}
+			if ( \FreeFormCertificate\SelfScheduling\AppointmentAdminActions::can_mark( $item, 'no_show', $now ) ) {
+				$attendance_actions['no_show'] = array( __( 'No-show', 'ffcertificate' ), 'neutral', 'user-minus' );
+			}
 		} elseif ( $ffc_can_edit_appt && in_array( $item['status'], \FreeFormCertificate\Repositories\AppointmentWriter::ATTENDANCE_STATUSES, true ) ) {
 			// Undoing returns the row to confirmed: a status change, so caution.
 			$attendance_actions = array( 'undo_attendance' => array( __( 'Undo attendance', 'ffcertificate' ), 'caution', 'restore' ) );
@@ -323,18 +326,16 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		// Receipt link — not for cancelled appointments. It never carries the
-		// confirmation token (#2244): the token opens the person's own receipt
-		// unmasked and cancels the appointment as a guest, so staff get the
-		// bare link, which the receipt handler renders masked for them.
+		// Receipt — not for cancelled appointments, and only for who may
+		// reveal the person's data: it opens through the audited route, which
+		// logs the opening and sends the reader to the magic link (#2732).
 		$item_status = $item['status'] ?? 'pending';
-		if ( 'cancelled' !== $item_status ) {
-			$receipt_url        = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url( (int) $item['id'] );
+		if ( 'cancelled' !== $item_status && \FreeFormCertificate\SelfScheduling\AppointmentReceiptOpenHandler::current_user_can_open( (int) ( $item['user_id'] ?? 0 ) ) ) {
 			$actions['receipt'] = \FreeFormCertificate\Core\Button::html(
 				array(
-					'label' => __( 'View Receipt', 'ffcertificate' ),
+					'label' => __( 'Open receipt', 'ffcertificate' ),
 					'icon'  => 'file',
-					'href'  => $receipt_url,
+					'href'  => \FreeFormCertificate\SelfScheduling\AppointmentReceiptOpenHandler::url( (int) $item['id'] ),
 					'attrs' => array( 'target' => '_blank' ),
 				)
 			);
@@ -453,12 +454,12 @@ class AppointmentsListTable extends \WP_List_Table {
 
 	/**
 	 * Created column, in the site's date and time formats (#2288). The value
-	 * is a housekeeping DATETIME shown as stored, so no timezone is applied.
+	 * is an instant (#2679), shown in the site's timezone.
 	 *
 	 * @param array<string, mixed> $item Row data.
 	 */
 	public function column_created_at( $item ): string {
-		$created = \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $item['created_at'] ?? '' ), 'default', ' ', new \DateTimeZone( 'UTC' ) );
+		$created = \FreeFormCertificate\Core\DateFormatter::format_instant( $item['created_at'] ?? null );
 		return esc_html( '' !== $created ? $created : '-' );
 	}
 

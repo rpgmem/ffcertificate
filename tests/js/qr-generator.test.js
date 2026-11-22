@@ -35,6 +35,7 @@ function mount() {
 			</td></tr></table>
 			<select data-ffc-qr-design="qr_design_dots"><option value="dots" selected>dots</option><option value="square">square</option></select>
 			<input type="checkbox" data-ffc-qr-design="qr_design_gradient" value="1" checked>
+			<input type="checkbox" data-ffc-qr-design="qr_design_logo_enabled" checked>
 			<input type="hidden" data-ffc-qr-design="qr_design_logo_id" value="9">
 			<img id="ffc-qr-logo-thumb" src="logo.png">
 			<button type="button" id="ffc-qr-design-reset">Reset</button>
@@ -145,6 +146,48 @@ describe('ffc-qr-generator.js', () => {
 		expect(window.$('#ffc-qr-download').prop('disabled')).toBe(true);
 		expect(window.$('#ffc-qr-print').prop('disabled')).toBe(true);
 		expect(window.$('#ffc-qr-generator-preview').html()).toBe('');
+	});
+
+	it('offers each way out the server names, and each one changes its own control (#2660)', async () => {
+		const fixes = [
+			{ action: 'level', value: 'Q', label: 'Use error correction Q' },
+			{ action: 'logo', value: '', label: 'Turn off the logo' },
+			{ action: 'short', value: '', label: 'Use a short URL' },
+			{ action: 'unknown', value: '', label: 'Ignored' },
+		];
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Too long', fixes } } }));
+		const $form = window.$('#ffc-qr-generator');
+		$form.append('<button type="button" class="ffc-media-clear" data-ffc-media-target="#qr_design_logo_id">Clear</button>');
+		const cleared = vi.fn();
+		$form.find('.ffc-media-clear').on('click', cleared);
+		window.FFC.QrGenerator.init();
+		window.$('#ffc-qr-short').prop('checked', false);
+
+		await window.FFC.QrGenerator.refresh($form);
+
+		const $fixes = window.$('#ffc-qr-generator-status [data-ffc-qr-fix]');
+		expect($fixes.map((i, el) => window.$(el).attr('data-ffc-qr-fix')).get()).toEqual(['level', 'logo', 'short']);
+		expect($fixes.first().text()).toBe('Use error correction Q');
+		expect($fixes.first().hasClass('ffc-btn')).toBe(true);
+
+		$fixes.eq(0).trigger('click');
+		expect(window.$('#qr_default_error_level').val()).toBe('Q');
+		$fixes.eq(1).trigger('click');
+		// The logo is turned off, not cleared: the image stays selected (#2686).
+		expect(window.$('[data-ffc-qr-design="qr_design_logo_enabled"]').is(':checked')).toBe(false);
+		expect(window.$('[data-ffc-qr-design="qr_design_logo_id"]').val()).toBe('9');
+		expect(cleared).not.toHaveBeenCalled();
+		$fixes.eq(2).trigger('click');
+		expect(window.$('#ffc-qr-short').is(':checked')).toBe(true);
+	});
+
+	it('an error without ways out shows only the message', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Too long', fixes: [] } } }));
+
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		expect(window.$('#ffc-qr-generator-status .ffc-qr-generator__fixes').length).toBe(0);
+		expect(window.$('#ffc-qr-generator-status').text()).toBe('Too long');
 	});
 
 	it('switching type shows its fields and redraws', async () => {

@@ -169,12 +169,6 @@ class RecruitmentCallRepositoryTest extends TestCase {
 		$this->assertSame( array(), RecruitmentCallReader::get_history_for_classifications( array() ) );
 	}
 
-	public function test_count_for_classification_returns_int(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
-
-		$this->assertSame( 3, RecruitmentCallReader::count_for_classification( 5 ) );
-	}
-
 	public function test_update_only_writes_notes(): void {
 		$captured = array();
 		$this->wpdb->shouldReceive( 'update' )

@@ -105,4 +105,66 @@ class DateMessagesHistoryTemplateTest extends TestCase {
 		$this->assertStringContainsString( 'Show test sends', $hidden );
 		$this->assertStringNotContainsString( 'tests=hide', $hidden );
 	}
+
+	/**
+	 * Render one run.
+	 *
+	 * @param array<string, mixed>     $run          The run row.
+	 * @param array<int, list<string>> $failed_names Masked names by run, as the page prepares them.
+	 */
+	private function render_run( array $run, array $failed_names ): string {
+		Functions\when( 'remove_query_arg' )->justReturn( 'admin.php?page=ffc-date-messages&tab=history' );
+		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . '&' . $key . '=' . $value );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( 'paginate_links' )->justReturn( '' );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		$next_run   = false;
+		$show_tests = true;
+		$history    = array( $run );
+		$total      = 1;
+		$paged      = 1;
+		$rule_names = array( 3 => 'Birthdays' );
+		ob_start();
+		include dirname( __DIR__, 2 ) . '/templates/admin/date-messages/history.php';
+		return (string) ob_get_clean();
+	}
+
+	public function test_a_run_says_who_it_failed_and_how_many_had_it_already(): void {
+		// History could not say who failed, nor count an earlier delivery (#2692).
+		$run = array(
+			'id'           => 7,
+			'rule_id'      => 3,
+			'trigger_kind' => 'cron',
+			'target_from'  => '2026-10-10',
+			'target_to'    => '2026-10-10',
+			'started_at'   => 1791702000,
+			'finished_at'  => 1791702100,
+			'sent'         => 4,
+			'failed'       => 2,
+			'already_sent' => 5,
+		);
+
+		$html = $this->render_run( $run, array( 7 => array( 'Ana S****', 'Bia L****' ) ) );
+
+		$this->assertStringContainsString( 'Already sent before', $html );
+		$this->assertMatchesRegularExpression( '#<td>\s*5\s*</td>#', $html, 'The counter is drawn in its column.' );
+		$this->assertStringContainsString( '<summary>Who</summary>', $html );
+		$this->assertStringContainsString( '<li>Ana S****</li>', $html );
+		$this->assertStringContainsString( '<li>Bia L****</li>', $html );
+	}
+
+	public function test_without_names_the_failed_cell_is_the_count_alone(): void {
+		// A viewer without the personal-data capability gets no list.
+		$run = array(
+			'id'          => 7,
+			'rule_id'     => 3,
+			'target_from' => '2026-10-10',
+			'target_to'   => '2026-10-10',
+			'failed'      => 2,
+		);
+
+		$html = $this->render_run( $run, array() );
+
+		$this->assertStringNotContainsString( '<summary>Who</summary>', $html );
+	}
 }

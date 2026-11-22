@@ -58,7 +58,8 @@ final class RecruitmentCandidateEditor {
 	 * Apply an update to a candidate.
 	 *
 	 * Only the keys present in `$input` change. An empty phone, notes or
-	 * e-mail clears the stored value.
+	 * e-mail clears the stored value; an e-mail that is not a valid address
+	 * is refused (#2694).
 	 *
 	 * @param object               $before Candidate row before the update.
 	 * @phpstan-param CandidateRow $before
@@ -99,8 +100,13 @@ final class RecruitmentCandidateEditor {
 			if ( RecruitmentPiiAccessPolicy::TIER_MASKED === $tier ) {
 				return new \WP_Error( 'recruitment_candidate_email_not_editable', '', array( 'status' => 403 ) );
 			}
-			$raw   = is_scalar( $input['email'] ) ? (string) $input['email'] : '';
+			$raw   = is_scalar( $input['email'] ) ? trim( (string) $input['email'] ) : '';
 			$email = DataSanitizer::normalize_email( sanitize_email( $raw ) );
+			// A typed address that is not one is refused, never stored as a
+			// cleared e-mail (#2694). Only an empty field clears it.
+			if ( '' !== $raw && ( '' === $email || ! is_email( $email ) ) ) {
+				return new \WP_Error( 'recruitment_candidate_email_invalid', '', array( 'status' => 400 ) );
+			}
 			if ( '' === $email ) {
 				$update['email_encrypted'] = null;
 				$update['email_hash']      = null;

@@ -15,6 +15,7 @@
  * @var \FreeFormCertificate\DateMessages\Rule|null           $editing     Rule being edited, null for a new one.
  * @var array<string, mixed>                                  $draft       Values to put back after a failed save.
  * @var array<int, array<string, mixed>>                      $history     A page of runs.
+ * @var array<int, list<string>>                              $failed_names Run id => masked names of who it failed to reach, for a viewer allowed to see them (#2692).
  * @var int                                                   $total       Number of runs.
  * @var int                                                   $paged       History page.
  * @var array<int, string>                                    $rule_names  Rule id => name.

@@ -82,7 +82,7 @@ class RecruitmentCallWriter {
 			return false;
 		}
 
-		$now = current_time( 'mysql' );
+		$now = time();
 		// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c). The
 		// caller may still pass a DATETIME string via legacy code paths;
 		// normalise to int here so the repository is the single conversion
@@ -109,7 +109,7 @@ class RecruitmentCallWriter {
 			'created_at'          => $now,
 			'updated_at'          => $now,
 		);
-		$format = array( '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' );
+		$format = array( '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d' );
 
 		$result = $wpdb->insert( $table, $insert, $format );
 
@@ -146,11 +146,11 @@ class RecruitmentCallWriter {
 		$table = self::get_table_name();
 
 		// `cancelled_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
-		$now          = current_time( 'mysql' );
+		$now          = time();
 		$cancelled_at = time();
 
 		$prepared = $wpdb->prepare(
-			'UPDATE %i SET cancellation_reason = %s, cancelled_at = %d, cancelled_by = %d, updated_at = %s
+			'UPDATE %i SET cancellation_reason = %s, cancelled_at = %d, cancelled_by = %d, updated_at = %d
               WHERE id = %d AND cancelled_at IS NULL',
 			$table,
 			$reason,
@@ -205,13 +205,70 @@ class RecruitmentCallWriter {
 			return false;
 		}
 
-		$update['updated_at'] = current_time( 'mysql' );
-		$format[]             = '%s';
+		$update['updated_at'] = time();
+		$format[]             = '%d';
 
 		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
 
 		return false !== $result;
+	}
+
+	/**
+	 * Record the outcome of a call's e-mail (#2694).
+	 *
+	 * @param int    $id      Call ID.
+	 * @param string $status  One of the RecruitmentCallMailQueue::STATUS_* values.
+	 * @param int    $sent_at When the send was attempted.
+	 * @return bool
+	 */
+	public static function set_email_status( int $id, string $status, int $sent_at ): bool {
+		$result = self::db()->update(
+			self::get_table_name(),
+			array(
+				'email_status'  => $status,
+				'email_sent_at' => $sent_at,
+			),
+			array( 'id' => $id ),
+			array( '%s', '%d' ),
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		return false !== $result;
+	}
+
+	/**
+	 * Mark calls for background delivery (#2694).
+	 *
+	 * @param array<int, int> $ids Call IDs.
+	 * @return int Rows marked.
+	 */
+	public static function mark_email_queued( array $ids ): int {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ), static fn( int $i ): bool => $i > 0 ) ) );
+		if ( array() === $ids ) {
+			return 0;
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is a run of literal %d, one per id, all bound here; $sql is the result of prepare(), held only so a null return is refused first.
+		$sql = $wpdb->prepare(
+			"UPDATE %i SET email_status = %s WHERE id IN ({$placeholders})",
+			array_merge( array( self::get_table_name(), RecruitmentCallMailQueue::STATUS_QUEUED ), $ids )
+		);
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+		$affected = $wpdb->query( $sql );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		foreach ( $ids as $id ) {
+			static::cache_delete( "id_{$id}" );
+		}
+
+		return is_int( $affected ) ? $affected : 0;
 	}
 }

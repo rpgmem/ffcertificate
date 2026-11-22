@@ -204,7 +204,7 @@ final class RequiredData {
 			if ( ! is_array( $row ) ) {
 				return null;
 			}
-			$name = str_replace( '-', '_', sanitize_key( ArrayValue::string( $row, 'name' ) ) );
+			$name = self::clean_name( ArrayValue::string( $row, 'name' ) );
 			if ( '' === $name || isset( $clean[ $name ] ) ) {
 				continue;
 			}
@@ -265,6 +265,20 @@ final class RequiredData {
 	}
 
 	/**
+	 * A row's variable name: a generated tag as written, which keeps the
+	 * colon of `schedule:date` (#2579), anything else as a key.
+	 *
+	 * @param string $raw Name as posted.
+	 */
+	private static function clean_name( string $raw ): string {
+		$lower = strtolower( trim( $raw ) );
+		if ( in_array( $lower, SettingsReader::GENERATED_TAGS, true ) ) {
+			return $lower;
+		}
+		return str_replace( '-', '_', sanitize_key( $raw ) );
+	}
+
+	/**
 	 * One stored row, or null when it names no usable field.
 	 *
 	 * @param mixed $row Stored row.
@@ -275,7 +289,7 @@ final class RequiredData {
 			return null;
 		}
 		$name = strtolower( ArrayValue::string( $row, 'name' ) );
-		if ( 1 !== preg_match( '/^[a-z0-9_]+$/', $name ) ) {
+		if ( 1 !== preg_match( '/^[a-z0-9_]+$/', $name ) && ! in_array( $name, SettingsReader::GENERATED_TAGS, true ) ) {
 			return null;
 		}
 		$type = ArrayValue::string( $row, 'type', 'text' );

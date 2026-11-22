@@ -31,12 +31,12 @@ describe('ffc-core.js after another FFC script', () => {
 		loadScript('assets/js/ffc-core.js');
 		window.FFC.registerModule('Late', '2');
 
-		expect(window.FFC.getModules().map((m) => m.name)).toEqual(['Early', 'Late']);
+		expect(window.FFC._modules.map((m) => m.name)).toEqual(['Early', 'Late']);
 	});
 
 	it('still works when nothing came first', () => {
 		loadScript('assets/js/ffc-core.js');
 		expect(typeof window.FFC.request).toBe('function');
-		expect(window.FFC.getModules()).toEqual([]);
+		expect(window.FFC._modules).toEqual([]);
 	});
 });

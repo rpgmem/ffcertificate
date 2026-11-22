@@ -178,6 +178,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_candidate_update_no_writable_fields' => __( 'No writable fields were supplied for this candidate update.', 'ffcertificate' ),
 			'recruitment_candidate_identifier_not_editable' => __( 'A candidate\'s CPF and RF cannot be edited. They identify the candidate in every notice.', 'ffcertificate' ),
 			'recruitment_candidate_email_not_editable'     => __( 'You may not change this candidate\'s e-mail without the capability to reveal it.', 'ffcertificate' ),
+			'recruitment_candidate_email_invalid'          => __( 'The e-mail is not a valid address. Correct it, or send it empty to clear it.', 'ffcertificate' ),
 			'recruitment_candidate_delete_failed'          => __( 'Could not delete the candidate. Please try again.', 'ffcertificate' ),
 			'recruitment_candidate_has_classifications'    => __( 'This candidate has classifications attached and cannot be deleted directly. Remove the classifications first.', 'ffcertificate' ),
 			'recruitment_candidate_list_requires_filter'   => __( 'A filter (notice / adjutancy / search) is required to list candidates.', 'ffcertificate' ),
@@ -192,6 +193,8 @@ final class RecruitmentErrorMessages {
 
 			// Calls.
 			'recruitment_call_not_found'                   => __( 'Call entry not found.', 'ffcertificate' ),
+			'recruitment_call_cancelled_no_email'          => __( 'This call was cancelled, so its e-mail is not sent again.', 'ffcertificate' ),
+			'recruitment_call_past_no_email'               => __( 'The date and time to assume are over, so no e-mail is sent for this call.', 'ffcertificate' ),
 			'recruitment_call_insert_failed'               => __( 'Could not register the call. Please try again.', 'ffcertificate' ),
 			'recruitment_call_already_cancelled'           => __( 'This call has already been cancelled.', 'ffcertificate' ),
 			'recruitment_call_cancel_race_lost'            => __( 'Another operator updated this call moments ago. Reload to see the current state.', 'ffcertificate' ),
@@ -258,6 +261,11 @@ final class RecruitmentErrorMessages {
 			'recruitment_csv_score_uses_comma_decimal'     => __( 'Score uses a comma decimal — replace with a dot (e.g. 12.5).', 'ffcertificate' ),
 			'recruitment_csv_score_invalid_format'         => __( 'Score format is invalid (numeric value expected).', 'ffcertificate' ),
 			'recruitment_csv_rank_invalid'                 => __( 'Rank must be a positive integer.', 'ffcertificate' ),
+			'recruitment_csv_duplicate_rank'               => __( 'Another line of the same adjutancy has this rank. Each rank is one place in the list.', 'ffcertificate' ),
+			// These two were shown as their own identifier until the coverage
+			// scan learned the `code: detail` shape (#2694).
+			'recruitment_csv_duplicate_candidate_adjutancy' => __( 'The same person appears twice in this adjutancy. A candidate holds one place per adjutancy.', 'ffcertificate' ),
+			'recruitment_csv_candidate_field_divergence'   => __( 'This person appears on another line with different details (name, RF, e-mail, phone or PCD). The lines of one candidate must agree.', 'ffcertificate' ),
 			'recruitment_csv_not_utf8'                     => __( 'The file is not UTF-8. Excel often saves CSV as Windows-1252: in Excel choose "CSV UTF-8", or re-save the file as UTF-8 in your editor, and import it again.', 'ffcertificate' ),
 			'recruitment_csv_time_points_uses_comma_decimal' => __( 'Time points uses a comma decimal — replace with a dot.', 'ffcertificate' ),
 			'recruitment_csv_time_points_invalid_format'   => __( 'Time points format is invalid (numeric value expected).', 'ffcertificate' ),

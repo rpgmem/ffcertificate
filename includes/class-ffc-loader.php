@@ -146,6 +146,11 @@ class Loader {
 		// Bulk-issue staging tables (#1945). Same heal-on-request pattern.
 		\FreeFormCertificate\Submissions\BulkIssueActivator::maybe_create_tables();
 
+		// Signed certificate records (#2639). Same heal-on-request pattern;
+		// the signer listens on the submission save, update and delete hooks.
+		\FreeFormCertificate\Submissions\CertificateSignatureActivator::maybe_create_table();
+		\FreeFormCertificate\Submissions\CertificateSigner::init();
+
 		// Ensure activity_log schema is healed. Installs created in a
 		// pre-`action`-column plugin version skipped dbDelta on every
 		// upgrade because create_table() used to early-return on
@@ -351,6 +356,8 @@ class Loader {
 				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
 				// Management UI: list-table columns + visibility toggle (#865).
 				new \FreeFormCertificate\Admin\CertTemplateAdminScreen();
+				// Fields a template declares for the forms that reference it (#2581).
+				new \FreeFormCertificate\Admin\CertTemplateFieldsMetabox();
 				// Global per-mode appointment-receipt template selection (#945).
 				new \FreeFormCertificate\Admin\CertTemplateReceiptSettings();
 			}
@@ -429,6 +436,10 @@ class Loader {
 		// WP-CLI.
 		\FreeFormCertificate\UserDashboard\NameSync::init();
 		PrivacyHandler::init();
+		// A signer whose account is deleted keeps a copy of name and RF
+		// (#2582). Not behind is_admin(): accounts are deleted from REST and
+		// WP-CLI too.
+		\FreeFormCertificate\Core\CertificateSigners::register();
 
 		// Client-IP resolution (#899 phase 2): feed ClientIpResolver's filters
 		// from stored config, and keep Cloudflare's published CIDR list fresh.
@@ -496,10 +507,6 @@ class Loader {
 		}
 
 		new ActivityLogSubscriber();
-
-		// Move events still scheduled under a pre-#2323 name first, so the
-		// checks below find them instead of scheduling a second copy.
-		\FreeFormCertificate\Core\ScheduledTasks::migrate_legacy_hooks();
 
 		// Ensure daily cleanup cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffc_daily_cleanup' ) ) {
@@ -1427,6 +1434,7 @@ class Loader {
 		}
 		if ( SettingsReader::module_enabled( 'audiences' ) ) {
 			add_action( \FreeFormCertificate\Audience\AudienceFormInviteScanner::CRON_HOOK, array( \FreeFormCertificate\Audience\AudienceFormInviteScanner::class, 'run' ) );
+			add_action( \FreeFormCertificate\Audience\AudienceFormInviteScanner::INVITE_ALL_HOOK, array( \FreeFormCertificate\Audience\AudienceFormInviteScanner::class, 'run_invite_all' ), 10, 2 );
 		}
 		if ( SettingsReader::module_enabled( 'date_messages' ) ) {
 			\FreeFormCertificate\DateMessages\DateMessagesCron::init();

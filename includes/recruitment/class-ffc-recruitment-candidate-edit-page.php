@@ -628,8 +628,10 @@ final class RecruitmentCandidateEditPage {
 	private static function build_delete_consequences( object $candidate ): array {
 		$context = array();
 
-		$created_at = (string) $candidate->created_at;
-		if ( '' !== $created_at ) {
+		// Instants (#2679); a row not converted yet reads its DATETIME in the
+		// site timezone, which is how it was written.
+		$created_at = DateFormatter::instant_of( $candidate->created_at ?? null );
+		if ( $created_at > 0 ) {
 			$context[] = sprintf(
 				/* translators: %s — formatted datetime when the candidate row was created */
 				__( 'Created on %s.', 'ffcertificate' ),
@@ -637,8 +639,8 @@ final class RecruitmentCandidateEditPage {
 			);
 		}
 
-		$updated_at = (string) $candidate->updated_at;
-		if ( '' !== $updated_at && $updated_at !== $created_at ) {
+		$updated_at = DateFormatter::instant_of( $candidate->updated_at ?? null );
+		if ( $updated_at > 0 && $updated_at !== $created_at ) {
 			$context[] = sprintf(
 				/* translators: %s — formatted datetime when the candidate row was last touched */
 				__( 'Last updated on %s.', 'ffcertificate' ),
@@ -707,10 +709,15 @@ final class RecruitmentCandidateEditPage {
 		// masked tier whatever the form says (#2245).
 		$tier = RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() );
 		if ( RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier || ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier && isset( $_POST['email'] ) ) ) {
-			$input['email'] = isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
+			// Passed as typed: the editor validates it and refuses an address
+			// that sanitizing would have emptied (#2694).
+			$input['email'] = isset( $_POST['email'] ) ? trim( sanitize_text_field( wp_unslash( (string) $_POST['email'] ) ) ) : '';
 		}
 
-		RecruitmentCandidateEditor::update( $before, $input );
+		$result = RecruitmentCandidateEditor::update( $before, $input );
+		if ( is_wp_error( $result ) ) {
+			self::redirect_with_notice( $id, 'recruitment_candidate_email_invalid' === $result->get_error_code() ? 'email-invalid' : 'save-failed' );
+		}
 
 		self::redirect_with_notice( $id, 'saved' );
 	}

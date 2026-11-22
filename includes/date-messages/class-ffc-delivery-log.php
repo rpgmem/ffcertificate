@@ -35,14 +35,17 @@ class DeliveryLog {
 	/**
 	 * Counter columns a run carries.
 	 */
-	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced', 'listed' );
+	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced', 'listed', 'already_sent' );
 
 	/**
 	 * Days the history keeps a run and its deliveries (#1647).
 	 *
-	 * Removing a delivery cannot let a message go out twice: its key carries
-	 * the target date WITH the year, and the furthest a send reaches back is
-	 * the manual range plus the largest offset -- a few months, never a year.
+	 * Removing a dated delivery cannot let a message go out twice: its key
+	 * carries the target date WITH the year, and the furthest a send reaches
+	 * back is the manual range plus the largest offset -- a few months, never
+	 * a year. An announcement's key has no date, so its delivery is kept
+	 * when its run goes: it is what stops a later Send now from reaching the
+	 * same people again (#2692).
 	 */
 	public const RETENTION_DAYS = 365;
 
@@ -285,8 +288,11 @@ class DeliveryLog {
 				break;
 			}
 
-			$in         = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-			$deliveries = $wpdb->prepare( "DELETE FROM %i WHERE run_id IN ({$in})", array_merge( array( DateMessagesActivator::log_table() ), $ids ) );
+			$in = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+			// An announcement's deliveries stay: they are its only record of
+			// who already has it (#2692).
+			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The table, the ids and the two kept values arrive as one array, which the placeholder-count sniff cannot read.
+			$deliveries = $wpdb->prepare( "DELETE FROM %i WHERE run_id IN ({$in}) AND NOT (occurrence_key = %s AND channel = %s)", array_merge( array( DateMessagesActivator::log_table() ), $ids, array( Rule::ANNOUNCEMENT_OCCURRENCE, 'user' ) ) );
 			if ( null === $deliveries || false === $wpdb->query( $deliveries ) ) {
 				break;
 			}
@@ -366,6 +372,7 @@ class DeliveryLog {
 			'out_of_audience' => 'a',
 			'failed'          => 'f',
 			'listed'          => 'l',
+			'already_sent'    => 'r',
 		);
 		if ( ! isset( $codes[ $counter ] ) ) {
 			self::bump( $run_id, $counter );
@@ -378,16 +385,59 @@ class DeliveryLog {
 	}
 
 	/**
+	 * Take back one decision {@see self::count_once()} counted (#2692).
+	 *
+	 * A send that failed and then went out on a retry of the same batch was
+	 * counted as a failure first; the delivery replaces it. Only a decision
+	 * that was counted is taken back, so a second call does nothing.
+	 *
+	 * @param int    $run_id     Run.
+	 * @param int    $rule_id    Rule.
+	 * @param int    $user_id    Person.
+	 * @param string $occurrence Occurrence key.
+	 * @param string $counter    `failed`.
+	 * @return void
+	 */
+	public static function uncount( int $run_id, int $rule_id, int $user_id, string $occurrence, string $counter ): void {
+		if ( 'failed' !== $counter ) {
+			return;
+		}
+		$wpdb    = self::db();
+		$deleted = $wpdb->delete(
+			DateMessagesActivator::log_table(),
+			array(
+				'rule_id'        => $rule_id,
+				'user_id'        => $user_id,
+				'occurrence_key' => $occurrence,
+				'channel'        => self::counted_channel( $run_id, 'failed' ),
+			),
+			array( '%d', '%d', '%s', '%s' )
+		);
+		if ( 1 !== $deleted ) {
+			return;
+		}
+		$sql = $wpdb->prepare( 'UPDATE %i SET %i = GREATEST(%i - 1, 0) WHERE id = %d', DateMessagesActivator::runs_table(), $counter, $counter, $run_id );
+		if ( null !== $sql ) {
+			$wpdb->query( $sql );
+		}
+	}
+
+	/**
 	 * The channel {@see self::count_once()} records a counted decision under,
 	 * for the run's own readers: the summary-only digest lists the people its
-	 * `listed` rows name (#2336).
+	 * `listed` rows name (#2336), and the history the people its `failed`
+	 * rows name (#2692).
 	 *
 	 * @param int    $run_id  Run.
-	 * @param string $counter `listed`.
+	 * @param string $counter `listed` or `failed`.
 	 * @return string
 	 */
 	public static function counted_channel( int $run_id, string $counter ): string {
-		return 'listed' === $counter ? 'xl' . $run_id : '';
+		$codes = array(
+			'listed' => 'l',
+			'failed' => 'f',
+		);
+		return isset( $codes[ $counter ] ) ? 'x' . $codes[ $counter ] . $run_id : '';
 	}
 
 	/**
@@ -458,9 +508,10 @@ class DeliveryLog {
 	 * @param string          $occurrence Target day.
 	 * @param array<int, int> $user_ids   Candidates.
 	 * @param string          $channel    Channel.
+	 * @param int             $run_id     Only this run's deliveries, when above 0 (#2692).
 	 * @return array<int, true>
 	 */
-	public static function delivered_among( int $rule_id, string $occurrence, array $user_ids, string $channel = 'user' ): array {
+	public static function delivered_among( int $rule_id, string $occurrence, array $user_ids, string $channel = 'user', int $run_id = 0 ): array {
 		$user_ids = array_values( array_filter( array_map( 'intval', $user_ids ), static fn( int $id ): bool => $id > 0 ) );
 		if ( array() === $user_ids ) {
 			return array();
@@ -471,8 +522,8 @@ class DeliveryLog {
 		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The sniff counts the literal's placeholders and does not know `prepare()` accepts a single array of arguments, which is how the table, the keys and the ids arrive.
 		$found = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT user_id FROM %i WHERE rule_id = %d AND occurrence_key = %s AND channel = %s AND user_id IN ({$placeholders})",
-				array_merge( array( DateMessagesActivator::log_table(), $rule_id, $occurrence, $channel ), $user_ids )
+				'SELECT user_id FROM %i WHERE rule_id = %d AND occurrence_key = %s AND channel = %s' . ( $run_id > 0 ? ' AND run_id = %d' : '' ) . " AND user_id IN ({$placeholders})",
+				array_merge( array( DateMessagesActivator::log_table(), $rule_id, $occurrence, $channel ), $run_id > 0 ? array( $run_id ) : array(), $user_ids )
 			)
 		);
 		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber

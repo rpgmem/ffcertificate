@@ -472,6 +472,22 @@ class TabMigrationsTest extends TestCase {
 		};
 	}
 
+	/**
+	 * A strategy may say what its card covers (#2672): the line renders under
+	 * the description, escaped, and only from a string, so a status that
+	 * carries none, or an error, draws nothing.
+	 */
+	public function test_the_scope_line_renders_escaped_under_the_description(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$description = strpos( $view, "echo esc_html( \$ffcertificate_migration['description'] )" );
+		$scope       = strpos( $view, "echo esc_html( \$ffcertificate_status['scope'] )" );
+		$this->assertNotFalse( $description );
+		$this->assertNotFalse( $scope, 'The scope line is printed through esc_html().' );
+		$this->assertGreaterThan( $description, $scope, 'The scope line follows the description.' );
+		$this->assertStringContainsString( "! is_wp_error( \$ffcertificate_status ) && ! empty( \$ffcertificate_status['scope'] ) && is_string( \$ffcertificate_status['scope'] )", $view );
+	}
+
 	public function test_render_error_when_view_missing(): void {
 		$tab = $this->tab_with_views_in( sys_get_temp_dir() . '/ffc_test_no_such_view_dir_' . getmypid() );
 
@@ -521,10 +537,102 @@ class TabMigrationsTest extends TestCase {
 	public function test_each_card_is_a_collapsible_section_the_runner_still_finds(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
 
-		$this->assertStringContainsString( '<details class="ffc-section ffc-migration-card ', $view );
+		$this->assertStringContainsString( '<details id="ffc-migration-<?php echo esc_attr( $ffcertificate_key ); ?>" class="ffc-section ffc-migration-card ', $view );
 		$this->assertStringContainsString( 'TabMigrations::card_opens( (bool) $ffcertificate_is_complete, (string) $ffcertificate_status_error ) ? \' open\'', $view );
 		$this->assertStringContainsString( '<summary class="ffc-section__summary">', $view );
 		$this->assertStringContainsString( '</details>', $view );
 	}
 
+	/**
+	 * A refused prerequisite reads as the strategy's own message, and a card
+	 * that can run reads as nothing (#2651).
+	 */
+	public function test_an_unmet_prerequisite_reads_as_the_strategy_s_refusal(): void {
+		$this->assertSame( '', TabMigrations::unmet_prerequisite( true ) );
+		$this->assertSame(
+			'Generate a signing key first, under Settings → Certificates.',
+			TabMigrations::unmet_prerequisite( new \WP_Error( 'no_signing_key', 'Generate a signing key first, under Settings → Certificates.' ) )
+		);
+		// Anything but a plain true is a refusal, never a pass: an empty
+		// message or an odd value still disables the button.
+		$this->assertSame( 'This migration cannot run yet on this site.', TabMigrations::unmet_prerequisite( new \WP_Error( 'x', '' ) ) );
+		$this->assertSame( 'This migration cannot run yet on this site.', TabMigrations::unmet_prerequisite( false ) );
+		$this->assertSame( 'This migration cannot run yet on this site.', TabMigrations::unmet_prerequisite( null ) );
+	}
+
+	/**
+	 * The pending branch asks the prerequisite before drawing Run, renders it
+	 * disabled with the refusal, and keeps the retry control out (#2651).
+	 */
+	public function test_a_card_with_an_unmet_prerequisite_offers_no_run(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$this->assertStringContainsString( '$ffcertificate_migration_manager->can_run( $ffcertificate_key )', $view );
+
+		$from   = (int) strpos( $view, "<?php elseif ( '' !== \$ffcertificate_unmet ) : ?>" );
+		$this->assertGreaterThan( 0, $from, 'The pending branch has an unmet-prerequisite case.' );
+		$branch = substr( $view, $from, (int) strpos( $view, '<?php else : ?>', $from ) - $from );
+		$this->assertStringContainsString( "'disabled' => true", $branch );
+		$this->assertStringContainsString( 'esc_html( $ffcertificate_unmet )', $branch );
+		$this->assertStringNotContainsString( 'ffc-migration-run', $branch, 'No button the batch driver can pick up.' );
+		$this->assertStringNotContainsString( '$ffcertificate_migrate_url', $branch );
+
+		// The case sits before the runnable one, so a refusal never reaches it.
+		$this->assertLessThan( (int) strpos( $view, "'class'    => 'ffc-migration-run'" ), $from );
+		$this->assertStringContainsString( "\$ffcertificate_can_migrate && '' === \$ffcertificate_unmet && ! empty( \$ffcertificate_status['retryable'] )", $view );
+	}
+
+	/**
+	 * A refusal's action is offered only when it is whole and the user may
+	 * open its destination (#2656).
+	 */
+	public function test_a_prerequisite_action_is_offered_only_whole_and_to_whoever_may_follow_it(): void {
+		$granted = array( 'ffc_manage_settings_dangerzone' );
+		Functions\when( 'current_user_can' )->alias(
+			static function ( string $cap ) use ( &$granted ): bool {
+				return in_array( $cap, $granted, true );
+			}
+		);
+		$refusal = static fn( $data ) => new \WP_Error( 'no_signing_key', 'Generate a key first.', $data );
+		$action  = array(
+			'label' => 'Generate a signing key',
+			'url'   => 'https://example.test/wp-admin/admin.php?page=ffc-settings&tab=certificates#ffc-integrity-signature',
+			'cap'   => 'ffc_manage_settings_dangerzone',
+			'icon'  => 'key',
+		);
+
+		$this->assertSame(
+			array( 'label' => $action['label'], 'url' => $action['url'], 'icon' => 'key' ),
+			TabMigrations::prerequisite_action( $refusal( array( 'action' => $action ) ) )
+		);
+		$this->assertSame( 'link', TabMigrations::prerequisite_action( $refusal( array( 'action' => array_diff_key( $action, array( 'icon' => 0 ) ) ) ) )['icon'] ?? null, 'Without an icon, the link one.' );
+
+		// Nothing to offer: a pass, a refusal without data, a malformed action.
+		$this->assertNull( TabMigrations::prerequisite_action( true ) );
+		$this->assertNull( TabMigrations::prerequisite_action( new \WP_Error( 'x', 'No data.' ) ) );
+		$this->assertNull( TabMigrations::prerequisite_action( $refusal( array( 'action' => 'not an array' ) ) ) );
+		foreach ( array( 'label', 'url', 'cap' ) as $missing ) {
+			$this->assertNull( TabMigrations::prerequisite_action( $refusal( array( 'action' => array_diff_key( $action, array( $missing => 0 ) ) ) ) ), 'Without ' . $missing . '.' );
+		}
+
+		// A destination this user may not open is never offered.
+		$granted = array();
+		$this->assertNull( TabMigrations::prerequisite_action( $refusal( array( 'action' => $action ) ) ) );
+	}
+
+	/**
+	 * The unmet branch draws the action under the refusal, and every card
+	 * carries the anchor an action may point at (#2656).
+	 */
+	public function test_the_unmet_branch_draws_the_action_and_cards_are_addressable(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$from   = (int) strpos( $view, "<?php elseif ( '' !== \$ffcertificate_unmet ) : ?>" );
+		$branch = substr( $view, $from, (int) strpos( $view, '<?php else : ?>', $from ) - $from );
+		$this->assertStringContainsString( 'null !== $ffcertificate_unmet_action', $branch );
+		$this->assertStringContainsString( "'href'  => \$ffcertificate_unmet_action['url']", $branch );
+		$this->assertStringNotContainsString( 'ffc-migration-run', $branch );
+
+		$this->assertStringContainsString( '<details id="ffc-migration-<?php echo esc_attr( $ffcertificate_key ); ?>"', $view );
+	}
 }

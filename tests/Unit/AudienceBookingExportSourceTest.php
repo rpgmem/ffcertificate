@@ -227,10 +227,12 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		$this->assertSame( '7', $result[0] );
 		$this->assertSame( 'Room A', $result[1] );
 		$this->assertSame( '3', $result[2] );
-		$this->assertSame( '2026-05-20', $result[3] );
+		// Wall-clock date and times in the plugin's format (#2676); an open
+		// end date stays empty.
+		$this->assertSame( '20/05/2026', $result[3] );
 		$this->assertSame( '', $result[4] );
-		$this->assertSame( '09:00:00', $result[5] );
-		$this->assertSame( '10:00:00', $result[6] );
+		$this->assertSame( '09:00', $result[5] );
+		$this->assertSame( '10:00', $result[6] );
 		$this->assertSame( 'No', $result[7] );
 		$this->assertSame( 'Audience', $result[8] );
 		$this->assertSame( 'Team sync', $result[9] );

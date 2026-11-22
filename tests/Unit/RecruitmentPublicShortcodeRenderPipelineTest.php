@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -73,6 +74,8 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The date and time to assume go through DateFormatter (#2676).
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
 
 		// pcov coverage-attribution: preload so lines attribute to this test.
 		class_exists( '\FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer' );
@@ -93,7 +96,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		Functions\when( 'add_query_arg' )->alias( fn( $k, $v, $base = '' ) => "?{$k}={$v}" );
 		Functions\when( 'remove_query_arg' )->alias( fn( $k, $base = '' ) => '?' );
 		Functions\when( 'is_email' )->alias( static fn( $email ) => false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false );
-		Functions\when( 'wp_salt' )->justReturn( 'unit-test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
@@ -309,7 +312,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-recruitment-status-called', $out ); // definitive status badge
 		$this->assertStringContainsString( 'ffc-recruitment-subscription-pcd', $out );
 		$this->assertStringContainsString( 'Adjutancy 3', $out );
-		$this->assertStringContainsString( '20-05-2026', $out );      // date reformatted d-m-Y
+		$this->assertStringContainsString( '20/05/2026', $out );      // date in the plugin's format (#2676)
 		$this->assertStringContainsString( '09:00', $out );           // time HH:MM
 		$this->assertStringContainsString( '</tbody></table>', $out );
 		$this->assertStringContainsString( '</section>', $out );
@@ -417,7 +420,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 
 		// Row still renders; the date/time cells are simply blank.
 		$this->assertStringContainsString( 'Candidate 1', $out );
-		$this->assertStringNotContainsString( '20-05-2026', $out );
+		$this->assertStringNotContainsString( '20/05/2026', $out );
 		$this->assertStringEndsWith( '<td data-label="Date to assume"></td><td data-label="Time"></td></tr></tbody></table></section>', $out );
 	}
 

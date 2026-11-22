@@ -903,21 +903,11 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 *
 	 * It is the only row the class ever wrote out by hand, and it had drifted
 	 * a column behind the header before anyone widened it. Reaching it needs
-	 * the registry to hand back something that is not a tool, which is why
-	 * this alias-mocks the registry rather than injecting — the constructor is
-	 * typed, so a non-tool cannot be passed in.
-	 *
-	 * Own process: the real registry always holds the auditor, so only a replaced registry class reaches this branch.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * the registry to hand back no auditor, which an empty registry injected
+	 * through the constructor does (#2567): the default set always holds it.
 	 */
 	public function test_the_tool_unavailable_row_is_as_wide_as_the_header(): void {
-		$registry = Mockery::mock( 'alias:\\FreeFormCertificate\\Maintenance\\MaintenanceToolRegistry' );
-		$registry->shouldReceive( 'create_default' )->andReturnSelf();
-		$registry->shouldReceive( 'get' )->andReturn( null );
-
-		$source = new ExportSourceWithStubbedSchemaProbe();
+		$source = new ExportSourceWithStubbedSchemaProbe( null, new \FreeFormCertificate\Maintenance\MaintenanceToolRegistry() );
 		$rows   = $source->rows();
 
 		foreach ( $rows as $row ) {

@@ -118,7 +118,17 @@ class FormEditorGeofenceMetabox {
 		$schedule_exception_enabled = ( $config['schedule_exception_enabled'] ?? '0' ) === '1' ? '1' : '0';
 		$class_time_start           = $config['class_time_start'] ?? '';
 		$class_time_end             = $config['class_time_end'] ?? '';
-		$schedule_default_mode      = $config['schedule_default_mode'] ?? 'now';
+		// The event's date (#2579): printed by {{schedule:date}} and
+		// {{schedule:dates}}, never derived from the opening window above.
+		list( $class_date_start, $class_date_end ) = \FreeFormCertificate\Core\EventDate::range_from_config( $config );
+		$event_chip_parts                          = array();
+		if ( '' !== $class_date_start ) {
+			$event_chip_parts[] = \FreeFormCertificate\Core\EventDate::format_range( $class_date_start, $class_date_end );
+		}
+		if ( '' !== $class_time_start && '' !== $class_time_end ) {
+			$event_chip_parts[] = $class_time_start . ' – ' . $class_time_end;
+		}
+		$schedule_default_mode = $config['schedule_default_mode'] ?? 'now';
 		if ( ! in_array( $schedule_default_mode, array( 'now', 'manual' ), true ) ) {
 			$schedule_default_mode = 'now';
 		}
@@ -145,19 +155,35 @@ class FormEditorGeofenceMetabox {
 			\FreeFormCertificate\Admin\AdminUI::render_section_open(
 				array(
 					'title' => __( 'Event Schedule (Reference)', 'ffcertificate' ),
-					'hint'  => __( 'When the event takes place, printed as {{schedule}} on the certificate.', 'ffcertificate' ),
+					'hint'  => __( 'When the event takes place, printed on the certificate. It does not open or close the form.', 'ffcertificate' ),
 					'icon'  => 'event',
-					'chip'  => '' !== $class_time_start && '' !== $class_time_end
-						? $class_time_start . ' – ' . $class_time_end
-						: __( 'Not set', 'ffcertificate' ),
-					'open'  => '' !== $class_time_start || '' !== $class_time_end,
+					'chip'  => $event_chip_parts ? implode( ' · ', $event_chip_parts ) : __( 'Not set', 'ffcertificate' ),
+					'open'  => '' !== $class_time_start || '' !== $class_time_end || '' !== $class_date_start,
 				)
 			);
 			?>
 				<p class="description">
-					<?php esc_html_e( "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When Settings → Certificates requires {{schedule}}, the template must contain it — the form save is blocked until the placeholder is present.", 'ffcertificate' ); ?>
+					<?php esc_html_e( 'When does this event take place? On the certificate, {{schedule}} prints the hours, {{schedule:date}} the first day and {{schedule:dates}} the day or the first and last days. Both date tokens take a format, as in {{schedule:date:format=d/m/Y}}; without one they use the PDF date format from Settings → General. When Settings → Certificates requires a token, the template must contain it — the form save is blocked until it is present.', 'ffcertificate' ); ?>
 				</p>
 				<table class="form-table" role="presentation"><tbody>
+					<tr>
+						<th><label for="ffc_event_date_start"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></label></th>
+						<td>
+							<label><?php esc_html_e( 'Start:', 'ffcertificate' ); ?> <input type="date" id="ffc_event_date_start" name="ffc_geofence[class_date_start]" value="<?php echo esc_attr( $class_date_start ); ?>"></label>
+							&nbsp;&nbsp;
+							<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" id="ffc_event_date_end" name="ffc_geofence[class_date_end]" value="<?php echo esc_attr( $class_date_end ); ?>" min="<?php echo esc_attr( $class_date_start ); ?>"></label>
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Use the opening date', 'ffcertificate' ),
+									'icon'  => 'copy',
+									'id'    => 'ffc_event_date_from_opening',
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'Leave End empty for a one-day event. The opening window below is a different date: copy it here only when the two coincide.', 'ffcertificate' ); ?></p>
+						</td>
+					</tr>
 					<tr>
 						<th><label><?php esc_html_e( 'From — To', 'ffcertificate' ); ?></label></th>
 						<td>

@@ -58,7 +58,6 @@ class IdentityConvergenceGuardTest extends TestCase {
 	 */
 	private const HASH_BOUNDARY_ALLOWED = array(
 		'includes/core/class-ffc-sensitive-field-registry.php'                                  => 'The boundary itself: `encrypt_fields()` and `hash_identifier()` are what every other site is required to call.',
-		'includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php'      => 'Rebuilds `email_hash` from the decrypted value under the salt, deliberately without normalising -- its own comment says so, and normalising would silently do the canonicalisation card\'s work.',
 		'includes/migrations/strategies/class-ffc-key-rotation-migration-strategy.php'           => 'Re-hashes decrypted values under a newly-defined key. Canonicalising during a rotation would change what the row means, not merely how it is keyed.',
 		'includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php' => 'The rotation\'s second pass, over the areas the first never covered (#1236). Same reason as its sibling.',
 	);

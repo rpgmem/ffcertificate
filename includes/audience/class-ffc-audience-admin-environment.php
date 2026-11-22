@@ -751,7 +751,7 @@ class AudienceAdminEnvironment {
 				return;
 			}
 
-			$id = isset( $_POST['environment_id'] ) ? absint( $_POST['environment_id'] ) : 0;
+			$id = RequestInput::get_post_int( 'environment_id' );
 
 			// Process working hours.
 			$working_hours = array();
@@ -787,7 +787,7 @@ class AudienceAdminEnvironment {
 			$color = ColorValidator::normalize( isset( $_POST['environment_color'] ) ? wp_unslash( $_POST['environment_color'] ) : '', '#3788d8' );
 
 			$data = array(
-				'schedule_id'   => isset( $_POST['environment_schedule'] ) ? absint( $_POST['environment_schedule'] ) : 0,
+				'schedule_id'   => RequestInput::get_post_int( 'environment_schedule' ),
 				'name'          => \FreeFormCertificate\Core\RequestInput::get_post_string( 'environment_name' ),
 				'color'         => $color ? $color : '#3788d8',
 				'description'   => isset( $_POST['environment_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['environment_description'] ) ) : '',
@@ -814,7 +814,7 @@ class AudienceAdminEnvironment {
 			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete environments.', 'ffcertificate' ) );
 			}
-			$id = absint( $_GET['id'] );
+			$id = RequestInput::get_get_int( 'id' );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'delete_environment_' . $id ) ) {
 				$env = AudienceEnvironmentRepository::get_by_id( $id );
 				// An environment that holds bookings stays: deleting it would

@@ -600,7 +600,7 @@ class ReregistrationAdmin {
 			return;
 		}
 
-		$id          = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$id          = RequestInput::get_post_int( 'reregistration_id' );
 		$prev_status = null;
 
 		if ( $id > 0 ) {
@@ -628,6 +628,13 @@ class ReregistrationAdmin {
 			'reminder_days'              => '' === $ffc_reminder_raw ? 7 : max( 1, absint( $ffc_reminder_raw ) ),
 			'status'                     => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_status', 'draft' ),
 		);
+
+		// A status the repository does not know would leave the campaign in
+		// none of its lists and outside every daily run (#2688).
+		if ( ! in_array( $data['status'], ReregistrationRepository::STATUSES, true ) ) {
+			add_settings_error( 'ffc_reregistration', 'ffc_status', __( 'Choose a valid campaign status. Nothing was saved.', 'ffcertificate' ), 'error' );
+			return;
+		}
 
 		// The window has to be a window: an end on or before the start would
 		// leave a campaign nobody can ever answer (#2242).
@@ -716,12 +723,25 @@ class ReregistrationAdmin {
 			wp_die( esc_html__( 'You do not have permission to delete reregistration campaigns.', 'ffcertificate' ) );
 		}
 
-		$id = absint( $_GET['id'] );
+		$id = RequestInput::get_get_int( 'id' );
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'delete_reregistration_' . $id ) ) {
 			return;
 		}
 
-		ReregistrationRepository::delete( $id );
+		$campaign = ReregistrationRepository::get_by_id( $id );
+		if ( ReregistrationRepository::delete( $id ) && $campaign && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+			// The campaign and its submissions are gone; the log keeps who
+			// deleted which one (#2688).
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'reregistration_deleted',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'reregistration_id' => $id,
+					'title'             => (string) $campaign->title,
+				),
+				get_current_user_id()
+			);
+		}
 		wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&message=deleted' ) );
 		exit;
 	}

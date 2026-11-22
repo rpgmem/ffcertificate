@@ -184,7 +184,7 @@ class ReregistrationStandardFieldsSeeder {
 	 * Add the `email_institucional_edu` field to every audience that already
 	 * carries the standard fields.
 	 *
-	 * `seed_for_audience()` runs when an audience is created, so a field added
+	 * The standard set is seeded when an audience is created, so a field added
 	 * to the definition after that reaches no existing audience on its own.
 	 * The new row takes the `sort_order` of the audience's @sme field and,
 	 * having the higher id, lands right after it. An audience that already
@@ -817,26 +817,6 @@ class ReregistrationStandardFieldsSeeder {
 				'validation'   => null,
 			),
 		);
-	}
-
-	/**
-	 * Seed standard fields for a single audience.
-	 *
-	 * Every audience inherits the global list since #2502, so this seeds the
-	 * global list and nothing of the audience's own.
-	 *
-	 * @param int $audience_id Audience ID.
-	 * @return int Number of fields inserted (into the global list).
-	 *
-	 * @deprecated 6.43.0 Audiences inherit the global list (#2502); use {@see self::seed_global()}.
-	 * @removal    6.45.0
-	 */
-	public static function seed_for_audience( int $audience_id ): int {
-		_deprecated_function( __METHOD__, '6.43.0', __CLASS__ . '::seed_global' );
-		if ( $audience_id <= 0 ) {
-			return 0;
-		}
-		return self::seed_global();
 	}
 
 	/**

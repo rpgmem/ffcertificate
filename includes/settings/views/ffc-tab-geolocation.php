@@ -278,44 +278,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</td>
 				</tr>
 
-				<!-- API Service Selection -->
+				<!-- API Service -->
 				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
-						<label for="ffc_ip_api_service"><?php esc_html_e( 'Primary Service', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'Service', 'ffcertificate' ); ?>
 					</th>
 					<td>
-						<select name="ip_api_service" id="ffc_ip_api_service">
-							<option value="ipinfo" <?php selected( $settings['ip_api_service'], 'ipinfo' ); ?>>
-								<?php esc_html_e( 'ipinfo.io (HTTPS on the free tier; a free key raises the limit)', 'ffcertificate' ); ?>
-							</option>
-							<option value="ip-api" <?php selected( $settings['ip_api_service'], 'ip-api' ); ?>>
-								<?php esc_html_e( 'ip-api.com (HTTPS on its paid plan only)', 'ffcertificate' ); ?>
-							</option>
-						</select>
+						<p><?php esc_html_e( 'ipinfo.io (HTTPS on the free tier; a free key raises the limit)', 'ffcertificate' ); ?></p>
 						<p class="description">
-							<?php esc_html_e( 'Visitor addresses are sent over HTTPS only. ip-api.com serves HTTPS on its paid plan, so it is asked only when the ffc_ipapi_use_https filter says the site has one; otherwise ipinfo.io is asked instead. A failed lookup is not repeated for 5 minutes.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<!-- Cascade/Fallback Between Services -->
-				<tr data-ffc-section="ip_api_full">
-					<th scope="row">
-						<?php esc_html_e( 'Service Cascade', 'ffcertificate' ); ?>
-					</th>
-					<td>
-						<?php
-						\FreeFormCertificate\Admin\AdminUI::render_toggle(
-							array(
-								'name'    => 'ip_api_cascade',
-								'checked' => (bool) $settings['ip_api_cascade'],
-								'label'   => __( 'Enable cascade: if primary fails, try the other service', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'ip_api_cascade' ),
-							)
-						);
-						?>
-						<p class="description">
-							<?php esc_html_e( 'When enabled, if the primary service fails, automatically try the alternative service.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Visitor addresses are sent over HTTPS only. A failed lookup is not repeated for 5 minutes.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>

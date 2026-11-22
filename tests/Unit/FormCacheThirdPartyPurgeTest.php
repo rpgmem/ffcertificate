@@ -313,33 +313,4 @@ class FormCacheThirdPartyPurgeTest extends TestCase {
 		$this->assertSame( array( array( 'litespeed_purge_all' ) ), $actions );
 	}
 
-	/**
-	 * Defines WP_DEBUG as true, while FormCacheTest pins it false in the shared process.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_form_config_logs_the_miss_and_the_hit_under_wp_debug(): void {
-		define( 'WP_DEBUG', true );
-		$cached = false;
-		Functions\when( 'wp_cache_get' )->alias(
-			static function () use ( &$cached ) {
-				return $cached;
-			}
-		);
-		Functions\when( 'wp_cache_set' )->alias(
-			static function ( $key, $value ) use ( &$cached ) {
-				$cached = $value;
-				return true;
-			}
-		);
-		Functions\when( 'get_post_meta' )->justReturn( array( 'title' => 'Form' ) );
-
-		$this->assertSame( array( 'title' => 'Form' ), FormCache::get_form_config( 3 ) );
-		$this->assertSame( array( 'title' => 'Form' ), FormCache::get_form_config( 3 ) );
-
-		$log = $this->log();
-		$this->assertStringContainsString( 'Form config cache MISS', $log );
-		$this->assertStringContainsString( 'Form config cache HIT', $log );
-	}
 }

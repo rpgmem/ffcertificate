@@ -359,8 +359,11 @@ class UserDashboardActivatorTest extends TestCase {
 		);
 
 		// Existing dashboard page → reuse its ID, no insert.
-		$existing      = new \WP_Post();
-		$existing->ID  = 555;
+		$existing               = new \WP_Post();
+		$existing->ID           = 555;
+		$existing->post_status  = 'publish';
+		$existing->post_content = '[user_dashboard_personal]';
+		Functions\when( 'has_shortcode' )->alias( static fn( $content, $tag ) => false !== strpos( (string) $content, '[' . $tag ) );
 		Functions\when( 'get_page_by_path' )->justReturn( $existing );
 		$saved_option = null;
 		Functions\when( 'update_option' )->alias(

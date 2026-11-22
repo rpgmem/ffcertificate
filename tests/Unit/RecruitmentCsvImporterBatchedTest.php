@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -113,7 +114,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		Functions\when( 'do_action' )->justReturn( null );
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-uuid-1234' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 
 		// UserCreator's account path, down to the core call that fails: the
 		// candidate is persisted and no account is linked to it.
@@ -121,7 +122,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		Functions\when( 'username_exists' )->justReturn( false );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'sanitize_user' )->returnArg();
-		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'wp_next_scheduled' )->justReturn( false );
 		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 		$created = &$this->created_users;
@@ -482,7 +483,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	public function test_validate_job_rejects_unknown_job(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-		$out = RecruitmentCsvImporter::validate_job( 'missing' );
+		$out = RecruitmentCsvImporter::validate_job( 'missing', 5 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_job_not_found', $out['errors'] );
@@ -492,11 +493,13 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array(
 				'job_id' => 'j1',
+				'notice_id' => '5',
+				'user_id' => '1',
 				'status' => 'committed',
 			)
 		);
 
-		$out = RecruitmentCsvImporter::validate_job( 'j1' );
+		$out = RecruitmentCsvImporter::validate_job( 'j1', 5 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_job_invalid_state_for_validate', $out['errors'] );
@@ -506,6 +509,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array(
 				'job_id' => 'j1',
+				'notice_id' => '5',
+				'user_id' => '1',
 				'status' => 'ingested',
 			)
 		);
@@ -521,7 +526,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 			}
 		);
 
-		$out = RecruitmentCsvImporter::validate_job( 'j1' );
+		$out = RecruitmentCsvImporter::validate_job( 'j1', 5 );
 
 		$this->assertTrue( $out['ok'] );
 		$this->assertSame( array(), $out['errors'] );
@@ -532,6 +537,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array(
 				'job_id' => 'j1',
+				'notice_id' => '5',
+				'user_id' => '1',
 				'status' => 'ingested',
 			)
 		);
@@ -564,7 +571,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 			}
 		);
 
-		$out = RecruitmentCsvImporter::validate_job( 'j1' );
+		$out = RecruitmentCsvImporter::validate_job( 'j1', 5 );
 
 		$this->assertTrue( $out['ok'] );
 		$this->assertSame( 'invalid', $updated );
@@ -582,7 +589,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	public function test_promote_batch_rejects_unknown_job(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-		$out = RecruitmentCsvImporter::promote_batch( 'missing', 50 );
+		$out = RecruitmentCsvImporter::promote_batch( 'missing', 5, 50 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_job_not_found', $out['errors'] );
@@ -592,13 +599,15 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array(
 				'job_id'          => 'j1',
+				'notice_id' => '5',
+				'user_id' => '1',
 				'status'          => 'ingested',
 				'processed_count' => '0',
 				'total'           => '2',
 			)
 		);
 
-		$out = RecruitmentCsvImporter::promote_batch( 'j1', 50 );
+		$out = RecruitmentCsvImporter::promote_batch( 'j1', 5, 50 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_job_invalid_state_for_promote', $out['errors'] );
@@ -608,6 +617,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array(
 				'job_id'          => 'j1',
+				'notice_id' => '5',
+				'user_id' => '1',
 				'status'          => 'promoting',
 				'processed_count' => '2',
 				'total'           => '2',
@@ -615,7 +626,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
-		$out = RecruitmentCsvImporter::promote_batch( 'j1', 50 );
+		$out = RecruitmentCsvImporter::promote_batch( 'j1', 5, 50 );
 
 		$this->assertTrue( $out['ok'] );
 		$this->assertTrue( $out['done'] );
@@ -634,6 +645,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 			"/^SELECT \\* FROM wp_ffc_recruitment_import_jobs WHERE job_id = 'j1'$/",
 			(object) array(
 				'job_id'          => 'j1',
+				'notice_id' => '5',
+				'user_id' => '1',
 				'status'          => 'validated',
 				'processed_count' => '0',
 				'total'           => '1',
@@ -663,7 +676,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->on( 'update', '/^wp_ffc_recruitment_import_(jobs|staging)$/', 1, 2 );
 		$this->on( 'query', "/^UPDATE wp_ffc_recruitment_import_jobs SET processed_count = processed_count \\+ 1, .* WHERE job_id = 'j1'$/", 1, 1 );
 
-		$out = RecruitmentCsvImporter::promote_batch( 'j1', 50 );
+		$out = RecruitmentCsvImporter::promote_batch( 'j1', 5, 50 );
 
 		$this->assertTrue( $out['ok'] );
 		$this->assertSame( 1, $out['processed'] );
@@ -702,7 +715,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	public function test_commit_job_rejects_unknown_job(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-		$out = RecruitmentCsvImporter::commit_job( 'missing' );
+		$out = RecruitmentCsvImporter::commit_job( 'missing', 5 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_job_not_found', $out['errors'] );
@@ -712,13 +725,14 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array(
 				'job_id'    => 'j1',
+				'user_id' => '1',
 				'status'    => 'validated',
 				'notice_id' => '5',
 				'list_type' => 'preview',
 			)
 		);
 
-		$out = RecruitmentCsvImporter::commit_job( 'j1' );
+		$out = RecruitmentCsvImporter::commit_job( 'j1', 5 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_job_invalid_state_for_commit', $out['errors'] );
@@ -728,6 +742,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array(
 				'job_id'    => 'j1',
+				'user_id' => '1',
 				'status'    => 'promoting',
 				'notice_id' => '5',
 				'list_type' => 'preview',
@@ -735,7 +750,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		);
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( 3 );
 
-		$out = RecruitmentCsvImporter::commit_job( 'j1' );
+		$out = RecruitmentCsvImporter::commit_job( 'j1', 5 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_job_not_finished', $out['errors'] );
@@ -750,6 +765,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 			"/^SELECT \\* FROM wp_ffc_recruitment_import_jobs WHERE job_id = 'j1'$/",
 			(object) array(
 				'job_id'    => 'j1',
+				'user_id' => '1',
 				'status'    => 'promoting',
 				'notice_id' => '5',
 				'list_type' => 'preview',
@@ -781,7 +797,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->on( 'update', '/^wp_ffc_recruitment_import_jobs$/', 1, 1 );
 		$this->on( 'delete', '/^wp_ffc_recruitment_import_(staging|jobs)$/', 1, 2 );
 
-		$out = RecruitmentCsvImporter::commit_job( 'j1' );
+		$out = RecruitmentCsvImporter::commit_job( 'j1', 5 );
 
 		$this->assertTrue( $out['ok'] );
 		$this->assertSame( 4, $out['inserted'] );
@@ -798,12 +814,13 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 	public function test_commit_job_rolls_back_on_swap_failure(): void {
 		$this->arrange_promoting_job();
+		$this->store_notice( $this->notice_stub( 'draft' ) );
 		// START TRANSACTION (1), INSERT..SELECT fails (false), ROLLBACK (0).
 		$this->on( 'query', '/^START TRANSACTION$/', 1, 1 );
 		$this->on( 'query', '/^INSERT INTO `wp_ffc_recruitment_classification`/', false, 1 );
 		$this->on( 'query', '/^ROLLBACK$/', 0, 1 );
 
-		$out = RecruitmentCsvImporter::commit_job( 'j1' );
+		$out = RecruitmentCsvImporter::commit_job( 'j1', 5 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_swap_failed', $out['errors'] );
@@ -813,6 +830,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 	public function test_commit_job_over_a_stored_list_waits_for_the_comparison(): void {
 		$this->arrange_promoting_job_without_swap();
+		$this->store_notice( $this->notice_stub( 'draft' ) );
 		$this->stored_list = array( $this->stored_row( 50, 100, 2, 1, '90', 'empty' ) );
 		$this->on(
 			'get_results',
@@ -820,7 +838,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 			array( (object) array( 'candidate_id' => '101', 'adjutancy_id' => '2', 'rank_value' => '1', 'score' => '80.0000' ) )
 		);
 
-		$out = RecruitmentCsvImporter::commit_job( 'j1' );
+		$out = RecruitmentCsvImporter::commit_job( 'j1', 5 );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertSame( array( RecruitmentReimportDiff::CONFIRM_CODE ), $out['errors'] );
@@ -851,7 +869,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->on( 'update', '/^wp_ffc_recruitment_(classification|import_jobs)$/', 1 );
 		$this->on( 'delete', '/^wp_ffc_recruitment_import_(staging|jobs)$/', 1, 2 );
 
-		$out = RecruitmentCsvImporter::commit_job( 'j1', true );
+		$out = RecruitmentCsvImporter::commit_job( 'j1', 5, true );
 
 		$this->assertTrue( $out['ok'] );
 		$marks = $this->calls_to( 'update', '/^wp_ffc_recruitment_classification$/' );
@@ -883,6 +901,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 			"/^SELECT \\* FROM wp_ffc_recruitment_import_jobs WHERE job_id = 'j1'$/",
 			(object) array(
 				'job_id'    => 'j1',
+				'user_id' => '1',
 				'status'    => 'promoting',
 				'notice_id' => '5',
 				'list_type' => 'preview',

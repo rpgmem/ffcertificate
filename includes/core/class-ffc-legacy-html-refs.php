@@ -10,11 +10,11 @@
  *
  * The plugin-scoped marker deliberately carries the plugin slug so
  * `.../ffcertificate/assets/...` (a shipped, update-safe asset) never matches —
- * only the user drop-folder does. Three consumers share this definition rather
- * than each carrying its own copy: the `HtmlRefsNotice` (Phase 0 admin notice),
- * the `RewriteHtmlImageRefsMigrationStrategy` (which side-loads the images into
- * the Media Library) and the `FormEditorSaveHandler` (the Phase 4 save-time
- * linter). Their fully-qualified names are intentionally omitted here: Core is
+ * only the user drop-folder does. Two consumers share this definition rather
+ * than each carrying its own copy: the `HtmlRefsNotice` (Phase 0 admin notice)
+ * and the `FormEditorSaveHandler` (the Phase 4 save-time linter). The migration
+ * that side-loaded the images into the Media Library was the third, until it
+ * left in 6.45.0 (#2552). Their fully-qualified names are intentionally omitted here: Core is
  * a leaf module (depended-upon, never depending), and a `FreeFormCertificate\
  * Admin\…` reference even in a docblock would register a reverse edge in the
  * module-boundary guard.

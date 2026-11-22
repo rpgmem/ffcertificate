@@ -617,6 +617,7 @@ class SettingsSaveHandler {
 		$clean['qr_design_eye_frame_color'] = $design->eye_frame_color;
 		$clean['qr_design_eye_ball_color']  = $design->eye_ball_color;
 		$clean['qr_design_logo_id']         = $logo_id;
+		$clean['qr_design_logo_enabled']    = isset( $new['qr_design_logo_enabled'] ) ? 1 : 0;
 		$clean['qr_design_frame']           = $design->frame;
 		$clean['qr_design_frame_text']      = $design->frame_text;
 		$clean['qr_design_frame_color']     = $design->frame_color;
@@ -825,9 +826,9 @@ class SettingsSaveHandler {
 	 *
 	 * An empty prefix is refused: every short URL would sit at the site's
 	 * root. A changed prefix joins the list of previous prefixes, whose links
-	 * keep working by forwarding to the current one. A previous prefix that
-	 * is now the address of a page or post is refused, since the two would
-	 * share the same addresses.
+	 * keep working by forwarding to the current one. A new prefix, or a
+	 * previous one, that is the address of a page or post is refused, since
+	 * the two would share the same addresses (#2693).
 	 *
 	 * @param array<string, mixed> $clean     Current settings.
 	 * @param string               $requested The prefix as posted.
@@ -850,6 +851,27 @@ class SettingsSaveHandler {
 		$previous = array_values( array_unique( array_diff( array_filter( $previous ), array( $prefix ) ) ) );
 
 		$public_types = array_values( get_post_types( array( 'public' => true ) ) );
+
+		// A new prefix that is a page's address would sit over that page and
+		// the pages under it (#2693). Checked when the prefix changes, so a
+		// site already in that state can still save the rest of the tab.
+		if ( $prefix !== $old_prefix ) {
+			$page = get_page_by_path( $prefix, OBJECT, $public_types );
+			if ( $page instanceof \WP_Post ) {
+				add_settings_error(
+					'ffc_settings',
+					'ffc_short_url_prefix_page',
+					sprintf(
+						/* translators: 1: the requested short URL prefix, 2: title of the page that uses it as its address */
+						__( 'The prefix "%1$s" is the address of "%2$s". Short URLs would sit over that page and the pages under it, so choose another prefix.', 'ffcertificate' ),
+						$prefix,
+						get_the_title( $page )
+					)
+				);
+				return $clean;
+			}
+		}
+
 		foreach ( $previous as $earlier ) {
 			$page = get_page_by_path( $earlier, OBJECT, $public_types );
 			if ( $page instanceof \WP_Post ) {

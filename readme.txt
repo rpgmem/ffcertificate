@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.4
-Stable tag: 6.44.1
+Stable tag: 6.45.0
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -113,7 +113,7 @@ The full reference (every token, shortcode, capability and setting) ships inside
 
 * **Total Mail Queue** - When the Total Mail Queue plugin is active, every e-mail is queued through it and labelled with the plugin feature that sent it.
 * **Cloudflare** - In the opt-in "secure" client-IP mode (Settings → IP Diagnostics), Cloudflare is detected and its IP ranges are refreshed daily, so limits and geofencing use the real visitor IP.
-* **IP Geolocation** - IP-based geofencing through ip-api.com or ipinfo.io (API key required for ipinfo.io).
+* **IP Geolocation** - IP-based geofencing through ipinfo.io, over HTTPS (a free key raises the limit).
 * **Updates from GitHub** - Plugin updates come from the project's GitHub Releases through the native WordPress update screen, and each package's SHA-256 is verified before install.
 
 = Free software, free forever =
@@ -283,8 +283,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.44.1 =
-Fixes only. No screen opens the browser's alert, confirm or prompt any more: questions and results use the plugin's own dialogs and notices. Also: audience calendar days by keyboard, consent without an empty link, a second public CSV download, pt_BR wording.
+= 6.45.0 =
+⚠ Removes the legacy cron hook names, five finished migrations, the form-settings cache and public methods deprecated in 6.43.0. New: visual certificate templates, signed certificates and QR codes, Font Library fonts, signers and form event dates.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
@@ -306,7 +306,7 @@ each change references, see [CHANGELOG.md](CHANGELOG.md).
 
 = Third-party services =
 * Address lookup by CEP (off by default): when on, each CEP typed in a form is sent from the server to ViaCEP or BrasilAPI to find its address. Only the eight digits travel, never who typed them, and each answer is cached for 30 days.
-* IP geolocation (off by default): when a form is limited by the location of the visitor's connection, the IP address is sent to ip-api.com (over plain HTTP on its free plan) or to ipinfo.io.
+* IP geolocation (off by default): when a form is limited by the location of the visitor's connection, the IP address is sent to ipinfo.io over HTTPS.
 
 = Data Storage =
 All data lives in the plugin's own `wp_ffc_*` tables and in `ffc_`-prefixed user meta and options. The main tables:

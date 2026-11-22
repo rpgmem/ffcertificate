@@ -63,7 +63,7 @@ class AppointmentWriter extends AbstractRepository {
 				'cancelled_at'        => time(),
 				'cancelled_by'        => $cancelled_by,
 				'cancellation_reason' => $reason,
-				'updated_at'          => current_time( 'mysql' ),
+				'updated_at'          => time(),
 			)
 		);
 	}
@@ -131,7 +131,7 @@ class AppointmentWriter extends AbstractRepository {
 				$id,
 				array(
 					'status'     => 'pending',
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				)
 			);
 		}
@@ -142,7 +142,7 @@ class AppointmentWriter extends AbstractRepository {
 				'status'      => 'confirmed',
 				// `approved_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 				'approved_at' => time(),
-				'updated_at'  => current_time( 'mysql' ),
+				'updated_at'  => time(),
 			)
 		);
 	}
@@ -210,7 +210,7 @@ class AppointmentWriter extends AbstractRepository {
 				$fields,
 				array(
 					'status'     => $to,
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				)
 			),
 			array(
@@ -242,11 +242,11 @@ class AppointmentWriter extends AbstractRepository {
 	 */
 	public function completeConfirmedUpTo( string $cutoff, int $limit ) {
 		$sql = $this->wpdb->prepare(
-			"UPDATE %i SET status = 'completed', updated_at = %s
+			"UPDATE %i SET status = 'completed', updated_at = %d
              WHERE status = 'confirmed' AND appointment_date <= %s
              ORDER BY id LIMIT %d",
 			$this->table,
-			current_time( 'mysql' ),
+			time(),
 			$cutoff,
 			$limit
 		);
@@ -254,24 +254,26 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
-	 * Cancel one batch of pending appointments dated on or before $cutoff:
-	 * nobody approved them, and their date has gone.
+	 * Cancel one batch of pending and waitlisted appointments dated on or
+	 * before $cutoff: nobody approved them or gave them a place, and their
+	 * date has gone. A waitlist row left open counted against the person's
+	 * limit for ever (#2689).
 	 *
 	 * @param string $cutoff Last appointment date to close, `Y-m-d` (wall-clock).
 	 * @param string $reason Cancellation reason stored on each row.
 	 * @param int    $limit  Rows per batch.
 	 * @return int|false Rows changed, or false on a database error.
 	 */
-	public function expirePendingUpTo( string $cutoff, string $reason, int $limit ) {
+	public function expireUnconfirmedUpTo( string $cutoff, string $reason, int $limit ) {
 		$sql = $this->wpdb->prepare(
 			"UPDATE %i SET status = 'cancelled', cancelled_at = %d, cancelled_by = NULL,
-             cancellation_reason = %s, updated_at = %s
-             WHERE status = 'pending' AND appointment_date <= %s
+             cancellation_reason = %s, updated_at = %d
+             WHERE status IN ('pending', 'waitlist') AND appointment_date <= %s
              ORDER BY id LIMIT %d",
 			$this->table,
 			time(),
 			$reason,
-			current_time( 'mysql' ),
+			time(),
 			$cutoff,
 			$limit
 		);
@@ -369,7 +371,7 @@ class AppointmentWriter extends AbstractRepository {
 
 		// Set timestamps.
 		if ( empty( $data['created_at'] ) ) {
-			$data['created_at'] = current_time( 'mysql' );
+			$data['created_at'] = time();
 		}
 
 		return $this->insert( $data );

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -186,7 +187,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		Functions\when( 'size_format' )->justReturn( '10 MB' );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-1' );
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
@@ -320,7 +321,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 			}
 			return null;
 		}
-		if ( 1 === preg_match( '/^SELECT (?:\*|job_id, status) FROM ' . self::T_JOBS . ' WHERE job_id = (\S+)$/', $sql, $m ) ) {
+		if ( 1 === preg_match( '/^SELECT (?:\*|job_id, status, notice_id, user_id) FROM ' . self::T_JOBS . ' WHERE job_id = (\S+)$/', $sql, $m ) ) {
 			return $this->jobs[ $m[1] ] ?? null;
 		}
 		if ( 1 === preg_match( '/^SELECT \* FROM ' . self::T_CANDIDATE . ' WHERE (?:cpf|rf)_hash = \S+ LIMIT 1$/', $sql ) ) {
@@ -676,11 +677,11 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	public function test_register_routes_registers_classification_route_groups(): void {
 		$this->controller->register_routes();
 
-		// 15 register_rest_route calls: list/item/import/promote/call/bulk-call/
-		// status/preview-status/override-to-empty/cancel-call/adjutancy + 4
-		// batched-import endpoints (import-job/start, import-job/validate,
-		// import-job/batch, import-job/commit).
-		$this->assertCount( 15, $this->registered_routes );
+		// 16 register_rest_route calls: list/item/import/promote/call/bulk-call/
+		// status/preview-status/override-to-empty/cancel-call/resend-email/
+		// adjutancy + 4 batched-import endpoints (import-job/start,
+		// import-job/validate, import-job/batch, import-job/commit).
+		$this->assertCount( 16, $this->registered_routes );
 	}
 
 	public function test_register_routes_includes_classifications_and_import_routes(): void {
@@ -1160,12 +1161,14 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 
 	public function test_import_job_validate_success(): void {
 		$this->jobs['job-1'] = (object) array(
-			'job_id' => 'job-1',
-			'status' => 'ingested',
+			'job_id'    => 'job-1',
+			'status'    => 'ingested',
+			'notice_id' => 7,
+			'user_id'   => self::OPERATOR,
 		);
 
 		$response = $this->controller->import_job_validate(
-			$this->make_request( array( 'job_id' => 'job-1' ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -1178,7 +1181,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 
 	public function test_import_job_validate_failure(): void {
 		$result = $this->controller->import_job_validate(
-			$this->make_request( array( 'job_id' => 'bad' ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'bad' ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1191,6 +1194,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->ffc_settings  = array();
 		$this->jobs['job-1'] = (object) array(
 			'job_id'          => 'job-1',
+			'user_id' => self::OPERATOR,
 			'notice_id'       => 7,
 			'list_type'       => 'preview',
 			'status'          => 'validated',
@@ -1212,7 +1216,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		);
 
 		$response = $this->controller->import_job_batch(
-			$this->make_request( array( 'job_id' => 'job-1', 'size' => 25 ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1', 'size' => 25 ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -1229,13 +1233,15 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	public function test_import_job_batch_failure(): void {
 		$this->jobs['job-1'] = (object) array(
 			'job_id'          => 'job-1',
+			'user_id' => self::OPERATOR,
+			'notice_id' => 7,
 			'status'          => 'ingested',
 			'processed_count' => 0,
 			'total'           => 5,
 		);
 
 		$result = $this->controller->import_job_batch(
-			$this->make_request( array( 'job_id' => 'job-1', 'size' => 10 ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1', 'size' => 10 ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1243,8 +1249,10 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_import_job_commit_success(): void {
+		$this->notice( 7, 'draft' );
 		$this->jobs['job-1'] = (object) array(
 			'job_id'    => 'job-1',
+			'user_id' => self::OPERATOR,
 			'notice_id' => 7,
 			'list_type' => 'preview',
 			'status'    => 'promoting',
@@ -1252,7 +1260,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->swapped       = 5;
 
 		$response = $this->controller->import_job_commit(
-			$this->make_request( array( 'job_id' => 'job-1' ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -1274,6 +1282,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->classification( 1, array( 'notice_id' => 7, 'list_type' => 'preview' ) );
 		$this->jobs['job-1']   = (object) array(
 			'job_id'    => 'job-1',
+			'user_id' => self::OPERATOR,
 			'notice_id' => 7,
 			'list_type' => 'preview',
 			'status'    => 'promoting',
@@ -1285,7 +1294,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 
-		$result = $this->controller->import_job_commit( $this->make_request( array( 'job_id' => 'job-1' ) ) );
+		$result = $this->controller->import_job_commit( $this->make_request( array( 'id' => 7, 'job_id' => 'job-1' ) ) );
 
 		// #2245: nothing is written until the operator confirms.
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -1299,8 +1308,10 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	}
 
 	public function test_import_job_commit_failure(): void {
+		$this->notice( 7, 'draft' );
 		$this->jobs['job-1'] = (object) array(
 			'job_id'    => 'job-1',
+			'user_id' => self::OPERATOR,
 			'notice_id' => 7,
 			'list_type' => 'preview',
 			'status'    => 'promoting',
@@ -1308,11 +1319,32 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->unpromoted    = 2;
 
 		$result = $this->controller->import_job_commit(
-			$this->make_request( array( 'job_id' => 'job-1' ) )
+			$this->make_request( array( 'id' => 7, 'job_id' => 'job-1' ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_import_job_not_finished', $result->get_error_code() );
+		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
+	}
+
+	// ------------------------------------------------------------------
+	public function test_import_job_commit_refuses_a_job_from_another_notice(): void {
+		$this->notice( 7, 'draft' );
+		$this->notice( 8, 'draft' );
+		$this->jobs['job-1'] = (object) array(
+			'job_id'    => 'job-1',
+			'user_id'   => self::OPERATOR,
+			'notice_id' => 7,
+			'list_type' => 'preview',
+			'status'    => 'promoting',
+		);
+
+		$result = $this->controller->import_job_commit(
+			$this->make_request( array( 'id' => 8, 'job_id' => 'job-1' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_import_job_not_found', $result->get_error_code() );
 		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
 	}
 
@@ -1817,9 +1849,13 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 
 		$this->assertNotInstanceOf( \WP_Error::class, $response );
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( $this->rows[ self::T_CLASSIFICATION ][5], $response->get_data() );
+		$stored = $this->rows[ self::T_CLASSIFICATION ][5];
+		$this->assertSame( $stored->id, $response->get_data()->id );
 		$this->assertSame( 'granted', $response->get_data()->preview_status );
 		$this->assertSame( 8, $response->get_data()->preview_reason_id );
+		// The column stores an instant; the response keeps the site-local text (#2679).
+		$this->assertIsInt( $stored->updated_at );
+		$this->assertSame( gmdate( 'Y-m-d H:i:s', $stored->updated_at ), $response->get_data()->updated_at );
 	}
 
 	public function test_preview_status_empty_clears_reason_and_succeeds(): void {
@@ -1940,6 +1976,46 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertStringContainsString( 'cancellation_reason = mistake', $cancels[0] );
 		$this->assertStringContainsString( 'cancelled_by = ' . self::OPERATOR, $cancels[0] );
 		$this->assertStringContainsString( 'WHERE id = 99', $cancels[0] );
+	}
+
+	/**
+	 * @dataProvider provide_calls_that_send_nothing
+	 */
+	public function test_resend_refuses_a_call_it_must_not_mail( array $call, int $route_id, string $code, int $status ): void {
+		$this->store( self::T_CALL, array_merge( array( 'id' => 99, 'classification_id' => 5, 'cancelled_at' => null, 'created_by' => self::OPERATOR, 'date_to_assume' => '2099-01-01', 'time_to_assume' => '09:00:00' ), $call ) );
+
+		$result = $this->controller->resend_call_email( $this->make_request( array( 'id' => $route_id, 'call_id' => 99 ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( $code, $result->get_error_code() );
+		$this->assertSame( $status, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'update', self::T_CALL ), 'Nothing is recorded.' );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, mixed>, 1: int, 2: string, 3: int}>
+	 */
+	public function provide_calls_that_send_nothing(): array {
+		return array(
+			'another classification' => array( array(), 6, 'recruitment_call_not_found', 404 ),
+			'a cancelled call'       => array( array( 'cancelled_at' => 1800000000 ), 5, 'recruitment_call_cancelled_no_email', 409 ),
+			'a date that is over'    => array( array( 'date_to_assume' => '2020-01-01' ), 5, 'recruitment_call_past_no_email', 409 ),
+		);
+	}
+
+	public function test_resend_records_an_e_mail_that_did_not_go_out(): void {
+		// #2694 — the dispatcher finds no classification, so nothing is sent;
+		// the call still records the attempt, which is what the tab shows.
+		$this->store( self::T_CALL, array( 'id' => 99, 'classification_id' => 5, 'cancelled_at' => null, 'created_by' => self::OPERATOR, 'date_to_assume' => '2099-01-01', 'time_to_assume' => '09:00:00' ) );
+
+		$response = $this->controller->resend_call_email( $this->make_request( array( 'id' => 5, 'call_id' => 99 ) ) );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array( 'sent' => false ), $response->get_data() );
+		$updates = $this->writes_to( 'update', self::T_CALL );
+		$this->assertCount( 1, $updates );
+		$this->assertSame( 'not_sent', $updates[0][2]['email_status'] );
+		$this->assertSame( array( 'id' => 99 ), $updates[0][3] );
 	}
 
 	public function test_cancel_call_failure_returns_409(): void {

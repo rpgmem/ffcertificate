@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\EmailSource;
@@ -145,17 +146,17 @@ class DateMessagesAnnouncementTest extends TestCase {
 	public function test_the_personal_token_is_the_one_shipped_first(): void {
 		// Links in mail already sent carry this token; changing its payload
 		// would invalidate every one of them.
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 
 		$this->assertSame(
-			hash_hmac( 'sha256', 'unsubscribe|42', hash_hmac( 'sha256', 'ffc_date_messages_unsub_v1', 'salt' ) ),
+			hash_hmac( 'sha256', 'unsubscribe|42', hash_hmac( 'sha256', 'ffc_date_messages_unsub_v1', FakeCredentials::WP_SALT ) ),
 			Unsubscribe::token( 42 )
 		);
 		$this->assertSame( Unsubscribe::token( 42 ), Unsubscribe::token( 42, OptOutCategory::PERSONAL ) );
 	}
 
 	public function test_a_token_is_bound_to_its_category(): void {
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 
 		$announcement = Unsubscribe::token( 42, OptOutCategory::ANNOUNCEMENT );
 

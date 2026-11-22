@@ -20,18 +20,18 @@ return array(
 	),
 	'includes/core/class-ffc-activity-log.php' => array(
 		'class'       => 'FreeFormCertificate\\Core\\ActivityLog',
-		'revision'    => '2.5.0',
-		'fingerprint' => '12a904394fd0f7cc28b7973bd38fcb52d561e883',
+		'revision'    => '2.6.0',
+		'fingerprint' => '843619444d0eff21532fbcbfc37ed4affc4710cf',
 	),
 	'includes/date-messages/class-ffc-date-messages-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\DateMessages\\DateMessagesActivator',
-		'revision'    => '1',
-		'fingerprint' => '0548b5d771d26bb8adedb5a827dfb1e04b3bd78a',
+		'revision'    => '2',
+		'fingerprint' => '6a6ac095f8fee6f2509b4427e7985b2b7ff05c3e',
 	),
 	'includes/recruitment/class-ffc-recruitment-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Recruitment\\RecruitmentActivator',
-		'revision'    => '1',
-		'fingerprint' => '3a5dce259d637ca3a9d64a6d618bb13dc5f6b5f8',
+		'revision'    => '4',
+		'fingerprint' => 'a237831b8cd7b2aa52e3559ab6e0da49e18bc89d',
 	),
 	'includes/reregistration/class-ffc-reregistration-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Reregistration\\ReregistrationActivator',
@@ -40,23 +40,28 @@ return array(
 	),
 	'includes/security/class-ffc-rate-limit-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Security\\RateLimitActivator',
-		'revision'    => '1.6.0',
-		'fingerprint' => '4720693ae5bd07c42bd8debcf1b21045bfbba228',
+		'revision'    => '1.7.0',
+		'fingerprint' => 'c30cc56e738407c28f7cfe36a9fac53a133326fc',
 	),
 	'includes/self-scheduling/class-ffc-self-scheduling-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\SelfScheduling\\SelfSchedulingActivator',
-		'revision'    => '3',
-		'fingerprint' => 'ca846edce458f1715522f82939b9606ead3aed76',
+		'revision'    => '4',
+		'fingerprint' => '53fa9c46f890768ae85fd8c3637409be383368ab',
 	),
 	'includes/submissions/class-ffc-bulk-issue-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Submissions\\BulkIssueActivator',
 		'revision'    => '1',
 		'fingerprint' => '3f6f70e83a7c5157b8a8f98dc0fe22a6d21b1d3d',
 	),
+	'includes/submissions/class-ffc-certificate-signature-activator.php' => array(
+		'class'       => 'FreeFormCertificate\\Submissions\\CertificateSignatureActivator',
+		'revision'    => '1',
+		'fingerprint' => '97dd2cb77982095aa6dc10dba04f0b4ec58ecb0e',
+	),
 	'includes/url-shortener/class-ffc-url-shortener-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\UrlShortener\\UrlShortenerActivator',
-		'revision'    => '2',
-		'fingerprint' => '169e551648fd8de7627c53f6328164f1b36d9d13',
+		'revision'    => '3',
+		'fingerprint' => '16a8bdc88e96eb93bcc7150bd6197dcf78086684',
 	),
 	'includes/user-dashboard/class-ffc-user-dashboard-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\UserDashboard\\UserDashboardActivator',

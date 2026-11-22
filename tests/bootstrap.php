@@ -78,16 +78,16 @@ if ( ! defined( 'OBJECT_K' ) ) {
 
 // WordPress cryptographic constants needed for Encryption::is_configured()
 if ( ! defined( 'SECURE_AUTH_KEY' ) ) {
-	define( 'SECURE_AUTH_KEY', 'test-secure-auth-key-for-unit-tests-only-32ch' );
+	define( 'SECURE_AUTH_KEY', \FreeFormCertificate\Tests\Support\FakeCredentials::SECURE_AUTH_KEY );
 }
 if ( ! defined( 'LOGGED_IN_KEY' ) ) {
-	define( 'LOGGED_IN_KEY', 'test-logged-in-key-for-unit-tests-only-32char' );
+	define( 'LOGGED_IN_KEY', \FreeFormCertificate\Tests\Support\FakeCredentials::LOGGED_IN_KEY );
 }
 if ( ! defined( 'AUTH_KEY' ) ) {
-	define( 'AUTH_KEY', 'test-auth-key-for-unit-tests' );
+	define( 'AUTH_KEY', \FreeFormCertificate\Tests\Support\FakeCredentials::AUTH_KEY );
 }
 if ( ! defined( 'NONCE_KEY' ) ) {
-	define( 'NONCE_KEY', 'test-nonce-key-for-unit-tests' );
+	define( 'NONCE_KEY', \FreeFormCertificate\Tests\Support\FakeCredentials::NONCE_KEY );
 }
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );
@@ -316,6 +316,51 @@ if ( ! class_exists( 'WP_User' ) ) {
 
 		public function set_role( $role ) {
 			$this->roles = array( $role );
+		}
+	}
+}
+
+// Stub WP_User_Query for unit tests (#2559). The plugin builds one in the
+// user search, the identity search, the role editor's member count and the
+// user list's sort; without a declared class each test of those had to
+// overload or eval one in its own process. The answers are static so a test
+// can choose them, and reset() puts them back: a test that sets one resets
+// it, or the next test inherits it.
+if ( ! class_exists( 'WP_User_Query' ) ) {
+	class WP_User_Query {
+		/** @var array<int, mixed> What get_results() answers. */
+		public static $results = array();
+
+		/** @var callable|null Maps a query's arguments to get_total(); null answers 0. */
+		public static $total = null;
+
+		/** @var array<int, array<string, mixed>> Arguments of every query built since reset(). */
+		public static $queries = array();
+
+		public $query_vars    = array();
+		public $query_from    = '';
+		public $query_where   = '';
+		public $query_orderby = '';
+
+		public function __construct( $args = array() ) {
+			$this->query_vars = (array) $args;
+			if ( array() !== $this->query_vars ) {
+				self::$queries[] = $this->query_vars;
+			}
+		}
+
+		public function get_results() {
+			return self::$results;
+		}
+
+		public function get_total() {
+			return null === self::$total ? 0 : (int) call_user_func( self::$total, $this->query_vars );
+		}
+
+		public static function reset() {
+			self::$results = array();
+			self::$total   = null;
+			self::$queries = array();
 		}
 	}
 }

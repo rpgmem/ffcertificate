@@ -710,61 +710,9 @@ class CapabilityManagerTest extends TestCase {
 	// set_user_capability()
 	// ------------------------------------------------------------------
 
-	public function test_set_user_capability_grants_valid_cap(): void {
-		$mock_user = Mockery::mock( 'WP_User' );
-		$mock_user->shouldReceive( 'add_cap' )->with( 'ffc_view_own_certificates', true )->once();
-
-		Functions\when( 'get_userdata' )->justReturn( $mock_user );
-
-		$result = CapabilityManager::set_user_capability( 5, 'ffc_view_own_certificates', true );
-		$this->assertTrue( $result );
-	}
-
-	public function test_set_user_capability_revokes_valid_cap(): void {
-		$mock_user = Mockery::mock( 'WP_User' );
-		$mock_user->shouldReceive( 'add_cap' )->with( 'ffc_book_own_appointments', false )->once();
-
-		Functions\when( 'get_userdata' )->justReturn( $mock_user );
-
-		$result = CapabilityManager::set_user_capability( 5, 'ffc_book_own_appointments', false );
-		$this->assertTrue( $result );
-	}
-
-	public function test_set_user_capability_rejects_unknown_cap(): void {
-		$mock_user = Mockery::mock( 'WP_User' );
-		Functions\when( 'get_userdata' )->justReturn( $mock_user );
-
-		$result = CapabilityManager::set_user_capability( 5, 'nonexistent_cap', true );
-		$this->assertFalse( $result );
-	}
-
-	public function test_set_user_capability_returns_false_for_invalid_user(): void {
-		Functions\when( 'get_userdata' )->justReturn( false );
-
-		$result = CapabilityManager::set_user_capability( 999, 'ffc_view_own_certificates', true );
-		$this->assertFalse( $result );
-	}
-
 	// ------------------------------------------------------------------
 	// reset_user_ffc_capabilities()
 	// ------------------------------------------------------------------
-
-	public function test_reset_user_ffc_capabilities_revokes_all(): void {
-		$all_count = count( CapabilityManager::get_all_capabilities() );
-
-		$mock_user = Mockery::mock( 'WP_User' );
-		$mock_user->shouldReceive( 'add_cap' )->times( $all_count );
-
-		Functions\when( 'get_userdata' )->justReturn( $mock_user );
-
-		CapabilityManager::reset_user_ffc_capabilities( 5 );
-	}
-
-	public function test_reset_user_ffc_capabilities_does_nothing_for_invalid_user(): void {
-		Functions\expect( 'get_userdata' )->once()->with( 999 )->andReturn( false );
-
-		CapabilityManager::reset_user_ffc_capabilities( 999 );
-	}
 
 	// ------------------------------------------------------------------
 	// register_role() / remove_role()

@@ -209,6 +209,44 @@ class ReregistrationFieldOptions {
 	}
 
 	/**
+	 * Position, in the dual-post options, of the answer that declares a
+	 * second post: the third, "I hold" (#2688).
+	 */
+	public const SECOND_POST_CHOICE_INDEX = 2;
+
+	/**
+	 * Every stored answer that declares a second post (#2688).
+	 *
+	 * The choices are stored as text, translated when the field was seeded,
+	 * so comparing an answer with `__( 'I hold' )` in the request's language
+	 * broke on a site that changed language and on an option an
+	 * administrator reworded. The answer is matched by its place instead:
+	 * the third choice of every stored `acumulo_cargos` field, plus the
+	 * source string and its current translation for answers stored before.
+	 *
+	 * @return list<string>
+	 */
+	public static function second_post_answers(): array {
+		$cached = wp_cache_get( 'second_post_answers', ReregistrationDataProcessor::REQUEST_CACHE_GROUP );
+		if ( is_array( $cached ) ) {
+			return array_values( array_filter( $cached, 'is_string' ) );
+		}
+
+		$answers = array( 'I hold', __( 'I hold', 'ffcertificate' ) );
+		foreach ( CustomFieldReader::standard_field_options( 'acumulo_cargos' ) as $raw ) {
+			$options = json_decode( $raw, true );
+			$choice  = is_array( $options ) && is_array( $options['choices'] ?? null ) ? ( array_values( $options['choices'] )[ self::SECOND_POST_CHOICE_INDEX ] ?? null ) : null;
+			if ( is_string( $choice ) && '' !== $choice ) {
+				$answers[] = $choice;
+			}
+		}
+		$answers = array_values( array_unique( $answers ) );
+
+		wp_cache_set( 'second_post_answers', $answers, ReregistrationDataProcessor::REQUEST_CACHE_GROUP );
+		return $answers;
+	}
+
+	/**
 	 * Acúmulo de cargos options.
 	 *
 	 * @return array<string>

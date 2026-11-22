@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use FreeFormCertificate\Tests\Support\FormSubmissionCountWpdb;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
@@ -1316,7 +1317,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 				'restrictions'         => array(),   // ALL four off
 				'allowed_users_list'   => 'fresh-allow',
 				'denied_users_list'    => 'fresh-deny',
-				'validation_code'      => 'fresh-pass',
+				'validation_code'      => FakeCredentials::FORM_PASSWORD_NEW,
 				'generated_codes_list' => 'fresh-tickets',
 			),
 		);
@@ -1346,7 +1347,7 @@ class FormEditorSaveHandlerTest extends TestCase {
 			'ffc_config'     => array(
 				'pdf_layout'           => '{{auth_code}} {{name}} {{cpf_rf}}',
 				'restrictions'         => array( 'password' => '1' ),
-				'validation_code'      => 'secret',
+				'validation_code'      => FakeCredentials::FORM_PASSWORD,
 				'allowed_users_list'   => 'should-not-save',
 				'denied_users_list'    => 'should-not-save',
 				'generated_codes_list' => 'should-not-save',
@@ -1356,10 +1357,47 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->handler->save_form_data( 10 );
 
 		$form_config = $written['_ffc_form_config'];
-		$this->assertSame( 'secret', $form_config['validation_code'] );
+		$this->assertSame( FakeCredentials::FORM_PASSWORD, $form_config['validation_code'] );
 		$this->assertArrayNotHasKey( 'allowed_users_list', $form_config );
 		$this->assertArrayNotHasKey( 'denied_users_list', $form_config );
 		$this->assertArrayNotHasKey( 'generated_codes_list', $form_config );
+	}
+
+	/**
+	 * The QR mode (#2639) is stored as one of the three modes, anything else
+	 * as Link only.
+	 *
+	 * @dataProvider qr_modes
+	 */
+	public function test_the_qr_mode_is_stored_sanitized( string $posted, string $stored ): void {
+		$bag     = $this->stub_for_save();
+		$written = &$bag[0];
+
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array() );
+
+		$_POST = array(
+			'ffc_form_nonce' => 'ok',
+			'ffc_config'     => array(
+				'pdf_layout' => '{{auth_code}} {{name}} {{cpf_rf}}',
+				'qr_mode'    => $posted,
+			),
+		);
+
+		$this->handler->save_form_data( 10 );
+
+		$this->assertSame( $stored, $written['_ffc_form_config']['qr_mode'] );
+	}
+
+	/**
+	 * @return array<string, array{string, string}>
+	 */
+	public static function qr_modes(): array {
+		return array(
+			'full'    => array( 'full', 'full' ),
+			'compact' => array( 'compact', 'compact' ),
+			'link'    => array( 'link', 'link' ),
+			'unknown' => array( '<script>', 'link' ),
+		);
 	}
 
 	/**
@@ -1650,6 +1688,27 @@ class FormEditorSaveHandlerTest extends TestCase {
 		) ) );
 
 		$this->assertSame( 'now', $result['schedule_default_mode'], 'unknown mode folds back to "now"' );
+	}
+
+	public function test_the_event_date_is_kept_only_as_a_real_date_and_an_end_after_the_start(): void {
+		$result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+			'class_date_start' => '2025-12-19',
+			'class_date_end'   => '2025-12-20',
+		) ) );
+		$this->assertSame( '2025-12-19', $result['class_date_start'] );
+		$this->assertSame( '2025-12-20', $result['class_date_end'] );
+
+		$result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+			'class_date_start' => '2025-12-19',
+			'class_date_end'   => '2025-12-18',
+		) ) );
+		$this->assertSame( '', $result['class_date_end'], 'an End before the Start reads as a one-day event' );
+
+		$result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+			'class_date_start' => '<script>',
+			'class_date_end'   => '2025-12-20',
+		) ) );
+		$this->assertSame( array( '', '' ), array( $result['class_date_start'], $result['class_date_end'] ), 'no valid start, no event date' );
 	}
 
 	public function test_schedule_exception_empty_class_times_stay_empty(): void {
@@ -2080,5 +2139,188 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertStringContainsString( '<li>Areas are required.</li>', $html );
 		$this->assertStringContainsString( '<li></li>', $html );
 		$this->assertSame( array( 'ffc_geofence_error_7', 'ffc_geofence_error_tabs_7' ), $deleted );
+	}
+
+	/**
+	 * A template 50 that declares one required field, and records of what the
+	 * save writes (#2581).
+	 *
+	 * @return \ArrayObject<string, array<mixed>> Keys `meta`, `deleted` and `transients`.
+	 */
+	private function stub_template_link(): \ArrayObject {
+		$bag              = new \ArrayObject( array( 'meta' => array(), 'deleted' => array(), 'transients' => array() ) );
+		$post             = new \WP_Post( (object) array( 'ID' => 50 ) );
+		$post->post_type   = 'ffc_cert_template';
+		$post->post_status = 'publish';
+		Functions\when( 'get_post' )->alias( static fn( $id ) => 50 === (int) $id ? $post : null );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				if ( 50 === (int) $id && '_ffc_template_fields' === $key ) {
+					return array( array( 'key' => 'local', 'label' => 'Place', 'required' => '1' ), array( 'key' => 'acao', 'label' => 'Action' ) );
+				}
+				if ( 11 === (int) $id && '_ffc_template_values' === $key ) {
+					return array( 'old_key' => 'kept' );
+				}
+				return '';
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( $bag ) {
+				$bag['meta'] = array_merge( $bag['meta'], array( $key => $value ) );
+				return true;
+			}
+		);
+		Functions\when( 'delete_post_meta' )->alias(
+			static function ( $id, $key ) use ( $bag ) {
+				$bag['deleted'] = array_merge( $bag['deleted'], array( $key ) );
+				return true;
+			}
+		);
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( $bag ) {
+				$bag['transients'] = array_merge( $bag['transients'], array( $key => $value ) );
+				return true;
+			}
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'wp_unslash' )->returnArg();
+		return $bag;
+	}
+
+	public function test_a_form_set_to_a_template_stores_the_reference_and_only_that_templates_values(): void {
+		$bag   = $this->stub_template_link();
+		$_POST = array(
+			'ffc_layout_source'      => 'template',
+			'ffc_layout_template_id' => '50',
+			'ffc_template_values'    => array(
+				'50' => array( 'local' => 'Sala 2', 'intruso' => 'x' ),
+				'60' => array( 'local' => 'other template' ),
+			),
+		);
+
+		$this->invoke( 'save_template_link_meta', array( 11 ) );
+
+		$this->assertSame( 50, $bag['meta']['_ffc_layout_template_id'] );
+		$this->assertSame( array( 'old_key' => 'kept', 'local' => 'Sala 2', 'acao' => '' ), $bag['meta']['_ffc_template_values'], 'a value for a removed field stays stored; an undeclared key is dropped' );
+		$this->assertSame( array(), $bag['transients'], 'the required field is filled' );
+		$_POST = array();
+	}
+
+	public function test_a_required_template_field_left_empty_saves_with_a_warning(): void {
+		$bag   = $this->stub_template_link();
+		$_POST = array(
+			'ffc_layout_source'      => 'template',
+			'ffc_layout_template_id' => '50',
+		);
+
+		$this->invoke( 'save_template_link_meta', array( 11 ) );
+
+		$this->assertSame( 50, $bag['meta']['_ffc_layout_template_id'] );
+		$this->assertSame( array( 'Place' ), $bag['transients']['ffc_save_template_values_warning_3'] );
+		$_POST = array();
+	}
+
+	public function test_own_layout_or_an_unusable_template_drops_the_reference(): void {
+		foreach ( array( array( 'ffc_layout_source' => 'own', 'ffc_layout_template_id' => '50' ), array( 'ffc_layout_source' => 'template', 'ffc_layout_template_id' => '99' ) ) as $post ) {
+			$bag   = $this->stub_template_link();
+			$_POST = $post;
+			$this->invoke( 'save_template_link_meta', array( 11 ) );
+			$this->assertSame( array( '_ffc_layout_template_id' ), $bag['deleted'] );
+			$this->assertSame( array(), $bag['meta'], 'the values stay for a return to the template' );
+		}
+		$_POST = array();
+	}
+
+	public function test_a_save_without_the_layout_source_leaves_the_reference_alone(): void {
+		$bag   = $this->stub_template_link();
+		$_POST = array();
+		$this->invoke( 'save_template_link_meta', array( 11 ) );
+		$this->assertSame( array(), $bag['deleted'] );
+		$this->assertSame( array(), $bag['meta'] );
+	}
+
+	/**
+	 * Signers 1 (active) and 2 (inactive), and form 11 naming `$current`.
+	 *
+	 * @return \ArrayObject<string, array<mixed>> Keys `meta` and `deleted`.
+	 */
+	private function stub_signers( string $current ): \ArrayObject {
+		$bag = $this->stub_template_link();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_certificate_signers' === $key
+				? array( array( 'id' => 1, 'user_id' => 7, 'active' => true ), array( 'id' => 2, 'user_id' => 8, 'active' => false ) )
+				: ( 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() )
+		);
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_signer_id' === $key ? $current : '' );
+		return $bag;
+	}
+
+	public function test_a_form_stores_an_active_signer_and_keeps_its_own_inactive_one(): void {
+		$bag   = $this->stub_signers( '' );
+		$_POST = array( 'ffc_signer_id' => '1' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( 1, $bag['meta']['_ffc_signer_id'] );
+
+		$bag   = $this->stub_signers( '' );
+		$_POST = array( 'ffc_signer_id' => '2' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( array(), $bag['meta'], 'an inactive signer is not a new choice' );
+
+		$bag   = $this->stub_signers( '2' );
+		$_POST = array( 'ffc_signer_id' => '2' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( 2, $bag['meta']['_ffc_signer_id'], 'a form keeps the signer it already had' );
+
+		$bag   = $this->stub_signers( '1' );
+		$_POST = array( 'ffc_signer_id' => '0' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( array( '_ffc_signer_id' ), $bag['deleted'] );
+		$_POST = array();
+	}
+
+	public function test_each_signer_position_saves_under_its_own_key(): void {
+		$bag   = $this->stub_signers( '' );
+		$_POST = array(
+			'ffc_signer_id'   => '0',
+			'ffc_signer_id_2' => '1',
+			'ffc_signer_id_3' => '2',
+		);
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( array( '_ffc_signer_id_2' => 1 ), $bag['meta'], 'an inactive signer is not a new choice in any position' );
+		$this->assertSame( array( '_ffc_signer_id' ), $bag['deleted'] );
+
+		$bag   = $this->stub_signers( '' );
+		$_POST = array( 'ffc_signer_id_3' => '1' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( array( '_ffc_signer_id_3' => 1 ), $bag['meta'], 'a position the form did not post is left alone' );
+		$this->assertSame( array(), $bag['deleted'] );
+		$_POST = array();
+	}
+
+	public function test_the_event_date_is_saved_when_another_geofence_setting_fails(): void {
+		// GPS on with no area fails validation; the event date typed on the
+		// same save has no part in it and is kept (#2626).
+		$bag   = $this->stub_template_link();
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		$_POST = array(
+			'ffc_geofence' => array(
+				'_save'            => '1',
+				'geo_enabled'      => '1',
+				'geo_gps_enabled'  => '1',
+				'geo_area_source'  => 'custom',
+				'geo_areas'        => '',
+				'class_date_start' => '2026-03-10',
+				'class_date_end'   => '2026-03-12',
+			),
+		);
+		$this->invoke( 'save_geofence_meta', array( 11 ) );
+
+		$this->assertArrayHasKey( 'ffc_geofence_error_3', $bag['transients'], 'the error is still reported' );
+		$saved = $bag['meta']['_ffc_geofence_config'] ?? null;
+		$this->assertIsArray( $saved, 'the event date is written' );
+		$this->assertSame( '2026-03-10', $saved['class_date_start'] );
+		$this->assertSame( '2026-03-12', $saved['class_date_end'] );
+		$this->assertArrayNotHasKey( 'geo_enabled', $saved, 'what failed is not written' );
+		$_POST = array();
 	}
 }

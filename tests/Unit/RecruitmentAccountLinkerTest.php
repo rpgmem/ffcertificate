@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\Encryption;
@@ -77,7 +78,7 @@ class RecruitmentAccountLinkerTest extends TestCase {
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
 		Functions\when( 'get_user_by' )->justReturn( false );
@@ -86,7 +87,7 @@ class RecruitmentAccountLinkerTest extends TestCase {
 		Functions\when( 'username_exists' )->justReturn( false );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'sanitize_user' )->returnArg();
-		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'wp_create_user' )->justReturn( new \WP_Error( 'existing_user_login', 'refused' ) );
 		Functions\when( 'wp_next_scheduled' )->justReturn( false );
 		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
@@ -123,7 +124,7 @@ class RecruitmentAccountLinkerTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $query ) {
 				[ $sql ] = $this->statement( $query );
-				$this->assertStringContainsString( 'c.user_id IS NULL AND c.id > %d', $sql );
+				$this->assertStringContainsString( 'c.user_id IS NULL AND c.account_unlinked = 0 AND c.id > %d', $sql );
 				return $this->batch;
 			}
 		);
@@ -140,7 +141,7 @@ class RecruitmentAccountLinkerTest extends TestCase {
 		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
 			function ( $query ) {
 				[ $sql, $args ] = $this->statement( $query );
-				if ( 0 === strpos( $sql, 'UPDATE %i SET user_id = %d, updated_at = %s WHERE id = %d AND user_id IS NULL' ) ) {
+				if ( 0 === strpos( $sql, 'UPDATE %i SET user_id = %d, updated_at = %d WHERE id = %d AND user_id IS NULL' ) ) {
 					$this->links[] = array( (int) $args[1], (int) $args[3] );
 					return $this->claimed;
 				}

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -123,7 +124,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args ) );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt-verification-ajax' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
@@ -500,6 +501,72 @@ class VerificationHandlerAjaxTest extends TestCase {
 		}
 	}
 
+	/**
+	 * A validation code is printed on the receipt, so it is not a credential:
+	 * the receipt it downloads masks the e-mail and leaves the cancellation
+	 * token out (#2689).
+	 */
+	public function test_verification_ajax_appointment_receipt_by_code_is_masked(): void {
+		$token = str_repeat( 'cd', 32 );
+		$this->tables['ffc_self_scheduling_appointments'][] = array(
+			'id'                 => '41',
+			'calendar_id'        => '0',
+			'name'               => 'Appt Masked',
+			'email'              => 'masked.person@test.com',
+			'cpf'                => '',
+			'validation_code'    => 'APPTMASK1234',
+			'appointment_date'   => '2026-09-01',
+			'start_time'         => '10:00',
+			'end_time'           => '10:30',
+			'status'             => 'confirmed',
+			'confirmation_token' => $token,
+			'created_at'         => '2026-08-01',
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+
+		$_POST = $this->answered_post( array( 'ffc_auth_code' => 'APPTMASK1234' ) );
+
+		try {
+			$this->handler->handle_verification_ajax();
+			$this->fail( 'expected halt' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'wp_send_json_success', $e->getMessage() );
+			$encoded = (string) wp_json_encode( $this->captured_success );
+			$this->assertStringNotContainsString( 'masked.person@test.com', $encoded, 'The e-mail must not reach a code holder in clear.' );
+			$this->assertStringNotContainsString( $token, $encoded, 'The cancellation token must not reach a code holder.' );
+			$this->assertStringContainsString( 'Appt Masked', $this->captured_success['pdf_data']['html'] );
+		}
+	}
+
+	public function test_verification_ajax_refuses_a_pending_appointment(): void {
+		$this->tables['ffc_self_scheduling_appointments'][] = array(
+			'id'                 => '42',
+			'calendar_id'        => '0',
+			'name'               => 'Appt Pending',
+			'email'              => 'pending@test.com',
+			'cpf'                => '',
+			'validation_code'    => 'APPTPEND1234',
+			'appointment_date'   => '2026-09-01',
+			'start_time'         => '10:00',
+			'end_time'           => '10:30',
+			'status'             => 'pending',
+			'confirmation_token' => str_repeat( 'ef', 32 ),
+			'created_at'         => '2026-08-01',
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+
+		$_POST = $this->answered_post( array( 'ffc_auth_code' => 'APPTPEND1234' ) );
+
+		try {
+			$this->handler->handle_verification_ajax();
+			$this->fail( 'expected halt' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'wp_send_json_error', $e->getMessage() );
+			$this->assertSame( 'This appointment is awaiting approval and cannot be verified yet.', $this->captured_error['message'] );
+			$this->assertTrue( $this->captured_error['refresh_captcha'] );
+		}
+	}
+
 	public function test_verification_ajax_reregistration_confirms_an_approved_record_without_the_pdf(): void {
 		$this->tables['ffc_reregistration_submissions'][] = array(
 			'id'                => '41',
@@ -643,6 +710,38 @@ class VerificationHandlerAjaxTest extends TestCase {
 			$this->assertStringContainsString( 'Too many verification attempts. Please wait', $this->captured_error['message'] );
 		}
 		$this->assertSame( array(), $this->reads, 'A throttled lookup must not reach the repository.' );
+	}
+
+	/**
+	 * The magic link is the booker's own credential, so its receipt stays
+	 * whole (#2689).
+	 */
+	public function test_magic_ajax_appointment_receipt_keeps_the_full_copy(): void {
+		$token = str_repeat( 'cd', 32 );
+		$this->tables['ffc_self_scheduling_appointments'][] = array(
+			'id'                 => '43',
+			'calendar_id'        => '0',
+			'name'               => 'Appt Magic',
+			'email'              => 'magic.person@test.com',
+			'cpf'                => '',
+			'validation_code'    => 'APPTMAGI1234',
+			'appointment_date'   => '2026-09-01',
+			'start_time'         => '10:00',
+			'end_time'           => '10:30',
+			'status'             => 'confirmed',
+			'confirmation_token' => $token,
+			'created_at'         => '2026-08-01',
+		);
+
+		$_POST = array( 'token' => $token );
+
+		try {
+			$this->handler->handle_magic_verification_ajax();
+			$this->fail( 'expected halt' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'wp_send_json_success', $e->getMessage() );
+			$this->assertStringContainsString( 'magic.person@test.com', $this->captured_success['pdf_data']['html'] );
+		}
 	}
 
 	public function test_magic_ajax_success_certificate(): void {

@@ -98,9 +98,9 @@ class AdminUserCustomFields {
 			'ffcAdminUserFields',
 			array(
 				'strings' => array(
-					// Must equal the option the dual-post field stores, which is
-					// translated at seed time from the same source string.
-					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
+					// The stored answers that declare a second post, whatever
+					// language they were seeded in (#2688).
+					'dualPostShowValue' => \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::second_post_answers(),
 					'select'            => __( 'Select', 'ffcertificate' ),
 					'invalidCpf'        => __( 'Invalid CPF.', 'ffcertificate' ),
 					'invalidRf'         => __( 'Invalid RF.', 'ffcertificate' ),

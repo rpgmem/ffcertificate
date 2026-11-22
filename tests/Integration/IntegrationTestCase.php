@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Integration;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -146,12 +147,13 @@ abstract class IntegrationTestCase extends TestCase {
 			}
 		};
 
-		// These two re-run their dbDelta whenever the stored version differs,
+		// These re-run their dbDelta whenever the stored version differs,
 		// tables present or not. The versions are read from the code, so a
 		// bump there cannot leave this seed stale.
 		$this->options['ffc_rate_limit_db_version']   = \FreeFormCertificate\Security\RateLimitActivator::SCHEMA_REVISION;
 		$this->options['ffc_activity_log_db_version'] = \FreeFormCertificate\Core\ActivityLog::SCHEMA_REVISION;
 		$this->options['ffc_bulk_issue_db_version']   = \FreeFormCertificate\Submissions\BulkIssueActivator::SCHEMA_REVISION;
+		$this->options['ffc_certificate_signatures_db_version'] = \FreeFormCertificate\Submissions\CertificateSignatureActivator::SCHEMA_REVISION;
 	}
 
 	protected function tearDown(): void {
@@ -297,7 +299,7 @@ abstract class IntegrationTestCase extends TestCase {
 		Functions\when( 'get_users' )->justReturn( array() );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'get_user_by' )->justReturn( false );
-		Functions\when( 'wp_generate_password' )->justReturn( 'xxxxxxxxxxxxxxxx' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'current_time' )->alias(
 			static fn( $type = 'timestamp' ) => ( 'timestamp' === $type ? 1_600_000_000 : '2020-09-13 12:26:40' )
 		);

@@ -61,6 +61,8 @@ class VerificationResponseRendererTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'wp_kses_post' )->returnArg();
+		// The event date (#2579) is read from the form's Event Schedule.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
 			if ( $key === 'date_format' ) return 'Y-m-d';
 			if ( $key === 'time_format' ) return 'H:i';
@@ -303,6 +305,58 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-verification-status-pending', $html );
 	}
 
+	/**
+	 * The headline follows the status: only a confirmed or completed
+	 * appointment is called a valid receipt (#2689).
+	 *
+	 * @dataProvider appointment_status_headlines
+	 */
+	public function test_appointment_headline_follows_the_status( string $status, string $headline, string $badge, bool $error_card, bool $download ): void {
+		$result = array(
+			'data'        => array( 'name' => 'Ana' ),
+			'appointment' => array(
+				'appointment_date' => '2025-07-01',
+				'start_time'       => '14:00',
+				'status'           => $status,
+			),
+		);
+
+		$html = $this->renderer->format_appointment_verification_response( $result );
+
+		$this->assertStringContainsString( '>' . $headline . '</span>', $html );
+		$this->assertStringContainsString( '<span class="' . $badge . '">', $html );
+		$this->assertSame( $error_card, false !== strpos( $html, 'ffc-appointment-verification ffc-error' ), 'Only a cancelled appointment draws the error card.' );
+		$this->assertSame( $download, false !== strpos( $html, 'Download Receipt (PDF)' ), 'A cancelled appointment offers no receipt.' );
+		if ( false === strpos( $badge, 'badge-success' ) ) {
+			$this->assertStringNotContainsString( 'Appointment Receipt Valid', $html, 'Only a confirmed or completed appointment is called valid.' );
+		}
+	}
+
+	/**
+	 * @return array<string, array{string, string, string, bool, bool}>
+	 */
+	public static function appointment_status_headlines(): array {
+		return array(
+			'confirmed' => array( 'confirmed', 'Appointment Receipt Valid', 'ffc-status-badge ffc-status-badge-success ffc-icon-success', false, true ),
+			'completed' => array( 'completed', 'Appointment Receipt Valid', 'ffc-status-badge ffc-status-badge-success ffc-icon-success', false, true ),
+			'pending'   => array( 'pending', 'Appointment Not Confirmed Yet', 'ffc-status-badge ffc-icon-clock', false, true ),
+			'waitlist'  => array( 'waitlist', 'Appointment Not Confirmed Yet', 'ffc-status-badge ffc-icon-clock', false, true ),
+			'no_show'   => array( 'no_show', 'Participant Did Not Attend', 'ffc-status-badge ffc-icon-warning', false, true ),
+			'cancelled' => array( 'cancelled', 'Appointment Cancelled', 'ffc-status-badge ffc-status-badge-error ffc-icon-error', true, false ),
+		);
+	}
+
+	public function test_waitlist_status_has_its_own_label(): void {
+		$html = $this->renderer->format_appointment_verification_response(
+			array(
+				'data'        => array(),
+				'appointment' => array( 'status' => 'waitlist' ),
+			)
+		);
+
+		$this->assertStringContainsString( 'ffc-verification-status-waitlist">Waitlist</span>', $html );
+	}
+
 	// ==================================================================
 	// format_appointment_verification_response() — empty dates
 	// ==================================================================
@@ -443,6 +497,22 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( 'My Certificate', $html );
 	}
 
+	public function test_verification_shows_the_event_date_only_when_the_form_has_one(): void {
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Certificate' ) );
+		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+		$submission = (object) array( 'form_id' => 1, 'submission_date' => 1748772000 );
+		$data       = array( 'auth_code' => 'ABC123' );
+
+		$this->assertStringNotContainsString( 'Event date:', $this->renderer->format_verification_response( $submission, $data ) );
+
+		Functions\when( 'get_post_meta' )->justReturn( array( 'class_date_start' => '2025-12-19', 'date_start' => '2025-12-01' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
+		$html = $this->renderer->format_verification_response( $submission, $data );
+		$this->assertStringContainsString( 'Event date:', $html );
+		$this->assertStringContainsString( '19/12/2025', $html, 'the event date in the plugin date format, never the opening date' );
+		$this->assertStringNotContainsString( '01/12/2025', $html );
+	}
+
 	public function test_format_verification_response_download_button_is_a_family_button(): void {
 		// The shipped `templates/certificate-preview.php`, with the button on.
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Certificate' ) );
@@ -490,12 +560,30 @@ class VerificationResponseRendererTest extends TestCase {
 		$pdf_generator = Mockery::mock( 'FreeFormCertificate\Generators\PdfGenerator' );
 		$pdf_generator->shouldReceive( 'generate_appointment_pdf_data' )
 			->once()
-			->with( $result['appointment'], array( 'title' => 'Event Title' ) )
+			->with( $result['appointment'], array( 'title' => 'Event Title' ), false )
 			->andReturn( array( 'pdf' => 'data' ) );
 
 		$pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
 
 		$this->assertSame( array( 'pdf' => 'data' ), $pdf_data );
+	}
+
+	public function test_generate_appointment_verification_pdf_passes_the_mask_through(): void {
+		$result = array(
+			'data'        => array( 'calendar_title' => 'Event Title' ),
+			'appointment' => array(
+				'calendar_id'     => 0,
+				'validation_code' => 'V123',
+			),
+		);
+
+		$pdf_generator = Mockery::mock( 'FreeFormCertificate\Generators\PdfGenerator' );
+		$pdf_generator->shouldReceive( 'generate_appointment_pdf_data' )
+			->once()
+			->with( $result['appointment'], array( 'title' => 'Event Title' ), true )
+			->andReturn( array( 'pdf' => 'masked' ) );
+
+		$this->assertSame( array( 'pdf' => 'masked' ), $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator, true ) );
 	}
 
 	// ==================================================================
@@ -643,7 +731,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$pdf_generator = Mockery::mock( 'FreeFormCertificate\Generators\PdfGenerator' );
 		$pdf_generator->shouldReceive( 'generate_appointment_pdf_data' )
 			->once()
-			->with( $result['appointment'], $calendar_data )
+			->with( $result['appointment'], $calendar_data, false )
 			->andReturn( array( 'pdf' => 'calendar_data' ) );
 
 		$pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );

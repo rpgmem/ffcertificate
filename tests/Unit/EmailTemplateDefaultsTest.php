@@ -39,12 +39,6 @@ class EmailTemplateDefaultsTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_subject_carries_the_form_title_placeholder(): void {
-		Functions\when( '__' )->returnArg();
-
-		$this->assertStringContainsString( '{{form_title}}', EmailTemplateDefaults::user_email_subject() );
-	}
-
 	public function test_body_delegates_to_the_certificate_user_template(): void {
 		Functions\when( '__' )->returnArg();
 

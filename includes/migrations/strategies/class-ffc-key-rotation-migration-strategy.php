@@ -28,7 +28,7 @@
  *     an error and left UNTOUCHED — the migration never overwrites a column it
  *     could not read, so data is never orphaned in silence.
  *
- * Progress is cursor-based per table (same shape as EmailHashRehash): a row id
+ * Progress is cursor-based per table (the shape the e-mail rehash card used before it left): a row id
  * cursor advances through the batch; completion latches once both tables are
  * fully walked under the current fingerprint.
  *
@@ -242,6 +242,11 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 				'errors'    => array(),
 			);
 		}
+
+		// The certificate signing secrets are encrypted too, and an option
+		// the table walk below never reaches (#2696). A handful of keys, so
+		// every batch rewrites them; the outcome does not depend on order.
+		\FreeFormCertificate\Core\SigningKeys::reencrypt_secrets();
 
 		$total_processed = 0;
 		$all_errors      = array();

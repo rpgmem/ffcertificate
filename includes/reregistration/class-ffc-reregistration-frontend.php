@@ -101,6 +101,12 @@ class ReregistrationFrontend {
 	private static function submission_for( int $reregistration_id, int $user_id ): ?object {
 		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
 		if ( $submission ) {
+			// A row left from before the person left the campaign's audiences
+			// is not theirs to fill any more (#2688). A delivered one is still
+			// shown, as the record of what they sent.
+			if ( in_array( (string) $submission->status, ReregistrationSubmissionReader::NOT_FINISHED_STATUSES, true ) && ! self::user_may_reregister( $reregistration_id, $user_id ) ) {
+				return null;
+			}
 			return $submission;
 		}
 
@@ -189,7 +195,7 @@ class ReregistrationFrontend {
 	public static function ajax_get_form(): void {
 		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
 
-		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
 		$user_id           = get_current_user_id();
 
 		if ( ! $reregistration_id || ! $user_id ) {
@@ -315,7 +321,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => $honeypot ) );
 		}
 
-		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
 		$user_id           = get_current_user_id();
 
 		if ( ! $reregistration_id || ! $user_id ) {
@@ -375,7 +381,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => $honeypot ) );
 		}
 
-		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
 		$user_id           = get_current_user_id();
 
 		if ( ! $reregistration_id || ! $user_id ) {

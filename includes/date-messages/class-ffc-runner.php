@@ -282,13 +282,23 @@ final class Runner {
 		// What follows, queued before anything is sent (#2336): the next page,
 		// or the next day, and a retry of this batch that only a completed
 		// batch removes.
-		$last = false;
+		//
+		// A retry queues no follow-up (#2692). The first attempt queued it
+		// before it queued the retry, so it is already there or has already
+		// run; queuing it again after it ran would resolve the rest of the run
+		// a second time.
+		$last  = false;
+		$first = 0 === $attempt;
 		if ( ! $page['complete'] ) {
-			self::schedule( $run_id, $target, $page['cursor'] );
+			if ( $first ) {
+				self::schedule( $run_id, $target, $page['cursor'] );
+			}
 		} else {
 			$next = $day->modify( '+1 day' )->format( 'Y-m-d' );
 			if ( $next <= (string) $run['target_to'] ) {
-				self::schedule( $run_id, $next, 0 );
+				if ( $first ) {
+					self::schedule( $run_id, $next, 0 );
+				}
 			} else {
 				$last = true;
 			}
@@ -301,6 +311,13 @@ final class Runner {
 		cache_users( array_map( static fn( array $row ): int => $row['user_id'], $page['rows'] ) );
 
 		$occurrence = $rule->occurrence_key( $day );
+
+		// "Already sent" counts the people an earlier run reached (#2692). A
+		// replay of this batch meets this run's own deliveries too, and those
+		// are already counted as sent.
+		$already = array_map( static fn( array $row ): int => $row['user_id'], array_filter( $page['rows'], static fn( array $row ): bool => RecipientResolver::ALREADY_SENT === $row['decision'] ) );
+		$own     = array() === $already ? array() : DeliveryLog::delivered_among( $rule->id, $occurrence, $already, 'user', $run_id );
+
 		foreach ( $page['rows'] as $row ) {
 			switch ( $row['decision'] ) {
 				case RecipientResolver::WILL_SEND:
@@ -311,6 +328,11 @@ final class Runner {
 						break;
 					}
 					self::deliver( $run_id, $rule, $source, $row, $day, $today );
+					break;
+				case RecipientResolver::ALREADY_SENT:
+					if ( ! isset( $own[ $row['user_id'] ] ) ) {
+						DeliveryLog::count_once( $run_id, $rule->id, $row['user_id'], $occurrence, 'already_sent' );
+					}
 					break;
 				case RecipientResolver::OPTED_OUT:
 				case RecipientResolver::NO_EMAIL:
@@ -368,6 +390,9 @@ final class Runner {
 
 		if ( $sent ) {
 			DeliveryLog::bump( $run_id, 'sent' );
+			// A send that failed earlier in this run and went out on a retry
+			// is one person, not a failure and a delivery (#2692).
+			DeliveryLog::uncount( $run_id, $rule->id, $row['user_id'], $occurrence, 'failed' );
 			if ( $row['forced'] ) {
 				DeliveryLog::bump( $run_id, 'forced' );
 			}

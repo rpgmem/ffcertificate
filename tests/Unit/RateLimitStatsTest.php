@@ -145,4 +145,24 @@ class RateLimitStatsTest extends TestCase {
 		$this->assertSame( '', RateLimitStats::address_of( 5 ), 'a missing row' );
 		$this->assertSame( '', RateLimitStats::address_of( 0 ), 'no id, no query' );
 	}
+
+	public function test_address_of_reads_a_row_without_the_dropped_plaintext_column(): void {
+		// #2658: `ip_address` leaves the table once it is empty, so the read
+		// must not name it.
+		global $wpdb;
+		$sql = '';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $query ) use ( &$sql ) {
+				$sql = (string) $query;
+				return 'SQL';
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturn(
+			array( 'type' => 'ip', 'identifier' => 'fingerprint', 'ip_address_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( '198.51.100.9' ) )
+		);
+
+		$this->assertSame( '198.51.100.9', RateLimitStats::address_of( 1 ) );
+		$this->assertStringNotContainsString( 'ip_address,', $sql );
+		$this->assertStringNotContainsString( ' ip_address ', $sql );
+	}
 }

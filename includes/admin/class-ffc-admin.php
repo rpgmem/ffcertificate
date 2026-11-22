@@ -102,6 +102,8 @@ class Admin {
 		new AdminActivityLogPage();
 		$this->certificates_dashboard = new CertificatesDashboard();
 		$this->certificates_dashboard->init();
+		// Certificates → Signers (#2582).
+		( new CertificateSignersPage() )->init();
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 
@@ -149,7 +151,7 @@ class Admin {
 		}
 
 		if ( isset( $_GET['submission_id'] ) && isset( $_GET['action'] ) ) {
-			$id                   = absint( wp_unslash( $_GET['submission_id'] ) );
+			$id                   = RequestInput::get_get_int( 'submission_id' );
 			$action               = sanitize_key( wp_unslash( $_GET['action'] ) );
 			$nonce                = \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' );
 			$manipulation_actions = array( 'trash', 'restore', 'delete' );
@@ -247,7 +249,7 @@ class Admin {
 					if ( is_array( $_GET['filter_form_id'] ) ) {
 						$filter_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
 					} else {
-						$filter_form_ids = array( absint( wp_unslash( $_GET['filter_form_id'] ) ) );
+						$filter_form_ids = array( RequestInput::get_get_int( 'filter_form_id' ) );
 					}
 				}
                 // phpcs:enable WordPress.Security.NonceVerification.Recommended
@@ -680,9 +682,7 @@ class Admin {
 	 * @since 5.4.1
 	 */
 	public function maybe_register_tinymce_placeholder_filter(): void {
-		if ( ! function_exists( 'get_current_screen' ) ) {
-			return;
-		}
+		// Hooked on admin_head, where wp-admin has loaded get_current_screen().
 		$screen = get_current_screen();
 		if ( ! $screen || 'ffc_form' !== $screen->post_type ) {
 			return;

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
@@ -79,7 +80,7 @@ class QrGeneratorDesignMemoryTest extends TestCase {
 				'qr_design_logo_id'    => '-3',
 				'margin'               => '99',
 				'error_level'          => 'q',
-				'wifi_password'        => 'secret',
+				'wifi_password'        => FakeCredentials::WIFI_PASSWORD,
 			)
 		);
 
@@ -128,6 +129,29 @@ class QrGeneratorDesignMemoryTest extends TestCase {
 		$this->assertSame( 'rounded', $design->dots );
 		$this->assertSame( '', $design->color_end, 'With the gradient off the code is drawn without it.' );
 		$this->assertSame( '', $design->logo );
+	}
+
+	public function test_the_logo_switch_is_remembered_and_an_older_design_reads_on(): void {
+		$memo = new \ReflectionProperty( \FreeFormCertificate\Generators\QrLogo::class, 'memo' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, array( 5 => 'data:image/png;base64,iVBORw0KGgo=' ) );
+
+		try {
+			// Saved before the switch existed (#2686): the logo stays on.
+			$this->meta[7][ QrGeneratorDesignMemory::META_KEY ] = array( 'qr_design_logo_id' => 5 );
+			$state = QrGeneratorDesignMemory::state( 7 );
+			$this->assertTrue( $state['qr_design_logo_enabled'] );
+			$this->assertSame( 'data:image/png;base64,iVBORw0KGgo=', QrGeneratorDesignMemory::design( $state )->logo );
+
+			// Off keeps the image and draws without it.
+			QrGeneratorDesignMemory::remember( 7, array( 'qr_design_logo_id' => 5, 'qr_design_logo_enabled' => '' ) );
+			$state = QrGeneratorDesignMemory::state( 7 );
+			$this->assertSame( 5, $state['qr_design_logo_id'] );
+			$this->assertFalse( $state['qr_design_logo_enabled'] );
+			$this->assertSame( '', QrGeneratorDesignMemory::design( $state )->logo );
+		} finally {
+			$memo->setValue( null, array() );
+		}
 	}
 
 	public function test_the_frame_icon_and_transparency_are_remembered(): void {

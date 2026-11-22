@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -1277,7 +1279,7 @@ class AdminSubmissionEditPage {
 			return;
 		}
 
-		$id = isset( $_POST['submission_id'] ) ? absint( wp_unslash( $_POST['submission_id'] ) ) : 0;
+		$id = RequestInput::get_post_int( 'submission_id' );
 		// Normalize email to lowercase for consistent storage and lookups.
 		$new_email = isset( $_POST['user_email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( $_POST['user_email'] ) ) ) : '';
 		// The participant's answers are locked (#1977): they come from the stored

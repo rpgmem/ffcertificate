@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -394,6 +395,15 @@ class AppointmentRestControllerTest extends TestCase {
 			function ( $sql ) {
 				if ( preg_match( '/^SELECT \* FROM `' . self::BLOCKED_DATES . '`\s+WHERE \(calendar_id = \d+ OR calendar_id IS NULL\)/', $sql ) ) {
 					return array(); // No date is blocked.
+				}
+				// The person's place on the slot (#2689), read from the rows held.
+				if ( preg_match( '/^SELECT \* FROM `' . self::APPOINTMENTS . "`\\s+WHERE calendar_id = (\\d+)\\s+AND appointment_date = '([0-9-]+)'\\s+AND status IN \\('pending','confirmed','waitlist'\\)/", $sql, $m ) ) {
+					return array_values(
+						array_filter(
+							$this->appointments,
+							static fn( array $row ): bool => (int) ( $row['calendar_id'] ?? 0 ) === (int) $m[1] && ( $row['appointment_date'] ?? '' ) === $m[2] && in_array( $row['status'] ?? '', array( 'pending', 'confirmed', 'waitlist' ), true )
+						)
+					);
 				}
 				$this->unexpected[] = 'get_results: ' . $sql;
 				return array();
@@ -1071,7 +1081,7 @@ class AppointmentRestControllerTest extends TestCase {
 		Functions\when( 'username_exists' )->justReturn( false );
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'sanitize_user' )->alias( static fn ( $name ) => strtolower( (string) preg_replace( '/[^A-Za-z0-9 _.@-]/', '', (string) $name ) ) );
-		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_generate_password' )->justReturn( FakeCredentials::GENERATED_PASSWORD );
 		Functions\when( 'wp_create_user' )->alias(
 			function ( $username, $password, $email ) {
 				$this->created_accounts[]          = array( (string) $username, (string) $email );

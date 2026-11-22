@@ -107,31 +107,6 @@ class AutoloaderTest extends TestCase {
 	// get_namespace_map()
 	// ==================================================================
 
-	public function test_namespace_map_contains_core_namespaces(): void {
-		$namespaces = $this->autoloader->get_namespaces();
-
-		$this->assertContains( 'Admin', $namespaces );
-		$this->assertContains( 'Core', $namespaces );
-		$this->assertContains( 'Frontend', $namespaces );
-		$this->assertContains( 'API', $namespaces );
-		$this->assertContains( 'Security', $namespaces );
-	}
-
-	public function test_namespace_map_contains_module_namespaces(): void {
-		$namespaces = $this->autoloader->get_namespaces();
-
-		$this->assertContains( 'SelfScheduling', $namespaces );
-		$this->assertContains( 'Audience', $namespaces );
-		$this->assertContains( 'Reregistration', $namespaces );
-		$this->assertContains( 'UrlShortener', $namespaces );
-		$this->assertContains( 'Scheduling', $namespaces );
-	}
-
-	public function test_namespace_map_contains_empty_root(): void {
-		$namespaces = $this->autoloader->get_namespaces();
-		$this->assertContains( '', $namespaces );
-	}
-
 	// ==================================================================
 	// find_class_file()
 	// ==================================================================
@@ -188,26 +163,6 @@ class AutoloaderTest extends TestCase {
 	// ==================================================================
 	// debug_class_mapping()
 	// ==================================================================
-
-	public function test_debug_class_mapping_valid_class(): void {
-		$info = $this->autoloader->debug_class_mapping( 'FreeFormCertificate\\Core\\Encryption' );
-
-		$this->assertSame( 'FreeFormCertificate\\Core\\Encryption', $info['class'] );
-		$this->assertSame( 'Core\\Encryption', $info['relative_class'] );
-		$this->assertTrue( $info['exists'] );
-	}
-
-	public function test_debug_class_mapping_foreign_namespace(): void {
-		$info = $this->autoloader->debug_class_mapping( 'Some\\Other\\Class' );
-
-		$this->assertArrayHasKey( 'error', $info );
-	}
-
-	public function test_debug_class_mapping_nonexistent_class(): void {
-		$info = $this->autoloader->debug_class_mapping( 'FreeFormCertificate\\Core\\NonexistentClass' );
-
-		$this->assertFalse( $info['exists'] );
-	}
 
 	// ==================================================================
 	// register() — integration test

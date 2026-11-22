@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
@@ -68,7 +69,7 @@ class FrontendShortcodesTest extends TestCase {
 		// ScheduleExceptionSession which needs wp_salt + is_ssl +
 		// setcookie stubs even on the no-exception path (the cookie
 		// read is unconditional — only the embed is gated).
-		Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'is_ssl' )->justReturn( false );
 		Functions\when( 'setcookie' )->justReturn( true );
 		Functions\when( 'headers_sent' )->justReturn( false );
@@ -241,6 +242,113 @@ class FrontendShortcodesTest extends TestCase {
 		foreach ( array( 'ffc-btn', 'ffc-btn-primary', 'ffc-icon-checkmark', 'ffc-btn-block' ) as $class ) {
 			$this->assertContains( $class, $buttons[0], "Verify lacks {$class}." );
 		}
+	}
+
+	/**
+	 * A code posted without JavaScript is verified on the page, and the
+	 * result lands in the result region (#2695).
+	 *
+	 * @return void
+	 */
+	public function test_a_code_posted_without_script_is_verified_on_the_page(): void {
+		unset( $_GET['token'] );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		$challenge = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha( \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY );
+		$_POST     = array(
+			'ffc_auth_code'    => 'abcd-1234',
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts'        => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+		);
+		$verifier = Mockery::mock( \FreeFormCertificate\Frontend\VerificationHandler::class );
+		$verifier->shouldReceive( 'verify_certificate' )->once()->with( 'abcd-1234' )->andReturn(
+			array(
+				'success' => true,
+				'html'    => '<div class="ffc-certificate-preview">VALID</div>',
+				'message' => '',
+			)
+		);
+
+		try {
+			$html = ( new Shortcodes( $verifier ) )->render_verification_page( array() );
+		} finally {
+			$_POST = array();
+		}
+
+		$this->assertMatchesRegularExpression( '#<div class="ffc-verify-result"[^>]*><div class="ffc-certificate-preview">VALID</div></div>#', $html );
+		$this->assertStringContainsString( 'ffc-verification-form', $html );
+	}
+
+	/**
+	 * A post that fails the security fields says why and never reaches the
+	 * lookup (#2695).
+	 *
+	 * @return void
+	 */
+	public function test_a_post_without_the_security_fields_is_refused_before_the_lookup(): void {
+		unset( $_GET['token'] );
+		$_POST    = array( 'ffc_auth_code' => 'ABCD-1234' );
+		$verifier = Mockery::mock( \FreeFormCertificate\Frontend\VerificationHandler::class );
+		$verifier->shouldNotReceive( 'verify_certificate' );
+
+		try {
+			$html = ( new Shortcodes( $verifier ) )->render_verification_page( array() );
+		} finally {
+			$_POST = array();
+		}
+
+		$this->assertMatchesRegularExpression( '#<div class="ffc-verify-result"[^>]*><p class="ffc-verify-message">[^<]+</p></div>#', $html );
+	}
+
+	/**
+	 * A lookup that finds nothing shows its message, escaped (#2695).
+	 *
+	 * @return void
+	 */
+	public function test_a_failed_lookup_shows_its_message(): void {
+		unset( $_GET['token'] );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		$challenge = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha( \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY );
+		$_POST     = array(
+			'ffc_auth_code'    => 'ABCD-1234',
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts'        => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+		);
+		$verifier = Mockery::mock( \FreeFormCertificate\Frontend\VerificationHandler::class );
+		$verifier->shouldReceive( 'verify_certificate' )->once()->andReturn(
+			array(
+				'success' => false,
+				'html'    => '',
+				'message' => 'Code not found.',
+			)
+		);
+
+		try {
+			$html = ( new Shortcodes( $verifier ) )->render_verification_page( array() );
+		} finally {
+			$_POST = array();
+		}
+
+		$this->assertStringContainsString( '<p class="ffc-verify-message">Code not found.</p></div>', $html );
+	}
+
+	/**
+	 * A page opened without a post leaves the result region empty.
+	 *
+	 * @return void
+	 */
+	public function test_a_page_without_a_post_leaves_the_result_empty(): void {
+		unset( $_GET['token'] );
+		$_POST    = array();
+		$verifier = Mockery::mock( \FreeFormCertificate\Frontend\VerificationHandler::class );
+		$verifier->shouldNotReceive( 'verify_certificate' );
+
+		$html = ( new Shortcodes( $verifier ) )->render_verification_page( array() );
+
+		$this->assertMatchesRegularExpression( '#<div class="ffc-verify-result"[^>]*></div>#', $html );
 	}
 
 	/**

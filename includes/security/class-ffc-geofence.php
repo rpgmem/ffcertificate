@@ -149,37 +149,6 @@ class Geofence {
 	}
 
 	/**
-	 * Check if user can access form (complete validation)
-	 *
-	 * Reads the form's stored configuration and runs {@see check_access()}
-	 * on it; the checks themselves are shared with any other content the
-	 * engine guards (#1668).
-	 *
-	 * @param int                  $form_id Form ID.
-	 * @param array<string, mixed> $options Validation options.
-	 * @return array{allowed: bool, reason?: string, message?: string}
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function can_access_form( int $form_id, array $options = array() ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$config = self::get_form_config( $form_id );
-
-		if ( empty( $config ) ) {
-			// No restrictions configured.
-			return array(
-				'allowed' => true,
-				'reason'  => 'no_restrictions',
-				'message' => '',
-			);
-		}
-
-		return self::check_access( $config, $options, array( 'form_id' => $form_id ) );
-	}
-
-	/**
 	 * Run the date/time and geolocation checks against a geofence config.
 	 *
 	 * The config is the shape {@see normalize_config()} returns; the caller

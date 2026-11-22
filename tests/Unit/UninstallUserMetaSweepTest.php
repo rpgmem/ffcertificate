@@ -71,6 +71,8 @@ class UninstallUserMetaSweepTest extends TestCase {
 	private const RUNTIME_KEY_SITES = array(
 		'includes/user-dashboard/class-ffc-user-profile-service.php'                    =>
 			'Keys come from a UserProfileFieldMap descriptor, or from a runtime descriptor UserManager builds with the same prefix.',
+		'includes/reregistration/class-ffc-reregistration-data-processor.php'           =>
+			'Reads the CPF and RF a profile already holds; the keys come from their UserProfileFieldMap descriptors (#2688).',
 		'includes/user-dashboard/class-ffc-user-manager.php'                            =>
 			'EXTENDED_META_PREFIX . sanitize_key( $key ) — the dynamic reregistration half, whose field names live in the database.',
 		'includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php' =>

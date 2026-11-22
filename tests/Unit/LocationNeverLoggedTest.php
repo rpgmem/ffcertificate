@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Integrations\IpGeolocation;
@@ -48,7 +49,7 @@ class LocationNeverLoggedTest extends TestCase {
 		Monkey\setUp();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 
 		ActivityLogBuffer::reset();
 		ActivityLogBuffer::stub_functions();
@@ -102,19 +103,15 @@ class LocationNeverLoggedTest extends TestCase {
 		Functions\when( 'wp_remote_retrieve_body' )->justReturn(
 			(string) json_encode(
 				array(
-					'status'      => 'success',
-					'country'     => 'Brazil',
-					'countryCode' => 'BR',
-					'regionName'  => 'São Paulo',
-					'region'      => 'SP',
-					'city'        => 'São Paulo',
-					'lat'         => self::LAT,
-					'lon'         => self::LNG,
+					'country' => 'BR',
+					'region'  => 'São Paulo',
+					'city'    => 'São Paulo',
+					'loc'     => self::LAT . ',' . self::LNG,
 				)
 			)
 		);
-		$fetch    = new \ReflectionMethod( IpGeolocation::class, 'fetch_from_ipapi' );
-		$location = $fetch->invoke( null, '203.0.113.5' );
+		$fetch    = new \ReflectionMethod( IpGeolocation::class, 'fetch_from_ipinfo' );
+		$location = $fetch->invoke( null, '203.0.113.5', '' );
 
 		// The lookup still returns the position; only the log copy drops it.
 		$this->assertSame( self::LAT, $location['latitude'] );

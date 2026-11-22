@@ -66,6 +66,7 @@ class FormEditorLayoutPreviewTest extends TestCase {
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias( static fn( $f, $ts = null ) => gmdate( $f, (int) $ts ) );
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
@@ -122,7 +123,7 @@ class FormEditorLayoutPreviewTest extends TestCase {
 		$data = $this->responses[0]['data'];
 		$this->assertSame( 1123, $data['width'] );
 		$this->assertSame( 794, $data['height'] );
-		$this->assertStringStartsWith( '<div style="position:relative;width:1123px;height:794px;background-color:#ffffff;">', $data['html'] );
+		$this->assertStringStartsWith( '<div class="ffc-pdf-wrapper" style="position:relative;width:1123px;height:794px;background-color:#ffffff;"><div class="ffc-pdf-content">', $data['html'] );
 		$this->assertStringContainsString( 'School name', $data['html'], 'a form field shows its label' );
 		$this->assertStringContainsString( 'João da Silva', $data['html'], 'a system placeholder shows its sample' );
 		$this->assertStringNotContainsString( '<script>', $data['html'] );
@@ -145,5 +146,42 @@ class FormEditorLayoutPreviewTest extends TestCase {
 		$html = $this->responses[0]['data']['html'];
 		$this->assertStringContainsString( 'background-color:#f3e9d2;', $html );
 		$this->assertStringContainsString( '<img src="https://example.test/bg.png"', $html );
+	}
+
+	public function test_the_preview_prints_the_event_date_typed_else_the_saved_one(): void {
+		// The preview printed today whatever the Time tab said (#2626).
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$_POST = array(
+			'html'             => '<p>[{{schedule:dates:format=d/m/Y}}]</p>',
+			'post_id'          => '440',
+			'event_date_start' => '2026-03-10',
+			'event_date_end'   => '2026-03-12',
+		);
+		$this->call();
+		$this->assertStringContainsString( '[10/03/2026 to 12/03/2026]', $this->responses[0]['data']['html'], 'the unsaved date wins' );
+
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => 440 === (int) $id && '_ffc_geofence_config' === $key
+				? array( 'class_date_start' => '2026-05-02', 'class_date_end' => '' )
+				: ''
+		);
+		$this->responses = array();
+		$_POST           = array(
+			'html'    => '<p>[{{schedule:date:format=d/m/Y}}]</p>',
+			'post_id' => '440',
+		);
+		$this->call();
+		$this->assertStringContainsString( '[02/05/2026]', $this->responses[0]['data']['html'], 'else the form\'s saved date' );
+
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_forms' === $cap );
+		Functions\when( 'wp_date' )->alias( static fn( $f, $ts = null ) => gmdate( $f, null === $ts ? time() : (int) $ts ) );
+		$this->responses = array();
+		$before          = gmdate( 'd/m/Y' );
+		$this->call();
+		$after = gmdate( 'd/m/Y' );
+		$html  = $this->responses[0]['data']['html'];
+		$this->assertStringNotContainsString( '[02/05/2026]', $html, 'a form the user may not edit is not read' );
+		// Read on both sides: the run may cross midnight.
+		$this->assertTrue( false !== strpos( $html, '[' . $before . ']' ) || false !== strpos( $html, '[' . $after . ']' ), 'else today' );
 	}
 }

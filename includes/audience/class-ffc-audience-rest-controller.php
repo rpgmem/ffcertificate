@@ -51,6 +51,13 @@ class AudienceRestController {
 	public const MAX_READ_SPAN_DAYS = 62;
 
 	/**
+	 * The most people, or audiences, one booking or conflict check may name (#2691).
+	 *
+	 * @var int
+	 */
+	public const MAX_PARTICIPANT_IDS = 500;
+
+	/**
 	 * Register REST routes
 	 *
 	 * @return void
@@ -316,14 +323,15 @@ class AudienceRestController {
 	/**
 	 * Permission callback for the conflict probe (#1861).
 	 *
-	 * Only the booking form calls it, and only a logged-in user can book;
-	 * an anonymous caller has nothing to check a conflict for.
+	 * Only the booking form calls it, so it asks what booking asks (#2691):
+	 * a logged-in account alone could otherwise probe who is booked on a
+	 * given day.
 	 *
 	 * @since 6.40.0
 	 * @return bool
 	 */
 	public function check_conflicts_permission(): bool {
-		return is_user_logged_in();
+		return $this->check_write_permission();
 	}
 
 	/**
@@ -537,13 +545,15 @@ class AudienceRestController {
 		// Get user info for each booking.
 		$user_id      = get_current_user_id();
 		$is_logged_in = is_user_logged_in();
-		// Whether the caller cancels others' bookings, per calendar: the
-		// bypass counts only where the calendar's switch allows it (#2243).
+		// Whether the caller cancels others' bookings, per calendar, by the
+		// rule the cancel route applies: the bypass where the calendar's
+		// switch allows it (#2243), or the cancel-others permission (#2691).
 		$cancels_others = array();
 		$has_bypass     = static function ( $booking ) use ( &$cancels_others, $user_id ): bool {
 			$schedule_id = (int) ( $booking->schedule_id ?? 0 );
 			if ( ! isset( $cancels_others[ $schedule_id ] ) ) {
-				$cancels_others[ $schedule_id ] = $user_id > 0 && AudienceScheduleRepository::user_has_bypass( $schedule_id );
+				$cancels_others[ $schedule_id ] = $user_id > 0
+					&& ( AudienceScheduleRepository::user_has_bypass( $schedule_id ) || AudienceScheduleRepository::user_can_cancel_others( $schedule_id, $user_id ) );
 			}
 			return $cancels_others[ $schedule_id ];
 		};
@@ -960,6 +970,12 @@ class AudienceRestController {
 			$start_time = $whole['start_time'];
 			$end_time   = $whole['end_time'];
 			$time_mode  = $is_range ? 'span' : $time_mode;
+		}
+
+		// A time the space's working hours did not supply is checked here, or
+		// a value such as "9" would be stored and compared as text (#2691).
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_time( $start_time ) || ! \FreeFormCertificate\Core\DateFormatter::is_valid_time( $end_time ) ) {
+			return self::refusal( 400, __( 'Invalid time format.', 'ffcertificate' ) );
 		}
 
 		// Validate time range. A span runs from one day to another, so its start may come after its end.
@@ -1381,6 +1397,12 @@ class AudienceRestController {
 	 * @return \WP_REST_Response|null
 	 */
 	private static function participant_refusal( string $booking_type, array $audience_ids, array $user_ids, int $user_id ): ?\WP_REST_Response {
+		// Each id below costs a lookup, so a request names a bounded number (#2691).
+		if ( count( $user_ids ) > self::MAX_PARTICIPANT_IDS || count( $audience_ids ) > self::MAX_PARTICIPANT_IDS ) {
+			/* translators: %d: the most people or audiences one booking may name. */
+			return self::refusal( 400, sprintf( __( 'A booking can name at most %d people or audiences.', 'ffcertificate' ), self::MAX_PARTICIPANT_IDS ), 'too_many_participants' );
+		}
+
 		$privileged = AudienceScheduleRepository::user_has_bypass_capability();
 
 		if ( 'individual' === $booking_type && ! AudienceBookingRules::can_book_individuals() ) {
@@ -1595,11 +1617,15 @@ class AudienceRestController {
 		$reason     = $request->get_param( 'reason' );
 
 		// Validate reason.
-		if ( empty( $reason ) || mb_strlen( $reason ) < 5 ) {
+		if ( ! is_string( $reason ) || mb_strlen( trim( $reason ) ) < AudienceBookingRules::CANCEL_REASON_MIN ) {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
-					'message' => __( 'Cancellation reason is required.', 'ffcertificate' ),
+					'message' => sprintf(
+						/* translators: %d: fewest characters */
+						__( 'Write a cancellation reason of at least %d characters.', 'ffcertificate' ),
+						AudienceBookingRules::CANCEL_REASON_MIN
+					),
 				),
 				400
 			);
@@ -1773,6 +1799,15 @@ class AudienceRestController {
 			$audience_ids       = array_map( 'intval', (array) ( $audience_ids_param ? $audience_ids_param : array() ) );
 			$user_ids_param     = $request->get_param( 'user_ids' );
 			$user_ids           = array_map( 'intval', (array) ( $user_ids_param ? $user_ids_param : array() ) );
+
+			// Only the participants the caller may book for, checked before any
+			// lookup, as the create endpoint checks them (#2691).
+			$audience_ids = self::positive_ids( $audience_ids );
+			$user_ids     = self::positive_ids( $user_ids );
+			$refused      = self::participant_refusal( empty( $user_ids ) ? 'audience' : 'individual', $audience_ids, $user_ids, get_current_user_id() );
+			if ( null !== $refused ) {
+				return $refused;
+			}
 
 			// Validate required parameters.
 			if ( ! $environment_id || ! $booking_date || ! $start_time || ! $end_time ) {
@@ -1968,13 +2003,17 @@ class AudienceRestController {
 			$user_conflicts['affected_users'] = array_values( array_unique( $user_conflicts['affected_users'] ) );
 
 			if ( ! empty( $user_conflicts['bookings'] ) ) {
+				$response_data['affected_count'] = count( $user_conflicts['affected_users'] );
 				// The people who clash, by name (#2243), so the booker knows
-				// whom to ask rather than only how many.
-				$names                           = self::affected_names( $user_conflicts['affected_users'] );
-				$response_data['affected_names'] = $names['names'];
-				$response_data['affected_more']  = $names['more'];
-				$response_data['affected_users'] = $user_conflicts['affected_users'];
-				$user_bookings                   = array_map(
+				// whom to ask rather than only how many. Only to a caller who
+				// may book people by name; anyone else learns how many (#2691).
+				if ( AudienceBookingRules::can_book_individuals() ) {
+					$names                           = self::affected_names( $user_conflicts['affected_users'] );
+					$response_data['affected_names'] = $names['names'];
+					$response_data['affected_more']  = $names['more'];
+					$response_data['affected_users'] = $user_conflicts['affected_users'];
+				}
+				$user_bookings = array_map(
 					function ( $b ) {
 						return array(
 							'id'          => $b->id,

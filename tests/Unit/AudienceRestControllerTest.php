@@ -55,6 +55,13 @@ class AudienceRestControllerTest extends TestCase {
 	/** @var array<int, list<int>> Bookings the member-conflict query returns, by id, with the users each names directly. */
 	private array $member_clashes = array();
 
+	/**
+	 * The members AudienceReader::get_members() returns, whatever the audience.
+	 *
+	 * @var list<int>
+	 */
+	private array $audience_members = array();
+
 	/** @var array<int, object> Audience rows by id. */
 	private array $audiences = array();
 
@@ -174,6 +181,7 @@ class AudienceRestControllerTest extends TestCase {
 		$this->holidays        = array();
 		$this->bookings        = array();
 		$this->member_clashes  = array();
+		$this->audience_members = array();
 		$this->global_holidays = array();
 		// Audience 1 exists and user 5, the usual booker, belongs to it.
 		$this->audiences       = array( 1 => (object) array( 'id' => 1, 'name' => 'Teachers', 'color' => '#3788d8', 'parent_id' => null, 'status' => 'active' ) );
@@ -600,8 +608,8 @@ class AudienceRestControllerTest extends TestCase {
 			return array_map( 'strval', $this->member_clashes[ (int) $bound[2] ] ?? array() );
 		}
 		if ( false !== strpos( $sql, 'SELECT DISTINCT user_id FROM %i WHERE audience_id IN' ) ) {
-			// AudienceReader::get_members(): the audiences here have no members.
-			return array();
+			// AudienceReader::get_members(): the members a test names, or none.
+			return array_map( 'strval', $this->audience_members );
 		}
 		return $this->unknown( 'get_col', $sql );
 	}
@@ -751,8 +759,17 @@ class AudienceRestControllerTest extends TestCase {
 	public function test_conflicts_permission_refuses_an_anonymous_caller(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		$this->assertFalse( ( new AudienceRestController() )->check_conflicts_permission() );
+	}
 
+	/**
+	 * The probe asks what booking asks (#2691): a logged-in account that may
+	 * not book cannot learn who is booked on a day.
+	 */
+	public function test_conflicts_permission_asks_what_booking_asks(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		$this->assertFalse( ( new AudienceRestController() )->check_conflicts_permission(), 'A logged-in account that may not book is refused.' );
+
+		$this->caps[] = 'ffc_view_own_audience_bookings';
 		$this->assertTrue( ( new AudienceRestController() )->check_conflicts_permission() );
 	}
 
@@ -938,6 +955,28 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertFalse( ( new AudienceRestController() )->get_bookings( $request )->get_data()['bookings'][0]['can_cancel'] );
 	}
 
+	public function test_get_bookings_offers_cancel_to_a_holder_of_the_cancel_others_permission(): void {
+		// The list follows the cancel route, which accepts that permission (#2691).
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 99 );
+		$this->schedules[20]->visibility = 'public';
+		$this->environment( 10, 20 );
+		$this->booking( 1, 10, '2026-04-01', '09:00', '10:00', array( 'created_by' => 5 ) );
+		$request = $this->make_request(
+			array(
+				'start_date'     => '2026-04-01',
+				'end_date'       => '2026-04-30',
+				'schedule_id'    => null,
+				'environment_id' => null,
+			)
+		);
+
+		$this->assertFalse( ( new AudienceRestController() )->get_bookings( $request )->get_data()['bookings'][0]['can_cancel'], 'Someone else\'s booking, no permission.' );
+
+		$this->permit( 20, 99, array( 'can_cancel_others' => 1 ) );
+		$this->assertTrue( ( new AudienceRestController() )->get_bookings( $request )->get_data()['bookings'][0]['can_cancel'] );
+	}
+
 	public function test_get_bookings_filters_out_bookings_from_unreadable_schedules(): void {
 		// Anonymous caller: only active public schedules are readable.
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
@@ -1039,6 +1078,10 @@ class AudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_check_conflicts_refuses_a_missing_environment(): void {
+		// Naming people takes the right to book them by name (#2691).
+		$this->caps[] = 'ffc_manage_audiences';
+		// The caller belongs to the audience it names (#2691).
+		$this->members[3] = array( 1 );
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
 
@@ -1061,6 +1104,10 @@ class AudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_check_conflicts_scopes_the_cross_schedule_queries_to_readable_schedules(): void {
+		// Naming people takes the right to book them by name (#2691).
+		$this->caps[] = 'ffc_manage_audiences';
+		// The caller belongs to the audience it names (#2691).
+		$this->members[3] = array( 1 );
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
 		// User 3 reads schedule 20 through a permission and schedule 21 because it is public.
@@ -1207,6 +1254,49 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $result );
 		$this->assertSame( 400, $result->get_status() );
 		$this->assertStringContainsString( 'End time', $result->get_data()['message'] );
+	}
+
+	/**
+	 * A time that is not HH:MM never reaches the text comparison (#2691).
+	 *
+	 * @dataProvider malformed_times
+	 */
+	public function test_create_booking_refuses_a_time_that_is_not_hh_mm( string $start, string $end ): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_time' )->justReturn( '2026-03-01' );
+		$this->environment( 10, 20 );
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => $start,
+					'end_time'       => $end,
+					'booking_type'   => 'audience',
+					'description'    => 'A test booking description',
+					'is_all_day'     => false,
+					'audience_ids'   => array( 1 ),
+					'user_ids'       => array(),
+				)
+			)
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 'Invalid time format.', $result->get_data()['message'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function malformed_times(): array {
+		return array(
+			// "9" < "10:00" as text, so it passed the order check.
+			'hour only'      => array( '9', '10:00' ),
+			'hour past 23'   => array( '09:00', '25:00' ),
+			'empty end'      => array( '09:00', '' ),
+			'text'           => array( 'morning', 'noon' ),
+		);
 	}
 
 	public function test_create_booking_returns_400_when_description_too_short(): void {
@@ -1470,7 +1560,11 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_REST_Response::class, $result );
 		$this->assertSame( 400, $result->get_status() );
-		$this->assertStringContainsString( 'reason', strtolower( $result->get_data()['message'] ) );
+		$this->assertStringContainsString( 'at least 5 characters', $result->get_data()['message'], 'The refusal names the minimum the dialog asks for (#2691).' );
+
+		// Spaces do not count towards it.
+		$padded = $ctrl->cancel_booking( $this->make_request( array( 'id' => 1, 'reason' => '  ab   ' ) ) );
+		$this->assertSame( 400, $padded->get_status() );
 	}
 
 	public function test_cancel_booking_returns_404_when_not_found(): void {
@@ -1927,6 +2021,8 @@ class AudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_check_conflicts_reports_the_people_with_a_room_clash_in_one_round(): void {
+		// Naming people takes the right to book them by name (#2691).
+		$this->caps[] = 'ffc_manage_audiences';
 		// The people check used to run only without a room clash, so a booker
 		// who overrode the room met the people's clash on a second check (#2243).
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
@@ -1974,6 +2070,8 @@ class AudienceRestControllerTest extends TestCase {
 	}
 
 	public function test_check_conflicts_counts_the_people_beyond_the_names_it_shows(): void {
+		// Naming people takes the right to book them by name (#2691).
+		$this->caps[] = 'ffc_manage_audiences';
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
 		$this->permit( 20, 3 );
@@ -2003,6 +2101,93 @@ class AudienceRestControllerTest extends TestCase {
 		$this->assertSame( array( 6 ), array_column( $conflicts['bookings'], 'id' ) );
 		$this->assertCount( 10, $conflicts['affected_names'] );
 		$this->assertSame( 2, $conflicts['affected_more'] );
+	}
+
+	/**
+	 * A booker who may not book people by name learns how many clash, never
+	 * who (#2691).
+	 */
+	public function test_check_conflicts_tells_an_audience_booker_how_many_not_who(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->members[3] = array( 1 );
+		$this->permit( 20, 3 );
+		$this->environment( 10, 20 );
+		$this->environment( 11, 20, null, 'Hall' );
+		$this->booking( 6, 11, '2026-04-01', '09:30', '10:30' );
+		$this->member_clashes   = array( 6 => array( 2, 4 ) );
+		$this->audience_members = array( 2, 4 );
+		$names                  = \FreeFormCertificate\Tests\Support\CallLog::record( 'get_users', array() );
+
+		$conflicts = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array( 1 ),
+					'user_ids'       => array(),
+				)
+			)
+		)->get_data()['conflicts'];
+
+		$this->assertSame( 2, $conflicts['affected_count'] );
+		$this->assertArrayNotHasKey( 'affected_names', $conflicts );
+		$this->assertSame( array(), $conflicts['affected_users'] ?? array(), 'No account id leaves either.' );
+		$this->assertSame( 0, $names->count(), 'No name is looked up.' );
+	}
+
+	/**
+	 * Naming people takes the right to book them by name, and the probe
+	 * refuses before it reads a single booking (#2691).
+	 */
+	public function test_check_conflicts_refuses_people_named_by_a_booker_who_may_not(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->permit( 20, 3 );
+		$this->environment( 10, 20 );
+
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array(),
+					'user_ids'       => array( 2, 4 ),
+				)
+			)
+		);
+
+		$this->assertSame( 403, $result->get_status() );
+		$this->assertSame( 0, $this->ranWith( 'WHERE environment_id = %d' ), 'No environment conflict query runs.' );
+		$this->assertSame( 0, $this->ranWith( 'SELECT DISTINCT b.*' ), 'No member conflict query runs.' );
+	}
+
+	public function test_check_conflicts_refuses_more_people_than_the_cap(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$this->caps[] = 'ffc_manage_audiences';
+		$userdata     = \FreeFormCertificate\Tests\Support\CallLog::record( 'get_userdata', false );
+
+		$result = ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array(
+					'environment_id' => 10,
+					'booking_date'   => '2026-04-01',
+					'start_time'     => '09:00',
+					'end_time'       => '10:00',
+					'audience_ids'   => array(),
+					'user_ids'       => range( 1, AudienceRestController::MAX_PARTICIPANT_IDS + 1 ),
+				)
+			)
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 'too_many_participants', $result->get_data()['code'] );
+		$this->assertSame( 0, $userdata->count(), 'The cap is checked before any account is read.' );
 	}
 
 	public function test_check_conflicts_refuses_an_invalid_date(): void {

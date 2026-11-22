@@ -979,9 +979,8 @@ function ffc_tseed_custom_fields( array $ctx ): array {
 	$writer = '\FreeFormCertificate\Reregistration\CustomFieldWriter';
 	// The standard set arrives through `ffc_audience_created`; seed it here
 	// too in case the reregistration module is switched off on this site.
-	foreach ( $ctx['audience_ids'] as $aid ) {
-		$seeder::seed_for_audience( (int) $aid );
-	}
+	// Every audience inherits the one global list (#2502).
+	$seeder::seed_global();
 	$types = array( 'text', 'select', 'number', 'date', 'textarea' );
 	$made  = array();
 	for ( $i = 1; $i <= 20; $i++ ) {

@@ -34,8 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</thead>
 		<tbody>
-			<tr><td><strong><?php esc_html_e( 'Primary service', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'ipinfo.io (the default, HTTPS on its free tier; a free key raises the limit) or ip-api.com, which serves HTTPS only on its paid plan and is asked only when the ffc_ipapi_use_https filter says the site has one. Visitor addresses are never sent in clear text.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><strong><?php esc_html_e( 'Service cascade', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'If the primary provider fails, try the other one.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Service', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'ipinfo.io, over HTTPS on its free tier; a free key raises the limit. Visitor addresses are never sent in clear text.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'IP cache + TTL', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Cache lookups (TTL 300–3600s) to save API calls. The cache key is a keyed hash and the cache holds no address. A failed lookup is not repeated for 5 minutes.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'GPS cache TTL', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'How long a GPS reading may be reused before the browser is asked again (60–3600s, default 600). A form that caches the check keeps only a note that it passed, never the position.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'Accepted error', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'How many times an area\'s radius a reading\'s margin of error may reach and still count as inside (1 to 3, default 1.5).', 'ffcertificate' ); ?></td></tr>

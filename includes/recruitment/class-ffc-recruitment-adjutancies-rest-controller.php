@@ -187,7 +187,7 @@ final class RecruitmentAdjutanciesRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function list_adjutancies(): \WP_REST_Response {
-		return new \WP_REST_Response( RecruitmentAdjutancyReader::get_all(), 200 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentAdjutancyReader::get_all() ), 200 );
 	}
 
 	/**
@@ -209,7 +209,7 @@ final class RecruitmentAdjutanciesRestController {
 				array( 'status' => 409 )
 			);
 		}
-		return new \WP_REST_Response( RecruitmentAdjutancyReader::get_by_id( $id ), 201 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentAdjutancyReader::get_by_id( $id ) ), 201 );
 	}
 
 	/**
@@ -229,7 +229,7 @@ final class RecruitmentAdjutanciesRestController {
 				array( 'status' => 400 )
 			);
 		}
-		return new \WP_REST_Response( RecruitmentAdjutancyReader::get_by_id( $id ), 200 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentAdjutancyReader::get_by_id( $id ) ), 200 );
 	}
 
 	/**
@@ -256,7 +256,7 @@ final class RecruitmentAdjutanciesRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function list_reasons(): \WP_REST_Response {
-		return new \WP_REST_Response( RecruitmentReasonReader::get_all(), 200 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentReasonReader::get_all() ), 200 );
 	}
 
 	/**
@@ -289,7 +289,7 @@ final class RecruitmentAdjutanciesRestController {
 				array( 'status' => 409 )
 			);
 		}
-		return new \WP_REST_Response( RecruitmentReasonReader::get_by_id( $id ), 201 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentReasonReader::get_by_id( $id ) ), 201 );
 	}
 
 	/**
@@ -309,7 +309,7 @@ final class RecruitmentAdjutanciesRestController {
 				array( 'status' => 400 )
 			);
 		}
-		return new \WP_REST_Response( RecruitmentReasonReader::get_by_id( $id ), 200 );
+		return new \WP_REST_Response( self::with_site_times( RecruitmentReasonReader::get_by_id( $id ) ), 200 );
 	}
 
 	/**

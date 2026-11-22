@@ -523,7 +523,7 @@ class SubmissionsList extends \WP_List_Table {
 			if ( is_array( $_GET['filter_form_id'] ) ) {
 				$filter_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
 			} else {
-				$filter_form_ids = array( absint( wp_unslash( $_GET['filter_form_id'] ) ) );
+				$filter_form_ids = array( RequestInput::get_get_int( 'filter_form_id' ) );
 			}
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
@@ -761,7 +761,7 @@ class SubmissionsList extends \WP_List_Table {
 			if ( is_array( $_GET['filter_form_id'] ) ) {
 				$selected_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
 			} else {
-				$selected_form_ids = array( absint( wp_unslash( $_GET['filter_form_id'] ) ) );
+				$selected_form_ids = array( RequestInput::get_get_int( 'filter_form_id' ) );
 			}
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended

@@ -321,16 +321,41 @@
             var mine = (panel && panel.mine) || [];
             var prefix = year + '-' + (month < 10 ? '0' : '') + month + '-';
 
+            var todayYmd = FFC.todayYmd();
+            var todayBadge = function () {
+                return $('<span class="ffc-event-list-today">').text(strings.today || 'Today');
+            };
+
             if (mine.length) {
                 $content.append($('<div class="ffc-event-list-date">').text(strings.panelMine || 'Your bookings'));
+                // In the month that holds today, the bookings already held
+                // wait in a collapsed group (#2728).
+                var splitPast = todayYmd.indexOf(prefix) === 0;
+                var $past = null;
+                var pastCount = 0;
                 mine.forEach(function (b) {
                     var status = b.status === 'pending' ? strings.pendingApproval : strings.confirmed;
-                    $content.append(
-                        $('<div class="ffc-event-list-item ffc-event-list-mine">')
-                            .append($('<span class="ffc-event-list-time">').text(self.formatDate(b.date) + ' · ' + b.start + (b.end ? '–' + b.end : '')))
-                            .append($('<span class="ffc-event-list-desc">').text((b.session ? b.session + ' · ' : '') + (status || '')))
-                    );
+                    var $time = $('<span class="ffc-event-list-time">').text(self.formatDate(b.date) + ' · ' + b.start + (b.end ? '–' + b.end : ''));
+                    if (b.date === todayYmd) {
+                        $time.append(' ').append(todayBadge());
+                    }
+                    var $item = $('<div class="ffc-event-list-item ffc-event-list-mine">')
+                        .append($time)
+                        .append($('<span class="ffc-event-list-desc">').text((b.session ? b.session + ' · ' : '') + (status || '')));
+                    if (splitPast && b.date < todayYmd) {
+                        if (!$past) {
+                            $past = $(FFC.pastDaysGroup(strings.alreadyHeld || 'Already held', '0'));
+                            $content.append($past);
+                        }
+                        $past.find('.ffc-past-days-items').append($item);
+                        pastCount++;
+                        return;
+                    }
+                    $content.append($item);
                 });
+                if ($past) {
+                    $past.find('.ffc-past-days-count').text(String(pastCount));
+                }
             }
 
             var dates = Object.keys(days);
@@ -342,7 +367,11 @@
             dates.sort();
 
             dates.forEach(function (d) {
-                $content.append($('<div class="ffc-event-list-date">').text(self.formatDate(d)));
+                var $date = $('<div class="ffc-event-list-date">').text(self.formatDate(d));
+                if (d === todayYmd) {
+                    $date.append(' ').append(todayBadge());
+                }
+                $content.append($date);
                 if (holidays && holidays[d]) {
                     $content.append($('<div class="ffc-event-list-item ffc-event-list-holiday">').append($('<span class="ffc-event-list-desc">').text(holidays[d])));
                     return;
@@ -414,9 +443,11 @@
                 var ariaDisabled = selectable ? '' : ' aria-disabled="true"';
                 var waitAttr = canWaitlist ? ' data-waitlist="1"' : '';
 
-                html += '<div class="ffc-timeslot' + stateClass + '" role="option" aria-selected="false"' + tabIdx + ariaDisabled + waitAttr + ' data-time="' + slot.time + '">';
-                html += '<span class="ffc-timeslot-time">' + slot.display + '</span>';
-                html += '<span class="ffc-timeslot-available">' + availableText + '</span>';
+                // The server's values go through esc() like the rest of this
+                // file's markup: a slot label is text, never HTML (#2689).
+                html += '<div class="ffc-timeslot' + stateClass + '" role="option" aria-selected="false"' + tabIdx + ariaDisabled + waitAttr + ' data-time="' + esc(slot.time) + '">';
+                html += '<span class="ffc-timeslot-time">' + esc(slot.display) + '</span>';
+                html += '<span class="ffc-timeslot-available">' + esc(availableText) + '</span>';
                 html += '</div>';
             });
 

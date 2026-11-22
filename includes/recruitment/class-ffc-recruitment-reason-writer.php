@@ -73,7 +73,7 @@ class RecruitmentReasonWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		$now = current_time( 'mysql' );
+		$now = time();
 
 		$result = $wpdb->insert(
 			$table,
@@ -85,7 +85,7 @@ class RecruitmentReasonWriter {
 				'created_at' => $now,
 				'updated_at' => $now,
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d' )
 		);
 
 		if ( ! $result ) {
@@ -136,8 +136,8 @@ class RecruitmentReasonWriter {
 			return false;
 		}
 
-		$update['updated_at'] = current_time( 'mysql' );
-		$format[]             = '%s';
+		$update['updated_at'] = time();
+		$format[]             = '%d';
 
 		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
 

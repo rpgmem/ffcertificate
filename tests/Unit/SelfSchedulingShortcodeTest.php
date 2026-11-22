@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -21,6 +22,10 @@ class SelfSchedulingShortcodeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -28,7 +33,7 @@ class SelfSchedulingShortcodeTest extends TestCase {
 
 		// Captcha challenges are signed with a wp_salt()-derived key since 6.23.0.
 		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
-			return 'test-salt-' . $scheme;
+			return FakeCredentials::WP_SALT . '-' . $scheme;
 		} );
 
 		Functions\when( '__' )->returnArg();

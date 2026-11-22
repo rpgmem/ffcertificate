@@ -175,6 +175,62 @@ final class DateFormatter {
 	}
 
 	/**
+	 * The unix seconds a stored timestamp means (#2679).
+	 *
+	 * A unix integer (Category A), or its digits as `$wpdb` returns them, is
+	 * the instant itself. A `DATETIME` string is read in the site's timezone,
+	 * which is how `current_time( 'mysql' )` wrote it, so a column that has
+	 * not been converted yet still reads as the right instant.
+	 *
+	 * @param int|string|null $value Unix seconds or a site-local `Y-m-d H:i:s`.
+	 * @return int Unix seconds, or 0 when empty or unparseable.
+	 */
+	public static function instant_of( $value ): int {
+		if ( null === $value || '' === $value ) {
+			return 0;
+		}
+		if ( is_int( $value ) || ctype_digit( (string) $value ) ) {
+			return max( 0, (int) $value );
+		}
+		try {
+			return max( 0, ( new \DateTimeImmutable( (string) $value, \wp_timezone() ) )->getTimestamp() );
+		} catch ( \Exception $e ) {
+			unset( $e );
+			return 0;
+		}
+	}
+
+	/**
+	 * A stored timestamp in the configured date and time formats, in the
+	 * site's timezone (#2679): unix seconds, or a legacy site-local
+	 * `DATETIME` a column held before it stored instants.
+	 *
+	 * @param int|string|null $value   Unix seconds or a site-local `Y-m-d H:i:s`.
+	 * @param string          $context 'default' or 'pdf'.
+	 * @return string Formatted date and time, or '' when empty or unparseable.
+	 */
+	public static function format_instant( $value, string $context = 'default' ): string {
+		$ts = self::instant_of( $value );
+		return $ts > 0 ? self::format_datetime( $ts, $context ) : '';
+	}
+
+	/**
+	 * A stored timestamp as the site-local `Y-m-d H:i:s` the REST responses
+	 * have always carried (#2679), so a column moving to UTC seconds does not
+	 * change what an integration reads.
+	 *
+	 * @param int|string|null $value Unix seconds or a site-local `Y-m-d H:i:s`.
+	 * @return string `2026-11-02 06:00:00`, or '' when empty or unparseable.
+	 */
+	public static function site_mysql_datetime( $value ): string {
+		$ts = self::instant_of( $value );
+		if ( $ts <= 0 ) {
+			return '';
+		}
+		return ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone( \wp_timezone() )->format( 'Y-m-d H:i:s' );
+	}
+
+	/**
 	 * Format a wall-clock DATE string (Category B) in the configured date
 	 * format, WITHOUT applying the site timezone.
 	 *
@@ -209,6 +265,57 @@ final class DateFormatter {
 	 */
 	public static function format_wallclock_time( ?string $wallclock, string $context = 'default' ): string {
 		return self::format_time( $wallclock, $context, new \DateTimeZone( 'UTC' ) );
+	}
+
+	/**
+	 * What a script needs to print a date the way this class does (#2676):
+	 * the plugin's date and time formats, the WordPress locale, and the month,
+	 * weekday and meridiem names of that locale. `FFC.formatDate()` and
+	 * `FFC.formatTime()` in ffc-core.js read it from `ffcCoreConfig.dates`.
+	 *
+	 * @return array{date: string, time: string, locale: string, months: list<string>, monthsShort: list<string>, weekdays: list<string>, weekdaysShort: list<string>, meridiem: array{am: string, pm: string, AM: string, PM: string}}
+	 */
+	public static function script_config(): array {
+		global $wp_locale;
+
+		$months         = array();
+		$months_short   = array();
+		$weekdays       = array();
+		$weekdays_short = array();
+		$meridiem       = array(
+			'am' => 'am',
+			'pm' => 'pm',
+			'AM' => 'AM',
+			'PM' => 'PM',
+		);
+		if ( $wp_locale instanceof \WP_Locale ) {
+			for ( $m = 1; $m <= 12; $m++ ) {
+				$name           = (string) $wp_locale->get_month( $m );
+				$months[]       = $name;
+				$months_short[] = (string) $wp_locale->get_month_abbrev( $name );
+			}
+			for ( $d = 0; $d <= 6; $d++ ) {
+				$name             = (string) $wp_locale->get_weekday( $d );
+				$weekdays[]       = $name;
+				$weekdays_short[] = (string) $wp_locale->get_weekday_abbrev( $name );
+			}
+			foreach ( array_keys( $meridiem ) as $key ) {
+				$meridiem[ $key ] = (string) $wp_locale->get_meridiem( $key );
+			}
+		}
+
+		$locale = (string) determine_locale();
+
+		return array(
+			'date'          => self::resolve_date_format(),
+			'time'          => self::resolve_time_format(),
+			'locale'        => str_replace( '_', '-', $locale ),
+			'months'        => $months,
+			'monthsShort'   => $months_short,
+			'weekdays'      => $weekdays,
+			'weekdaysShort' => $weekdays_short,
+			'meridiem'      => $meridiem,
+		);
 	}
 
 	/**
@@ -322,7 +429,6 @@ final class DateFormatter {
 	private static function settings(): array {
 		return \FreeFormCertificate\Settings\SettingsReader::all();
 	}
-
 
 	/**
 	 * Render a `start–end` schedule range as a compact human-readable

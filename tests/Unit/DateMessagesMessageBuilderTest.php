@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\DateMessages\DateSourceInterface;
@@ -32,7 +33,7 @@ class DateMessagesMessageBuilderTest extends TestCase {
 		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.org' . $p );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
 		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 	}
 
 	protected function tearDown(): void {
@@ -105,7 +106,7 @@ class DateMessagesMessageBuilderTest extends TestCase {
 	public function test_an_announcement_unsubscribe_link_names_the_announcement_category(): void {
 		// An announcement's "unsubscribe" must stop announcements, not birthdays.
 		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => '', 'last_name' => '' ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
 		Functions\when( 'add_query_arg' )->alias( static fn( array $args, string $url ) => $url . '?' . http_build_query( $args ) );
 

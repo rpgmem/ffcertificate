@@ -575,6 +575,7 @@
     margin-top: var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-sm);
     font-weight: 600;
+    list-style: none;
     cursor: pointer;
 }
 
@@ -1317,6 +1318,69 @@
 
 .ffc-shortcode .ffc-event-list-date:first-child {
     margin-top: 0;
+}
+
+/* Today's mark on its date header (#2728) */
+.ffc-shortcode .ffc-event-list-today {
+    display: inline-block;
+    margin-left: var(--ffc-spacing-2xs);
+    padding: 0 var(--ffc-spacing-xs);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+    font-size: var(--ffc-font-size-2xs);
+    font-weight: 600;
+    text-transform: none;
+}
+
+/* The month's past days, collapsed above today (#2728) */
+.ffc-shortcode .ffc-past-days {
+    margin-bottom: var(--ffc-spacing-sm);
+    border: 1px dashed var(--ffc-gray-300);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-shortcode .ffc-past-days-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    color: var(--ffc-gray-600);
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ffc-shortcode .ffc-past-days-summary::-webkit-details-marker {
+    display: none;
+}
+
+.ffc-shortcode .ffc-past-days-summary::before {
+    transition: transform 0.15s ease;
+}
+
+.ffc-shortcode .ffc-past-days[open] > .ffc-past-days-summary::before {
+    transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-shortcode .ffc-past-days-summary::before {
+        transition: none;
+    }
+}
+
+.ffc-shortcode .ffc-past-days-summary:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+.ffc-shortcode .ffc-past-days-count {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-shortcode .ffc-past-days-items {
+    padding: 0 var(--ffc-spacing-sm) var(--ffc-spacing-xs);
 }
 
 /* Event list item */

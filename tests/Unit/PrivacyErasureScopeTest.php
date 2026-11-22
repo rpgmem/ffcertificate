@@ -180,8 +180,26 @@ class PrivacyErasureScopeTest extends TestCase {
 
 	public function test_activity_lines_lose_the_client_address_and_the_encrypted_context(): void {
 		$this->account( 42 );
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
 
 		PrivacyErasers::erase_personal_data( 'ana@example.com' );
+
+		$this->assertContains(
+			'UPDATE wp_ffc_activity_log SET user_id = NULL, user_ip_encrypted = NULL, context_encrypted = NULL WHERE user_id = 42',
+			$this->queries,
+			'Without the legacy column the statement must not name it (#2658).'
+		);
+	}
+
+	public function test_activity_lines_also_clear_the_legacy_plaintext_column_while_it_exists(): void {
+		$this->account( 42 );
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			static fn( $sql ) => false !== strpos( (string) $sql, 'DESCRIBE' ) ? array( 'id', 'user_id', 'user_ip', 'user_ip_encrypted', 'context_encrypted' ) : array()
+		);
+
+		PrivacyErasers::erase_personal_data( 'ana@example.com' );
+		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
 
 		$this->assertContains(
 			'UPDATE wp_ffc_activity_log SET user_id = NULL, user_ip = NULL, user_ip_encrypted = NULL, context_encrypted = NULL WHERE user_id = 42',

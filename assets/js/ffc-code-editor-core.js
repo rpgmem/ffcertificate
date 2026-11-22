@@ -213,9 +213,24 @@
 		setContent( $textarea, ( $textarea.val() || '' ) + snippet );
 	}
 
+	/**
+	 * Redraw the editor after its container was shown: CodeMirror cannot
+	 * measure itself while hidden (#2581). No-op when no editor is mounted.
+	 *
+	 * @param {Object} $textarea jQuery-wrapped textarea.
+	 * @return {void}
+	 */
+	function refresh( $textarea ) {
+		var cm = instanceOf( $textarea );
+		if ( cm && 'function' === typeof cm.refresh ) {
+			cm.refresh();
+		}
+	}
+
 	window.FFCCodeEditor = {
 		init: init,
 		flush: flush,
+		refresh: refresh,
 		setContent: setContent,
 		insertAtCursor: insertAtCursor,
 	};

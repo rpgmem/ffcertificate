@@ -34,6 +34,7 @@ class AdminUserColumnsTest extends TestCase {
 	private $wpdb_backup;
 
 	protected function setUp(): void {
+		\WP_User_Query::reset();
 		parent::setUp();
 		Monkey\setUp();
 
@@ -83,6 +84,7 @@ class AdminUserColumnsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\WP_User_Query::reset();
 		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		$this->resetStaticCaches();
 		Monkey\tearDown();
@@ -380,33 +382,10 @@ class AdminUserColumnsTest extends TestCase {
 	// apply_sort_to_user_query()
 	// ==================================================================
 
-	/**
-	 * Declares core's user query class inside the calling test's own process.
-	 *
-	 * Called from a test, never at file scope: PHPUnit loads every test file
-	 * in its parent process to build the suite, so a file-scope declaration
-	 * gave the parent a `WP_User_Query` with no constructor arguments and no
-	 * `get_total()`, which broke any test there that counts users (#2104).
-	 * Each test that calls it runs in its own process, so each gets a fresh one.
-	 */
-	private function declare_user_query(): void {
-		if ( ! class_exists( '\WP_User_Query', false ) ) {
-			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a WordPress core class inside this test's own process.
-			eval( 'class WP_User_Query { public $query_from = ""; public $query_where = ""; public $query_orderby = ""; public $query_vars = array(); }' );
-		}
-	}
-
-	/**
-	 * Its own process: it declares a minimal WP_User_Query.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_apply_sort_to_user_query_skips_unknown_orderby(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
 
-		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'login', 'order' => 'ASC' );
 		$query->query_from    = 'FROM wp_users';
@@ -419,17 +398,10 @@ class AdminUserColumnsTest extends TestCase {
 		$this->assertSame( 'ORDER BY user_login ASC', $query->query_orderby );
 	}
 
-	/**
-	 * Its own process: it declares a minimal WP_User_Query.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_apply_sort_to_user_query_mutates_query_when_sorting_by_certificates(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
 
-		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'ffc_certificates', 'order' => 'DESC' );
 		$query->query_from    = 'FROM wp_users';
@@ -443,12 +415,6 @@ class AdminUserColumnsTest extends TestCase {
 		$this->assertStringContainsString( 'DESC', $query->query_orderby );
 	}
 
-	/**
-	 * Its own process: it declares a minimal WP_User_Query.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_apply_sort_to_user_query_mutates_query_when_sorting_by_notices(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
@@ -456,7 +422,6 @@ class AdminUserColumnsTest extends TestCase {
 		// table_exists returns the table name → exists
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_recruitment_classification' )->byDefault();
 
-		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'ffc_notices', 'order' => 'ASC' );
 		$query->query_from    = 'FROM wp_users';

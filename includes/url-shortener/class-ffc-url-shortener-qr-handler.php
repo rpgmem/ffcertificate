@@ -320,6 +320,10 @@ class UrlShortenerQrHandler {
 		if ( ! $record ) {
 			wp_send_json_error( array( 'message' => __( 'Short URL not found.', 'ffcertificate' ) ) );
 		}
+		// The same rule as a post's link: an off link has no QR to print (#2693).
+		if ( 'active' !== ( $record['status'] ?? '' ) ) {
+			wp_send_json_error( array( 'message' => __( 'This short URL is not active, so it has no QR code.', 'ffcertificate' ) ) );
+		}
 
 		return array(
 			'url'    => $this->service->get_short_url( $code ),

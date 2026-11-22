@@ -39,33 +39,10 @@ class IpDiagnosticsSettingsReaderTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( $option );
 	}
 
-	public function test_defaults_when_option_absent(): void {
-		Functions\when( 'get_option' )->justReturn( array() );
-		$this->assertSame( 'legacy', IpDiagnosticsSettingsReader::strategy() );
-		$this->assertFalse( IpDiagnosticsSettingsReader::is_secure() );
-		$this->assertSame( 'auto', IpDiagnosticsSettingsReader::trusted_proxy_mode() );
-		$this->assertSame( array(), IpDiagnosticsSettingsReader::custom_proxies() );
-		$this->assertFalse( IpDiagnosticsSettingsReader::shadow_logging_enabled() );
-	}
-
 	public function test_non_array_option_coerced(): void {
 		Functions\when( 'get_option' )->justReturn( 'corrupt' );
 		$this->assertSame( array(), IpDiagnosticsSettingsReader::all() );
 		$this->assertSame( 'legacy', IpDiagnosticsSettingsReader::strategy() );
-	}
-
-	public function test_valid_values_pass_through(): void {
-		$this->with_option(
-			array(
-				'strategy'           => 'secure',
-				'trusted_proxy_mode' => 'custom',
-				'shadow_logging'     => 1,
-			)
-		);
-		$this->assertSame( 'secure', IpDiagnosticsSettingsReader::strategy() );
-		$this->assertTrue( IpDiagnosticsSettingsReader::is_secure() );
-		$this->assertSame( 'custom', IpDiagnosticsSettingsReader::trusted_proxy_mode() );
-		$this->assertTrue( IpDiagnosticsSettingsReader::shadow_logging_enabled() );
 	}
 
 	public function test_unknown_strategy_falls_back_to_legacy(): void {

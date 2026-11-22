@@ -7,7 +7,60 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.44.1] (2026-11-08)
+## [6.45.0] (2026-11-22)
+
+### Added
+
+- **Certificates use the fonts installed through the WordPress Font Library** (#2569, #2573). Every page that draws a certificate loads them and the capture waits for them; Settings → Certificates, the layout editor and the form layout list them and warn about a font the site has not installed, saying how to install it.
+- **A long name or course title can shrink to fit its box** (#2570): `ffc-fit` (one line) and `ffc-fit-box` (wraps) shrink the text before the capture, never below half its size, in the PDF and the editor preview.
+- **Forms have an event date**, printed by `{{schedule:date}}` / `{{schedule:dates}}` in the PDF format or a `format=` of their own, shown in the export and on the verification page (#2579). A migration card moves the date typed into each layout onto it, previewing the run and checking each form before writing (#2580).
+- **A form can reference a certificate template instead of copying it** (#2581): editing the template reaches every form using it, and each form fills the template's fields as `{{model:key}}`. A migration card moves forms carrying copies of one layout onto a shared template when the certificate prints the same (#2583), and a form on an unedited copy of an earlier default model is offered the current one (#2577).
+- **Certificates → Signers lists the WordPress users who sign** (#2582, #2620, #2622): a form names up to three, printed as `{{signer1:…}}`–`{{signer3:…}}` (`{{signer:…}}` is the first) from the profile at generation time; Add signer searches name, login, e-mail or a full RF. The RF prints in full on the PDF only, and adding a signer is logged.
+- **Visual certificate templates** (#2584, #2585, #2586, #2588, #2613): a validated JSON layout of positioned elements, rendered on the server and edited on a page canvas with a properties panel, preview, undo, guides, multi-select (by click or rectangle), rotation, copy between templates and a full keyboard. Six visual default models ship.
+- **Create visual version converts an HTML template** (#2587, #2606, #2609): read in the browser as the PDF draws it, each border, line, tag, image and QR code becomes an element in its measured place, a linear gradient becomes a gradient frame, and the report lists what was kept and dropped. Five of the six models convert with no HTML block; a server importer remains for no JavaScript.
+- **Signed certificate records and signed QR codes** (#2639). A form can sign each certificate (Link only, Signed compact or Signed full) with an Ed25519 key generated, copied and rotated in Settings → Certificates. The verification page says whether a certificate still matches what was signed, checks a signed QR code in the browser even offline, and an offline verifier is downloadable; the editor says which QR modes fit the printed size.
+- **Signing certificates already issued, and re-signing after a form changes** (#2639, #2672, #2674, #2696). A Data Migrations card signs the published certificates of signed-mode forms, saying what it covers and leaves out; a certificate signed after issue shows both dates. After a form's title, workload or event dates change, "Re-sign with current data" signs its certificates again in batches, logged.
+- **The activity log can record the public CSV panel** (#2632): who opens it and every refused attempt with its reason, never the hash.
+
+### Changed
+
+- **The default certificate models, record and receipts** name installable fonts with the old system font behind them (#2574), print place, workload, dates and signers from the form (#2624), and put a 96 px QR code between the signers where a signed code is readable (#2639). Forms on a default model get the Update layout notice.
+- **QR codes** (#2648, #2660, #2662, #2664, #2686): drawn at the highest error correction that keeps their size, or a lower one (dropping the logo, then printing the link) when the content does not fit, instead of failing; the generator offers a way out of a too-long code and a Use the logo switch; the form editor says when a certificate's code prints at another level. A test decodes every code the plugin draws.
+- **Data Migrations**: a card waiting on a prerequisite shows Run disabled with what is missing and links to where it is met (#2651, #2656).
+- **Public operator panel**: Preview Certificate is offered from before the start until the form closes (#2682), and the captcha in its dialogs is the widget alone (#2684).
+- **Calendar side panels fold the current month's past days into a closed group** ("Earlier days", or "Already held" for a visitor's own bookings) and mark today; past and future months stay open (#2728).
+- **Personal Calendars: the receipt is the appointment's magic link** (#2732). E-mails, dashboard and booking confirmation link it; `?ffc_appointment_receipt=` redirects (token holder or owner to the link, staff to the list, anyone else refused) and the standalone page is gone. Staff open it from "Open receipt", an audited route gated on the module's PII capability; the PDF badge takes the status's colours.
+- **Vendored bundles**: ALTCHA 3.6.0 and html2canvas-pro 2.6.4, byte-identical to upstream and checked against the real widget and the six models' pixels; `libs/phpqrcode/` joins the inventory (#2643).
+- **pt_BR**: one word per domain term (submissão, reserva, signatário, registro de atividades…) held by `TranslationGlossaryTest`, fifteen meanings and four renamed placeholders fixed, and on-screen text that was in the wrong language translated (#2666, #2668, #2670).
+- **Internals**: integer request reads go through `RequestInput` (#2557), the REST buffer asks `wp_is_serving_rest_request()` (#2559), maintenance tools are injected (#2567), and every credential in tests and CI starts with `fake-`, held by a guard (#2637).
+
+### Removed
+
+- ⚠ **Legacy cron hook names and the per-audience field seed** (#2552, #2323, #2502): attach to the `ffc_*` cron name, and call `ReregistrationStandardFieldsSeeder::seed_global()`.
+- ⚠ **Five finished one-shot migrations leave Settings → Migrations** (#2552, #2115): Split CPF/RF, Rehash Email Lookup Hashes, Activity Log: Clear Plaintext on Encrypted Rows, Import Legacy Certificate Templates and Rewrite html/ Image References.
+- ⚠ **The form-settings cache and uncalled submission lookups** (#2552, #2241): `FormCache` keeps only the page-cache purges; read a form's settings with `get_post_meta()` or `FormRepository`. `findByEmail`, `findByCpfRf`, `findByFormId` and `getForExport` leave the submission reader and repository.
+- ⚠ **Public methods nothing called** (#2552, #2089): 61 PHP methods, four `FFC` JS helpers and seven `FFCCalendarCore` accessors, each deprecated since 6.43.0, listed by class in #2552.
+- **Plaintext IP columns and a duplicate log index** (#2658), dropped once no row holds an address; and **ip-api.com**, which could never be reached over HTTPS: ipinfo.io is the only geolocation service (#2690).
+
+### Fixed
+
+- **Certificate PDFs and previews** (#2569, #2598, #2600, #2603, #2634): the dashboard and booking pages apply the template helper classes, previews place every line where the PDF does without the theme's styles, requests work on WordPress in a subdirectory, visual models 1–4 and 6 print their QR line again, and the certificate no longer flashes through the overlay.
+- **Visual editor** (#2608, #2612, #2616, #2618, #2628, #2629): images can be selected and dragged, the canvas draws the page colour and background, a QR element shows a sample code, model 6's triangles convert, a shipped model's screen shows the page, and the shipped models are made of editable elements.
+- **The translation template is valid again**, and a malformed entry fails the tests (#2653).
+- **Dates and times** (#2676, #2679): the screens, CSVs and exports that printed raw or shifted values follow the plugin's formats, in PHP and the browser (`FFC.formatDate()` / `FFC.formatTime()`); appointment and recruitment timestamps are stored as instants, which had shown shifted by the site's offset.
+- **Certificates** (#2695, #2696): two submissions with the same form and CPF run one after the other, Open early and Postpone close re-check under a lock, the CSV preview checks its challenge first, a no-JS verification is verified there, and a signature survives a timezone change and a key rotation.
+- **Verification**: a pasted code with spaces or line breaks is cleaned and masked whole, also without JavaScript, and an over-long code is not looked up (#2730).
+- **Reregistration** (#2688): a CPF/RF moves onto the profile only when the submission is approved and never one another account holds; required checkboxes, the second post and the campaign status are checked on the server; a member who left the audience is not invited; an approval e-mails the member and is logged.
+- **Personal Calendars** (#2689): per-person limits key on the person, not the address, and a past waitlist entry stops counting; no-show waits for the start and undoing a mark recounts the slot; slot labels print as text; the free slots panel follows the booking window; verification by code masks the receipt and its headline follows the status; reminders skip a fresh confirmation and retry a failed send; .ics files carry the time zone.
+- **Audience Calendars** (#2691): check-in past midnight, HH:MM booking times, the day's list and cancel dialog follow the server, the post-event send runs in the background, and the conflict check no longer tells any account who is booked.
+- **Core** (#2690): a legacy v1 value is read with the WordPress-derived key only, view-as no longer acts as the account viewed, and activation no longer takes over a page that only shares the slug.
+- **Date Messages** (#2692): this site's members only, one count per person, no announcement sent twice, and the history counts earlier deliveries and says who failed.
+- **Short URLs** (#2693): the prefix no longer hides pages, a link follows its post off the site, crawlers are not counted, and each link shows its last click.
+- **Recruitment** (#2694): imports re-check the notice and their owner, rank ties are refused, an unlink sticks, a bad e-mail is refused, the public list caches only bounded views, and a bulk call sends in the background with each call's delivery shown.
+
+## [6.44.1] (2026-11-08) — `513f0c4`
+- **A `{{signer2:signature}}` or `{{signer3:signature}}` image address survives the layout allow-list and the visual conversion** (#2624): the allow-list held only `{{signer:`, and the conversion's markup escaped the braces, so both cut the token down to `signature}}`.
+- **The event date on the Time tab is saved and previewed** (#2626): it is kept when another geofence setting fails validation, an End the Start moved past is cleared instead of silently blocking the save, and the layout preview prints the date typed (else the saved one) instead of today.
 
 ### Fixed
 

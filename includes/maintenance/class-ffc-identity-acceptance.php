@@ -387,31 +387,6 @@ class IdentityAcceptance {
 	}
 
 	/**
-	 * The tier a finding was accepted under, or null when it is not accepted.
-	 *
-	 * @param string $check   The auditor's key for the check.
-	 * @param string $field   The identifier, `rf` or `cpf`.
-	 * @param string $subject The finding's subject.
-	 * @return string|null
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function accepted_tier( string $check, string $field, string $subject ): ?string {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$record = $this->record( $check, $field, $subject );
-
-		if ( null === $record ) {
-			return null;
-		}
-
-		$tier = $record[ self::FIELD_TIER ] ?? '';
-
-		return is_string( $tier ) && '' !== $tier ? $tier : null;
-	}
-
-	/**
 	 * The accepted hashes of one identifier column, as a set.
 	 *
 	 * WHAT THIS IS FOR, AND WHAT IT DELIBERATELY DOES NOT DO.

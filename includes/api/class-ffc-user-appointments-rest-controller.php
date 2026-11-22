@@ -187,15 +187,12 @@ class UserAppointmentsRestController {
 				// cancels as a guest.
 				$receipt_url = '';
 				if ( 'cancelled' !== $status && ! $ctx['is_view_as'] ) {
-					$confirmation_token = $appointment['confirmation_token'] ?? '';
-					if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-						$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-					} elseif ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
-						$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-							(int) $appointment['id'],
-							$confirmation_token
-						);
-					}
+					// The magic link, or without a token the legacy address,
+					// which gives the owner one on the way there (#2732).
+					$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
+						(int) $appointment['id'],
+						(string) ( $appointment['confirmation_token'] ?? '' )
+					);
 				}
 
 				// The same rules the cancel handler applies (#2244): an open
@@ -260,7 +257,8 @@ class UserAppointmentsRestController {
 					'email'                => $email_display,
 					'phone'                => $phone_display,
 					'user_notes'           => $appointment['user_notes'] ?? '',
-					'created_at'           => $appointment['created_at'] ?? '',
+					// A site-local `Y-m-d H:i:s`, as before the column stored an instant (#2679).
+					'created_at'           => \FreeFormCertificate\Core\DateFormatter::site_mysql_datetime( $appointment['created_at'] ?? null ),
 					'can_cancel'           => $can_cancel,
 					'cancel_note'          => $cancel_note,
 					'receipt_url'          => $receipt_url,

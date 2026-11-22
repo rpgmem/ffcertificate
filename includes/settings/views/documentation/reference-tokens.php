@@ -122,6 +122,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><em>9h 30min</em></td>
 			</tr>
 			<tr>
+				<td><code>{{schedule:date}}</code></td>
+				<td><?php esc_html_e( 'The event\'s first day, from the Event Schedule date on the Time tab — never the form\'s opening date. Empty when the form has no event date. Add a PHP date format to choose how it prints, as in {{schedule:date:format=d/m/Y}}; without one it uses the PDF date format from Settings → General.', 'ffcertificate' ); ?></td>
+				<td><em>19/12/2025</em></td>
+			</tr>
+			<tr>
+				<td><code>{{schedule:dates}}</code></td>
+				<td><?php esc_html_e( 'The event\'s day for a one-day event, or its first and last days. Takes the same format as {{schedule:date}}.', 'ffcertificate' ); ?></td>
+				<td><em>19/12/2025 to 20/12/2025</em></td>
+			</tr>
+			<tr>
+				<td><code>{{model:key}}</code></td>
+				<td><?php esc_html_e( 'A field the certificate template declares, filled by each form that references the template, or the field\'s default when the form leaves it empty. A date field takes a format, as in {{model:key:format=d/m/Y}}. A key the template does not declare prints as written.', 'ffcertificate' ); ?></td>
+				<td><em>Sala 2</em></td>
+			</tr>
+			<tr>
+				<td><code>{{signer1:name}}</code> <code>{{signer1:rf}}</code> <code>{{signer1:role}}</code> <code>{{signer1:signature}}</code></td>
+				<td><?php esc_html_e( 'The form\'s signers, up to three, chosen on the Layout tab from Certificates → Signers: {{signer1:…}}, {{signer2:…}} and {{signer3:…}}, with {{signer:…}} the same as {{signer1:…}}. Name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews; a position with no signer prints blank.', 'ffcertificate' ); ?></td>
+				<td><em>Maria Souza</em></td>
+			</tr>
+			<tr>
 				<td><code>{{ticket}}</code></td>
 				<td><?php esc_html_e( 'The single-use ticket code the participant entered (forms with the Ticket restriction only).', 'ffcertificate' ); ?></td>
 				<td><em>TK01-AB2C-3D4E</em></td>

@@ -82,10 +82,11 @@ if ( empty( $classifications ) ) {
 			echo '<tr>';
 			// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c).
 			echo '<td>' . esc_html( DateFormatter::format_datetime( (int) $call->called_at ) ) . '</td>';
-			echo '<td>' . esc_html( (string) $call->date_to_assume ) . '</td>';
-			echo '<td>' . esc_html( (string) $call->time_to_assume ) . '</td>';
+			echo '<td>' . esc_html( DateFormatter::format_wallclock_date( (string) $call->date_to_assume ) ) . '</td>';
+			echo '<td>' . esc_html( DateFormatter::format_wallclock_time( (string) $call->time_to_assume ) ) . '</td>';
 			echo '<td>' . ( '1' === (string) $call->out_of_order ? esc_html__( 'Yes', 'ffcertificate' ) : '—' ) . '</td>';
-			echo '<td>' . ( null === $call->cancelled_at ? '—' : esc_html( (string) $call->cancelled_at ) ) . '</td>';
+			// `cancelled_at` is a unix instant (bigint), like `called_at` (#2676).
+			echo '<td>' . ( null === $call->cancelled_at ? '—' : esc_html( DateFormatter::format_datetime( (int) $call->cancelled_at ) ) ) . '</td>';
 			echo '<td>' . esc_html( null === $call->notes ? '' : (string) $call->notes ) . '</td>';
 			echo '</tr>';
 		}

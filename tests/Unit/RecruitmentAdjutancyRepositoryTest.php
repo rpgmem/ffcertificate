@@ -123,11 +123,12 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 						return 'matematica' === $data['slug']
 							&& 'Matemática' === $data['name']
 							&& '#e9ecef' === $data['color']
-							&& '2026-05-01 10:00:00' === $data['created_at']
-							&& '2026-05-01 10:00:00' === $data['updated_at'];
+							// Instants since #2679, from `time()`.
+							&& is_int( $data['created_at'] )
+							&& $data['created_at'] === $data['updated_at'];
 					}
 				),
-				array( '%s', '%s', '%s', '%s', '%s' )
+				array( '%s', '%s', '%s', '%d', '%d' )
 			)
 			->andReturn( 1 );
 

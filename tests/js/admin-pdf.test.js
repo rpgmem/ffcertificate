@@ -478,7 +478,7 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		// The preview click is delegated on document, which survives reset();
 		// without unbinding, every beforeEach stacks another handler and one
 		// click posts N times.
-		window.$(document).off('click', '#ffc_btn_preview');
+		window.$(document).off('click', '#ffc_btn_preview, .ffc-btn-preview-template');
 		loadScript('assets/js/ffc-code-editor-core.js');
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
@@ -529,6 +529,19 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		expect(data.title).toBe('Test Form');
 		expect(data.bg_image).toBe('https://example.test/bg.png');
 		post.mockRestore();
+	});
+
+	it('sends the event date typed on the Time tab and the form id (#2626)', () => {
+		document.body.insertAdjacentHTML('beforeend', '<input type="hidden" id="post_ID" name="post_ID" value="440"><input type="date" id="ffc_event_date_start" value="2026-03-10"><input type="date" id="ffc_event_date_end" value="2026-03-12">');
+		const post = vi.spyOn(window.$, 'post').mockReturnValue(answer(page));
+		document.querySelector('#ffc_pdf_layout').value = '<p>{{schedule:dates}}</p>';
+		window.$('#ffc_btn_preview').trigger('click');
+		const data = post.mock.calls[0][1];
+		expect(data.post_id).toBe('440');
+		expect(data.event_date_start).toBe('2026-03-10');
+		expect(data.event_date_end).toBe('2026-03-12');
+		post.mockRestore();
+		['post_ID', 'ffc_event_date_start', 'ffc_event_date_end'].forEach((id) => document.getElementById(id).remove());
 	});
 
 	it('sends the form builder fields with their labels, so custom variables preview', () => {
@@ -1163,5 +1176,129 @@ describe('ffc-admin-pdf.js — media frames', () => {
 		window.$('#ffc_btn_insert_image').trigger('click');
 
 		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error: HTML textarea not found', 'error');
+	});
+});
+
+describe('ffc-admin-pdf.js — update an earlier default layout (#2577)', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML =
+			'<textarea id="ffc_pdf_layout">old</textarea>' +
+			'<button id="ffc_update_default_layout_btn" data-template-id="9" data-template-name="Certificate model 1">Update layout</button>';
+		window.ffc_ajax = {
+			ajax_url: '/wp-admin/admin-ajax.php',
+			nonce: 'test-nonce',
+			strings: { confirmUpdateLayout: 'Replace with "%s"?', updateLayout: 'Update layout' },
+		};
+		loadScript('assets/js/ffc-code-editor-core.js');
+		loadScript('assets/js/ffc-admin-pdf.js');
+		window.$.post = vi.fn(() => {
+			const jqxhr = {
+				done(cb) {
+					cb({ success: true, data: { html: '<p>new</p>', bg_image: '', bg_color: '#ffffff' } });
+					return jqxhr;
+				},
+				fail() {
+					return jqxhr;
+				},
+			};
+			return jqxhr;
+		});
+	});
+
+	afterEach(reset);
+
+	it('asks first, naming the model, and loads the pool default by id when agreed', async () => {
+		const dialog = answer(true);
+
+		window.$('#ffc_update_default_layout_btn').trigger('click');
+		await settle();
+
+		expect(dialog).toHaveBeenCalledWith(expect.objectContaining({ message: 'Replace with "Certificate model 1"?', category: 'caution' }));
+		expect(window.$.post).toHaveBeenCalled();
+		window.$.post.mock.calls.forEach(([, data]) => {
+			expect(data.action).toBe('ffc_load_template');
+			expect(data.template_id).toBe(9);
+		});
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>new</p>');
+	});
+
+	it('leaves the layout alone when the administrator declines', async () => {
+		answer(false);
+
+		window.$('#ffc_update_default_layout_btn').trigger('click');
+		await settle();
+
+		expect(window.$.post).not.toHaveBeenCalled();
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('old');
+	});
+});
+
+describe('ffc-admin-pdf.js — layout source (#2581)', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML = `
+			<input type="radio" name="ffc_layout_source" value="own">
+			<input type="radio" name="ffc_layout_source" value="template" checked>
+			<table>
+				<tr class="ffc-layout-own"><td><textarea id="ffc_pdf_layout"></textarea></td></tr>
+			</table>
+			<div class="ffc-layout-template" hidden>
+				<select id="ffc_layout_template_id">
+					<option value="0"></option><option value="50" selected></option><option value="60"></option>
+				</select>
+				<div class="ffc-layout-template-panel" data-template-id="50" hidden>
+					<button class="ffc-btn-preview-template">Preview</button>
+					<input name="ffc_template_values[50][local]" value="Sala 2">
+					<textarea name="ffc_template_values[50][acao]">fez</textarea>
+				</div>
+				<div class="ffc-layout-template-panel" data-template-id="60"></div>
+			</div>
+			<input id="title" value="Form">
+		`;
+		window.ffc_ajax = {};
+		window.$(document).off('click', '#ffc_btn_preview, .ffc-btn-preview-template');
+		window.$(document).off('change', 'input[name="ffc_layout_source"], #ffc_layout_template_id');
+		loadScript('assets/js/ffc-code-editor-core.js');
+		loadScript('assets/js/ffc-admin-pdf.js');
+	});
+
+	afterEach(reset);
+
+	const visible = (sel) => !document.querySelector(sel).hidden;
+
+	it('shows the template picker and only the chosen panel when the form references a template', async () => {
+		await new Promise((r) => setTimeout(r, 0));
+		expect(visible('.ffc-layout-own')).toBe(false);
+		expect(visible('.ffc-layout-template')).toBe(true);
+		expect(visible('[data-template-id="50"]')).toBe(true);
+		expect(visible('[data-template-id="60"]')).toBe(false);
+
+		window.$('#ffc_layout_template_id').val('60').trigger('change');
+		expect(visible('[data-template-id="50"]')).toBe(false);
+		expect(visible('[data-template-id="60"]')).toBe(true);
+	});
+
+	it('brings the own editor back when the form switches to its own layout', () => {
+		window.$('input[value="own"]').prop('checked', true).trigger('change');
+		expect(visible('.ffc-layout-own')).toBe(true);
+		expect(visible('.ffc-layout-template')).toBe(false);
+	});
+
+	it('previews the template with the values typed so far, without the own layout', () => {
+		const post = vi.spyOn(window.$, 'post').mockReturnValue({
+			done() { return this; },
+			fail() { return this; },
+		});
+		window.$('.ffc-btn-preview-template').trigger('click');
+
+		expect(window.FFC.Admin.notify).not.toHaveBeenCalled();
+		expect(post).toHaveBeenCalledTimes(1);
+		const data = post.mock.calls[0][1];
+		expect(data.template_id).toBe('50');
+		expect(data.template_values).toEqual({ local: 'Sala 2', acao: 'fez' });
+		post.mockRestore();
 	});
 });

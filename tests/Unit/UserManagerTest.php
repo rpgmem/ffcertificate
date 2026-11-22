@@ -488,17 +488,6 @@ class UserManagerTest extends TestCase {
 	// get_user_cpf_masked()
 	// ==================================================================
 
-	public function test_get_user_cpf_masked_returns_null_when_no_cpfs(): void {
-		// get_user_cpfs_masked will query $wpdb. Make get_results return empty.
-		$this->wpdb->shouldReceive( 'get_results' )
-			->once()
-			->andReturn( array() );
-
-		$result = UserManager::get_user_cpf_masked( 42 );
-
-		$this->assertNull( $result );
-	}
-
 	// ==================================================================
 	// get_user_cpfs_masked() — empty results path
 	// ==================================================================
@@ -587,19 +576,6 @@ class UserManagerTest extends TestCase {
 	// ==================================================================
 	// get_user_cpf_masked() — with decryption
 	// ==================================================================
-
-	public function test_get_user_cpf_masked_returns_first_cpf(): void {
-		$this->wpdb->shouldReceive( 'get_results' )
-			->once()
-			->andReturn( array(
-				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_A ), 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_B ), 'rf_encrypted' => null ),
-			) );
-
-		$result = UserManager::get_user_cpf_masked( 42 );
-
-		$this->assertSame( DocumentFormatter::mask_cpf( Identifiers::CPF_A ), $result );
-	}
 
 	// ==================================================================
 	// get_user_identifiers_masked() — empty results path
@@ -1049,9 +1025,6 @@ class UserManagerTest extends TestCase {
 		}
 	}
 
-
-
-
 	// ==================================================================
 	// Own methods — verify signatures
 	// ==================================================================
@@ -1070,14 +1043,6 @@ class UserManagerTest extends TestCase {
 		$this->assertTrue( $ref->isPublic() );
 		$this->assertCount( 2, $ref->getParameters() );
 		$this->assertSame( 'bool', $ref->getReturnType()->getName() );
-	}
-
-	public function test_get_user_cpf_masked_signature(): void {
-		$ref = new \ReflectionMethod( UserManager::class, 'get_user_cpf_masked' );
-		$this->assertTrue( $ref->isStatic() );
-		$this->assertTrue( $ref->isPublic() );
-		$this->assertCount( 1, $ref->getParameters() );
-		$this->assertTrue( $ref->getReturnType()->allowsNull() );
 	}
 
 	public function test_get_user_cpfs_masked_signature(): void {

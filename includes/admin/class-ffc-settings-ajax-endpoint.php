@@ -150,11 +150,6 @@ class SettingsAjaxEndpoint {
 				'type'   => 'bool',
 				'cap'    => 'ffc_manage_settings',
 			),
-			'ip_api_cascade'                => array(
-				'option' => 'ffc_geolocation_settings',
-				'type'   => 'bool',
-				'cap'    => 'ffc_manage_settings',
-			),
 			'ip_cache_enabled'              => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',

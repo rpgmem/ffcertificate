@@ -107,6 +107,18 @@ class UrlShortenerLoaderTest extends TestCase {
 
 
 	/**
+	 * A request for `/go/<code>` at the site root: the loader reads the code
+	 * from the path, since it registers no rewrite rule (#2693).
+	 *
+	 * @param string $code Code in the path.
+	 */
+	private function visit( string $code ): void {
+		$_SERVER['REQUEST_URI'] = '/go/' . $code;
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.com' . ( '' === $path ? '/' : $path ) );
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+	}
+
+	/**
 	 * do_redirect() wraps the click counter in add_action('shutdown', ...).
 	 * PHPUnit never fires 'shutdown', so we install a local stub that runs
 	 * the callback immediately, letting incrementClickCount expectations
@@ -133,8 +145,8 @@ class UrlShortenerLoaderTest extends TestCase {
 
 		$this->loader->init();
 
-		$this->assertTrue( has_action( 'init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rewrite_rules()' ) !== false );
-		$this->assertTrue( has_filter( 'query_vars', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->add_query_vars()' ) !== false );
+		// No rewrite rule of its own, which claimed every address under the prefix (#2693).
+		$this->assertFalse( method_exists( $this->loader, 'register_rewrite_rules' ) );
 		$this->assertTrue( has_action( 'parse_request', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->intercept_short_url()' ) !== false );
 		$this->assertTrue( has_action( 'template_redirect', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->handle_redirect()' ) !== false );
 	}
@@ -267,7 +279,7 @@ class UrlShortenerLoaderTest extends TestCase {
 
 		$this->loader->init();
 
-		$this->assertFalse( has_action( 'init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rewrite_rules()' ) );
+		$this->assertFalse( has_action( 'parse_request', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->intercept_short_url()' ) );
 	}
 
 	// ==================================================================
@@ -275,7 +287,6 @@ class UrlShortenerLoaderTest extends TestCase {
 	// ==================================================================
 
 	public function test_maybe_flush_flushes_on_first_install(): void {
-		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
 		Functions\when( 'get_option' )->justReturn( '' );
 
 		$flushed = false;
@@ -289,9 +300,8 @@ class UrlShortenerLoaderTest extends TestCase {
 		$this->assertTrue( $flushed );
 	}
 
-	public function test_maybe_flush_skips_when_version_matches(): void {
-		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-		Functions\when( 'get_option' )->justReturn( 'go:1' );
+	public function test_maybe_flush_skips_once_the_rule_is_gone(): void {
+		Functions\when( 'get_option' )->justReturn( 'no-rule:2' );
 
 		$flushed = false;
 		Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
@@ -303,75 +313,24 @@ class UrlShortenerLoaderTest extends TestCase {
 		$this->assertFalse( $flushed );
 	}
 
-	public function test_maybe_flush_flushes_on_prefix_change(): void {
-		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'link' );
+	public function test_maybe_flush_drops_the_rule_an_earlier_version_stored(): void {
+		// `go:1` is what versions with the rewrite rule recorded (#2693).
 		Functions\when( 'get_option' )->justReturn( 'go:1' );
 
 		$flushed = false;
 		Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
 			$flushed = true;
 		} );
-		Functions\when( 'update_option' )->justReturn( true );
+		$stored = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$stored ) {
+			$stored = $value;
+			return true;
+		} );
 
 		$this->loader->maybe_flush_rewrite_rules();
 
 		$this->assertTrue( $flushed );
-	}
-
-	// ==================================================================
-	// register_rewrite_rules()
-	// ==================================================================
-
-	public function test_register_rewrite_rules_adds_rule_with_prefix(): void {
-		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-
-		$captured_regex = '';
-		$captured_query = '';
-		Functions\when( 'add_rewrite_rule' )->alias( function ( $regex, $query, $position ) use ( &$captured_regex, &$captured_query ) {
-			$captured_regex = $regex;
-			$captured_query = $query;
-		} );
-
-		$this->loader->register_rewrite_rules();
-
-		$this->assertStringContainsString( 'go', $captured_regex );
-		$this->assertStringContainsString( 'ffc_short_code', $captured_query );
-	}
-
-	public function test_register_rewrite_rules_regex_matches_alphanumeric(): void {
-		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-
-		$captured_regex = '';
-		Functions\when( 'add_rewrite_rule' )->alias( function ( $regex ) use ( &$captured_regex ) {
-			$captured_regex = $regex;
-		} );
-
-		$this->loader->register_rewrite_rules();
-
-		// Test that the regex matches valid short codes (use # delimiter to avoid conflict with /)
-		$this->assertSame( 1, preg_match( '#' . $captured_regex . '#', 'go/abc123' ) );
-		$this->assertSame( 1, preg_match( '#' . $captured_regex . '#', 'go/AbC123/' ) );
-		// Should not match codes with special chars
-		$this->assertSame( 0, preg_match( '#' . $captured_regex . '#', 'go/ab-c!' ) );
-	}
-
-	// ==================================================================
-	// add_query_vars()
-	// ==================================================================
-
-	public function test_add_query_vars_appends_short_code(): void {
-		$vars = [ 'existing_var' ];
-		$result = $this->loader->add_query_vars( $vars );
-
-		$this->assertContains( 'ffc_short_code', $result );
-		$this->assertContains( 'existing_var', $result );
-	}
-
-	public function test_add_query_vars_preserves_existing(): void {
-		$vars = [ 'foo', 'bar' ];
-		$result = $this->loader->add_query_vars( $vars );
-
-		$this->assertCount( 3, $result );
+		$this->assertSame( 'no-rule:2', $stored );
 	}
 
 	// ==================================================================
@@ -400,8 +359,10 @@ class UrlShortenerLoaderTest extends TestCase {
 		$this->loader->handle_redirect();
 	}
 
-	public function test_an_unknown_code_answers_404_with_the_inactive_page(): void {
-		Functions\when( 'get_query_var' )->justReturn( 'abc123' );
+	public function test_an_unknown_code_is_left_to_wordpress(): void {
+		// `/events/2026` under the prefix "events" may be a page of the site:
+		// a code nobody issued is not answered here (#2693).
+		$this->visit( 'abc123' );
 		$this->stop_at_status();
 
 		$repo = Mockery::mock( UrlShortenerRepository::class );
@@ -409,14 +370,23 @@ class UrlShortenerLoaderTest extends TestCase {
 		$repo->shouldReceive( 'codeRetired' )->with( 'abc123' )->andReturn( false );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'status:404' );
-
+		$this->loader->intercept_short_url( new \stdClass() );
 		$this->loader->handle_redirect();
+
+		$this->assertFalse( $this->was_redirected(), 'Neither hook answered, so WordPress resolves the address.' );
+	}
+
+	/**
+	 * Whether the loader recorded that it handled the request.
+	 */
+	private function was_redirected(): bool {
+		$prop = new \ReflectionProperty( UrlShortenerLoader::class, 'redirected' );
+		$prop->setAccessible( true );
+		return (bool) $prop->getValue( $this->loader );
 	}
 
 	public function test_a_retired_code_answers_410_with_the_inactive_page(): void {
-		Functions\when( 'get_query_var' )->justReturn( 'gone12' );
+		$this->visit( 'gone12' );
 		$this->stop_at_status();
 
 		$repo = Mockery::mock( UrlShortenerRepository::class );
@@ -431,7 +401,7 @@ class UrlShortenerLoaderTest extends TestCase {
 	}
 
 	public function test_handle_redirect_redirects_home_for_disabled_code(): void {
-		Functions\when( 'get_query_var' )->justReturn( 'xyz789' );
+		$this->visit( 'xyz789' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
 
 		$repo = Mockery::mock( UrlShortenerRepository::class );
@@ -453,7 +423,7 @@ class UrlShortenerLoaderTest extends TestCase {
 	}
 
 	public function test_handle_redirect_increments_click_and_redirects(): void {
-		Functions\when( 'get_query_var' )->justReturn( 'abc123' );
+		$this->visit( 'abc123' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		Functions\when( 'do_action' )->justReturn( null );
 		$this->run_shutdown_callbacks_immediately();
@@ -501,6 +471,9 @@ class UrlShortenerLoaderTest extends TestCase {
 			'Slack'     => array( 'GET', 'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)' ),
 			'Facebook'  => array( 'GET', 'facebookexternalhit/1.1' ),
 			'Telegram'  => array( 'GET', 'TelegramBot (like TwitterBot)' ),
+			'Googlebot' => array( 'GET', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' ),
+			'Bingbot'   => array( 'GET', 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)' ),
+			'GPTBot'    => array( 'GET', 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2)' ),
 		);
 	}
 
@@ -515,7 +488,7 @@ class UrlShortenerLoaderTest extends TestCase {
 	public function test_a_preview_is_redirected_without_a_click(): void {
 		$_SERVER['HTTP_USER_AGENT'] = 'WhatsApp/2.23.20.0 A';
 		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( (string) $k ) );
-		Functions\when( 'get_query_var' )->justReturn( 'abc123' );
+		$this->visit( 'abc123' );
 		Functions\when( 'do_action' )->justReturn( null );
 		$this->run_shutdown_callbacks_immediately();
 
@@ -603,7 +576,7 @@ class UrlShortenerLoaderTest extends TestCase {
 	public function test_handle_redirect_post_linked_follows_current_permalink(): void {
 		// A post-linked short URL (post_id set) must redirect to the post's
 		// CURRENT permalink, not the stale stored target_url (#888).
-		Functions\when( 'get_query_var' )->justReturn( 'plnk1' );
+		$this->visit( 'plnk1' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		Functions\when( 'do_action' )->justReturn( null );
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/new-slug' );
@@ -633,7 +606,7 @@ class UrlShortenerLoaderTest extends TestCase {
 	}
 
 	public function test_handle_redirect_uses_wp_redirect_for_external_urls(): void {
-		Functions\when( 'get_query_var' )->justReturn( 'ext123' );
+		$this->visit( 'ext123' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		Functions\when( 'do_action' )->justReturn( null );
 		$this->run_shutdown_callbacks_immediately();
@@ -662,7 +635,7 @@ class UrlShortenerLoaderTest extends TestCase {
 	}
 
 	public function test_handle_redirect_empty_target_redirects_home(): void {
-		Functions\when( 'get_query_var' )->justReturn( 'empty1' );
+		$this->visit( 'empty1' );
 		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		Functions\when( 'esc_url_raw' )->justReturn( '' );
 		$this->run_shutdown_callbacks_immediately();

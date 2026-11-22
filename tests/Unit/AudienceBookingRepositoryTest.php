@@ -436,134 +436,17 @@ class AudienceBookingRepositoryTest extends TestCase {
 	// get_by_date()
 	// ==================================================================
 
-	public function test_get_by_date_delegates_to_get_all(): void {
-		$rows = [
-			(object) ['id' => 1, 'booking_date' => '2026-03-15'],
-		];
-
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
-
-		$result = AudienceBookingReader::get_by_date(5, '2026-03-15');
-
-		$this->assertCount(1, $result);
-	}
-
-	public function test_get_by_date_passes_status_filter(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
-
-		AudienceBookingReader::get_by_date(5, '2026-03-15', 'active');
-
-		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
-		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
-		$this->assertStringContainsString('b.status = %s', $captured_sql);
-	}
-
 	// ==================================================================
 	// get_by_date_range()
 	// ==================================================================
-
-	public function test_get_by_date_range_delegates_to_get_all(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
-
-		AudienceBookingReader::get_by_date_range(5, '2026-03-01', '2026-03-31');
-
-		$this->assertStringContainsString('b.environment_id = %d', $captured_sql);
-		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
-		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
-	}
-
-	public function test_get_by_date_range_with_status_filter(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
-
-		AudienceBookingReader::get_by_date_range(5, '2026-03-01', '2026-03-31', 'cancelled');
-
-		$this->assertStringContainsString('b.status = %s', $captured_sql);
-	}
 
 	// ==================================================================
 	// get_by_creator()
 	// ==================================================================
 
-	public function test_get_by_creator_delegates_to_get_all_with_created_by(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
-
-		AudienceBookingReader::get_by_creator(42);
-
-		$this->assertStringContainsString('b.created_by = %d', $captured_sql);
-	}
-
-	public function test_get_by_creator_merges_additional_args(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
-
-		AudienceBookingReader::get_by_creator(42, ['status' => 'active']);
-
-		$this->assertStringContainsString('b.created_by = %d', $captured_sql);
-		$this->assertStringContainsString('b.status = %s', $captured_sql);
-	}
-
 	// ==================================================================
 	// get_by_participant()
 	// ==================================================================
-
-	public function test_get_by_participant_builds_multi_table_join(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
-
-		AudienceBookingReader::get_by_participant(42);
-
-		$this->assertStringContainsString('SELECT DISTINCT b.*', $captured_sql);
-		$this->assertStringContainsString('LEFT JOIN', $captured_sql);
-		$this->assertStringContainsString('bu.user_id = %d OR am.user_id = %d', $captured_sql);
-	}
-
-	public function test_get_by_participant_applies_date_and_status_filters(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
-
-		AudienceBookingReader::get_by_participant(42, [
-			'start_date' => '2026-03-01',
-			'end_date' => '2026-03-31',
-			'status' => 'active',
-		]);
-
-		$this->assertStringContainsString('COALESCE(b.end_date, b.booking_date) >= %s', $captured_sql);
-		$this->assertStringContainsString('b.booking_date <= %s', $captured_sql);
-		$this->assertStringContainsString('b.status = %s', $captured_sql);
-	}
 
 	// ==================================================================
 	// create()
@@ -1587,31 +1470,6 @@ class AudienceBookingRepositoryTest extends TestCase {
 	// remove_booking_audience()
 	// ==================================================================
 
-	public function test_remove_booking_audience_deletes_and_returns_true(): void {
-		$this->wpdb->shouldReceive('delete')
-			->once()
-			->with(
-				'wp_ffc_audience_booking_audiences',
-				['booking_id' => 1, 'audience_id' => 10],
-				['%d', '%d']
-			)
-			->andReturn(1);
-
-		$result = AudienceBookingWriter::remove_booking_audience(1, 10);
-
-		$this->assertTrue($result);
-	}
-
-	public function test_remove_booking_audience_returns_false_on_failure(): void {
-		$this->wpdb->shouldReceive('delete')
-			->once()
-			->andReturn(false);
-
-		$result = AudienceBookingWriter::remove_booking_audience(1, 10);
-
-		$this->assertFalse($result);
-	}
-
 	// ==================================================================
 	// get_booking_audiences()
 	// ==================================================================
@@ -1729,31 +1587,6 @@ class AudienceBookingRepositoryTest extends TestCase {
 	// ==================================================================
 	// remove_booking_user()
 	// ==================================================================
-
-	public function test_remove_booking_user_deletes_and_returns_true(): void {
-		$this->wpdb->shouldReceive('delete')
-			->once()
-			->with(
-				'wp_ffc_audience_booking_users',
-				['booking_id' => 1, 'user_id' => 42],
-				['%d', '%d']
-			)
-			->andReturn(1);
-
-		$result = AudienceBookingWriter::remove_booking_user(1, 42);
-
-		$this->assertTrue($result);
-	}
-
-	public function test_remove_booking_user_returns_false_on_failure(): void {
-		$this->wpdb->shouldReceive('delete')
-			->once()
-			->andReturn(false);
-
-		$result = AudienceBookingWriter::remove_booking_user(1, 42);
-
-		$this->assertFalse($result);
-	}
 
 	// ==================================================================
 	// get_booking_users()

@@ -101,4 +101,66 @@ class QrCapacityTest extends TestCase {
 		$this->assertFalse( QrCapacity::fits( '', 'M' ) );
 		$this->assertFalse( QrCapacity::fits( str_repeat( 'x', 3000 ), 'L' ) );
 	}
+
+	/**
+	 * Texts of every kind the plugin draws, short and near a version edge.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function free_level_texts(): array {
+		$out = array();
+		foreach ( array( 1, 7, 14, 25, 40, 61, 90, 140, 260, 600 ) as $length ) {
+			$out[ 'text of ' . $length ] = array( substr( str_repeat( 'https://exemplo.test/valid/#token=abcdef0123&s=Zz9-', 20 ), 0, $length ) );
+		}
+		return $out;
+	}
+
+	/**
+	 * The level raised for free never grows the grid, never lowers the level,
+	 * and is the highest one the grid allows (#2648).
+	 *
+	 * @dataProvider free_level_texts
+	 *
+	 * @param string $text Text.
+	 */
+	public function test_the_free_level_keeps_the_grid_and_is_the_highest_it_allows( string $text ): void {
+		$order = array( 'L', 'M', 'Q', 'H' );
+		foreach ( $order as $asked ) {
+			$base = count( QrSvgRenderer::matrix( $text, $asked ) );
+			$free = QrCapacity::free_level( $text, $asked );
+
+			$this->assertGreaterThanOrEqual( array_search( $asked, $order, true ), array_search( $free, $order, true ), 'Never lowered from ' . $asked );
+			$this->assertSame( $base, count( QrSvgRenderer::matrix( $text, $free ) ), 'Same grid at ' . $free . ' as at ' . $asked );
+			$next = $order[ array_search( $free, $order, true ) + 1 ] ?? null;
+			if ( null !== $next ) {
+				$this->assertNotSame( $base, count( QrSvgRenderer::matrix( $text, $next ) ), $next . ' would have been free too' );
+			}
+		}
+	}
+
+	public function test_the_free_level_rises_when_the_version_has_room(): void {
+		// Measured: this short link is version 3 at both M and Q, 4 at H.
+		$this->assertSame( 'Q', QrCapacity::free_level( 'https://exemplo.test/s/Ab3dE', 'M' ) );
+		$this->assertSame( 'H', QrCapacity::free_level( 'https://exemplo.test/s/Ab3dE', 'H' ) );
+	}
+
+	public function test_the_free_level_falls_back_to_the_level_asked_for(): void {
+		$this->assertSame( 'M', QrCapacity::free_level( '', 'M' ), 'Nothing to encode.' );
+		$this->assertSame( 'L', QrCapacity::free_level( str_repeat( 'x', 4000 ), 'L' ), 'Too long for any version.' );
+		$this->assertSame( QrCapacity::free_level( 'abc', 'M' ), QrCapacity::free_level( 'abc', 'Z' ), 'An unknown level reads as M.' );
+	}
+
+	public function test_the_fit_level_lowers_the_level_until_the_text_fits(): void {
+		// #2660: version-40 byte capacity is 1273 at H, 1663 at Q, 2331 at M, 2953 at L.
+		$this->assertSame( 'Q', QrCapacity::fit_level( str_repeat( 'x', 1500 ), 'H' ), 'Too long for H, fits Q.' );
+		$this->assertSame( 'L', QrCapacity::fit_level( str_repeat( 'x', 2500 ), 'H' ), 'Only L holds it.' );
+		$this->assertSame( 'L', QrCapacity::fit_level( str_repeat( 'x', 2500 ), 'M' ) );
+		$this->assertNull( QrCapacity::fit_level( str_repeat( 'x', 4000 ), 'H' ), 'Nothing holds it.' );
+	}
+
+	public function test_the_fit_level_keeps_or_raises_a_level_that_already_fits(): void {
+		$this->assertSame( QrCapacity::free_level( 'https://exemplo.test/s/Ab3dE', 'M' ), QrCapacity::fit_level( 'https://exemplo.test/s/Ab3dE', 'M' ) );
+		$this->assertSame( 'H', QrCapacity::fit_level( 'https://exemplo.test/s/Ab3dE', 'H' ) );
+		$this->assertNull( QrCapacity::fit_level( '', 'M' ), 'Empty text never fits.' );
+	}
 }

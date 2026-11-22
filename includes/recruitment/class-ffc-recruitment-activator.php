@@ -28,9 +28,10 @@
  * FK as a user-deletion safety net (see MigrationForeignKeys), because dbDelta
  * cannot emit FKs and those rows must not outlive the deleted user.
  *
- * All DATETIME columns are written via `current_time( 'mysql' )` (site
- * timezone, matching the rest of the plugin); display likewise uses the WP
- * site timezone (`wp_timezone()`).
+ * Every timestamp column is a Category A instant: unix UTC seconds written
+ * by `time()` and rendered in the site timezone by `DateFormatter`. The
+ * housekeeping columns were site-local DATETIMEs until #2679, which V13 of
+ * {@see self::maybe_migrate()} converts.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.0.0
@@ -66,7 +67,7 @@ class RecruitmentActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '1';
+	public const SCHEMA_REVISION = '4';
 
 	/**
 	 * Option holding the revision last applied. Listed in `uninstall.php`.
@@ -124,6 +125,18 @@ class RecruitmentActivator {
 		self::create_reason_table();
 		self::create_import_jobs_table();
 		self::create_import_staging_table();
+
+		// The operator's unlink decision (#2694), on tables created before it.
+		global $wpdb;
+		$candidates = $wpdb->prefix . 'ffc_recruitment_candidate';
+		self::add_column_if_missing( $candidates, 'account_unlinked', 'TINYINT(1) UNSIGNED NOT NULL DEFAULT 0', 'user_id' );
+		// Each call's e-mail delivery (#2694).
+		$calls = $wpdb->prefix . 'ffc_recruitment_call';
+		self::add_column_if_missing( $calls, 'email_status', "VARCHAR(16) NOT NULL DEFAULT ''", 'notes' );
+		self::add_column_if_missing( $calls, 'email_sent_at', 'BIGINT(20) UNSIGNED DEFAULT NULL', 'email_status' );
+		if ( ! self::column_exists( $candidates, 'account_unlinked' ) || ! self::column_exists( $calls, 'email_sent_at' ) ) {
+			return; // The next request tries again.
+		}
 
 		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
@@ -216,6 +229,81 @@ class RecruitmentActivator {
 			self::migrate_add_classification_pcd_hash();
 			update_option( $option_key, 12 );
 		}
+
+		// The counter moves only once every column is BIGINT, so a step that
+		// did not finish runs again on the next request.
+		if ( $current < 13 && self::migrate_timestamps_to_unix() ) {
+			update_option( $option_key, 13 );
+		}
+	}
+
+	/**
+	 * V13 -- every timestamp column of the module becomes a Category A
+	 * instant (#2679).
+	 *
+	 * They were site-local DATETIMEs written with `current_time( 'mysql' )`.
+	 * The list tables and the candidate edit page show them, and the edit page
+	 * parsed them as UTC, showing them shifted by the site's offset. The shared
+	 * helper reads each row in `wp_timezone()`, which is how it was written,
+	 * and recreates the indexes that name a converted column. `opened_at` and
+	 * `closed_at` go with them so the module keeps one convention.
+	 *
+	 * @return bool Whether every column is now BIGINT (a table that does not exist yet counts as done).
+	 */
+	private static function migrate_timestamps_to_unix(): bool {
+		global $wpdb;
+		$p = $wpdb->prefix . 'ffc_recruitment_';
+
+		// Table => column => array( nullable, index to recreate => spec ).
+		$plan = array(
+			'adjutancy'      => array(
+				'created_at' => array( false, array() ),
+				'updated_at' => array( false, array() ),
+			),
+			'notice'         => array(
+				'opened_at'  => array( true, array() ),
+				'closed_at'  => array( true, array() ),
+				'created_at' => array( false, array( 'idx_created' => '(created_at)' ) ),
+				'updated_at' => array( false, array() ),
+			),
+			'candidate'      => array(
+				'created_at' => array( false, array( 'idx_created' => '(created_at)' ) ),
+				'updated_at' => array( false, array() ),
+			),
+			'classification' => array(
+				'created_at' => array( false, array() ),
+				'updated_at' => array( false, array() ),
+			),
+			'call'           => array(
+				'created_at' => array( false, array() ),
+				'updated_at' => array( false, array() ),
+			),
+			'reason'         => array(
+				'created_at' => array( false, array() ),
+				'updated_at' => array( false, array() ),
+			),
+			'import_jobs'    => array(
+				'created_at' => array( false, array( 'idx_cleanup' => '(created_at)' ) ),
+				'updated_at' => array( false, array() ),
+			),
+		);
+
+		$done = true;
+		foreach ( $plan as $suffix => $columns ) {
+			$table = $p . $suffix;
+			if ( ! self::table_exists( $table ) ) {
+				continue;
+			}
+			foreach ( $columns as $column => $spec ) {
+				list( $nullable, $indexes ) = $spec;
+				self::migrate_datetime_column_to_unix( $table, $column, $nullable, array_keys( $indexes ), $indexes );
+				$type = strtolower( (string) self::column_type( $table, $column ) );
+				if ( 0 !== strpos( $type, 'bigint' ) ) {
+					$done = false;
+				}
+			}
+		}
+		return $done;
 	}
 
 	/**
@@ -267,10 +355,8 @@ class RecruitmentActivator {
 	/**
 	 * V7 schema migration — `ffc_recruitment_call.called_at` flips from
 	 * DATETIME (site TZ via `current_time('mysql')`) to BIGINT UNSIGNED
-	 * unix UTC seconds (#249 sub-escopo c). Sibling instants
-	 * (`cancelled_at`, `created_at`, `updated_at`) stay DATETIME for now —
-	 * picked up in the follow-up "siblings" sprint or kept as-is for the
-	 * auto-managed ones.
+	 * unix UTC seconds (#249 sub-escopo c). `cancelled_at` followed in the
+	 * siblings sprint, and `created_at` / `updated_at` in V13 (#2679).
 	 *
 	 * Idempotent: column-existence checks make each step survive a
 	 * partial-failure restart, and the schema-version bump pins the whole
@@ -619,8 +705,8 @@ class RecruitmentActivator {
             slug varchar(64) NOT NULL,
             name varchar(255) NOT NULL,
             color varchar(9) NOT NULL DEFAULT '#e9ecef',
-            created_at datetime NOT NULL,
-            updated_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             UNIQUE KEY uq_slug (slug)
         ) ENGINE=InnoDB {$charset_collate};";
@@ -654,12 +740,12 @@ class RecruitmentActivator {
             code varchar(64) NOT NULL,
             name varchar(255) NOT NULL,
             status enum('draft','preliminary','definitive','closed') NOT NULL DEFAULT 'draft',
-            opened_at datetime DEFAULT NULL,
-            closed_at datetime DEFAULT NULL,
+            opened_at bigint(20) unsigned DEFAULT NULL,
+            closed_at bigint(20) unsigned DEFAULT NULL,
             was_reopened tinyint(1) NOT NULL DEFAULT 0,
             public_columns_config longtext NOT NULL,
-            created_at datetime NOT NULL,
-            updated_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             UNIQUE KEY uq_code (code),
             KEY idx_status (status),
@@ -734,6 +820,7 @@ class RecruitmentActivator {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned DEFAULT NULL,
+            account_unlinked tinyint(1) unsigned NOT NULL DEFAULT 0,
             name varchar(255) NOT NULL,
             cpf_encrypted text DEFAULT NULL,
             cpf_hash varchar(64) DEFAULT NULL,
@@ -744,8 +831,8 @@ class RecruitmentActivator {
             phone varchar(32) DEFAULT NULL,
             notes text DEFAULT NULL,
             pcd_hash varchar(64) NOT NULL,
-            created_at datetime NOT NULL,
-            updated_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             UNIQUE KEY uq_cpf_hash (cpf_hash),
             UNIQUE KEY uq_rf_hash (rf_hash),
@@ -796,8 +883,8 @@ class RecruitmentActivator {
             status enum('empty','called','accepted','not_shown','hired','withdrew') NOT NULL DEFAULT 'empty',
             preview_status enum('empty','denied','granted','appeal_denied','appeal_granted') NOT NULL DEFAULT 'empty',
             preview_reason_id bigint(20) unsigned DEFAULT NULL,
-            created_at datetime NOT NULL,
-            updated_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             UNIQUE KEY uq_candidate_adjutancy_notice_list (candidate_id, adjutancy_id, notice_id, list_type),
             KEY idx_notice_adjutancy_list_status_rank (notice_id, adjutancy_id, list_type, status, `rank`),
@@ -850,9 +937,11 @@ class RecruitmentActivator {
             cancelled_at bigint(20) unsigned DEFAULT NULL,
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             notes text DEFAULT NULL,
+            email_status varchar(16) NOT NULL DEFAULT '',
+            email_sent_at bigint(20) unsigned DEFAULT NULL,
             created_by bigint(20) unsigned NOT NULL,
-            created_at datetime NOT NULL,
-            updated_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             KEY idx_classification_cancelled (classification_id, cancelled_at)
         ) ENGINE=InnoDB {$charset_collate};";
@@ -898,8 +987,8 @@ class RecruitmentActivator {
             label varchar(255) NOT NULL,
             color varchar(9) NOT NULL DEFAULT '#e9ecef',
             applies_to varchar(255) NOT NULL DEFAULT '',
-            created_at datetime NOT NULL,
-            updated_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             UNIQUE KEY uq_slug (slug)
         ) ENGINE=InnoDB {$charset_collate};";
@@ -946,8 +1035,8 @@ class RecruitmentActivator {
             total int(10) unsigned NOT NULL DEFAULT 0,
             processed_count int(10) unsigned NOT NULL DEFAULT 0,
             user_id bigint(20) unsigned NOT NULL DEFAULT 0,
-            created_at datetime NOT NULL,
-            updated_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (job_id),
             KEY idx_notice_status (notice_id, status),
             KEY idx_cleanup (created_at)

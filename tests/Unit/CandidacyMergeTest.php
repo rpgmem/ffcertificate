@@ -536,11 +536,13 @@ class CandidacyMergeTest extends TestCase {
 				'rf_hash'      => 'r-hash',
 				'phone'        => '11999990000',
 				'notes'        => "Confirmed by HR.\n\nImported 2025.",
-				'updated_at'   => '2026-10-12 10:00:00',
 			),
-			$last[2],
+			array_diff_key( $last[2], array( 'updated_at' => true ) ),
 			'The survivor\'s own e-mail stays; the CPF is never touched.'
 		);
+		// An instant since #2679, from `time()`.
+		$this->assertIsInt( $last[2]['updated_at'] );
+		$this->assertGreaterThan( time() - 10, $last[2]['updated_at'] );
 	}
 
 	/**

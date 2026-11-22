@@ -901,7 +901,7 @@ class AdminUserCapabilities {
 			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
 		}
 
-		$user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
+		$user_id = RequestInput::get_post_int( 'user_id' );
 		$role    = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict comparison against '1' — the raw value never survives the expression.
 		$assign = isset( $_POST['assign'] ) && '1' === (string) wp_unslash( $_POST['assign'] );

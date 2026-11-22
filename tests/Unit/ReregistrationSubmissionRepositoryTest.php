@@ -63,6 +63,9 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$wpdb->prefix = 'wp_';
 		$wpdb->users = 'wp_users';
 		$wpdb->last_error = '';
+		// An approval re-reads its row to sync the profile (#2688); these
+		// writer tests have no row to give it, so the sync finds nothing.
+		$wpdb->shouldReceive('get_row')->andReturn(null)->byDefault();
 		$this->wpdb = $wpdb;
 
 		// Stub WP cache functions.
@@ -1034,40 +1037,6 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertFalse(ReregistrationSubmissionWriter::return_to_draft(8));
 	}
 
-	// ==================================================================
-	// bulk_approve()
-	// ==================================================================
-
-	public function test_bulk_approve_approves_all_submissions(): void {
-		$this->capture_review_writes();
-		$this->status_reads_answer('approved');
-		$this->wpdb->shouldReceive('query')->times(3)->andReturn(1);
-
-		$this->assertSame(3, ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99));
-	}
-
-	public function test_bulk_approve_skips_the_rows_not_awaiting_review(): void {
-		// "Select all" selects members who never answered: the conditional
-		// write matches nothing for them, and the re-read says they moved on.
-		$this->capture_review_writes();
-		$this->status_reads_answer('pending');
-		$this->wpdb->shouldReceive('query')->andReturn(1, 0, 1);
-
-		$this->assertSame(2, ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99));
-	}
-
-	public function test_bulk_approve_returns_zero_for_empty_array(): void {
-		$this->assertSame(0, ReregistrationSubmissionWriter::bulk_approve(array(), 99));
-	}
-
-	public function test_bulk_approve_returns_zero_when_all_fail(): void {
-		$this->capture_review_writes();
-		$this->status_reads_answer('submitted');
-		$this->wpdb->shouldReceive('query')->times(2)->andReturn(false);
-
-		$this->assertSame(0, ReregistrationSubmissionWriter::bulk_approve(array(1, 2), 99));
-	}
-
 	public function test_return_to_draft_stores_the_reason_for_the_member(): void {
 		$captured = $this->capture_review_writes();
 		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
@@ -1394,19 +1363,6 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	// get_for_export()
 	// ==================================================================
 
-	public function test_get_for_export_delegates_to_get_by_reregistration(): void {
-		$rows = array(
-			(object) array('id' => 1, 'status' => 'approved'),
-		);
-
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
-
-		$results = ReregistrationSubmissionReader::get_for_export(1);
-
-		$this->assertCount(1, $results);
-	}
-
 	// ==================================================================
 	// get_all_by_user()
 	// ==================================================================
@@ -1534,6 +1490,58 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 			),
 			$seeded
 		);
+	}
+
+	/**
+	 * The daily run removes the unstarted row of someone the campaign no longer
+	 * reaches, and only that row (#2688): a member's row and every row with
+	 * answers stay.
+	 */
+	public function test_seed_active_campaigns_removes_the_unstarted_row_of_a_former_member(): void {
+		$last = array('', array());
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			function ($sql, ...$args) use (&$last) {
+				if (1 === count($args) && is_array($args[0])) {
+					$args = $args[0];
+				}
+				$last = array((string) $sql, array_values($args));
+				return (string) $sql;
+			}
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function () use (&$last) {
+				[$sql] = $last;
+				if (0 === strpos($sql, 'SELECT id, user_id FROM %i WHERE reregistration_id = %d AND status')) {
+					return array((object) array('id' => '41', 'user_id' => '10'), (object) array('id' => '42', 'user_id' => '30'));
+				}
+				return array(); // No child audiences.
+			}
+		);
+		$this->wpdb->shouldReceive('get_col')->andReturnUsing(
+			function () use (&$last) {
+				[$sql] = $last;
+				if (0 === strpos($sql, "SELECT id FROM %i WHERE status = 'active'")) {
+					return array('3');
+				}
+				if (0 === strpos($sql, 'SELECT audience_id FROM %i WHERE reregistration_id')) {
+					return array('100');
+				}
+				// User 10 is still a member of audience 100; user 30 left.
+				return array('10');
+			}
+		);
+		$deleted = array();
+		$this->wpdb->shouldReceive('delete')->andReturnUsing(
+			function ($table, $where) use (&$deleted) {
+				$deleted[] = $where['id'];
+				return 1;
+			}
+		);
+		$this->wpdb->shouldReceive('query')->andReturn(0);
+
+		ReregistrationSubmissionWriter::seed_active_campaigns();
+
+		$this->assertSame(array(42), $deleted);
 	}
 
 	public function test_seed_active_campaigns_does_nothing_without_an_active_campaign(): void {
@@ -1833,5 +1841,4 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 		$this->assertSame(0, ReregistrationSubmissionWriter::mark_invited(array(101)));
 	}
-
 }

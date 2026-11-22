@@ -92,6 +92,21 @@ class QRCodeGenerator {
 	}
 
 	/**
+	 * Every QR code a layout prints, with the size, margin and error level
+	 * each one is drawn with (#2639). A visual layout prints its QR elements
+	 * as the same placeholder, so this covers both kinds.
+	 *
+	 * @param string $layout Layout HTML.
+	 * @return list<array{size: int, margin: int, error_level: string}>
+	 */
+	public function placements( string $layout ): array {
+		if ( ! preg_match_all( '/\{\{qr_code(?::[^}]+)?\}\}/', $layout, $matches ) ) {
+			return array();
+		}
+		return array_map( array( $this, 'parse_placeholder_params' ), $matches[0] );
+	}
+
+	/**
 	 * Parse placeholder and generate QR Code
 	 *
 	 * Supported formats:
@@ -122,14 +137,34 @@ class QRCodeGenerator {
 		// instead of the PNG: it needs no GD and no temp file, so it is not
 		// cached either -- and skipping the cache is what keeps a design
 		// change from being masked by PNGs stored before it (#1563).
+		// A signed link (#2639) is drawn without the design's logo, and never
+		// served from or written to the per-submission PNG cache, which holds
+		// whatever link was drawn first.
+		$signed = SignedQrLink::is_signed( $url );
+		// What the fallback prints when no code can be drawn (#2660): the
+		// link as it came in, never the signed payload a reader cannot type.
+		$readable = $signed ? (string) strstr( $url, '&' . SignedQrLink::FRAGMENT_KEY . '=', true ) : $url;
+
 		if ( QrDesign::applies_to( 'certificate' ) ) {
 			/** This filter is documented below. */
-			$url = apply_filters( 'ffcertificate_qrcode_url', $url, $submission_id, $params );
+			$url    = apply_filters( 'ffcertificate_qrcode_url', $url, $submission_id, $params );
+			$design = QrDesign::from_settings();
 			// A frame makes the document taller than wide, so the height comes
 			// from the renderer rather than repeating the width.
-			$drawn = QrSvgRenderer::render_sized( $url, QrDesign::from_settings(), $params['error_level'], $params['margin'], $params['size'] );
+			$design = $signed ? $design->without_logo() : $design;
+			// The highest level that keeps the grid (#2648): same size, more
+			// damage survived. A logo forces H inside the renderer, so when the
+			// link does not fit at H the logo goes and the level may drop
+			// (#2660) -- a plain code that scans beats a branded one that does not.
+			$plan = self::plan( $url, $params['error_level'], '' !== $design->logo );
+			if ( '' !== $design->logo && ! $plan['logo'] ) {
+				$design = $design->without_logo();
+			}
+			$level = $plan['level'];
+			$drawn = null === $level ? array( 'svg' => '' ) : QrSvgRenderer::render_sized( $url, $design, $level, $params['margin'], $params['size'] );
 			if ( '' === $drawn['svg'] ) {
-				return '';
+				/** This filter is documented below. */
+				return apply_filters( 'ffcertificate_qrcode_html', $this->format_fallback( $readable, $params['size'] ), $url, $submission_id );
 			}
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding SVG markup for a data URI.
 			$img_html = $this->format_as_img_tag( base64_encode( $drawn['svg'] ), $params['size'], 'image/svg+xml', $drawn['height'] );
@@ -138,7 +173,7 @@ class QRCodeGenerator {
 		}
 
 		// Check cache if enabled and submission_id provided.
-		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
+		if ( ! $signed && $submission_id > 0 && $this->is_cache_enabled() ) {
 			$cached = $this->get_from_cache( $submission_id );
 			if ( $cached ) {
 				\FreeFormCertificate\Core\Debug::log_qrcode(
@@ -172,11 +207,12 @@ class QRCodeGenerator {
 					'submission_id' => $submission_id,
 				)
 			);
-			return '';
+			/** This filter is documented below. */
+			return apply_filters( 'ffcertificate_qrcode_html', $this->format_fallback( $readable, $params['size'] ), $url, $submission_id );
 		}
 
 		// Cache if enabled.
-		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
+		if ( ! $signed && $submission_id > 0 && $this->is_cache_enabled() ) {
 			$this->save_to_cache( $submission_id, $qr_base64 );
 			\FreeFormCertificate\Core\Debug::log_qrcode(
 				'QR Code cached',
@@ -281,6 +317,21 @@ class QRCodeGenerator {
 			return '';
 		}
 
+		// The level that fits, lowered when the one asked for holds too little
+		// (#2660). Checked before the library runs: on overflow it draws
+		// nothing, says why only in a log of its own and leaves an output
+		// buffer open.
+		$level = self::plan( $url, $params['error_level'], false )['level'];
+		if ( null === $level ) {
+			\FreeFormCertificate\Core\Debug::log_qrcode(
+				'QR Code: content exceeds the capacity of a QR code',
+				array(
+					'url_length' => strlen( $url ),
+				)
+			);
+			return '';
+		}
+
 		try {
 			// Create temporary file - prefer wp_tempnam for better hosting compatibility.
 			$temp_file = function_exists( 'wp_tempnam' )
@@ -301,11 +352,11 @@ class QRCodeGenerator {
 			$point_size = max( 1, (int) ( $params['size'] / 10 ) );
 			$margin     = (int) $params['margin'];
 
-			// Generate QR Code.
+			// Generate QR Code, at the highest level that keeps the grid (#2648).
 			\QRcode::png(
 				$url,
 				$temp_file,
-				$this->get_error_correction_constant( $params['error_level'] ),
+				$this->get_error_correction_constant( $level ),
 				$point_size,
 				$margin
 			);
@@ -410,6 +461,55 @@ class QRCodeGenerator {
 			esc_attr__( 'QR Code', 'ffcertificate' ),
 			$size,
 			$height > 0 ? $height : $size
+		);
+	}
+
+	/**
+	 * The level a code is drawn at, and whether its logo stays (#2664).
+	 *
+	 * The one place that decides it, so the form editor's note and the code
+	 * a certificate prints cannot disagree. A logo forces H; when H cannot
+	 * hold the text the logo goes. The level is then the one asked for,
+	 * raised where the grid has room or lowered until the text fits
+	 * ({@see QrCapacity::fit_level()}), or null when nothing holds it.
+	 *
+	 * @param string $text      Text to encode.
+	 * @param string $requested The level asked for.
+	 * @param bool   $logo      Whether the design carries a logo.
+	 * @return array{level: string|null, logo: bool}
+	 */
+	public static function plan( string $text, string $requested, bool $logo ): array {
+		if ( $logo && QrCapacity::fits( $text, 'H' ) ) {
+			return array(
+				'level' => QrCapacity::fit_level( $text, 'H' ),
+				'logo'  => true,
+			);
+		}
+		return array(
+			'level' => QrCapacity::fit_level( $text, $requested ),
+			'logo'  => false,
+		);
+	}
+
+	/**
+	 * What a document prints where its QR code would be, when none can be
+	 * drawn (#2660): the link the code would have opened, as text, in the
+	 * box the code was given. A blank square told the reader nothing.
+	 *
+	 * @param string $url  The link, as a person can type it.
+	 * @param int    $size Width of the box, in pixels.
+	 * @return string HTML, or '' when there is no link to print.
+	 */
+	private function format_fallback( string $url, int $size ): string {
+		if ( '' === $url ) {
+			return '';
+		}
+
+		return sprintf(
+			'<div class="ffc-qr-fallback" style="width:%dpx; margin:0 auto; font-size:10px; line-height:1.3; text-align:center; word-break:break-all;">%s<br>%s</div>',
+			max( 1, $size ),
+			esc_html__( 'Verify this document at:', 'ffcertificate' ),
+			esc_html( $url )
 		);
 	}
 

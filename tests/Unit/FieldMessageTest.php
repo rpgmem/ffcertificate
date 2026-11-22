@@ -58,29 +58,11 @@ class FieldMessageTest extends TestCase {
 		$this->assertStringNotContainsString( 'role=', FieldMessage::render( 'n', 'x' ) );
 	}
 
-	public function test_no_text_prints_nothing(): void {
-		$this->assertSame( '', FieldMessage::render( 'n', '' ) );
-		$this->assertSame( '', FieldMessage::control_attributes( 'n', '' ) );
-		$this->assertSame( '', FieldMessage::control_class( '' ) );
-	}
-
-	public function test_an_unknown_kind_is_an_error(): void {
-		$this->assertStringContainsString( 'is-error ffc-icon-error', FieldMessage::render( 'n', 'x', 'nope' ) );
-		$this->assertSame( 'is-invalid', FieldMessage::control_class( 'x', 'nope' ) );
-	}
-
 	public function test_an_error_ties_the_control_appending_the_message_after_the_hint(): void {
 		$this->assertSame(
 			' class="is-invalid" aria-invalid="true" data-ffc-message-id="ffc-msg-n" aria-describedby="n-hint ffc-msg-n"',
 			FieldMessage::control_attributes( 'n', 'x', 'error', 'n-hint' )
 		);
-	}
-
-	public function test_a_warning_sets_no_aria_invalid(): void {
-		$attrs = FieldMessage::control_attributes( 'n', 'x', 'warning' );
-		$this->assertStringContainsString( 'class="is-warning"', $attrs );
-		$this->assertStringNotContainsString( 'aria-invalid', $attrs );
-		$this->assertSame( 'is-warning', FieldMessage::control_class( 'x', 'warning' ) );
 	}
 
 	public function test_a_hint_alone_is_still_described(): void {

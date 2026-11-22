@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -155,7 +156,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 			'logo_id'     => '0',
 			'margin'      => '3',
 			'error_level' => 'H',
-			'fields'      => array( 'password' => 'secret' ),
+			'fields'      => array( 'password' => FakeCredentials::WIFI_PASSWORD ),
 		);
 
 		list( $kind, $data ) = $this->run_handler( 'handle_remember' );
@@ -167,7 +168,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertTrue( $stored['qr_design_gradient'] );
 		$this->assertSame( 3, $stored['margin'] );
 		$this->assertSame( 'H', $stored['error_level'] );
-		$this->assertStringNotContainsString( 'secret', (string) json_encode( $stored ), 'Content never reaches the database.' );
+		$this->assertStringNotContainsString( FakeCredentials::WIFI_PASSWORD, (string) json_encode( $stored ), 'Content never reaches the database.' );
 		$this->assertSame( $stored, $data['state'] );
 	}
 
@@ -181,6 +182,13 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->caps[] = 'read_post';
 		$this->run_handler( 'handle_remember' );
 		$this->assertSame( 42, $this->meta['ffc_qr_generator_design']['qr_design_logo_id'] );
+		$this->assertTrue( $this->meta['ffc_qr_generator_design']['qr_design_logo_enabled'], 'A request without the switch keeps the logo on.' );
+
+		// Off keeps the image (#2686).
+		$_POST['logo_on'] = '';
+		$this->run_handler( 'handle_remember' );
+		$this->assertSame( 42, $this->meta['ffc_qr_generator_design']['qr_design_logo_id'] );
+		$this->assertFalse( $this->meta['ffc_qr_generator_design']['qr_design_logo_enabled'] );
 	}
 
 	public function test_reset_forgets_and_answers_with_the_global_design(): void {
@@ -201,7 +209,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 			'type'        => 'wifi',
 			'fields'      => array(
 				'ssid'     => 'Escola',
-				'password' => "p'a<s>s",
+				'password' => "fake-p'a<s>s",
 				'security' => 'WPA',
 			),
 			'design'      => array( 'dots' => 'dots' ),
@@ -212,7 +220,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 
 		$this->assertSame( 'success', $kind );
 		// The password is encoded as typed: no sanitiser mangles it.
-		$this->assertSame( "WIFI:T:WPA;S:Escola;P:p'a<s>s;;", $data['payload'] );
+		$this->assertSame( "WIFI:T:WPA;S:Escola;P:fake-p'a<s>s;;", $data['payload'] );
 		$this->assertStringContainsString( '<circle', $data['svg'] );
 		$this->assertSame( 1000, $data['width'] );
 		$this->assertSame( 'Q', $data['usage']['level'] );
@@ -253,6 +261,90 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertSame( 0, $data['usage']['remaining'] );
 		$this->assertSame( 1400 - 1268, $data['usage']['over'], 'H holds 1268 plain characters.' );
 		$this->assertSame( 'This content is about 132 bytes too long for error correction H (a plain letter is one byte, an accented one two). Shorten it, or lower the level.', $data['message'] );
+	}
+
+	public function test_content_over_capacity_offers_the_lower_level_that_holds_it(): void {
+		// #2660: 1,400 bytes exceed H and fit Q; text cannot be shortened.
+		$_POST = array(
+			'type'        => 'text',
+			'fields'      => array( 'text' => str_repeat( 'x', 1400 ) ),
+			'error_level' => 'H',
+		);
+
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( array( array( 'action' => 'level', 'value' => 'Q', 'label' => 'Use error correction Q' ) ), $data['fixes'] );
+	}
+
+	public function test_an_address_over_capacity_also_offers_a_short_url(): void {
+		$_POST = array(
+			'type'        => 'url',
+			'fields'      => array( 'url' => 'https://example.com/?q=' . str_repeat( 'x', 1400 ) ),
+			'error_level' => 'H',
+		);
+
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( array( 'level', 'short' ), array_column( $data['fixes'], 'action' ) );
+	}
+
+	public function test_a_logo_that_alone_blocks_the_code_is_offered_for_removal(): void {
+		// The logo forces H; at the M asked for, 1,400 bytes fit.
+		$this->caps[] = 'read_post';
+		$memo         = new \ReflectionProperty( \FreeFormCertificate\Generators\QrLogo::class, 'memo' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, array( 7 => 'data:image/png;base64,iVBORw0KGgo=' ) );
+		$_POST = array(
+			'type'        => 'text',
+			'fields'      => array( 'text' => str_repeat( 'x', 1400 ) ),
+			'error_level' => 'M',
+			'logo_id'     => '7',
+		);
+
+		try {
+			list( , $data ) = $this->run_handler( 'handle_generate' );
+		} finally {
+			$memo->setValue( null, array() );
+		}
+
+		$this->assertTrue( $data['usage']['forced'] );
+		$this->assertSame( array( 'logo' ), array_column( $data['fixes'], 'action' ), 'Lowering the level cannot help while the logo forces H.' );
+	}
+
+	public function test_a_logo_switched_off_is_not_drawn_and_forces_nothing(): void {
+		// The same logo and content as above, with the switch off (#2686).
+		$this->caps[] = 'read_post';
+		$memo         = new \ReflectionProperty( \FreeFormCertificate\Generators\QrLogo::class, 'memo' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, array( 7 => 'data:image/png;base64,iVBORw0KGgo=' ) );
+		$_POST = array(
+			'type'        => 'text',
+			'fields'      => array( 'text' => 'hello' ),
+			'error_level' => 'M',
+			'logo_id'     => '7',
+			'logo_on'     => '',
+		);
+
+		try {
+			list( , $data ) = $this->run_handler( 'handle_generate' );
+		} finally {
+			$memo->setValue( null, array() );
+		}
+
+		$this->assertFalse( $data['usage']['forced'] );
+		$this->assertStringNotContainsString( '<image', (string) $data['svg'] );
+	}
+
+	public function test_content_no_level_holds_offers_nothing_but_shortening_it(): void {
+		$_POST = array(
+			'type'        => 'text',
+			'fields'      => array( 'text' => str_repeat( 'x', 4000 ) ),
+			'error_level' => 'M',
+		);
+
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( array(), $data['fixes'] );
 	}
 
 	/**

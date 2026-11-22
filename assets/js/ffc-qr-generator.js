@@ -453,6 +453,54 @@
 	}
 
 	/**
+	 * The ways out the server offers when the content does not fit (#2660),
+	 * one button each under the error: a lower error correction, no logo, or a
+	 * short URL. Each one changes the control it stands for, so what the code
+	 * is drawn with stays visible on the form, and the redraw follows.
+	 *
+	 * @param {jQuery} $status Status element.
+	 * @param {Object} err     The rejected request.
+	 */
+	function showFixes($status, err) {
+		var fixes = err && err.data && Array.isArray(err.data.fixes) ? err.data.fixes : [];
+		var icons = { level: 'shield', logo: 'cross', short: 'link' };
+		var html = '';
+		fixes.forEach(function (fix) {
+			if (!fix || !Object.prototype.hasOwnProperty.call(icons, fix.action)) {
+				return;
+			}
+			html += window.FFC.buttonHtml({
+				label: String(fix.label || ''),
+				category: 'neutral',
+				icon: icons[fix.action],
+				className: 'ffc-qr-generator__fix',
+				attrs: { 'data-ffc-qr-fix': fix.action, 'data-ffc-qr-fix-value': String(fix.value || '') }
+			});
+		});
+		if (html) {
+			$status.append('<span class="ffc-qr-generator__fixes">' + html + '</span>');
+		}
+	}
+
+	/**
+	 * Apply one of the ways out {@link showFixes} offered.
+	 *
+	 * @param {jQuery} $form  Generator form.
+	 * @param {string} action level | logo | short.
+	 * @param {string} value  The level, for `level`.
+	 */
+	function applyFix($form, action, value) {
+		if (action === 'level' && /^[LMQH]$/.test(value)) {
+			$form.find('#qr_default_error_level').val(value).trigger('change');
+		} else if (action === 'logo') {
+			// Off, not cleared: the image stays for when the content is shortened (#2686).
+			$form.find('[data-ffc-qr-design="qr_design_logo_enabled"]').prop('checked', false).trigger('change');
+		} else if (action === 'short') {
+			$form.find('#ffc-qr-short').prop('checked', true).trigger('change');
+		}
+	}
+
+	/**
 	 * Draw the code; a stale answer never overwrites a newer one.
 	 *
 	 * @param {jQuery} $form Generator form.
@@ -491,6 +539,7 @@
 				$buttons.prop('disabled', true);
 				$('#ffc-qr-vcf').prop('disabled', true);
 				window.FFC.status($status, 'error', errorMessage(err));
+				showFixes($status, err);
 			});
 	}
 
@@ -687,6 +736,9 @@
 			}).catch(function () {});
 		});
 
+		$form.on('click', '[data-ffc-qr-fix]', function () {
+			applyFix($form, String($(this).attr('data-ffc-qr-fix') || ''), String($(this).attr('data-ffc-qr-fix-value') || ''));
+		});
 		$form.on('change', '#ffc-qr-short', function () {
 			wantShort = this.checked;
 			showShort($form);

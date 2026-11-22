@@ -1272,6 +1272,33 @@ class ActivityLogTest extends TestCase {
 		$this->assertSame($fields, $decoded['fields']);
 	}
 
+	/**
+	 * Under view-as the row names who made the edit and the context the
+	 * account edited (#2690).
+	 */
+	public function test_log_profile_updated_names_the_actor_under_view_as(): void {
+		$this->enableActivityLog();
+
+		$this->assertTrue(ActivityLog::log_profile_updated(8, array('phone'), 1));
+
+		$buffer = $this->getWriteBuffer();
+		$this->assertSame(1, $buffer[0]['user_id'], 'The row names the administrator who made the edit.');
+		$decoded = json_decode($buffer[0]['context'], true);
+		$this->assertSame(8, $decoded['target_user_id'], 'The context names the account edited.');
+		$this->assertSame(array('phone'), $decoded['fields']);
+	}
+
+	public function test_log_profile_updated_by_the_owner_names_no_target(): void {
+		$this->enableActivityLog();
+
+		$this->assertTrue(ActivityLog::log_profile_updated(8, array('phone'), 8));
+
+		$buffer  = $this->getWriteBuffer();
+		$decoded = json_decode($buffer[0]['context'], true);
+		$this->assertSame(8, $buffer[0]['user_id']);
+		$this->assertArrayNotHasKey('target_user_id', $decoded);
+	}
+
 	// ==================================================================
 	// Convenience wrappers — log_capabilities_granted
 	// ==================================================================

@@ -7,7 +7,6 @@
  *
  * @package FreeFormCertificate\Migrations
  * @since 3.1.0 (Extracted from FFC_Migration_Manager v3.1.0 refactor)
- * @version 5.0.0 - Retired 10 completed migrations, kept only split_cpf_rf
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace
  */
@@ -50,28 +49,6 @@ class MigrationRegistry {
 	 */
 	private function register_migrations(): void {
 		$this->migrations = array();
-
-		// v5.0.0: CPF/RF split migration.
-		$this->migrations['split_cpf_rf'] = array(
-			'name'        => __( 'Split CPF/RF', 'ffcertificate' ),
-			'description' => __( 'Separate combined CPF/RF column into individual CPF and RF columns', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-split',
-			'batch_size'  => 50,
-			'order'       => 1,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot split of the combined CPF/RF column.
-			'removal'     => '6.45.0',
-		);
-
-		// v5.3.1: Rehash legacy unsalted email_hash values in submissions and appointments.
-		$this->migrations['email_hash_rehash'] = array(
-			'name'        => __( 'Rehash Email Lookup Hashes', 'ffcertificate' ),
-			'description' => __( 'Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-hash',
-			'batch_size'  => 100,
-			'order'       => 2,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot rehash of the unsalted e-mail hashes.
-			'removal'     => '6.45.0',
-		);
 
 		// v6.19.0 (#857 S7b): Re-encrypt submissions + appointments PII under a
 		// newly-defined FFC_ENCRYPTION_KEY and rebuild search hashes under
@@ -179,6 +156,36 @@ class MigrationRegistry {
 			'order'       => 12,
 		);
 
+		// #2580: the event date every layout typed before #2579 gave it a field.
+		$this->migrations['event_date_from_layout'] = array(
+			'name'        => __( 'Certificates: Move the Typed Event Date to Its Field', 'ffcertificate' ),
+			'description' => __( 'For each form whose certificate layout types exactly one date (as 19/12/2025) and has no event date yet, set the event date from it and put {{schedule:date}} in its place, in the format it was typed, so certificates print exactly what they printed before; each form is checked before it is written. The opening date is never used. A form that types several dates, already has an event date, or would print differently is left alone and listed with the reason.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-calendar',
+			'batch_size'  => 25,
+			'order'       => 14,
+		);
+
+		// #2583: forms carrying near-identical copies of one layout move onto
+		// the shared template an administrator wrote.
+		$this->migrations['shared_template_from_layout'] = array(
+			'name'        => __( 'Certificates: Move Copied Layouts onto a Shared Template', 'ffcertificate' ),
+			'description' => __( 'For each form that prints its own copy of a layout, look for a certificate template using {{model:…}} or {{signer:…}} tokens whose text the copy follows, fill the form\'s fields with what it typed in place of each token, pick the signer whose name and RF it typed, and switch the form to the template, but only when its certificate then prints exactly what it printed before, background included. The form keeps its own copy. Every other form is left alone and listed with the reason; adding a signer or a template brings those forms back. Run the event date card first.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-copy',
+			'batch_size'  => 25,
+			'order'       => 15,
+		);
+
+		// #2639: certificates issued before their form chose a signed QR mode,
+		// or before the site had a signing key, get the signed record the
+		// verification page and the QR code read.
+		$this->migrations['certificate_signing_backfill'] = array(
+			'name'        => __( 'Certificates: Sign Certificates Already Issued', 'ffcertificate' ),
+			'description' => __( 'Sign every published certificate of a form on a signed QR mode (Compact or Full) that has no signed record yet: those issued before the form chose the mode, or before the site had a signing key. Forms on Link only are never touched. The record is signed as the certificate reads today, with its original issue date, and a PDF already downloaded keeps the plain link until it is downloaded again. Generate a signing key first. Completion here means every such certificate was EXAMINED: one that cannot be signed is listed in the activity log and counted as done; switching another form to a signed mode starts the walk again.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-key',
+			'batch_size'  => 25,
+			'order'       => 16,
+		);
+
 		// #2245: PCD moved from the candidate to each notice classification.
 		$this->migrations['recruitment_pcd_per_notice'] = array(
 			'name'        => __( 'Recruitment: PCD per Notice', 'ffcertificate' ),
@@ -196,18 +203,6 @@ class MigrationRegistry {
 			'icon'        => 'ffc-icon-encryption',
 			'batch_size'  => 100,
 			'order'       => 12,
-		);
-
-		// v5.4.1: Clear plaintext context on activity log rows that already
-		// hold a ciphertext, eliminating the dual-storage leak.
-		$this->migrations['activity_log_clear_plaintext'] = array(
-			'name'        => __( 'Activity Log: Clear Plaintext on Encrypted Rows', 'ffcertificate' ),
-			'description' => __( 'NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-log-clean',
-			'batch_size'  => 200,
-			'order'       => 3,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot cleanup of rows written before the dual-storage fix.
-			'removal'     => '6.45.0',
 		);
 
 		// #1574: the activity log wrote the client IP in clear until this
@@ -260,31 +255,6 @@ class MigrationRegistry {
 			'order'       => 4,
 		);
 
-		// v6.18.0 (#865): import certificate layouts left in the legacy `html/`
-		// drop-folder into the database-backed template pool, then retire the glob.
-		$this->migrations['import_legacy_templates'] = array(
-			'name'        => __( 'Import Legacy Certificate Templates', 'ffcertificate' ),
-			'description' => __( 'Import certificate layouts left in the plugin\'s html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-template-load',
-			'batch_size'  => 20,
-			'order'       => 5,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the html/ folder it reads left the plugin in 6.23.0.
-			'removal'     => '6.45.0',
-		);
-
-		// v6.18.0 (#865): move images referenced from the legacy `html/` folder
-		// into the Media Library and rewrite stored form layouts / backgrounds /
-		// pool templates to point at the new attachments.
-		$this->migrations['rewrite_html_image_refs'] = array(
-			'name'        => __( 'Rewrite html/ Image References', 'ffcertificate' ),
-			'description' => __( 'Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-image-plus',
-			'batch_size'  => 10,
-			'order'       => 6,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the html/ images it side-loads left the plugin in 6.23.0.
-			'removal'     => '6.45.0',
-		);
-
 		// Allow plugins to add custom migrations.
 		$this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
 	}
@@ -321,36 +291,14 @@ class MigrationRegistry {
 	/**
 	 * Check if a migration is available to run
 	 *
+	 * The gate the Migrations tab consults before asking for a status, and the
+	 * one {@see \FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint}
+	 * consults before running anything.
+	 *
 	 * @param string $migration_key Migration identifier.
 	 * @return bool
 	 */
 	public function is_available( string $migration_key ): bool {
-		return $this->exists( $migration_key ) && self::is_applicable( $migration_key );
-	}
-
-	/**
-	 * Whether the install still has the thing a migration operates on.
-	 *
-	 * Separate from {@see exists} because a migration can be correctly registered
-	 * and have nothing to act on. `is_available()` is the gate the Migrations tab
-	 * consults BEFORE asking for a status, and the one
-	 * {@see \FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint} consults
-	 * before running anything — so answering false here hides the card and closes
-	 * the endpoint in one place, rather than hiding a control whose handler stays
-	 * reachable.
-	 *
-	 * The two `html/` migrations are gated on the drop-folder because the folder
-	 * is what they read. `LegacyHtmlRefs::drop_folder_exists()` carries why, and
-	 * it is a live probe: recreate the folder and both cards return.
-	 *
-	 * @param string $migration_key Migration identifier.
-	 * @return bool
-	 */
-	public static function is_applicable( string $migration_key ): bool {
-		if ( 'rewrite_html_image_refs' === $migration_key || 'import_legacy_templates' === $migration_key ) {
-			return \FreeFormCertificate\Core\LegacyHtmlRefs::drop_folder_exists();
-		}
-
-		return true;
+		return $this->exists( $migration_key );
 	}
 }

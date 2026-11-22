@@ -28,8 +28,12 @@ class RateLimitActivator {
 	/**
 	 * Schema revision stored in `ffc_rate_limit_db_version` once the tables
 	 * are current; maybe_create_tables() skips the body when they match.
+	 *
+	 * 1.7.0 (#2658): the log drops `idx_cleanup`, which indexed `created_at`
+	 * a second time beside `idx_created`, and its plaintext `ip_address`
+	 * where nothing remains to encrypt. See {@see self::drop_legacy_log_schema()}.
 	 */
-	public const SCHEMA_REVISION = '1.6.0';
+	public const SCHEMA_REVISION = '1.7.0';
 
 	/**
 	 * Option holding the revision last applied (#2430). Listed in
@@ -99,7 +103,6 @@ class RateLimitActivator {
                 form_id bigint(20) unsigned DEFAULT NULL,
                 action varchar(20) NOT NULL,
                 reason varchar(255) DEFAULT NULL,
-                ip_address varchar(45) DEFAULT NULL,
                 ip_address_encrypted text DEFAULT NULL,
                 user_agent text DEFAULT NULL,
                 current_count int(10) unsigned NOT NULL,
@@ -110,8 +113,7 @@ class RateLimitActivator {
                 KEY idx_identifier (identifier),
                 KEY idx_action (action),
                 KEY idx_form (form_id),
-                KEY idx_created (created_at),
-                KEY idx_cleanup (created_at)
+                KEY idx_created (created_at)
             ) $charset_collate;";
 
 			dbDelta( $sql_logs );
@@ -121,8 +123,7 @@ class RateLimitActivator {
 				$table_logs,
 				array(
 					'ip_address_encrypted' => array(
-						'type'  => 'TEXT DEFAULT NULL',
-						'after' => 'ip_address',
+						'type' => 'TEXT DEFAULT NULL',
 					),
 				)
 			);
@@ -173,9 +174,53 @@ class RateLimitActivator {
 		if ( '' !== $previous && version_compare( $previous, '1.6.0', '<' ) ) {
 			self::drop_unkeyed_device_data();
 		}
+		self::drop_legacy_log_schema();
 
 		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		return true;
+	}
+
+	/**
+	 * Drop what the log no longer needs (#2658).
+	 *
+	 * `idx_cleanup` indexed `created_at` a second time, beside `idx_created`,
+	 * so every insert maintained one index twice; it goes wherever it exists.
+	 *
+	 * `ip_address` held the request address in clear until #2109. It goes
+	 * only where nothing is left for the "Rate Limit Log: Encrypt IPs"
+	 * migration to clean: no row with a value in it, and no `ip` row whose
+	 * identifier is still an address, since that migration reads the column
+	 * to know it has work. The counts run here, on every install, because one
+	 * install's reading is not another's. Where they find work, the column
+	 * stays and the next schema revision asks again.
+	 *
+	 * @return void
+	 */
+	private static function drop_legacy_log_schema(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_rate_limit_logs';
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		if ( self::index_exists( $table, 'idx_cleanup' ) ) {
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, 'idx_cleanup' ) );
+		}
+
+		if ( ! self::column_exists( $table, 'ip_address' ) ) {
+			return;
+		}
+		$in_use = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i WHERE (ip_address IS NOT NULL AND ip_address <> '') OR (type = 'ip' AND (identifier LIKE %s OR identifier LIKE %s))",
+				$table,
+				'%' . $wpdb->esc_like( '.' ) . '%',
+				'%' . $wpdb->esc_like( ':' ) . '%'
+			)
+		);
+		if ( 0 === $in_use ) {
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'ip_address' ) );
+		}
 	}
 
 	/**
@@ -246,48 +291,5 @@ class RateLimitActivator {
 			return;
 		}
 		self::create_tables();
-	}
-
-	/**
-	 * Tables exist.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function tables_exist(): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		global $wpdb;
-
-		return self::table_exists( $wpdb->prefix . 'ffc_rate_limits' )
-			&& self::table_exists( $wpdb->prefix . 'ffc_rate_limit_logs' )
-			&& self::table_exists( $wpdb->prefix . 'ffc_device_signals' );
-	}
-
-	/**
-	 * Drop tables.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function drop_tables(): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		global $wpdb;
-
-		$table_limits  = $wpdb->prefix . 'ffc_rate_limits';
-		$table_logs    = $wpdb->prefix . 'ffc_rate_limit_logs';
-		$table_signals = $wpdb->prefix . 'ffc_device_signals';
-
-		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_limits ) );
-		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_logs ) );
-		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_signals ) );
-
-		delete_option( self::SCHEMA_REVISION_OPTION );
-		return true;
 	}
 }

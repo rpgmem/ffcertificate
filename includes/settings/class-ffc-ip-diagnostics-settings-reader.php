@@ -98,18 +98,6 @@ final class IpDiagnosticsSettingsReader {
 	}
 
 	/**
-	 * Whether the secure strategy is the effective one.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function is_secure(): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return self::STRATEGY_SECURE === self::strategy();
-	}
-
-	/**
 	 * Trusted-proxy configuration mode — `auto` (default), `cloudflare`,
 	 * `custom` or `direct`. An unrecognised value falls back to `auto`.
 	 *

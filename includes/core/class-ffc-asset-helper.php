@@ -126,13 +126,17 @@ final class AssetHelper {
 	 * RF must carry a matching check digit, so the browser's RF check agrees
 	 * with {@see DocumentFormatter::validate_rf()} (#1920), and the CEP ranges
 	 * by UF, so the browser's CEP check reads {@see CepRule::RANGES} (#2233).
+	 * It also carries the AJAX URL, so `FFC.request()` reaches admin-ajax.php
+	 * on a WordPress installed in a subdirectory whatever script loads first
+	 * (#2600).
 	 *
 	 * @since 6.41.0
-	 * @return array{version: string, strings: array<string, string>, rfCheckDigit: bool, cepRanges: array<string, list<array{0: int, 1: int}>>, cepLookup: mixed}
+	 * @return array{version: string, ajaxUrl: string, strings: array<string, string>, rfCheckDigit: bool, cepRanges: array<string, list<array{0: int, 1: int}>>, cepLookup: mixed}
 	 */
 	public static function core_script_config(): array {
 		return array(
 			'version'      => FFC_VERSION,
+			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
 			'strings'      => array_merge(
 				FieldMessage::script_strings(),
 				array(
@@ -155,6 +159,8 @@ final class AssetHelper {
 			 * @param array{url: string, action: string, nonce: string}|null $config
 			 */
 			'cepLookup'    => apply_filters( 'ffcertificate_cep_lookup_script_config', null ),
+			// The plugin's date and time formats for FFC.formatDate() (#2676).
+			'dates'        => DateFormatter::script_config(),
 		);
 	}
 

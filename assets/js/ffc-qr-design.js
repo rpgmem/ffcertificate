@@ -51,6 +51,8 @@
 				transparent: $root.find('[data-ffc-qr-design="qr_design_transparent"]').is(':checked') ? '1' : ''
 			},
 			logo_id: val('qr_design_logo_id'),
+			// The switch off keeps the image and draws without it (#2686).
+			logo_on: $root.find('[data-ffc-qr-design="qr_design_logo_enabled"]').is(':checked') ? '1' : '',
 			margin: String($root.find('#qr_default_margin').val() || '2'),
 			error_level: String($root.find('#qr_default_error_level').val() || 'M')
 		};

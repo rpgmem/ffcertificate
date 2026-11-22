@@ -278,20 +278,6 @@ class FormRepositoryTest extends TestCase {
 	// getBackground — the form's background
 	// ==================================================================
 
-	public function test_get_background_reads_the_form_background(): void {
-		$this->meta[42]['_ffc_form_config'] = ['bg_image' => 'https://example.com/bg.jpg'];
-
-		$result = $this->repo->getBackground(42);
-
-		$this->assertSame('https://example.com/bg.jpg', $result);
-	}
-
-	public function test_get_background_returns_empty_array_for_unknown_form(): void {
-		$result = $this->repo->getBackground(999);
-
-		$this->assertSame('', $result);
-	}
-
 	// ==================================================================
 	// findById (inherited from AbstractRepository)
 	// ==================================================================

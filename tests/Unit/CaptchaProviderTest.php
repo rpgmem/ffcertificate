@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -65,7 +66,7 @@ class CaptchaProviderTest extends TestCase {
 		);
 		Functions\when( 'wp_salt' )->alias(
 			static function ( string $scheme = 'auth' ): string {
-				return 'test-salt-' . $scheme;
+				return FakeCredentials::WP_SALT . '-' . $scheme;
 			}
 		);
 		Functions\when( 'get_option' )->alias(

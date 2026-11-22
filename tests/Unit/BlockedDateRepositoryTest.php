@@ -197,21 +197,6 @@ class BlockedDateRepositoryTest extends TestCase {
 	// getGlobalBlocks
 	// ==================================================================
 
-	public function test_get_global_blocks_returns_rows(): void {
-		$rows = array( array( 'id' => 1, 'calendar_id' => null, 'block_type' => 'full_day' ) );
-		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, $this->repository->getGlobalBlocks() );
-	}
-
-	public function test_get_global_blocks_returns_empty_on_null(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
-
-		$this->assertSame( array(), $this->repository->getGlobalBlocks() );
-	}
-
 	// ==================================================================
 	// findByCalendar (delegates to findAll)
 	// ==================================================================
@@ -241,14 +226,6 @@ class BlockedDateRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
 
 		$this->assertSame( array(), $this->repository->getBlockedDatesInRange( 1, '2030-01-01', '2030-02-01' ) );
-	}
-
-	public function test_get_upcoming_blocks_delegates_to_range(): void {
-		$rows = array( array( 'id' => 9 ) );
-		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, $this->repository->getUpcomingBlocks( 4, 14 ) );
 	}
 
 	// ==================================================================
@@ -424,24 +401,4 @@ class BlockedDateRepositoryTest extends TestCase {
 	// ==================================================================
 	// deleteExpiredBlocks
 	// ==================================================================
-
-	public function test_delete_expired_blocks_returns_row_count(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'DELETE SQL' );
-		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 4 );
-
-		$this->assertSame( 4, $this->repository->deleteExpiredBlocks( 30 ) );
-	}
-
-	public function test_delete_expired_blocks_returns_false_when_prepare_fails(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( null );
-
-		$this->assertFalse( $this->repository->deleteExpiredBlocks() );
-	}
-
-	public function test_delete_expired_blocks_returns_false_on_query_failure(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'DELETE SQL' );
-		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( false );
-
-		$this->assertFalse( $this->repository->deleteExpiredBlocks() );
-	}
 }

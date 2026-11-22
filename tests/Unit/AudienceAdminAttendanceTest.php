@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAdminAttendance;
 use FreeFormCertificate\Audience\AudienceAttendanceAjax;
 use FreeFormCertificate\Audience\AudienceAttendanceExportSource;
+use FreeFormCertificate\Audience\AudienceFormInviteScanner;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -144,7 +146,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '<input type="hidden" name="_wpnonce" value="n">' );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ) => gmdate( $format, $ts ) );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
@@ -696,7 +698,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 	}
 
 	public function test_every_redirect_message_exists(): void {
-		foreach ( array( 'opened', 'closed', 'marked', 'unmarked', 'rule_saved', 'post_event_saved', 'invite_sent', 'invite_sent_all', 'invite_none', 'invite_not_eligible', 'invite_no_page', 'invite_failed', 'ended', 'not_today', 'not_open', 'future', 'denied', 'failed' ) as $key ) {
+		foreach ( array( 'opened', 'closed', 'marked', 'unmarked', 'rule_saved', 'post_event_saved', 'invite_sent', 'invite_queued', 'invite_none', 'invite_not_eligible', 'invite_no_page', 'invite_failed', 'ended', 'not_today', 'not_open', 'future', 'denied', 'failed' ) as $key ) {
 			$this->assertArrayHasKey( $key, AudienceAdminAttendance::messages() );
 		}
 	}
@@ -749,31 +751,20 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertCount( 1, $this->writes_to( 'wp_ffc_audience_form_invites' ), 'Only the sent invitation is recorded.' );
 	}
 
-	public function test_sending_to_everyone_skips_who_answered_and_who_is_not_eligible(): void {
+	public function test_sending_to_everyone_is_queued_for_cron(): void {
 		list( $booking, $open ) = $this->invitations();
-		$this->pages            = array( self::PAGE );
-		$this->answers          = array(
-			array(
-				'user_id' => '9',
-				'status'  => 'publish',
-			),
-		);
+		Functions\expect( 'wp_next_scheduled' )->once()->andReturn( false );
+		Functions\expect( 'wp_schedule_single_event' )->once()->with( Mockery::type( 'int' ), AudienceFormInviteScanner::INVITE_ALL_HOOK, array( 5, 0 ) );
 
-		$this->assertSame( 'invite_sent_all', $this->page()->perform( 'invite_all', $booking, self::TODAY, $open ) );
-
-		$this->assertSame( array( 7 ), $this->looked_up, 'Only 7 is sent to.' );
-		$this->assertSame( array( 'p7@example.org' ), array_column( $this->mailed, 0 ) );
-		$recorded = $this->writes_to( 'wp_ffc_audience_form_invites' );
-		$this->assertCount( 1, $recorded );
-		$this->assertStringContainsString( 'VALUES (5, 7, 40, ' . $open . ', 1)', $recorded[0][2], 'Sent to 7 at the moment given.' );
+		$this->assertSame( 'invite_queued', $this->page()->perform( 'invite_all', $booking, self::TODAY, $open ) );
+		$this->assertSame( array(), $this->mailed, 'Nothing is sent in the operator\'s request (#2691).' );
 	}
 
-	public function test_sending_to_everyone_says_when_nobody_was_left(): void {
-		list( $booking, $open ) = $this->invitations();
-		$this->participants     = array( 8 );
+	public function test_sending_to_everyone_says_when_the_form_takes_no_answers(): void {
+		list( $booking ) = $this->invitations();
+		Functions\expect( 'wp_schedule_single_event' )->never();
 
-		$this->assertSame( 'invite_none', $this->page()->perform( 'invite_all', $booking, self::TODAY, $open ) );
-		$this->assertSame( array(), $this->mailed );
+		$this->assertSame( 'invite_none', $this->page()->perform( 'invite_all', $booking, self::TODAY, 0 ) );
 	}
 
 	public function test_the_tracking_cells_say_what_was_sent_and_answered(): void {

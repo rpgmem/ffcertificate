@@ -238,7 +238,7 @@ class DashboardAssetManager {
 					'friday'            => __( 'Friday', 'ffcertificate' ),
 					'saturday'          => __( 'Saturday', 'ffcertificate' ),
 					'removeDay'         => __( 'Remove day', 'ffcertificate' ),
-					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
+					'dualPostShowValue' => \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::second_post_answers(),
 					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
 					'retractConfirm'    => __( 'Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed.', 'ffcertificate' ),
 					'retract'           => __( 'Retract submission', 'ffcertificate' ),
@@ -265,6 +265,8 @@ class DashboardAssetManager {
 				'canViewMessages'         => $tabs['messages'],
 				'siteName'                => get_bloginfo( 'name' ),
 				'wpTimezone'              => wp_timezone_string(),
+				// The site's zone for the .ics the dashboard builds (#2689).
+				'icsZone'                 => \FreeFormCertificate\Scheduling\IcsGenerator::script_zone(),
 				'mainAddress'             => \FreeFormCertificate\Settings\SettingsReader::get( 'main_address', '' ),
 				// WordPress's own reset, for a member who no longer knows the
 				// current password the change form asks for (#2246).

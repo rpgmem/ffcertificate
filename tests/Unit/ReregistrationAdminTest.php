@@ -57,6 +57,10 @@ class ReregistrationAdminTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		$this->get_backup  = $_GET ?? array();
 		$this->post_backup = $_POST ?? array();
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
@@ -819,6 +823,30 @@ class ReregistrationAdminTest extends TestCase {
 		$this->assertSame( array(), $this->writes_to( 'wp_ffc_reregistrations' ), 'Nothing is saved.' );
 	}
 
+	public function test_handle_save_refuses_a_status_the_repository_does_not_know(): void {
+		// Such a campaign would sit in no list and outside every daily run (#2688).
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		$errors = array();
+		Functions\when( 'add_settings_error' )->alias(
+			function ( $setting, $code, $message, $type ) use ( &$errors ) {
+				$errors[] = array( $code, $type );
+			}
+		);
+
+		$_POST['ffc_action']        = 'save_reregistration';
+		$_POST['reregistration_id'] = 0;
+		$_POST['rereg_title']       = 'C';
+		$_POST['rereg_start_date']  = '2026-12-01T08:00';
+		$_POST['rereg_end_date']    = '2026-12-31T18:00';
+		$_POST['rereg_status']      = 'archived';
+
+		$this->invoke_private( new ReregistrationAdmin(), 'handle_save' );
+
+		$this->assertSame( array( array( 'ffc_status', 'error' ) ), $errors );
+		$this->assertSame( array(), $this->writes_to( 'wp_ffc_reregistrations' ), 'Nothing is saved.' );
+	}
+
 	/** @return array<string, array{string, string}> */
 	public static function inverted_window_provider(): array {
 		return array(
@@ -928,6 +956,38 @@ class ReregistrationAdminTest extends TestCase {
 			$this->writes,
 			'campaign 5 is deleted with its submissions and audience links'
 		);
+	}
+
+	public function test_handle_delete_records_who_deleted_which_campaign(): void {
+		// The campaign and its submissions leave no other trace (#2688).
+		$this->campaigns[5] = (object) array(
+			'id'    => 5,
+			'title' => 'Annual census',
+		);
+		$_GET['action']     = 'delete';
+		$_GET['id']         = '5';
+		$_GET['_wpnonce']   = 'good';
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn ( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+
+		try {
+			$this->invoke_private( new ReregistrationAdmin(), 'handle_delete' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+
+		$logged = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::contexts();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		$this->assertSame( array( 'reregistration_deleted' ), array_column( $logged, 'action' ) );
+		$this->assertSame( 'warning', $logged[0]['level'] );
+		$this->assertSame( 5, $logged[0]['context']['reregistration_id'] );
+		$this->assertSame( 'Annual census', $logged[0]['context']['title'] );
 	}
 
 	public function test_handle_delete_returns_early_on_bad_nonce(): void {

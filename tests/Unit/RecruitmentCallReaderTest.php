@@ -120,19 +120,6 @@ class RecruitmentCallReaderTest extends TestCase {
 	// get_history_for_classification
 	// ------------------------------------------------------------------
 
-	public function test_get_history_returns_rows(): void {
-		$rows = array( $this->row( 2, 9 ), $this->row( 1, 9 ) );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-		$this->assertSame( $rows, RecruitmentCallReader::get_history_for_classification( 9 ) );
-	}
-
-	public function test_get_history_returns_empty_on_non_array(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
-
-		$this->assertSame( array(), RecruitmentCallReader::get_history_for_classification( 9 ) );
-	}
-
 	// ------------------------------------------------------------------
 	// get_history_for_classifications (batch IN())
 	// ------------------------------------------------------------------
@@ -228,16 +215,4 @@ class RecruitmentCallReaderTest extends TestCase {
 	// ------------------------------------------------------------------
 	// count_for_classification
 	// ------------------------------------------------------------------
-
-	public function test_count_returns_int(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
-
-		$this->assertSame( 3, RecruitmentCallReader::count_for_classification( 42 ) );
-	}
-
-	public function test_count_returns_zero_when_null(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
-
-		$this->assertSame( 0, RecruitmentCallReader::count_for_classification( 42 ) );
-	}
 }

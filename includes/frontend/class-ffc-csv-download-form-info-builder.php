@@ -159,7 +159,8 @@ final class CsvDownloadFormInfoBuilder {
 					&& '1' !== (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_ENABLED, true ),
 				'cert_preview_disabled_by_admin' => '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
 					&& '1' !== self::preview_enabled_meta( $form_id ),
-				'can_preview_cert'               => $before_start
+				// Until collection ends, as ajax_cert_preview() checks (#2682).
+				'can_preview_cert'               => ! $form_ended
 					&& '1' === self::preview_enabled_meta( $form_id ),
 				// `can_open_early` powers the "Start Form Now" button — it
 				// fires only when CSV public is on (the hash is the cred),

@@ -208,13 +208,6 @@
 			html += '<div class="ffc-csv-download-security"></div>';
 		}
 		html += '<div class="ffc-info-actions">';
-		var previewLabel = strings.previewCertificate || 'Preview Certificate';
-		if (info.status.can_preview_cert) {
-			html += actionButton(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview', false, '');
-		} else if (info.status.cert_preview_disabled_by_admin) {
-			html += disabledWithReason(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview',
-				strings.certPreviewDisabledReason || 'The administrator turned off Preview Certificate for this form.');
-		}
 		// Start Form Early: enabled when can_open_early; disabled-visible
 		// when admin turned it off (so the operator sees the feature exists
 		// but is blocked); hidden otherwise. Same shape for Postpone Close.
@@ -249,6 +242,16 @@
 			html += actionButton(strings.scheduleException || 'Entry/exit exception', 'caution', 'user-clock',
 				'ffc-btn-schedule-exception', false,
 				strings.scheduleExceptionTooltip || 'Create a one-use schedule exception for a single participant submission.');
+		}
+		// Preview Certificate sits beside Download CSV, from before the
+		// start until the form closes; once it has closed only the download
+		// is left (#2682).
+		var previewLabel = strings.previewCertificate || 'Preview Certificate';
+		if (info.status.can_preview_cert) {
+			html += actionButton(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview', false, '');
+		} else if (info.status.cert_preview_disabled_by_admin && !info.status.form_ended) {
+			html += disabledWithReason(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview',
+				strings.certPreviewDisabledReason || 'The administrator turned off Preview Certificate for this form.');
 		}
 		// Download CSV is always rendered. Disabled, it says why behind
 		// the info button: turned off by the administrator, or the same

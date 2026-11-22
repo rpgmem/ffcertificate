@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -16,6 +17,7 @@ use FreeFormCertificate\Frontend\ExtendEndAction;
 use FreeFormCertificate\Frontend\PublicCsvDownload;
 use FreeFormCertificate\Frontend\ScheduleExceptionSession;
 use FreeFormCertificate\Security\RateLimitChecker;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\SiteClock;
 
 /**
@@ -47,7 +49,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	private const FORM_ID = 42;
 
-	private const HASH = 'validhash';
+	private const HASH = FakeCredentials::CSV_ACCESS_HASH;
 
 	/** @var array<string, mixed> json payload captured before the terminator throws */
 	private array $captured = array();
@@ -65,6 +67,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	private array $reads = array();
 
 	private SiteClock $clock;
+
+	/** @var bool Whether the activity log is on, every item included (#2632). */
+	private bool $log_on = false;
 
 	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
 	private $wpdb_backup;
@@ -124,7 +129,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		Functions\when( 'esc_html_e' )->echoArg();
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args ) );
-		Functions\when( 'wp_salt' )->justReturn( 'test-salt-public-csv' );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
@@ -140,10 +145,12 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		Functions\when( 'get_posts' )->justReturn( array( 5 ) );
 		Functions\when( 'get_post_field' )->justReturn( '[ffc_form id="' . self::FORM_ID . '"]' );
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/form' );
+		$this->log_on = false;
+		ActivityLogBuffer::reset();
 		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default = false ) {
+			function ( $key, $default = false ) {
 				if ( 'ffc_settings' === $key ) {
-					return array( 'captcha_provider' => 'math' );
+					return array( 'captcha_provider' => 'math' ) + ( $this->log_on ? ActivityLogBuffer::ENABLED_SETTINGS : array() );
 				}
 				if ( 'ffc_rate_limit_settings' === $key ) {
 					// Off so an allowed request writes nothing.
@@ -218,6 +225,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		$_SERVER = $this->server_backup;
 		$_POST   = $this->post_backup;
 		$_GET    = $this->get_backup;
+		ActivityLogBuffer::reset();
 		if ( $this->had_wpdb ) {
 			$GLOBALS['wpdb'] = $this->wpdb_backup;
 		} else {
@@ -268,6 +276,10 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 				}
 				if ( 0 === strpos( $q, 'SELECT COUNT(*) FROM wp_ffc_submissions' ) ) {
 					return '3';
+				}
+				// The form's window lock, around the open-early and postpone writes (#2695).
+				if ( 0 === strpos( $q, 'SELECT GET_LOCK(ffc_form_window_' ) || 0 === strpos( $q, 'SELECT RELEASE_LOCK(ffc_form_window_' ) ) {
+					return '1';
 				}
 				$this->fail( 'Unexpected get_var(): ' . $q );
 			}
@@ -450,7 +462,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	}
 
 	public function test_ajax_info_rejects_when_hash_validation_fails(): void {
-		list( $_POST ) = $this->answered_post( array( 'hash' => 'otherhash' ) );
+		list( $_POST ) = $this->answered_post( array( 'hash' => FakeCredentials::CSV_ACCESS_HASH_WRONG ) );
 
 		try {
 			( new PublicCsvDownload() )->ajax_info();
@@ -489,6 +501,118 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Run the panel request with the activity log on, and return what it
+	 * logged under the two panel items (#2632).
+	 *
+	 * @return list<array{action: string, level: string, context: mixed}>
+	 */
+	private function panel_entries(): array {
+		$this->log_on = true;
+		ActivityLogBuffer::stub_functions();
+		try {
+			( new PublicCsvDownload() )->ajax_info();
+			$this->fail( 'expected a json answer' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertContains( $e->getMessage(), array( 'json_error', 'json_success' ) );
+		}
+		return array_values(
+			array_filter(
+				ActivityLogBuffer::contexts(),
+				static fn( array $row ): bool => 0 === strpos( $row['action'], 'public_panel_' )
+			)
+		);
+	}
+
+	public function test_opening_the_panel_logs_the_form_and_the_masked_cpf(): void {
+		list( $_POST ) = $this->answered_post( array( 'cpf' => \FreeFormCertificate\Tests\Support\Identifiers::CPF_A ) );
+
+		$entries = $this->panel_entries();
+
+		$this->assertSame( 'success', $this->captured['kind'] );
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'public_panel_opened', $entries[0]['action'] );
+		$this->assertSame( self::FORM_ID, $entries[0]['context']['form_id'] );
+		$this->assertSame(
+			\FreeFormCertificate\Core\DocumentFormatter::mask( \FreeFormCertificate\Core\DocumentFormatter::MASK_CPF, \FreeFormCertificate\Tests\Support\Identifiers::CPF_A ),
+			$entries[0]['context']['operator_cpf_masked']
+		);
+		$this->assertStringNotContainsString( \FreeFormCertificate\Tests\Support\Identifiers::CPF_A, (string) json_encode( ActivityLogBuffer::entries() ), 'The CPF is never written in clear.' );
+	}
+
+	/**
+	 * @dataProvider panel_refusals
+	 *
+	 * @param array<string, string> $fields   POST fields replaced.
+	 * @param array<string, mixed>  $form     Form meta added.
+	 * @param string                $expected Reason code logged.
+	 */
+	public function test_a_refused_panel_request_logs_its_reason( array $fields, array $form, string $expected ): void {
+		if ( array() !== $form ) {
+			$this->configure_form( array(), $form );
+		}
+		list( $post, $challenge ) = $this->answered_post( $fields );
+		if ( 'captcha' === $expected ) {
+			$post['ffc_captcha_ans'] = (string) ( $challenge['answer'] + 1 );
+		}
+		if ( 'nonce' === $expected ) {
+			Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		}
+		$_POST = $post;
+
+		$entries = $this->panel_entries();
+
+		$this->assertSame( 'error', $this->captured['kind'] );
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'public_panel_access_failed', $entries[0]['action'] );
+		$this->assertSame( 'warning', $entries[0]['level'] );
+		$this->assertSame( $expected, $entries[0]['context']['reason'] );
+		$this->assertStringNotContainsString( FakeCredentials::CSV_ACCESS_HASH_WRONG, (string) json_encode( ActivityLogBuffer::entries() ), 'The posted hash is never recorded.' );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, string>, 1: array<string, mixed>, 2: string}>
+	 */
+	public static function panel_refusals(): array {
+		return array(
+			'nonce'          => array( array(), array(), 'nonce' ),
+			'captcha'        => array( array(), array(), 'captcha' ),
+			'missing fields' => array( array( 'hash' => '' ), array(), 'missing_fields' ),
+			'hash'           => array( array( 'hash' => FakeCredentials::CSV_ACCESS_HASH_WRONG ), array(), 'hash' ),
+			'cpf'            => array( array(), array( PublicCsvDownload::META_CPF_MODE => 'audit' ), 'cpf' ),
+		);
+	}
+
+	public function test_a_rate_limited_panel_request_is_logged(): void {
+		$this->exhaust_ip_hour_limit();
+		$this->valid_post();
+
+		$entries = $this->panel_entries();
+
+		$this->assertSame( 'rate_limit', $entries[0]['context']['reason'] ?? '' );
+		$this->assertSame( self::FORM_ID, $entries[0]['context']['form_id'] );
+	}
+
+	public function test_the_panel_logs_nothing_while_its_items_are_off(): void {
+		list( $_POST ) = $this->answered_post();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key
+				? array(
+					'captcha_provider'    => 'math',
+					'enable_activity_log' => 1,
+				)
+				: $default
+		);
+		ActivityLogBuffer::stub_functions();
+
+		try {
+			( new PublicCsvDownload() )->ajax_info();
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_success', $e->getMessage() );
+		}
+		$this->assertSame( array(), ActivityLogBuffer::entries() );
+	}
+
 	// ==================================================================
 	//  ajax_cert_preview()
 	// ==================================================================
@@ -507,7 +631,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	}
 
 	public function test_ajax_cert_preview_rejects_when_hash_invalid(): void {
-		$this->valid_post();
+		$_POST         = $this->answered_post()[0];
 		$_POST['hash'] = 'nope';
 
 		try {
@@ -519,16 +643,75 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		}
 	}
 
-	public function test_ajax_cert_preview_rejects_when_form_already_started(): void {
-		// Hash ok; the form opened at 11:00 and it is noon → preview unavailable.
-		$this->valid_post();
+	public function test_ajax_cert_preview_rejects_when_form_has_ended(): void {
+		// The form closed at 11:30 and it is noon → only the CSV is left (#2682).
+		$this->configure_form( array( 'time_end' => '11:30' ) );
+		$_POST = $this->answered_post()[0];
 
 		try {
 			( new PublicCsvDownload() )->ajax_cert_preview();
 			$this->fail( 'expected json_error' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'json_error', $e->getMessage() );
-			$this->assertStringContainsString( 'only available before the form collection period begins', $this->captured['payload']['message'] );
+			$this->assertStringContainsString( 'only available until the form collection period ends', $this->captured['payload']['message'] );
+		}
+	}
+
+	public function test_ajax_cert_preview_is_served_while_the_form_is_open(): void {
+		// The form opened at 11:00, closes at 14:00, and it is noon (#2682).
+		$_POST = $this->answered_post()[0];
+		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+		Functions\when( 'esc_url_raw' )->returnArg();
+
+		try {
+			( new PublicCsvDownload() )->ajax_cert_preview();
+			$this->fail( 'expected json_success' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_success', $e->getMessage(), (string) wp_json_encode( $this->captured['payload'] ?? null ) );
+		}
+	}
+
+	public function test_ajax_cert_preview_refuses_a_wrong_challenge(): void {
+		// #2695 — the preview runs the panel's gates.
+		list( $post, $challenge ) = $this->answered_post();
+		$post['ffc_captcha_ans']  = (string) ( $challenge['answer'] + 1 );
+		$_POST                    = $post;
+
+		try {
+			( new PublicCsvDownload() )->ajax_cert_preview();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_error', $e->getMessage() );
+		}
+	}
+
+	public function test_ajax_cert_preview_peeks_at_the_challenge_without_spending_it(): void {
+		list( $post, $challenge ) = $this->answered_post();
+		$_POST                    = $post;
+		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+		Functions\when( 'esc_url_raw' )->returnArg();
+
+		try {
+			( new PublicCsvDownload() )->ajax_cert_preview();
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_success', $e->getMessage() );
+		}
+		$this->assertTrue( SecurityService::verify_simple_captcha( (string) $challenge['answer'], $challenge['hash'], 'public_csv' ), 'The download still spends it.' );
+	}
+
+	public function test_ajax_cert_preview_refuses_a_missing_cpf_when_the_form_asks_for_one(): void {
+		$this->configure_form( array(), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
+		$_POST = $this->answered_post()[0];
+
+		try {
+			( new PublicCsvDownload() )->ajax_cert_preview();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_error', $e->getMessage() );
 		}
 	}
 

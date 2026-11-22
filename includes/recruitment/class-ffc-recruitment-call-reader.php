@@ -29,8 +29,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.12.0
  *
- * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
- * @phpstan-type NoticeCallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string, candidate_id: numeric-string, adjutancy_id: numeric-string, rank: numeric-string}
+ * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string, email_status: string, email_sent_at: numeric-string|null}
+ * @phpstan-type NoticeCallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string, email_status: string, email_sent_at: numeric-string|null, candidate_id: numeric-string, adjutancy_id: numeric-string, rank: numeric-string}
  */
 class RecruitmentCallReader {
 
@@ -94,6 +94,27 @@ class RecruitmentCallReader {
 	}
 
 	/**
+	 * Calls whose e-mail waits for the background batch, oldest first
+	 * (#2694). A call cancelled before its turn is left out: its
+	 * convocation is no longer true.
+	 *
+	 * @param int $limit Maximum IDs.
+	 * @return list<int>
+	 */
+	public static function get_queued_email_ids( int $limit ): array {
+		$wpdb = self::db();
+		$ids  = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT id FROM %i WHERE email_status = %s AND cancelled_at IS NULL ORDER BY id LIMIT %d',
+				self::get_table_name(),
+				RecruitmentCallMailQueue::STATUS_QUEUED,
+				max( 1, $limit )
+			)
+		);
+		return array_map( 'intval', $ids );
+	}
+
+	/**
 	 * Get the active (non-cancelled) call for a classification, if any.
 	 *
 	 * Returns the most recent row where `cancelled_at IS NULL`. There SHOULD
@@ -123,40 +144,6 @@ class RecruitmentCallReader {
 		);
 
 		return $result ? $result : null;
-	}
-
-	/**
-	 * List all calls for a classification (history view, including cancelled).
-	 *
-	 * Sort is `called_at DESC` (most recent first) — matches the candidate
-	 * dashboard's "Histórico de convocações" sort.
-	 *
-	 * @param int $classification_id Classification ID.
-	 * @return list<CallRow>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_history_for_classification( int $classification_id ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb results to typed shape.
-		 *
-		 * @var list<CallRow>|null $results
-		 */
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT * FROM %i WHERE classification_id = %d ORDER BY called_at DESC',
-				$table,
-				$classification_id
-			)
-		);
-
-		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -274,27 +261,5 @@ class RecruitmentCallReader {
 			ARRAY_A
 		);
 		return is_array( $rows ) ? $rows : array();
-	}
-
-	/**
-	 * Count all calls for a classification, including cancelled.
-	 *
-	 * @param int $classification_id Classification ID.
-	 * @return int
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function count_for_classification( int $classification_id ): int {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$count = (int) $wpdb->get_var(
-			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE classification_id = %d', $table, $classification_id )
-		);
-
-		return $count;
 	}
 }

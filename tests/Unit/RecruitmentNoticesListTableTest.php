@@ -251,9 +251,15 @@ class RecruitmentNoticesListTableTest extends TestCase {
 		$this->assertSame( '', $out );
 	}
 
-	public function test_column_created_at_echoes_raw_value(): void {
-		$out = $this->call_protected( 'column_created_at', array( array( 'created_at' => '2026-05-01 10:00:00' ) ) );
-		$this->assertSame( '2026-05-01 10:00:00', $out );
+	public function test_column_created_at_shows_the_plugin_format(): void {
+		// No plugin settings stored: DateFormatter falls back to its defaults (d/m/Y, H:i).
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ): string => gmdate( $format, $ts ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		// An instant (#2679), in the plugin's format and the site timezone.
+		$this->assertSame( '01/05/2026 10:00', $this->call_protected( 'column_created_at', array( array( 'created_at' => '1777629600' ) ) ) );
+		// A row not converted yet reads its DATETIME in that timezone too.
+		$this->assertSame( '01/05/2026 10:00', $this->call_protected( 'column_created_at', array( array( 'created_at' => '2026-05-01 10:00:00' ) ) ) );
 	}
 
 	// ------------------------------------------------------------------

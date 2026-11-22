@@ -80,7 +80,12 @@ class FormEditorSaveHandler {
 			ArrayValue::string( RequestInput::get_post_raw_array( 'ffc_config' ), 'pdf_layout' ),
 			\FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags()
 		);
-		$missing_tags  = $this->validator()->missing_required_tags( $posted_layout );
+		// A form that references a template prints the template (#2581).
+		$template_id = self::posted_template_id();
+		if ( $template_id > 0 ) {
+			$posted_layout = \FreeFormCertificate\Core\CertificateTemplateLink::layout( $template_id, self::posted_template_values( $template_id ) );
+		}
+		$missing_tags = $this->validator()->missing_required_tags( $posted_layout );
 		if ( array() === $missing_tags ) {
 			return false;
 		}
@@ -134,6 +139,8 @@ class FormEditorSaveHandler {
 
 		// 2. Save Configurations.
 		$this->save_config_meta( $post_id );
+		$this->save_template_link_meta( $post_id );
+		$this->save_signer_meta( $post_id );
 
 		// 3. Save Geofence Configuration.
 		$this->save_geofence_meta( $post_id );
@@ -361,6 +368,9 @@ class FormEditorSaveHandler {
 
 			$clean_config['enable_restriction'] = sanitize_key( ArrayValue::string( $config, 'enable_restriction' ) );
 
+			// QR mode (#2639): Link only, Signed compact or Signed full.
+			$clean_config[ \FreeFormCertificate\Submissions\CertificateSigner::CONFIG_KEY ] = \FreeFormCertificate\Submissions\CertificateSigner::sanitize_mode( ArrayValue::string( $config, \FreeFormCertificate\Submissions\CertificateSigner::CONFIG_KEY ) );
+
 			// Email — master toggle is `send_user_email`. Sub-options
 			// (subject + body) are only written when the toggle is on, so
 			// turning email off preserves the prior subject/body verbatim
@@ -440,12 +450,104 @@ class FormEditorSaveHandler {
 				set_transient( 'ffc_html_lint_' . get_current_user_id(), array_values( array_unique( $html_refs ) ), 45 );
 			}
 
-			$current_config = get_post_meta( $post_id, '_ffc_form_config', true );
-			if ( ! is_array( $current_config ) ) {
-				$current_config = array();
-			}
+			// Under the lock a submission takes to remove a used ticket, so
+			// neither write drops the other (#2695).
+			\FreeFormCertificate\Core\NamedLock::with_form_config(
+				$post_id,
+				static function () use ( $post_id, $clean_config ): void {
+					$current_config = get_post_meta( $post_id, '_ffc_form_config', true );
+					if ( ! is_array( $current_config ) ) {
+						$current_config = array();
+					}
+					update_post_meta( $post_id, '_ffc_form_config', array_merge( $current_config, $clean_config ) );
+				}
+			);
+		}
+	}
 
-			update_post_meta( $post_id, '_ffc_form_config', array_merge( $current_config, $clean_config ) );
+	/**
+	 * The template the Layout tab posts, when it is set to reference one and
+	 * the id names a certificate template; 0 otherwise.
+	 */
+	private static function posted_template_id(): int {
+		if ( 'template' !== RequestInput::get_post_string( 'ffc_layout_source' ) ) {
+			return 0;
+		}
+		$template_id = RequestInput::get_post_int( 'ffc_layout_template_id', 0 );
+		return \FreeFormCertificate\Core\CertificateTemplateLink::is_usable_template( $template_id ) ? $template_id : 0;
+	}
+
+	/**
+	 * The values posted for one template's fields, sanitised by type.
+	 *
+	 * @param int $template_id Template post id.
+	 * @return array<string, string>
+	 */
+	private static function posted_template_values( int $template_id ): array {
+		$posted = RequestInput::get_post_raw_array( 'ffc_template_values' );
+		return \FreeFormCertificate\Core\TemplateFields::sanitize_values(
+			\FreeFormCertificate\Core\CertificateTemplateLink::fields( $template_id ),
+			$posted[ $template_id ] ?? array()
+		);
+	}
+
+	/**
+	 * Persist which template the form references and the values it fills
+	 * (#2581). A form set to its own layout drops the reference and keeps its
+	 * values, so going back to the template restores them. Values for keys the
+	 * template no longer declares stay stored and unused.
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function save_template_link_meta( int $post_id ): void {
+		if ( ! RequestInput::has_post( 'ffc_layout_source' ) ) {
+			return;
+		}
+		$template_id = self::posted_template_id();
+		if ( 0 === $template_id ) {
+			delete_post_meta( $post_id, \FreeFormCertificate\Core\CertificateTemplateLink::META_TEMPLATE_ID );
+			return;
+		}
+
+		$values = array_merge(
+			\FreeFormCertificate\Core\CertificateTemplateLink::values( $post_id ),
+			self::posted_template_values( $template_id )
+		);
+		update_post_meta( $post_id, \FreeFormCertificate\Core\CertificateTemplateLink::META_TEMPLATE_ID, $template_id );
+		update_post_meta( $post_id, \FreeFormCertificate\Core\CertificateTemplateLink::META_VALUES, $values );
+
+		$missing = \FreeFormCertificate\Core\TemplateFields::missing_required(
+			\FreeFormCertificate\Core\CertificateTemplateLink::fields( $template_id ),
+			$values
+		);
+		if ( array() !== $missing ) {
+			set_transient( 'ffc_save_template_values_warning_' . get_current_user_id(), $missing, 45 );
+		}
+	}
+
+	/**
+	 * Persist the form's signers (#2582, #2620), one meta per position. A new
+	 * choice must be an active signer; the one a position already has may
+	 * stay after it was deactivated.
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function save_signer_meta( int $post_id ): void {
+		for ( $position = 1; $position <= \FreeFormCertificate\Core\CertificateSigners::MAX_PER_FORM; $position++ ) {
+			$field = 1 === $position ? 'ffc_signer_id' : 'ffc_signer_id_' . $position;
+			if ( ! RequestInput::has_post( $field ) ) {
+				continue;
+			}
+			$key     = \FreeFormCertificate\Core\CertificateSigners::form_meta_key( $position );
+			$signer  = \FreeFormCertificate\Core\CertificateSigners::get( RequestInput::get_post_int( $field, 0 ) );
+			$current = \FreeFormCertificate\Core\CertificateSigners::for_form( $post_id, $position );
+			if ( null === $signer ) {
+				delete_post_meta( $post_id, $key );
+				continue;
+			}
+			if ( $signer['active'] || ( null !== $current && $current['id'] === $signer['id'] ) ) {
+				update_post_meta( $post_id, $key, $signer['id'] );
+			}
 		}
 	}
 
@@ -564,6 +666,16 @@ class FormEditorSaveHandler {
 
 			$validation_errors = $this->validator()->validate_geofence_config( $merged_geofence );
 			if ( ! empty( $validation_errors ) ) {
+				// The event's date has its own sanitising and no part in what
+				// failed, so an error in the opening window or the areas no
+				// longer throws it away with the rest (#2626).
+				$event_date = array(
+					'class_date_start' => $clean_geofence['class_date_start'],
+					'class_date_end'   => $clean_geofence['class_date_end'],
+				);
+				if ( array_intersect_key( $current_geofence + array_fill_keys( array_keys( $event_date ), '' ), $event_date ) !== $event_date ) {
+					update_post_meta( $post_id, '_ffc_geofence_config', array_merge( $current_geofence, $event_date ) );
+				}
 				set_transient( 'ffc_geofence_error_' . get_current_user_id(), $validation_errors, 45 );
 				// Route each error category to its tab so the tab script can
 				// open the offending one (datetime → Time, area → Geolocation).
@@ -582,6 +694,14 @@ class FormEditorSaveHandler {
 				// surface lives on whatever page hosts the shortcode.
 				\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $post_id, 'geofence_changed' );
 				\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $post_id, 'geofence_changed' );
+
+				// A layout that prints the event's date on a form without one
+				// prints nothing there (#2579): saved, but said.
+				$saved_layout = ArrayValue::string( \FreeFormCertificate\Core\CertificateTemplateLink::form_config( $post_id ), 'pdf_layout' );
+				if ( '' === \FreeFormCertificate\Core\EventDate::range_from_config( $merged_geofence )[0]
+					&& \FreeFormCertificate\Core\EventDate::layout_uses_date( $saved_layout ) ) {
+					set_transient( 'ffc_save_event_date_warning_' . get_current_user_id(), 1, 45 );
+				}
 			}
 		}
 	}
@@ -806,9 +926,11 @@ class FormEditorSaveHandler {
 	 *   string we want to allow.
 	 * - `schedule_default_mode` is a whitelist of `now` / `manual`,
 	 *   anything else folds to the default `now`.
+	 * - `class_date_start` / `class_date_end` are the event's date (#2579):
+	 *   a valid `Y-m-d` or empty, an End not after the Start dropped.
 	 *
 	 * @param array<string, mixed> $geofence Raw, unslashed POST payload.
-	 * @return array<string, string> The four sanitized schedule-exception keys.
+	 * @return array<string, string> The sanitized Event Schedule and schedule-exception keys.
 	 */
 	private static function sanitize_schedule_exception_config( array $geofence ): array {
 		$mode = sanitize_key( ArrayValue::string( $geofence, 'schedule_default_mode', 'now' ) );
@@ -816,10 +938,21 @@ class FormEditorSaveHandler {
 			$mode = 'now';
 		}
 
+		// The event's date (#2579): a real `Y-m-d` or empty, and an End that
+		// does not follow the Start reads as a one-day event.
+		list( $date_start, $date_end ) = \FreeFormCertificate\Core\EventDate::range_from_config(
+			array(
+				'class_date_start' => ArrayValue::string( $geofence, 'class_date_start' ),
+				'class_date_end'   => ArrayValue::string( $geofence, 'class_date_end' ),
+			)
+		);
+
 		return array(
 			'schedule_exception_enabled' => isset( $geofence['schedule_exception_enabled'] ) ? '1' : '0',
 			'class_time_start'           => sanitize_text_field( ArrayValue::string( $geofence, 'class_time_start' ) ),
 			'class_time_end'             => sanitize_text_field( ArrayValue::string( $geofence, 'class_time_end' ) ),
+			'class_date_start'           => $date_start,
+			'class_date_end'             => $date_end,
 			'schedule_default_mode'      => $mode,
 		);
 	}
@@ -876,6 +1009,29 @@ class FormEditorSaveHandler {
 				'error',
 				(string) ob_get_clean(),
 				array( 'paragraph_wrap' => false )
+			);
+		}
+
+		if ( get_transient( 'ffc_save_event_date_warning_' . get_current_user_id() ) ) {
+			delete_transient( 'ffc_save_event_date_warning_' . get_current_user_id() );
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				esc_html__( 'The certificate layout prints the event date ({{schedule:date}} or {{schedule:dates}}), but this form has no event date. Set it under Time → Event Schedule, or certificates print nothing there.', 'ffcertificate' )
+			);
+		}
+
+		$missing_values = get_transient( 'ffc_save_template_values_warning_' . get_current_user_id() );
+		if ( is_array( $missing_values ) && array() !== $missing_values ) {
+			delete_transient( 'ffc_save_template_values_warning_' . get_current_user_id() );
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				esc_html(
+					sprintf(
+						/* translators: %s: labels of the template's required fields, comma-separated */
+						__( 'The certificate template asks this form for values it has not filled: %s. Fill them on the Layout tab, or certificates print them blank.', 'ffcertificate' ),
+						implode( ', ', array_map( 'strval', array_filter( $missing_values, 'is_scalar' ) ) )
+					)
+				)
 			);
 		}
 

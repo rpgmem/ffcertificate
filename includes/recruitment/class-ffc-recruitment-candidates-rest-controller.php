@@ -490,8 +490,9 @@ final class RecruitmentCandidatesRestController {
 				),
 				RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id )
 			),
-			'created_at'   => $candidate->created_at,
-			'updated_at'   => $candidate->updated_at,
+			// Site-local `Y-m-d H:i:s`, the shape before they stored instants (#2679).
+			'created_at'   => \FreeFormCertificate\Core\DateFormatter::site_mysql_datetime( $candidate->created_at ?? null ),
+			'updated_at'   => \FreeFormCertificate\Core\DateFormatter::site_mysql_datetime( $candidate->updated_at ?? null ),
 		);
 	}
 }

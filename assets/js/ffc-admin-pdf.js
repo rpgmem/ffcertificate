@@ -158,6 +158,32 @@
         });
     });
 
+    // A layout that is an earlier body of a default model is offered the
+    // current one (#2577). The button carries the pool id, so the update goes
+    // through the same Load path, confirmation included; nothing is saved
+    // until the form is.
+    $(document).on('click', '#ffc_update_default_layout_btn', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var templateId = $btn.data('template-id');
+        var templateName = String($btn.data('template-name') || '');
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var confirmMsg = strings.confirmUpdateLayout
+            ? strings.confirmUpdateLayout.replace('%s', templateName)
+            : 'Replace this layout with the current version of "' + templateName + '"?';
+
+        return window.FFC.confirmDialog({
+            message: confirmMsg,
+            confirmLabel: strings.updateLayout || '',
+            category: 'caution',
+            icon: 'template-load'
+        }).then(function(agreed) {
+            if (agreed) {
+                loadTemplateFile(templateId, templateName);
+            }
+        });
+    });
+
     // Load a certificate template into the layout editor.
     //
     // Primary path (#865): POST ffc_load_template with the DB pool post id
@@ -385,8 +411,20 @@
     // Preview button click handler. The server fills the placeholders with
     // CertificatePreviewSamples; the page sends only what it alone knows —
     // the unsaved layout, background, colour and the builder's field labels.
-    $(document).on('click', '#ffc_btn_preview', function(e) {
+    // A form that references a template (#2581) previews that template from
+    // its panel's button, with the values typed into its fields so far.
+    $(document).on('click', '#ffc_btn_preview, .ffc-btn-preview-template', function(e) {
         e.preventDefault();
+
+        var $panel = $(this).closest('.ffc-layout-template-panel');
+        var templateId = $panel.length ? String($panel.data('template-id') || '') : '';
+        var templateValues = {};
+        $panel.find('[name^="ffc_template_values["]').each(function() {
+            var match = /\]\[([a-z0-9_]+)\]$/.exec(this.name);
+            if (match) {
+                templateValues[match[1]] = $(this).val();
+            }
+        });
 
         // Flush the CodeMirror buffer into the textarea before reading so
         // the preview reflects the latest edits (otherwise the textarea
@@ -396,7 +434,7 @@
         var htmlContent = $layout.val();
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 
-        if (!htmlContent || !htmlContent.trim()) {
+        if (!templateId && (!htmlContent || !htmlContent.trim())) {
             var emptyMsg = strings.previewEmpty || 'The HTML editor is empty. Add a template first.';
             (window.FFC.Admin.notify || function() {})(emptyMsg, 'warning');
             return;
@@ -491,7 +529,16 @@
             title: $('#title').val() || '',
             bg_image: bgImage,
             bg_color: bgColor,
-            fields: fields
+            fields: fields,
+            template_id: templateId,
+            template_values: templateValues,
+            signer_id: $('#ffc_signer_id').val() || '',
+            signer_id_2: $('#ffc_signer_id_2').val() || '',
+            signer_id_3: $('#ffc_signer_id_3').val() || '',
+            // The event date as typed on the Time tab, saved or not (#2626).
+            post_id: $('input[name="post_ID"]').val() || '',
+            event_date_start: $('#ffc_event_date_start').val() || '',
+            event_date_end: $('#ffc_event_date_end').val() || ''
         })
             .done(function(response) {
                 if (!response || !response.success || !response.data || !window.FFCLayoutPreview) {
@@ -511,6 +558,37 @@
             }
         });
     });
+
+    // ==========================================================================
+    // LAYOUT SOURCE (#2581)
+    // ==========================================================================
+
+    // Own layout shows the HTML editor; Template shows the picker and the
+    // chosen template's panel. Hidden inputs still post, and the save reads
+    // only the chosen source.
+    function syncLayoutSource() {
+        var source = $('input[name="ffc_layout_source"]:checked').val();
+        if (typeof source === 'undefined') {
+            return;
+        }
+        var template = source === 'template';
+        $('.ffc-layout-own').prop('hidden', template);
+        $('.ffc-layout-template').prop('hidden', !template);
+        var chosen = String($('#ffc_layout_template_id').val() || '');
+        $('.ffc-layout-template-panel').each(function() {
+            $(this).prop('hidden', String($(this).data('template-id')) !== chosen);
+        });
+        if (template) {
+            return;
+        }
+        // The code editor cannot measure itself while hidden.
+        if (window.FFCCodeEditor && typeof window.FFCCodeEditor.refresh === 'function') {
+            window.FFCCodeEditor.refresh($('#ffc_pdf_layout'));
+        }
+    }
+
+    $(document).on('change', 'input[name="ffc_layout_source"], #ffc_layout_template_id', syncLayoutSource);
+    $(syncLayoutSource);
 
     // ==========================================================================
     // MEDIA LIBRARY - Background Image

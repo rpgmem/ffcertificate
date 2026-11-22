@@ -46,8 +46,8 @@ if ( 'close_old' === $ffcertificate_action ) {
 			: array(
 				'type'    => 'success',
 				'message' => sprintf(
-					/* translators: 1: appointments marked completed, 2: appointments cancelled */
-					__( 'Old appointments closed: %1$d marked completed, %2$d pending cancelled.', 'ffcertificate' ),
+					/* translators: 1: appointments marked completed, 2: pending or waitlisted appointments cancelled */
+					__( 'Old appointments closed: %1$d marked completed, %2$d pending or waitlisted cancelled.', 'ffcertificate' ),
 					$ffcertificate_closed['completed'],
 					$ffcertificate_closed['cancelled']
 				),
@@ -178,18 +178,22 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 		);
 
 		if ( 'undo_attendance' === $ffcertificate_action ) {
-			if ( $ffcertificate_repo->revertAttendance( $ffc_self_scheduling_appointment_id, $ffcertificate_status ) ) {
+			$ffcertificate_undone = ( new \FreeFormCertificate\SelfScheduling\AppointmentAdminActions( $ffcertificate_repo ) )->undo_attendance( $ffc_self_scheduling_appointment_id, time() );
+			if ( true === $ffcertificate_undone ) {
 				$ffcertificate_notice = array(
 					'type'    => 'success',
 					'message' => __( 'Attendance mark undone. The appointment is confirmed again.', 'ffcertificate' ),
 				);
+			} else {
+				$ffcertificate_notice['message'] = $ffcertificate_undone->get_error_message();
 			}
 		} elseif ( ! is_array( $ffcertificate_appointment ) ) {
 			$ffcertificate_notice['message'] = __( 'Appointment not found.', 'ffcertificate' );
-		} elseif ( '' === (string) ( $ffcertificate_appointment['appointment_date'] ?? '' ) || (string) $ffcertificate_appointment['appointment_date'] > wp_date( 'Y-m-d' ) ) {
-			// Attendance is a fact about a day that has come; the date is
-			// wall-clock, so it is compared with today in the site timezone.
-			$ffcertificate_notice['message'] = __( 'Attendance can only be marked from the appointment date on.', 'ffcertificate' );
+		} elseif ( 'confirmed' === $ffcertificate_status && ! \FreeFormCertificate\SelfScheduling\AppointmentAdminActions::can_mark( $ffcertificate_appointment, $ffcertificate_action, time() ) ) {
+			// Attendance is a fact about a slot that has come (#2689).
+			$ffcertificate_notice['message'] = 'no_show' === $ffcertificate_action
+				? __( 'A no-show can only be marked once the appointment has started.', 'ffcertificate' )
+				: __( 'Attendance can only be marked from the appointment date on.', 'ffcertificate' );
 		} else {
 			$ffcertificate_result = 'attended' === $ffcertificate_action
 				? $ffcertificate_repo->markCompleted( $ffc_self_scheduling_appointment_id )
@@ -372,7 +376,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 						<?php if ( ! empty( $ffcertificate_appointment['admin_notes'] ) ) : ?>
 						<tr><th><?php esc_html_e( 'Admin Notes', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['admin_notes'] ); ?></td></tr>
 						<?php endif; ?>
-						<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $ffcertificate_appointment['created_at'] ?? '' ), 'default', ' ', new \DateTimeZone( 'UTC' ) ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_instant( $ffcertificate_appointment['created_at'] ?? null ) ); ?></td></tr>
 					</table>
 				</div>
 
@@ -479,8 +483,8 @@ $ffcertificate_table->prepare_items();
 		if ( $ffc_closeout_total > 0 ) :
 			$ffc_closeout_days    = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::days();
 			$ffc_closeout_message = sprintf(
-				/* translators: 1: number of days, 2: confirmed appointments, 3: pending appointments */
-				__( 'Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending (will be cancelled). The daily run closes them; you can close them now.', 'ffcertificate' ),
+				/* translators: 1: number of days, 2: confirmed appointments, 3: pending or waitlisted appointments */
+				__( 'Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending or waitlisted (will be cancelled). The daily run closes them; you can close them now.', 'ffcertificate' ),
 				$ffc_closeout_days,
 				$ffc_closeout_due['confirmed'],
 				$ffc_closeout_due['pending']

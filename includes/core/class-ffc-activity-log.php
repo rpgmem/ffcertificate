@@ -376,8 +376,12 @@ class ActivityLog {
 	 *
 	 * 2.5.0 (#2340): `created_at` stores UTC seconds instead of the site's
 	 * wall clock. See {@see ActivityLogInstants}.
+	 *
+	 * 2.6.0 (#2658): `user_ip` and its index leave the statement, and the
+	 * column is dropped where no row still holds an address in it -- the
+	 * same evidence gate as the other dead columns.
 	 */
-	public const SCHEMA_REVISION = '2.5.0';
+	public const SCHEMA_REVISION = '2.6.0';
 
 	/**
 	 * First revision whose `created_at` stores instants (#2340).
@@ -433,7 +437,6 @@ class ActivityLog {
             context_encrypted longtext,
             user_id bigint(20) unsigned DEFAULT NULL,
             submission_id bigint(20) unsigned DEFAULT NULL,
-            user_ip varchar(100),
             user_ip_encrypted text,
             created_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
@@ -441,8 +444,7 @@ class ActivityLog {
             KEY level (level),
             KEY user_id (user_id),
             KEY submission_id (submission_id),
-            KEY created_at (created_at),
-            KEY user_ip (user_ip)
+            KEY created_at (created_at)
         ) {$charset_collate};";
 
 		if ( $instants ) {
@@ -491,7 +493,7 @@ class ActivityLog {
 	 *
 	 * @var array<int, string>
 	 */
-	private const LEGACY_DEAD = array( 'action_type', 'action_details', 'user_agent' );
+	private const LEGACY_DEAD = array( 'action_type', 'action_details', 'user_agent', 'user_ip' );
 
 	/**
 	 * Drop the dead legacy columns, and refuse on any install that uses them.
@@ -517,6 +519,12 @@ class ActivityLog {
 	 * drops nothing and leaves the columns as they are -- relaxed and inert
 	 * after {@see self::relax_legacy_not_null()} -- which is the only
 	 * acceptable outcome for an LGPD trail that cannot be restored.
+	 *
+	 * `user_ip` joined in 2.6.0 (#2658): nothing has written it since #1574,
+	 * and a row still holding an address is exactly what the count refuses
+	 * on, so the column waits for the "Activity Log: Encrypt Client IPs"
+	 * migration and goes at the next schema revision after it. Dropping it
+	 * drops its index with it.
 	 *
 	 * `submission_id` is deliberately NOT here. It is a live column the
 	 * statement declares and the queries read; its `NOT NULL` is the relax's
@@ -816,19 +824,25 @@ class ActivityLog {
 	 * Log user profile updated
 	 *
 	 * @since 4.9.9
-	 * @param int                $user_id User whose profile was updated.
-	 * @param array<int, string> $fields  Fields that were changed.
+	 * @param int                $user_id  User whose profile was updated.
+	 * @param array<int, string> $fields   Fields that were changed.
+	 * @param int                $actor_id Who made the edit when it is not that
+	 *                                     user, as under view-as (#2690); the row
+	 *                                     then names the actor and the context the
+	 *                                     account edited. 0 when the user edited
+	 *                                     their own profile.
 	 * @return bool
 	 */
-	public static function log_profile_updated( int $user_id, array $fields = array() ): bool {
-		return self::log(
-			'profile_updated',
-			self::LEVEL_INFO,
-			array(
-				'fields' => $fields,
-			),
-			$user_id
+	public static function log_profile_updated( int $user_id, array $fields = array(), int $actor_id = 0 ): bool {
+		$context = array(
+			'fields' => $fields,
 		);
+		if ( $actor_id > 0 && $actor_id !== $user_id ) {
+			$context['target_user_id'] = $user_id;
+			$user_id                   = $actor_id;
+		}
+
+		return self::log( 'profile_updated', self::LEVEL_INFO, $context, $user_id );
 	}
 
 	/**

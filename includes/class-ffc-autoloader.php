@@ -276,48 +276,4 @@ class FFC_Autoloader {
 			'Maintenance'            => 'maintenance',
 		);
 	}
-
-	/**
-	 * Get all registered namespaces
-	 *
-	 * @return array<string>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function get_namespaces(): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return array_keys( $this->namespace_map );
-	}
-
-	/**
-	 * Debug: Get mapping for a class
-	 *
-	 * @param string $class Class name with namespace.
-	 * @return array<string, mixed> Debug information
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function debug_class_mapping( string $class ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		if ( strpos( $class, self::NAMESPACE_PREFIX ) !== 0 ) {
-			return array(
-				'error' => 'Class does not use FreeFormCertificate namespace',
-				'class' => $class,
-			);
-		}
-
-		$relative_class = substr( $class, strlen( self::NAMESPACE_PREFIX ) );
-		$file           = $this->find_class_file( $relative_class );
-
-		return array(
-			'class'          => $class,
-			'relative_class' => $relative_class,
-			'file'           => $file,
-			'exists'         => $file ? file_exists( $file ) : false,
-		);
-	}
 }

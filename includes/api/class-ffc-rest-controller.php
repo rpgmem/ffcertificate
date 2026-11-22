@@ -122,7 +122,7 @@ class RestController {
 	 * but never leak into REST responses.
 	 */
 	public function suppress_rest_api_notices(): void {
-		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+		if ( wp_is_serving_rest_request() ) {
 			if ( ! ob_get_level() ) {
 				ob_start();
 			}

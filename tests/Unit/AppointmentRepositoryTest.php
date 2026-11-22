@@ -1093,7 +1093,9 @@ class AppointmentRepositoryTest extends TestCase {
 		// sourced from `time()` directly (can't be mocked); shape-check it.
 		$this->assertIsInt( $captured_data['cancelled_at'] );
 		$this->assertGreaterThan( time() - 10, $captured_data['cancelled_at'] );
-		$this->assertSame('2026-03-01 10:00:00', $captured_data['updated_at']);
+		// `updated_at` is an instant too since #2679.
+		$this->assertIsInt( $captured_data['updated_at'] );
+		$this->assertGreaterThan( time() - 10, $captured_data['updated_at'] );
 	}
 
 	// ==================================================================
@@ -1177,7 +1179,9 @@ class AppointmentRepositoryTest extends TestCase {
 
 		$this->repo->markCompleted(5);
 
-		$this->assertSame('2026-03-01 10:00:00', $captured_data['updated_at']);
+		// An instant since #2679, from `time()`.
+		$this->assertIsInt( $captured_data['updated_at'] );
+		$this->assertGreaterThan( time() - 10, $captured_data['updated_at'] );
 	}
 
 	// ==================================================================
@@ -1467,7 +1471,9 @@ class AppointmentRepositoryTest extends TestCase {
 
 		$this->repo->createAppointment($data);
 
-		$this->assertSame('2026-03-01 10:00:00', $captured_data['created_at']);
+		// An instant since #2679, from `time()`.
+		$this->assertIsInt( $captured_data['created_at'] );
+		$this->assertGreaterThan( time() - 10, $captured_data['created_at'] );
 	}
 
 	public function test_create_appointment_preserves_existing_created_at(): void {

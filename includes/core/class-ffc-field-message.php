@@ -89,25 +89,6 @@ final class FieldMessage {
 	}
 
 	/**
-	 * The state class a control takes for a message, or ''.
-	 *
-	 * For a control that already carries a `class` attribute; one that does
-	 * not can take the whole set from `control_attributes()`.
-	 *
-	 * @param string $text The message; '' means no state.
-	 * @param string $kind `error` or `warning`.
-	 * @return string
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function control_class( string $text, string $kind = 'error' ): string {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return '' === $text ? '' : self::spec( $kind )['control'];
-	}
-
-	/**
 	 * The attributes that tie a control to its message, each with a leading
 	 * space; '' when there is no message and no hint.
 	 *

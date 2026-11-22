@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -82,7 +83,7 @@ class FormProcessorGeofenceBeforeRateLimitTest extends TestCase {
 		Functions\when( 'wp_parse_args' )->alias(
 			static fn( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args )
 		);
-		Functions\when( 'wp_salt' )->alias( static fn( string $scheme = 'auth' ): string => 'test-salt-' . $scheme );
+		Functions\when( 'wp_salt' )->alias( static fn( string $scheme = 'auth' ): string => FakeCredentials::WP_SALT . '-' . $scheme );
 		Functions\when( 'wp_rand' )->alias( static fn( int $min = 0, int $max = 0 ): int => random_int( $min, $max ) );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'current_user_can' )->justReturn( false );

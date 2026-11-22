@@ -315,6 +315,87 @@ class QRCodeGeneratorTest extends TestCase {
 		$this->assertStringContainsString( 'width:200px', $html );
 	}
 
+	public function test_generate_draws_at_a_lower_level_when_the_asked_one_holds_too_little(): void {
+		// #2660: 1,500 bytes exceed H (1273) and fit Q (1663).
+		Functions\when( 'esc_html' )->returnArg();
+		$base64 = $this->generator->generate( 'https://example.com/?' . str_repeat( 'x', 1500 ), array( 'error_level' => 'H' ) );
+
+		$this->assertNotSame( '', $base64 );
+		$this->assertStringStartsWith( "\x89PNG", (string) base64_decode( $base64, true ) );
+	}
+
+	public function test_generate_refuses_what_no_level_holds_without_the_library_writing_a_log(): void {
+		$log = dirname( __DIR__, 2 ) . '/libs/phpqrcode/errors.txt';
+		$this->assertFileDoesNotExist( $log, 'Precondition: no log left by an earlier run.' );
+
+		$this->assertSame( '', $this->generator->generate( 'https://example.com/?' . str_repeat( 'x', 4000 ) ) );
+
+		// The library itself, on overflow: it also leaves an output buffer
+		// open, which the capacity check in generate() keeps it from reaching.
+		$level = ob_get_level();
+		\QRcode::png( str_repeat( 'x', 4000 ), false, QR_ECLEVEL_L );
+		while ( ob_get_level() > $level ) {
+			ob_end_clean();
+		}
+
+		$this->assertFileDoesNotExist( $log, 'The library must never write into the plugin folder (#2660).' );
+	}
+
+	public function test_a_document_prints_its_link_where_no_code_can_be_drawn(): void {
+		Functions\when( 'esc_html' )->alias( static fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES ) );
+		Functions\when( 'esc_html__' )->returnArg();
+		$url = 'https://example.com/valid?' . str_repeat( 'x', 4000 );
+
+		$html = $this->generator->parse_and_generate( '{{qr_code:size=120}}', $url );
+
+		$this->assertStringContainsString( 'class="ffc-qr-fallback"', $html );
+		$this->assertStringContainsString( 'width:120px', $html );
+		$this->assertStringContainsString( 'Verify this document at:', $html );
+		$this->assertStringContainsString( $url, $html );
+		$this->assertStringNotContainsString( '<img', $html );
+	}
+
+	public function test_the_fallback_prints_a_signed_link_without_its_payload(): void {
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		$payload = str_repeat( 'q', 4000 );
+
+		$html = $this->generator->parse_and_generate( '{{qr_code:size=90}}', 'https://example.com/valid#t=abc&s=' . $payload );
+
+		$this->assertStringContainsString( 'https://example.com/valid#t=abc<', $html );
+		$this->assertStringNotContainsString( $payload, $html, 'A reader cannot type the signed payload.' );
+		$this->assertSame( '', $this->invokePrivate( 'format_fallback', array( '', 90 ) ) );
+	}
+
+	public function test_a_logo_goes_when_only_it_keeps_the_certificate_code_from_fitting(): void {
+		// #2660: 1,400 bytes exceed H (1273), which a logo forces, and fit Q.
+		$memo = new \ReflectionProperty( \FreeFormCertificate\Generators\QrLogo::class, 'memo' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, array( 7 => 'data:image/png;base64,iVBORw0KGgo=' ) );
+		Functions\when( 'get_option' )->justReturn( array( 'qr_design_on_certificate' => '1', 'qr_design_logo_id' => 7 ) );
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+
+		try {
+			$html = ( new QRCodeGenerator() )->parse_and_generate( '{{qr_code:size=200}}', 'https://example.com/valid?' . str_repeat( 'x', 1400 ) );
+		} finally {
+			$memo->setValue( null, array() );
+		}
+
+		$this->assertStringContainsString( 'data:image/svg+xml;base64,', $html, 'A code is drawn, not the text fallback.' );
+		preg_match( '/base64,([^"]+)"/', $html, $m );
+		$this->assertStringNotContainsString( 'iVBORw0KGgo', (string) base64_decode( $m[1] ?? '', true ), 'Drawn without the logo.' );
+	}
+
+	public function test_the_plan_keeps_a_logo_only_while_h_holds_the_text(): void {
+		// #2664: the decision the editor's note and generation share.
+		$this->assertSame( array( 'level' => 'H', 'logo' => true ), QRCodeGenerator::plan( 'https://example.com/valid', 'M', true ) );
+		$this->assertSame( array( 'level' => 'M', 'logo' => false ), QRCodeGenerator::plan( str_repeat( 'x', 1400 ), 'M', true ), 'Too long for H: the logo goes and the M asked for stays.' );
+		$this->assertSame( array( 'level' => 'Q', 'logo' => false ), QRCodeGenerator::plan( str_repeat( 'x', 1400 ), 'H', false ), 'Too long for H, no logo: lowered.' );
+		$this->assertSame( array( 'level' => null, 'logo' => false ), QRCodeGenerator::plan( str_repeat( 'x', 4000 ), 'L', true ) );
+	}
+
 	public function test_parse_and_generate_empty_url_returns_empty(): void {
 		$html = $this->generator->parse_and_generate( '{{qr_code}}', '' );
 
