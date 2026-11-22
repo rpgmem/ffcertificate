@@ -272,8 +272,8 @@ O histórico completo de cada versão fica em [CHANGELOG.md](CHANGELOG.md), em i
 
 == Upgrade Notice ==
 
-= 6.44.1 =
-Só correções. Nenhuma tela abre mais o alert, confirm ou prompt do navegador: perguntas e resultados usam os diálogos e avisos do plugin. Também: dias do calendário de público pelo teclado, consentimento sem link vazio, segundo download do CSV público, textos em pt_BR.
+= 6.45.0 =
+⚠ Remove os nomes antigos das tarefas agendadas, cinco migrações concluídas, o cache das configurações de formulário e métodos públicos obsoletos desde a 6.43.0. Novo: modelos visuais de certificado, certificados e QR codes assinados, fontes da Biblioteca de Fontes, signatários e data do evento.
 
 Esta seção resume só a versão oferecida — o atualizador nunca oferece uma versão anterior. O que mudou em cada versão, e as issues de cada mudança, está em [CHANGELOG.md](CHANGELOG.md).
 

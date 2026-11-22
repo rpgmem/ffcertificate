@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.4
-Stable tag: 6.44.1
+Stable tag: 6.45.0
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -283,8 +283,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.44.1 =
-Fixes only. No screen opens the browser's alert, confirm or prompt any more: questions and results use the plugin's own dialogs and notices. Also: audience calendar days by keyboard, consent without an empty link, a second public CSV download, pt_BR wording.
+= 6.45.0 =
+⚠ Removes the legacy cron hook names, five finished migrations, the form-settings cache and public methods deprecated in 6.43.0. New: visual certificate templates, signed certificates and QR codes, Font Library fonts, signers and form event dates.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one

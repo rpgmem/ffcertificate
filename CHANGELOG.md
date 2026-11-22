@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.45.0] (2026-11-22)
+
 ### Added
 
 - **Certificates use the fonts installed through the WordPress Font Library** (#2569, #2573). Every page that draws a certificate loads them and the capture waits for them; Settings → Certificates, the layout editor and the form layout list them and warn about a font the site has not installed, saying how to install it.
