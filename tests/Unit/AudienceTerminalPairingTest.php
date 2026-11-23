@@ -426,6 +426,44 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( '', $shown['last_seen_label'], 'a terminal not used yet has no last read' );
 	}
 
+	public function test_an_operator_code_unlocks_the_menu_and_ends_the_terminal_in_that_operators_name(): void {
+		$paired  = $this->paired( array( 11 ), self::DEVICE );
+		$token   = $paired['token'];
+		$params  = array();
+		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturnUsing( static function () use ( &$token ) {
+			return $token;
+		} );
+		$request->shouldReceive( 'get_param' )->andReturnUsing( static function ( $name ) use ( &$params ) {
+			return $params[ $name ] ?? null;
+		} );
+		$may = true;
+		Functions\when( 'user_can' )->alias( static function ( $user, $cap ) use ( &$may ) {
+			return $may && 'ffc_checkin_audiences' === $cap;
+		} );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'display_name' => 'Ana Lima' ) );
+		$controller = new AudienceTerminalRestController();
+		$this->assertTrue( $controller->check_terminal_permission( $request ) );
+
+		$params['code'] = AudienceOperatorCode::issue( 9, time() )['code'];
+		$this->assertSame( 200, $controller->unlock( $request )->get_status() );
+
+		$may = false;
+		$refused = $controller->unlock( $request );
+		$this->assertInstanceOf( \WP_Error::class, $refused );
+		$this->assertSame( 'ffc_operator_not_allowed', $refused->get_error_code() );
+		$this->assertInstanceOf( \WP_Error::class, $controller->end_self( $request ), 'an operator who lost the capability cannot end it' );
+
+		$params['code'] = 'FFO1NOTACODE';
+		$may            = true;
+		$this->assertSame( 403, $controller->unlock( $request )->get_error_data()['status'] );
+
+		$params['code'] = AudienceOperatorCode::issue( 9, time() )['code'];
+		$this->assertSame( 200, $controller->end_self( $request )->get_status() );
+		$this->assertSame( 9, $this->tables->terminals[ $paired['terminal_id'] ]['revoked_by'] );
+		$this->assertFalse( $controller->check_terminal_permission( $request ), 'an ended terminal is no longer paired' );
+	}
+
 	// ---- Helpers ----------------------------------------------------------
 
 	/**

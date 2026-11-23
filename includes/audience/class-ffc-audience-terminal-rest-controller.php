@@ -149,6 +149,57 @@ class AudienceTerminalRestController {
 				'permission_callback' => array( $this, 'check_operator_permission' ),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/readings',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'reading' ),
+				'permission_callback' => array( $this, 'check_terminal_permission' ),
+				'args'                => array(
+					'code' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/unlock',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'unlock' ),
+				'permission_callback' => array( $this, 'check_terminal_permission' ),
+				'args'                => array(
+					'code' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/self',
+			array(
+				'methods'             => \WP_REST_Server::DELETABLE,
+				'callback'            => array( $this, 'end_self' ),
+				'permission_callback' => array( $this, 'check_terminal_permission' ),
+				'args'                => array(
+					'code' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -170,6 +221,18 @@ class AudienceTerminalRestController {
 	 */
 	public function check_operator_permission( \WP_REST_Request $request ): bool {
 		return self::has_nonce( $request ) && Capabilities::current_user_can_admin_or( 'ffc_checkin_audiences' );
+	}
+
+	/**
+	 * What a paired terminal calls with its own token: the reading, the
+	 * operator unlock and ending itself. The token is the whole guard; it
+	 * names the terminal and the events it may check in.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	public function check_terminal_permission( \WP_REST_Request $request ): bool {
+		return null !== self::terminal_of( $request );
 	}
 
 	/**
@@ -347,6 +410,107 @@ class AudienceTerminalRestController {
 			return new \WP_Error( 'ffc_operator_code', __( 'The site could not sign an operator code. Try again.', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
 		return new \WP_REST_Response( $code, 200, array( 'Cache-Control' => 'no-store' ) );
+	}
+
+	/**
+	 * Read a presence code.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function reading( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$code = $request->get_param( 'code' );
+		return new \WP_REST_Response( AudienceTerminalReading::read( $terminal, is_string( $code ) ? $code : '', time() ), 200, array( 'Cache-Control' => 'no-store' ) );
+	}
+
+	/**
+	 * Unlock the terminal's operator menu with an operator code.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function unlock( \WP_REST_Request $request ) {
+		$operator = self::operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		$user = get_userdata( $operator['user_id'] );
+		return new \WP_REST_Response(
+			array(
+				'name'    => $user instanceof \WP_User ? AudiencePresenceAttestation::display_name( $user ) : '',
+				'expires' => $operator['expires'],
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
+	}
+
+	/**
+	 * End the calling terminal, on an operator's code. The ending is
+	 * attributed to that operator, as when they end it from the app.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function end_self( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$operator = self::operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		$result = AudienceTerminalPairing::revoke( $terminal['id'], $operator['user_id'], true, time() );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new \WP_REST_Response( array( 'revoked' => $terminal['id'] ), 200 );
+	}
+
+	/**
+	 * The operator a request's code belongs to, when they may run check-ins.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return array{user_id: int, expires: int}|\WP_Error
+	 */
+	private static function operator_of( \WP_REST_Request $request ) {
+		$code     = $request->get_param( 'code' );
+		$operator = AudienceOperatorCode::verify( is_string( $code ) ? $code : '', time() );
+		if ( is_wp_error( $operator ) ) {
+			return new \WP_Error( $operator->get_error_code(), $operator->get_error_message(), array( 'status' => 403 ) );
+		}
+		if ( ! user_can( $operator['user_id'], 'ffc_checkin_audiences' ) && ! user_can( $operator['user_id'], 'manage_options' ) ) {
+			return new \WP_Error( 'ffc_operator_not_allowed', __( 'This operator may no longer run check-ins.', 'ffcertificate' ), array( 'status' => 403 ) );
+		}
+		return $operator;
+	}
+
+	/**
+	 * The answer for a token that stopped working between the permission
+	 * check and the handler.
+	 *
+	 * @return \WP_Error
+	 */
+	private static function not_paired(): \WP_Error {
+		return new \WP_Error( 'ffc_terminal_unpaired', __( 'This terminal is no longer paired. Ask an operator for a new pairing code.', 'ffcertificate' ), array( 'status' => 401 ) );
+	}
+
+	/**
+	 * Keep the characters of a QR code read in alphanumeric mode, which is
+	 * what both the presence code and the operator code are made of. Base45
+	 * never ends in a space (the last character of a group is at most `W`),
+	 * so trimming the reader's line end cannot cut a code.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_reading( $value ): string {
+		return is_string( $value ) ? substr( (string) preg_replace( '/[^0-9A-Z $%*+\-.\/:]/', '', strtoupper( trim( $value ) ) ), 0, 4096 ) : '';
 	}
 
 	/**

@@ -1,5 +1,5 @@
 /**
- * Check-in terminal page (#2744).
+ * Check-in terminal page (#2744, #2745).
  *
  * Starts on "Waiting for pairing". The operator holds the pairing QR code to
  * the terminal's reader, which types the code into the focused field and
@@ -8,7 +8,13 @@
  *
  * Wrong codes are counted on the site; a lock is answered with HTTP 429 and
  * the seconds to wait, which the page counts down and remembers across a
- * reload. Reading presence codes arrives with #2745.
+ * reload.
+ *
+ * Once paired, the reader types each presence code into the reading field
+ * and the site answers with the result (#2745), which the page writes into
+ * a status region (recorded) or an alert region (refused) and clears a few
+ * seconds later. An operator code opens the operator menu instead, which
+ * locks again after two minutes unused.
  *
  * Exposes window.FFCTerminal; the pure helpers are there for the tests.
  */
@@ -19,6 +25,10 @@
     var STATE_KEY = 'ffcTerminal';
     var LOCK_KEY = 'ffcTerminalLock';
     var ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+    var OPERATOR_PREFIX = 'FFO1';
+    var RESULT_MS = 5000;
+    var MENU_MS = 120000;
+    var EXPIRY_CHECK_MS = 30000;
 
     /**
      * A storage that may refuse: a private window or blocked site data.
@@ -81,6 +91,17 @@
     }
 
     /**
+     * A code as the reader typed it, minus the spaces and line end around
+     * it. Base45 never ends in a space, so trimming cannot cut a code.
+     *
+     * @param {string} raw Raw text.
+     * @return {string}
+     */
+    function cleanReading(raw) {
+        return String(raw || '').trim().toUpperCase();
+    }
+
+    /**
      * Seconds as m:ss.
      *
      * @param {number} seconds Seconds.
@@ -120,7 +141,7 @@
      *
      * @param {HTMLElement} el The page root.
      * @param {object} config `ffcTerminal`.
-     * @param {object} env Clock, network, storage and crypto.
+     * @param {object} env Clock, network, storage, crypto and timers.
      * @return {object} The page's controls, for the tests.
      */
     function start(el, config, env) {
@@ -161,12 +182,148 @@
             return store.set(DEVICE_KEY, id) ? id : null;
         }
 
-        function showPaired(state) {
+        var resultTimer = null;
+        var menuTimer = null;
+        var menuCode = '';
+
+        function showReady(state) {
             part('label').textContent = state.label || '';
             part('label').hidden = !state.label;
             part('events').textContent = String(strings.events || '%d').replace('%d', String((state.bookings || []).length));
             part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
-            show('paired');
+            show('ready');
+            focusReading();
+        }
+
+        function focusReading() {
+            var input = part('reading');
+            input.value = '';
+            input.focus();
+        }
+
+        function clearResult() {
+            if (resultTimer) {
+                env.clearTimeout(resultTimer);
+                resultTimer = null;
+            }
+            part('result-ok').textContent = '';
+            part('result-refused').textContent = '';
+            part('result').className = 'ffc-terminal-result';
+        }
+
+        function showResult(body) {
+            clearResult();
+            var ok = 'recorded' === body.status || 'already' === body.status;
+            var text = ok && body.name ? body.name + ' — ' + (body.message || '') : (body.message || strings.failed);
+            part('result').className = 'ffc-terminal-result ' + (ok ? 'is-ok ffc-icon-checkmark' : 'is-refused ffc-icon-warning');
+            part(ok ? 'result-ok' : 'result-refused').textContent = text;
+            resultTimer = env.setTimeout(clearResult, RESULT_MS);
+        }
+
+        function expire() {
+            store.remove(STATE_KEY);
+            closeMenu();
+            fail(strings.expired);
+            show('pairing');
+        }
+
+        function current() {
+            return readState(store.get(STATE_KEY), now());
+        }
+
+        function terminalRequest(method, path, body) {
+            var state = current();
+            if (!state) {
+                expire();
+                return Promise.resolve(null);
+            }
+            return env.fetch(config.rest + path, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'X-FFC-Terminal': state.token },
+                credentials: 'omit',
+                body: JSON.stringify(body)
+            }).then(function (response) {
+                return response.json().catch(function () { return {}; }).then(function (data) {
+                    if (401 === response.status) {
+                        expire();
+                        return null;
+                    }
+                    return { status: response.status, body: data || {} };
+                });
+            }, function () {
+                return { status: 0, body: { status: 'refused', message: strings.failed } };
+            });
+        }
+
+        function read(code) {
+            return terminalRequest('POST', 'readings', { code: code }).then(function (result) {
+                if (!result) {
+                    return null;
+                }
+                showResult(200 === result.status ? result.body : { status: 'refused', message: result.body.message || strings.failed });
+                focusReading();
+                return result.body;
+            });
+        }
+
+        function armMenu() {
+            if (menuTimer) {
+                env.clearTimeout(menuTimer);
+            }
+            menuTimer = env.setTimeout(closeMenu, MENU_MS);
+        }
+
+        function closeMenu() {
+            if (menuTimer) {
+                env.clearTimeout(menuTimer);
+                menuTimer = null;
+            }
+            menuCode = '';
+            part('menu-confirm').hidden = true;
+            part('menu-ask').hidden = false;
+            var state = current();
+            if (state && !el.querySelector('[data-ffc-terminal-view="menu"]').hidden) {
+                showReady(state);
+            }
+        }
+
+        function unlock(code) {
+            return terminalRequest('POST', 'unlock', { code: code }).then(function (result) {
+                if (!result) {
+                    return null;
+                }
+                if (200 !== result.status) {
+                    showResult({ status: 'refused', message: result.body.message || strings.failed });
+                    focusReading();
+                    return null;
+                }
+                clearResult();
+                menuCode = code;
+                part('operator').textContent = String(strings.operator || '%s').replace('%s', result.body.name || '');
+                show('menu');
+                part('menu-close').focus();
+                armMenu();
+                return result.body;
+            });
+        }
+
+        function endSelf() {
+            fail('');
+            return terminalRequest('DELETE', 'self', { code: menuCode }).then(function (result) {
+                if (!result) {
+                    return false;
+                }
+                if (200 !== result.status) {
+                    fail(result.body.message || strings.failed);
+                    armMenu();
+                    return false;
+                }
+                store.remove(STATE_KEY);
+                closeMenu();
+                say(strings.ended);
+                show('pairing');
+                return true;
+            });
         }
 
         function lockUntil(until) {
@@ -227,7 +384,7 @@
                         return null;
                     }
                     say(strings.paired);
-                    showPaired(state);
+                    showReady(state);
                     return state;
                 }
                 say('');
@@ -247,7 +404,7 @@
             });
         }
 
-        el.querySelector('[data-ffc-terminal-part="form"]').addEventListener('submit', function (event) {
+        part('form').addEventListener('submit', function (event) {
             event.preventDefault();
             var code = cleanCode(part('code').value);
             if (code) {
@@ -255,9 +412,46 @@
             }
         });
 
-        var state = readState(store.get(STATE_KEY), now());
+        part('reading-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            var code = cleanReading(part('reading').value);
+            part('reading').value = '';
+            if (!code) {
+                return;
+            }
+            if (0 === code.indexOf(OPERATOR_PREFIX)) {
+                unlock(code);
+            } else {
+                read(code);
+            }
+        });
+
+        part('menu-close').addEventListener('click', closeMenu);
+        part('menu-end').addEventListener('click', function () {
+            part('menu-ask').hidden = true;
+            part('menu-confirm').hidden = false;
+            part('menu-keep').focus();
+            armMenu();
+        });
+        part('menu-keep').addEventListener('click', function () {
+            part('menu-confirm').hidden = true;
+            part('menu-ask').hidden = false;
+            part('menu-end').focus();
+            armMenu();
+        });
+        part('menu-confirm-end').addEventListener('click', endSelf);
+
+        // The pairing ends on its own two hours after the last event; the
+        // page notices without waiting for the next reading.
+        env.setInterval(function () {
+            if (store.get(STATE_KEY) && !current()) {
+                expire();
+            }
+        }, EXPIRY_CHECK_MS);
+
+        var state = current();
         if (state) {
-            showPaired(state);
+            showReady(state);
         } else {
             if (store.get(STATE_KEY)) {
                 store.remove(STATE_KEY);
@@ -272,11 +466,12 @@
             }
         }
 
-        return { pair: pair, state: function () { return readState(store.get(STATE_KEY), now()); } };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current };
     }
 
     root.FFCTerminal = {
         cleanCode: cleanCode,
+        cleanReading: cleanReading,
         clock: clock,
         newDeviceId: newDeviceId,
         readState: readState,
@@ -295,7 +490,9 @@
                 storage: (function () { try { return root.localStorage; } catch (e) { return null; } })(),
                 crypto: root.crypto,
                 setInterval: root.setInterval.bind(root),
-                clearInterval: root.clearInterval.bind(root)
+                clearInterval: root.clearInterval.bind(root),
+                setTimeout: root.setTimeout.bind(root),
+                clearTimeout: root.clearTimeout.bind(root)
             });
         };
         if ('loading' === root.document.readyState) {

@@ -91,3 +91,38 @@
 	color: var(--ffc-text-muted);
 	font-size: var(--ffc-font-size-sm);
 }
+
+.ffc-terminal-result {
+	display: flex;
+	gap: var(--ffc-spacing-sm);
+	align-items: center;
+	min-height: 3em;
+	padding: var(--ffc-spacing-md);
+	border: 1px solid transparent;
+	border-radius: var(--ffc-radius-sm);
+	font-size: var(--ffc-font-size-xl);
+	font-weight: 600;
+}
+
+.ffc-terminal-result.is-ok {
+	border-color: var(--ffc-success-border);
+	background: var(--ffc-success-bg);
+	color: var(--ffc-success-text);
+}
+
+.ffc-terminal-result.is-refused {
+	border-color: var(--ffc-danger-border);
+	background: var(--ffc-danger-bg);
+	color: var(--ffc-danger-text);
+}
+
+.ffc-terminal-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ffc-spacing-sm);
+	align-items: center;
+}
+
+.ffc-terminal-actions[hidden] {
+	display: none;
+}

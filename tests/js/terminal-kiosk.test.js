@@ -1,6 +1,7 @@
 /**
- * Check-in terminal page (#2744): pairing with a `P-` code, the lock the
- * site answers with, and the pairing the page keeps across a reload.
+ * Check-in terminal page (#2744, #2745): pairing with a `P-` code, the lock
+ * the site answers with, the pairing the page keeps across a reload, reading
+ * presence codes and the operator menu.
  */
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
@@ -28,6 +29,8 @@ const CONFIG = {
 		events: 'events %d',
 		until: 'until %s',
 		expired: 'expired',
+		operator: 'by %s',
+		ended: 'ended',
 	},
 };
 
@@ -40,10 +43,26 @@ function markup() {
 				<form data-ffc-terminal-part="form"><input data-ffc-terminal-part="code"><button type="submit">Pair</button></form>
 			</section>
 			<section data-ffc-terminal-view="locked" hidden><p data-ffc-terminal-part="countdown"></p></section>
-			<section data-ffc-terminal-view="paired" hidden>
+			<section data-ffc-terminal-view="ready" hidden>
+				<div data-ffc-terminal-part="result">
+					<div role="status" data-ffc-terminal-part="result-ok"></div>
+					<div role="alert" data-ffc-terminal-part="result-refused"></div>
+				</div>
+				<form data-ffc-terminal-part="reading-form"><input data-ffc-terminal-part="reading"><button type="submit">Check in</button></form>
 				<p data-ffc-terminal-part="label"></p>
 				<p data-ffc-terminal-part="events"></p>
 				<p data-ffc-terminal-part="until"></p>
+			</section>
+			<section data-ffc-terminal-view="menu" hidden>
+				<p data-ffc-terminal-part="operator"></p>
+				<div data-ffc-terminal-part="menu-ask">
+					<button type="button" data-ffc-terminal-part="menu-close">Close</button>
+					<button type="button" data-ffc-terminal-part="menu-end">End</button>
+				</div>
+				<div data-ffc-terminal-part="menu-confirm" hidden>
+					<button type="button" data-ffc-terminal-part="menu-keep">Keep</button>
+					<button type="button" data-ffc-terminal-part="menu-confirm-end">End</button>
+				</div>
 			</section>
 		</main>`;
 	return document.querySelector('[data-ffc-terminal]');
@@ -62,15 +81,19 @@ function memoryStorage(initial = {}) {
 function env(overrides = {}) {
 	const clock = { now: NOW * 1000 };
 	const timers = [];
+	const timeouts = [];
 	return {
 		clock,
 		timers,
+		timeouts,
 		now: () => clock.now,
 		storage: memoryStorage(),
 		crypto: webcrypto,
 		fetch: () => Promise.reject(new Error('no network')),
 		setInterval: (fn) => { timers.push(fn); return timers.length; },
 		clearInterval: () => {},
+		setTimeout: (fn, ms) => { timeouts.push([fn, ms]); return timeouts.length; },
+		clearTimeout: () => {},
 		...overrides,
 	};
 }
@@ -86,6 +109,10 @@ describe('helpers', () => {
 		expect(T().cleanCode(' p-ab12-cd34-ef56\n')).toBe('P-AB12-CD34-EF56');
 		expect(T().cleanCode('<script>')).toBe('SCRIPT');
 		expect(T().cleanCode(null)).toBe('');
+	});
+
+	it('keeps a reading whole, minus the reader\'s line end', () => {
+		expect(T().cleanReading('  ffp1ab $%*+-./:\r\n')).toBe('FFP1AB $%*+-./:');
 	});
 
 	it('writes seconds as m:ss', () => {
@@ -137,7 +164,7 @@ describe('pairing', () => {
 		const sent = JSON.parse(calls[0][1].body);
 		expect(sent.code).toBe('P-AB12-CD34-EF56');
 		expect(sent.device).toBe(e.storage.data.get('ffcTerminalDevice'));
-		expect(visible(el)).toEqual(['paired']);
+		expect(visible(el)).toEqual(['ready']);
 		expect(el.querySelector('[data-ffc-terminal-part="label"]').textContent).toBe('Entrance A');
 		expect(el.querySelector('[data-ffc-terminal-part="events"]').textContent).toBe('events 2');
 		expect(el.querySelector('[data-ffc-terminal-part="until"]').textContent).toBe('until 15/01/2027 18:00');
@@ -191,7 +218,7 @@ describe('pairing', () => {
 	it('opens on the stored pairing, and drops one that expired', () => {
 		const storage = memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, label: '', bookings: [1], expires_at: NOW + 10, expires_label: 'soon' }) });
 		T().start(el, CONFIG, env({ storage }));
-		expect(visible(el)).toEqual(['paired']);
+		expect(visible(el)).toEqual(['ready']);
 		expect(el.querySelector('[data-ffc-terminal-part="label"]').hidden).toBe(true);
 
 		const later = env({ storage });
@@ -201,5 +228,139 @@ describe('pairing', () => {
 		expect(visible(reloaded)).toEqual(['pairing']);
 		expect(reloaded.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('expired');
 		expect(storage.data.has('ffcTerminal')).toBe(false);
+	});
+});
+
+describe('reading', () => {
+	let el;
+	const STATE = JSON.stringify({ token: TOKEN, label: 'Entrance A', bookings: [11], expires_at: NOW + 3600, expires_label: 'later' });
+
+	function paired(routes) {
+		el = markup();
+		const calls = [];
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: STATE }),
+			fetch: (url, options) => {
+				const path = url.replace(CONFIG.rest, '');
+				calls.push([options.method, path, options]);
+				const answer = routes[options.method + ' ' + path];
+				return answer ? respond(answer[0], answer[1])() : Promise.reject(new Error('offline'));
+			},
+		});
+		const controls = T().start(el, CONFIG, e);
+		return { e, calls, controls };
+	}
+
+	const submit = async (text) => {
+		el.querySelector('[data-ffc-terminal-part="reading"]').value = text;
+		el.querySelector('[data-ffc-terminal-part="reading-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		await settle();
+	};
+	const ok = () => el.querySelector('[data-ffc-terminal-part="result-ok"]').textContent;
+	const refused = () => el.querySelector('[data-ffc-terminal-part="result-refused"]').textContent;
+
+	it('opens ready with the reading field focused', () => {
+		paired({});
+		expect(visible(el)).toEqual(['ready']);
+		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="reading"]'));
+	});
+
+	it('sends the reading with the terminal token and announces the short name', async () => {
+		const { e, calls } = paired({ 'POST readings': [200, { status: 'recorded', code: 'ffc_terminal_recorded', message: 'Attendance recorded.', name: 'Maria S.' }] });
+		await submit('FFP1ABC\r\n');
+
+		expect(JSON.parse(calls[0][2].body)).toEqual({ code: 'FFP1ABC' });
+		expect(calls[0][2].headers['X-FFC-Terminal']).toBe(TOKEN);
+		expect(calls[0][2].credentials).toBe('omit');
+		expect(ok()).toBe('Maria S. — Attendance recorded.');
+		expect(refused()).toBe('');
+		expect(el.querySelector('[data-ffc-terminal-part="result"]').className).toContain('ffc-icon-checkmark');
+		expect(el.querySelector('[data-ffc-terminal-part="reading"]').value).toBe('');
+
+		const [clear, ms] = e.timeouts[e.timeouts.length - 1];
+		expect(ms).toBe(5000);
+		clear();
+		expect(ok()).toBe('');
+	});
+
+	it('writes a refusal in the alert region and never a name', async () => {
+		paired({ 'POST readings': [200, { status: 'refused', code: 'ffc_terminal_other_event', message: 'Another event.', name: '' }] });
+		await submit('FFP1ABC');
+		expect(refused()).toBe('Another event.');
+		expect(ok()).toBe('');
+		expect(el.querySelector('[data-ffc-terminal-part="result"]').className).toContain('ffc-icon-warning');
+	});
+
+	it('says the network failed when the site cannot be reached', async () => {
+		paired({});
+		await submit('FFP1ABC');
+		expect(refused()).toBe('failed');
+	});
+
+	it('goes back to pairing when the site no longer knows the token', async () => {
+		const { e } = paired({ 'POST readings': [401, { message: 'unpaired' }] });
+		await submit('FFP1ABC');
+		expect(visible(el)).toEqual(['pairing']);
+		expect(e.storage.data.has('ffcTerminal')).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('expired');
+	});
+
+	it('notices on its own when the pairing expires', () => {
+		const { e } = paired({});
+		e.clock.now = (NOW + 3601) * 1000;
+		e.timers[0]();
+		expect(visible(el)).toEqual(['pairing']);
+	});
+
+	it('opens the menu on an operator code and locks it again after two minutes', async () => {
+		const { e, calls } = paired({ 'POST unlock': [200, { name: 'Ana L.', expires: NOW + 120 }] });
+		await submit('FFO1OPERATOR');
+		expect(calls[0][1]).toBe('unlock');
+		expect(visible(el)).toEqual(['menu']);
+		expect(el.querySelector('[data-ffc-terminal-part="operator"]').textContent).toBe('by Ana L.');
+
+		const [lock, ms] = e.timeouts[e.timeouts.length - 1];
+		expect(ms).toBe(120000);
+		lock();
+		expect(visible(el)).toEqual(['ready']);
+	});
+
+	it('refuses an operator code the site does not accept', async () => {
+		paired({ 'POST unlock': [403, { message: 'expired code' }] });
+		await submit('FFO1OPERATOR');
+		expect(visible(el)).toEqual(['ready']);
+		expect(refused()).toBe('expired code');
+	});
+
+	it('ends the terminal only after the inline confirmation, with the operator code', async () => {
+		const { e, calls } = paired({ 'POST unlock': [200, { name: 'Ana L.' }], 'DELETE self': [200, { revoked: 4 }] });
+		await submit('FFO1OPERATOR');
+		const button = (n) => el.querySelector('[data-ffc-terminal-part="' + n + '"]');
+
+		button('menu-end').click();
+		expect(button('menu-confirm').hidden).toBe(false);
+		expect(document.activeElement).toBe(button('menu-keep'));
+		button('menu-keep').click();
+		expect(button('menu-confirm').hidden).toBe(true);
+		expect(calls.some((c) => c[0] === 'DELETE')).toBe(false);
+
+		button('menu-end').click();
+		button('menu-confirm-end').click();
+		await settle();
+		const ended = calls.find((c) => c[0] === 'DELETE');
+		expect(JSON.parse(ended[2].body)).toEqual({ code: 'FFO1OPERATOR' });
+		expect(visible(el)).toEqual(['pairing']);
+		expect(e.storage.data.has('ffcTerminal')).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="status"]').textContent).toBe('ended');
+	});
+
+	it('keeps the terminal and says why when ending is refused', async () => {
+		paired({ 'POST unlock': [200, { name: 'Ana L.' }], 'DELETE self': [403, { message: 'This operator code has expired.' }] });
+		await submit('FFO1OPERATOR');
+		el.querySelector('[data-ffc-terminal-part="menu-end"]').click();
+		el.querySelector('[data-ffc-terminal-part="menu-confirm-end"]').click();
+		await settle();
+		expect(visible(el)).toEqual(['menu']);
+		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('This operator code has expired.');
 	});
 });
