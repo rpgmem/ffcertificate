@@ -110,6 +110,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Presence code', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 30 seconds, offline if need be, for as long as the activation lasts. The code carries the site\'s statement about the phone, the event, the moment and a signature made by the phone\'s key, so a photo or screenshot of it stops working within a minute and a code from another phone does not pass.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The screen fills the accent colour: the event\'s name with its day, hours and place on top, the code on a white card, a bar that drains until the next code with the phone owner\'s short name beside it, and three tips. The event picker shows only when the participant has more than one event in the next 7 days.', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><?php esc_html_e( 'The screen lists the participant\'s bookings over the next 7 days. While online, the app also fetches a ticket signed by the site for each of them, which proves the participant is on that booking even when the terminal cannot reach the site.', 'ffcertificate' ); ?></li>
 		<li><?php esc_html_e( 'A terminal accepts a code up to one rotation old, with 60 seconds of tolerance either way for a phone whose clock is off.', 'ffcertificate' ); ?></li>

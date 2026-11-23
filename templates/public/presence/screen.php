@@ -43,13 +43,29 @@ use FreeFormCertificate\Core\Notice;
 
 	<div class="ffc-presence-code" data-ffc-presence-part="code-view" data-ffc-presence-view="code" hidden>
 		<ul class="ffc-presence-pending" data-ffc-presence-part="pending" aria-label="<?php esc_attr_e( 'Waiting for you', 'ffcertificate' ); ?>" hidden></ul>
-		<label class="ffc-presence-label" for="ffc-presence-event"><?php esc_html_e( 'Event', 'ffcertificate' ); ?></label>
-		<select id="ffc-presence-event" class="ffc-presence-event" data-ffc-presence-part="event"></select>
-		<p class="ffc-presence-attendance ffc-icon-checkmark" data-ffc-presence-part="attendance" hidden></p>
-		<p class="ffc-presence-empty" data-ffc-presence-part="empty" hidden><?php esc_html_e( 'You have no event in the next 7 days. Open this screen while online to update the list.', 'ffcertificate' ); ?></p>
-		<div class="ffc-presence-qr" data-ffc-presence-part="qr"></div>
-		<p class="ffc-presence-name" data-ffc-presence-part="name"></p>
-		<p class="ffc-presence-countdown" data-ffc-presence-part="countdown"></p>
-		<p class="ffc-presence-help"><?php esc_html_e( 'Hold the code up to the terminal\'s reader, about 20 cm away, with the screen bright. A photo or screenshot of the code stops working within a minute.', 'ffcertificate' ); ?></p>
+		<div class="ffc-presence-stage">
+			<div class="ffc-presence-heading">
+				<h2 class="ffc-presence-title" data-ffc-presence-part="title"></h2>
+				<p class="ffc-presence-when" data-ffc-presence-part="when"></p>
+			</div>
+			<div class="ffc-presence-picker" data-ffc-presence-part="picker" hidden>
+				<label class="ffc-presence-label" for="ffc-presence-event"><?php esc_html_e( 'Event', 'ffcertificate' ); ?></label>
+				<select id="ffc-presence-event" class="ffc-presence-event" data-ffc-presence-part="event"></select>
+			</div>
+			<p class="ffc-presence-attendance ffc-icon-checkmark" data-ffc-presence-part="attendance" hidden></p>
+			<p class="ffc-presence-empty" data-ffc-presence-part="empty" hidden><?php esc_html_e( 'You have no event in the next 7 days. Open this screen while online to update the list.', 'ffcertificate' ); ?></p>
+			<div class="ffc-presence-card" data-ffc-presence-part="card">
+				<div class="ffc-presence-qr" data-ffc-presence-part="qr"></div>
+			</div>
+			<div class="ffc-presence-rotation">
+				<progress class="ffc-presence-progress" max="30" value="30" data-ffc-presence-part="progress" aria-hidden="true"></progress>
+				<p class="ffc-presence-countdown" data-ffc-presence-part="countdown"></p>
+			</div>
+			<ul class="ffc-presence-tips">
+				<li class="ffc-icon-qr"><?php esc_html_e( 'Hold the screen up to the terminal\'s reader at the entrance.', 'ffcertificate' ); ?></li>
+				<li class="ffc-icon-shield"><?php esc_html_e( 'Works without internet: the code is made and signed on this phone.', 'ffcertificate' ); ?></li>
+				<li class="ffc-icon-clock"><?php esc_html_e( 'A screenshot will not do: the code changes every 30 seconds.', 'ffcertificate' ); ?></li>
+			</ul>
+		</div>
 	</div>
 </div>

@@ -35617,8 +35617,6 @@ msgstr ""
 msgid "Activating this phone…"
 msgstr ""
 
-msgid "Hold the code up to the terminal's reader, about 20 cm away, with the screen bright. A photo or screenshot of the code stops working within a minute."
-msgstr ""
 
 #. translators: %d: seconds until the presence code changes
 #, php-format
@@ -36684,4 +36682,16 @@ msgid "The terminal is a full-screen page, always in the dark theme whatever the
 msgstr ""
 
 msgid "The camera reads on the pairing screen (the pairing QR code), the presence screen and the operator unlock, and its viewfinder moves to whichever is in front. The live view is mirrored, like a mirror, so a code is easy to aim; when a code is read, the screen flashes and shows the captured frame the right way round before the result. Some front cameras hand over frames already mirrored: a frame that reads nothing is read again flipped back."
+msgstr ""
+
+msgid "A screenshot will not do: the code changes every 30 seconds."
+msgstr ""
+
+msgid "Hold the screen up to the terminal's reader at the entrance."
+msgstr ""
+
+msgid "Works without internet: the code is made and signed on this phone."
+msgstr ""
+
+msgid "The screen fills the accent colour: the event's name with its day, hours and place on top, the code on a white card, a bar that drains until the next code with the phone owner's short name beside it, and three tips. The event picker shows only when the participant has more than one event in the next 7 days."
 msgstr ""
