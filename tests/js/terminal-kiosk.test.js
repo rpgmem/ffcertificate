@@ -2,7 +2,8 @@
  * Check-in terminal page (#2744, #2745): pairing with a `P-` code, the lock
  * the site answers with, the pairing the page keeps across a reload, reading
  * presence codes and the operator menu; the event it checks in now or
- * next, from the schedule the site hands it (#2746).
+ * next, from the schedule the site hands it (#2746); reading with the
+ * device camera through BarcodeDetector (#2747).
  */
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
@@ -72,6 +73,12 @@ function markup() {
 					<div role="alert" data-ffc-terminal-part="result-refused"></div>
 				</div>
 				<form data-ffc-terminal-part="reading-form"><input data-ffc-terminal-part="reading"><button type="submit">Check in</button></form>
+				<div data-ffc-terminal-part="camera" hidden>
+					<p data-ffc-terminal-part="camera-note"></p>
+					<div data-ffc-terminal-part="viewfinder" hidden><video data-ffc-terminal-part="camera-video"></video></div>
+					<button type="button" data-ffc-terminal-part="camera-start">Use camera</button>
+					<button type="button" data-ffc-terminal-part="camera-stop" hidden>Stop</button>
+				</div>
 				<p data-ffc-terminal-part="label"></p>
 				<p data-ffc-terminal-part="events"></p>
 				<p data-ffc-terminal-part="until"></p>
@@ -763,5 +770,158 @@ describe('event queue', () => {
 		reconnect();
 		await settle();
 		expect(calls).toContain('self');
+	});
+});
+
+describe('camera', () => {
+	let el;
+	const CAMERA = {
+		ready: 'allow the camera',
+		reading: 'hold it in the frame',
+		insecure: 'needs https',
+		unsupported: 'cannot read qr',
+		denied: 'not allowed',
+		failed: 'could not start',
+	};
+	const config = (camera = true) => ({ ...CONFIG, camera, strings: { ...CONFIG.strings, camera: CAMERA } });
+	const text = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]').textContent;
+	const node = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]');
+	beforeEach(() => { window.HTMLMediaElement.prototype.play = () => Promise.resolve(); });
+
+	function detectorClass(formats, frames) {
+		return class {
+			static getSupportedFormats() { return formats; }
+			constructor(options) { this.options = options; }
+			detect() { return Promise.resolve(frames.length ? frames.shift() : []); }
+		};
+	}
+
+	function stream() {
+		const tracks = [{ stopped: false, stop() { this.stopped = true; } }];
+		return { tracks, getTracks: () => tracks };
+	}
+
+	function paired(overrides = {}, routes = {}, cfg = config()) {
+		el = markup();
+		const calls = [];
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, bookings: [11], expires_at: NOW + 3600 }) }),
+			online: () => true,
+			secure: true,
+			fetch: (url, options) => {
+				const path = url.replace(CONFIG.rest, '');
+				calls.push([options.method, path, options.body]);
+				const answer = routes[options.method + ' ' + path];
+				return answer ? respond(answer[0], answer[1])() : Promise.reject(new Error('offline'));
+			},
+			...overrides,
+		});
+		const controls = T().start(el, cfg, e);
+		return { e, calls, controls };
+	}
+
+	it('stays hidden unless the site allows the camera', async () => {
+		paired({}, {}, config(false));
+		expect(node('camera').hidden).toBe(true);
+	});
+
+	it('says why the camera cannot be used, from what the browser offers', async () => {
+		let c = paired({ secure: false });
+		expect(await c.controls.camera.ready).toBe('insecure');
+		expect(text('camera-note')).toBe('needs https');
+		expect(node('camera-start').disabled).toBe(true);
+
+		c = paired({});
+		expect(await c.controls.camera.ready).toBe('unsupported');
+		expect(text('camera-note')).toBe('cannot read qr');
+
+		c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['ean_13']), []), mediaDevices: { getUserMedia: () => Promise.reject(new Error('x')) } });
+		expect(await c.controls.camera.ready).toBe('unsupported');
+
+		c = paired({ BarcodeDetector: detectorClass(Promise.reject(new Error('no')), []), mediaDevices: { getUserMedia: () => Promise.reject(new Error('x')) } });
+		expect(await c.controls.camera.ready).toBe('unsupported');
+	});
+
+	it('explains the permission prompt, then reads a code from the viewfinder like the reader would', async () => {
+		const feed = stream();
+		const frames = [[], [{ rawValue: 'FFP1ABC' }], [{ rawValue: 'FFP1ABC' }]];
+		const { e, calls, controls } = paired(
+			{ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), frames), mediaDevices: { getUserMedia: () => Promise.resolve(feed) } },
+			{ 'POST readings': [200, { status: 'recorded', message: 'Recorded.', name: 'Maria S.' }] }
+		);
+		expect(await controls.camera.ready).toBe('ok');
+		expect(text('camera-note')).toBe('allow the camera');
+		expect(node('camera-start').disabled).toBe(false);
+
+		node('camera-start').click();
+		await settle();
+		expect(node('viewfinder').hidden).toBe(false);
+		expect(node('camera-stop').hidden).toBe(false);
+		expect(node('camera-start').hidden).toBe(true);
+		expect(text('camera-note')).toBe('hold it in the frame');
+		expect(node('camera-video').srcObject).toBe(feed);
+
+		await controls.camera.scan();
+		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(0);
+		await controls.camera.scan();
+		await settle();
+		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(1);
+		expect(el.querySelector('[data-ffc-terminal-part="result-ok"]').textContent).toBe('Maria S. — Recorded.');
+
+		await controls.camera.scan();
+		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(1);
+		e.clock.now += 6000;
+		frames.push([{ rawValue: 'FFP1ABC' }]);
+		await controls.camera.scan();
+		await settle();
+		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(2);
+
+		node('camera-stop').click();
+		expect(feed.tracks[0].stopped).toBe(true);
+		expect(node('viewfinder').hidden).toBe(true);
+		expect(node('camera-start').hidden).toBe(false);
+		expect(await controls.camera.scan()).toBe(null);
+	});
+
+	it('sends an operator code to the unlock, and keeps scanning when a frame fails', async () => {
+		const frames = [[{ rawValue: 'FFO1XYZ' }]];
+		const Detector = detectorClass(Promise.resolve(['qr_code']), frames);
+		Detector.prototype.detect = function () { return frames.length ? Promise.resolve(frames.shift()) : Promise.reject(new Error('blur')); };
+		const { e, calls, controls } = paired(
+			{ BarcodeDetector: Detector, mediaDevices: { getUserMedia: () => Promise.resolve(stream()) } },
+			{ 'POST unlock': [200, { name: 'Ana L.', expires: NOW + 120 }] }
+		);
+		await controls.camera.ready;
+		await controls.camera.start();
+		await controls.camera.scan();
+		await settle();
+		expect(calls.some((c) => c[1] === 'unlock')).toBe(true);
+		const before = e.timeouts.length;
+		expect(await controls.camera.scan()).toBe(null);
+		expect(e.timeouts.length).toBeGreaterThan(before);
+	});
+
+	it('says when the camera is refused or cannot start', async () => {
+		const denied = Object.assign(new Error('no'), { name: 'NotAllowedError' });
+		let c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.reject(denied) } });
+		await c.controls.camera.ready;
+		expect(await c.controls.camera.start()).toBe(false);
+		expect(text('camera-note')).toBe('not allowed');
+		expect(node('camera-start').disabled).toBe(false);
+
+		c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.reject(new Error('busy')) } });
+		await c.controls.camera.ready;
+		expect(await c.controls.camera.start()).toBe(false);
+		expect(text('camera-note')).toBe('could not start');
+	});
+
+	it('stops the camera when the pairing ends', async () => {
+		const feed = stream();
+		const { e, controls } = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.resolve(feed) } });
+		await controls.camera.ready;
+		await controls.camera.start();
+		e.clock.now = (NOW + 7200) * 1000;
+		e.timers.forEach((fn) => fn());
+		expect(feed.tracks[0].stopped).toBe(true);
 	});
 });

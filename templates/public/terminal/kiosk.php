@@ -4,7 +4,7 @@
  *
  * The markup only: `assets/js/ffc-terminal-kiosk.js` shows one view at a
  * time. It pairs the terminal (#2744), reads presence codes online or into
- * its offline queue (#2745), shows the event it checks in now or next (#2746) and opens the operator menu on an operator code. The two result regions stay
+ * its offline queue (#2745), shows the event it checks in now or next (#2746), reads with the device camera where allowed (#2747) and opens the operator menu on an operator code. The two result regions stay
  * in the page, so a screen reader announces each result as it is written.
  *
  * @package FreeFormCertificate\Audience
@@ -78,6 +78,35 @@ use FreeFormCertificate\Core\Notice;
 			);
 			?>
 		</form>
+		<div class="ffc-terminal-camera" data-ffc-terminal-part="camera" hidden>
+			<p class="description" data-ffc-terminal-part="camera-note"></p>
+			<div class="ffc-terminal-viewfinder" data-ffc-terminal-part="viewfinder" hidden>
+				<video data-ffc-terminal-part="camera-video" playsinline muted aria-label="<?php esc_attr_e( 'Camera view', 'ffcertificate' ); ?>"></video>
+			</div>
+			<div class="ffc-terminal-actions">
+				<?php
+				Button::render(
+					array(
+						'label'    => __( 'Use the camera', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'qr',
+						'attrs'    => array( 'data-ffc-terminal-part' => 'camera-start' ),
+					)
+				);
+				Button::render(
+					array(
+						'label'    => __( 'Stop the camera', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'cross',
+						'attrs'    => array(
+							'data-ffc-terminal-part' => 'camera-stop',
+							'hidden'                 => true,
+						),
+					)
+				);
+				?>
+			</div>
+		</div>
 		<p class="ffc-terminal-label" data-ffc-terminal-part="label"></p>
 		<p class="description" data-ffc-terminal-part="events"></p>
 		<p class="description" data-ffc-terminal-part="until"></p>

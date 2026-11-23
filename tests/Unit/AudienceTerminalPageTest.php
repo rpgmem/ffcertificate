@@ -124,7 +124,20 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/terminal/', $config['rest'] );
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/presence/', $config['presence'] );
 		$this->assertArrayNotHasKey( 'nonce', $config, 'a terminal has no account to carry a nonce for' );
-		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'offline' ), array_keys( $config['strings'] ) );
+		$this->assertFalse( $config['camera'], 'the camera is off until an administrator allows it' );
+		$this->assertSame( array( 'ready', 'reading', 'insecure', 'unsupported', 'denied', 'failed' ), array_keys( $config['strings']['camera'] ) );
+		$this->assertStringContainsString( 'data-ffc-terminal-part="camera-start"', $html );
+		$this->assertMatchesRegularExpression( '/<video[^>]*playsinline[^>]*muted/', $html, 'the viewfinder plays inline and silent' );
+		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'camera', 'offline' ), array_keys( $config['strings'] ) );
+	}
+
+	public function test_the_camera_follows_its_option(): void {
+		$this->settings = array( 'terminal_camera' => 1 );
+		$this->assertTrue( AudienceTerminalPage::camera_allowed() );
+		$this->settings = array( 'terminal_camera' => '0' );
+		$this->assertFalse( AudienceTerminalPage::camera_allowed() );
+		$this->settings = array();
+		$this->assertFalse( AudienceTerminalPage::camera_allowed(), 'off until an administrator turns it on' );
 	}
 
 	public function test_the_dark_theme_is_on_the_root_from_the_first_paint(): void {

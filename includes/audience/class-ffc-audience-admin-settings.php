@@ -136,6 +136,10 @@ class AudienceAdminSettings {
 				'label' => __( 'Import & Export', 'ffcertificate' ),
 				'icon'  => 'ffc-icon-upload',
 			),
+			'checkin'         => array(
+				'label' => __( 'Check-in', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-qr',
+			),
 		);
 
 		/**
@@ -203,6 +207,9 @@ class AudienceAdminSettings {
 							break;
 						case 'import':
 							$this->import->render_content();
+							break;
+						case 'checkin':
+							$this->render_checkin_tab();
 							break;
 						case 'general':
 							$this->render_general_tab();
@@ -288,6 +295,19 @@ class AudienceAdminSettings {
 		$max_range_days           = AudienceBookingRules::max_range_days();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/audience-tab.php';
+	}
+
+	/**
+	 * Render the Check-in tab (#2747): how attendance is taken, the terminals
+	 * included. Each field saves on its own through the settings autosave.
+	 *
+	 * @return void
+	 */
+	private function render_checkin_tab(): void {
+		$can_edit        = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$terminal_camera = AudienceTerminalPage::camera_allowed();
+
+		include FFC_PLUGIN_DIR . 'templates/admin/audience/checkin-tab.php';
 	}
 
 	/**

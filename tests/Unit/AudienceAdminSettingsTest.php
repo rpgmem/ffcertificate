@@ -485,6 +485,18 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $html );
 	}
 
+	public function test_render_page_checkin_tab_autosaves_the_terminal_camera(): void {
+		$_GET['tab'] = 'checkin';
+		Functions\when( 'get_option' )->alias( static fn ( $key, $default = false ) => 'ffc_settings' === $key ? array( 'terminal_camera' => 1 ) : $default );
+
+		$html = $this->render( $this->page() );
+
+		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-checkin"', $html );
+		$this->assertMatchesRegularExpression( '/name="terminal_camera"[^>]*checked/', $html );
+		$this->assertStringContainsString( 'data-ffc-autosave-key="terminal_camera"', $html );
+		$this->assertStringNotContainsString( '<form', $html, 'every field saves on its own' );
+	}
+
 	public function test_render_page_import_tab_delegates_to_the_import_page(): void {
 		$_GET['tab'] = 'import';
 		$import      = \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class );
@@ -530,6 +542,7 @@ class AudienceAdminSettingsTest extends TestCase {
 			'self-scheduling' => array( 'self-scheduling' ),
 			'audience'        => array( 'audience' ),
 			'import'          => array( 'import' ),
+			'checkin'         => array( 'checkin' ),
 			'extension tab'   => array( 'receipt' ),
 		);
 	}
