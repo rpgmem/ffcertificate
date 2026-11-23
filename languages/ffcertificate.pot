@@ -35606,3 +35606,86 @@ msgstr ""
 
 msgid "A refusal an administrator can lift leaves a request for them. Every activation, revocation and refusal is in the activity log, with the device and key identifiers. These rules apply to presence codes only: logging in, certificates and bookings work on any device."
 msgstr ""
+
+msgid "Presence code"
+msgstr ""
+
+msgid "Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 30 seconds, offline if need be, for as long as the activation lasts. The code carries the site's statement about the phone, the event, the moment and a signature made by the phone's key, so a photo or screenshot of it stops working within a minute and a code from another phone does not pass."
+msgstr ""
+
+msgid "The screen lists the participant's bookings over the next 7 days. While online, the app also fetches a ticket signed by the site for each of them, which proves the participant is on that booking even when the terminal cannot reach the site."
+msgstr ""
+
+msgid "A terminal accepts a code up to one rotation old, with 60 seconds of tolerance either way for a phone whose clock is off."
+msgstr ""
+
+msgid "The short name is the only personal data in the code; a CPF, an RF or an e-mail never is."
+msgstr ""
+
+msgid "Activate this phone"
+msgstr ""
+
+msgid "Activate this phone once, while online, to show your presence code at an event terminal. It then works without internet."
+msgstr ""
+
+msgid "One phone per account: activating another one later stops this one, and you receive an e-mail."
+msgstr ""
+
+msgid "Activating this phone…"
+msgstr ""
+
+msgid "Hold the code up to the terminal's reader, about 20 cm away, with the screen bright. A photo or screenshot of the code stops working within a minute."
+msgstr ""
+
+#. translators: %d: seconds until the presence code changes
+#, php-format
+msgid "New code in %d s"
+msgstr ""
+
+msgid "The event ticket in this presence code could not be read."
+msgstr ""
+
+msgid "The event ticket in this presence code has expired."
+msgstr ""
+
+msgid "The event ticket in this presence code is for another person or event."
+msgstr ""
+
+msgid "The event ticket in this presence code was not issued by this site."
+msgstr ""
+
+msgid "The presence code needs JavaScript. Turn it on in the browser and open this screen again."
+msgstr ""
+
+msgid "This browser cannot keep a presence key. Open the app installed on your phone, or update the browser."
+msgstr ""
+
+msgid "This is not a presence code."
+msgstr ""
+
+msgid "This phone could not be activated. Check the connection and try again."
+msgstr ""
+
+msgid "This phone is active. Show the code below at the event terminal."
+msgstr ""
+
+msgid "This phone was replaced or revoked. Activate the new one in the app."
+msgstr ""
+
+msgid "This phone's activation has expired. Open this screen while online to renew it."
+msgstr ""
+
+msgid "This presence code is dated in the future. Check the phone's clock."
+msgstr ""
+
+msgid "This presence code is old. Show the code on the phone again."
+msgstr ""
+
+msgid "This presence code was not made by the phone it names."
+msgstr ""
+
+msgid "You have no event in the next 7 days. Open this screen while online to update the list."
+msgstr ""
+
+msgid "Your presence code. Hold it up to the terminal's reader."
+msgstr ""

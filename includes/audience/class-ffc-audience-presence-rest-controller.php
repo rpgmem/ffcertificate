@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * `ffc/v1/presence/*`.
  *
- * - `POST enrol` and `POST renew` are the app's: a logged-in participant,
+ * - `POST enrol`, `POST renew` and `GET events` are the app's: a logged-in participant,
  *   the REST nonce, and the user always taken from the session, never from
  *   the request.
  * - `GET revocations` is a terminal's: the presence public keys and the key
@@ -112,6 +112,16 @@ class AudiencePresenceRestController {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/' . self::REST_BASE . '/events',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'events' ),
+				'permission_callback' => array( $this, 'check_app_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/' . self::REST_BASE . '/revocations',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
@@ -186,6 +196,22 @@ class AudiencePresenceRestController {
 			time()
 		);
 		return is_wp_error( $result ) ? $result : new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * The user's events over the next days, each with its ticket (#2742).
+	 *
+	 * A ticket names the user only by id, so the list carries nothing a
+	 * participant's own dashboard does not already show them.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function events(): \WP_REST_Response {
+		return new \WP_REST_Response(
+			array( 'events' => AudiencePresenceEvents::for_user( get_current_user_id(), time() ) ),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
 	}
 
 	/**

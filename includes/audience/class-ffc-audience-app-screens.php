@@ -82,6 +82,8 @@ final class AudienceAppScreens {
 			);
 			if ( isset( $screen['url'] ) ) {
 				$args['url'] = $screen['url'];
+			} elseif ( 'presence' === $id ) {
+				$args['render'] = array( self::class, 'render_presence' );
 			} else {
 				$args['render'] = array( self::class, 'render_coming_soon' );
 			}
@@ -93,8 +95,8 @@ final class AudienceAppScreens {
 	 * The attendance screens, by id.
 	 *
 	 * Manual attendance already exists, on the booking's Attendance screen in
-	 * wp-admin, so it links there; the others draw a "coming soon" notice
-	 * until their issue lands.
+	 * wp-admin, so it links there; Presence draws its own screen, and the
+	 * others draw a "coming soon" notice until their issue lands.
 	 *
 	 * @return array<string, ScreenDef>
 	 */
@@ -137,6 +139,66 @@ final class AudienceAppScreens {
 				'url'        => admin_url( 'admin.php?page=ffc-scheduling-bookings' ),
 			),
 		);
+	}
+
+	/**
+	 * The participant's Presence screen (#2742): the markup from
+	 * `templates/public/presence/screen.php`, the encoder, the script and
+	 * what it needs to talk to the site.
+	 *
+	 * The site's palette and dark mode load first, so the screen follows
+	 * the same light or dark choice as the rest of the plugin.
+	 *
+	 * @return string
+	 */
+	public static function render_presence(): string {
+		AssetHelper::enqueue_common_style();
+		AssetHelper::enqueue_dark_mode();
+
+		$suffix = AssetHelper::asset_suffix();
+		wp_enqueue_style(
+			'ffc-presence-app',
+			FFC_PLUGIN_URL . "assets/css/ffc-presence-app{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+		wp_enqueue_script(
+			'ffc-qrcodegen',
+			FFC_PLUGIN_URL . 'libs/js/qrcodegen-' . FFC_QRCODEGEN_VERSION . '.js',
+			array(),
+			FFC_QRCODEGEN_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-presence-app',
+			FFC_PLUGIN_URL . "assets/js/ffc-presence-app{$suffix}.js",
+			array( 'ffc-qrcodegen' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-presence-app',
+			'ffcPresence',
+			array(
+				'rest'    => esc_url_raw( rest_url( AudiencePresenceRestController::NAMESPACE . '/' . AudiencePresenceRestController::REST_BASE . '/' ) ),
+				'nonce'   => wp_create_nonce( 'wp_rest' ),
+				'userId'  => get_current_user_id(),
+				'strings' => array(
+					'storage'    => __( 'This browser cannot keep a presence key. Open the app installed on your phone, or update the browser.', 'ffcertificate' ),
+					'activating' => __( 'Activating this phone…', 'ffcertificate' ),
+					'activated'  => __( 'This phone is active. Show the code below at the event terminal.', 'ffcertificate' ),
+					'failed'     => __( 'This phone could not be activated. Check the connection and try again.', 'ffcertificate' ),
+					/* translators: %d: seconds until the presence code changes */
+					'next'       => __( 'New code in %d s', 'ffcertificate' ),
+					'expired'    => __( 'This phone\'s activation has expired. Open this screen while online to renew it.', 'ffcertificate' ),
+					'qrLabel'    => __( 'Your presence code. Hold it up to the terminal\'s reader.', 'ffcertificate' ),
+				),
+			)
+		);
+
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/presence/screen.php';
+		return (string) ob_get_clean();
 	}
 
 	/**
