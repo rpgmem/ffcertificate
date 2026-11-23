@@ -109,6 +109,13 @@ class VerificationHandler {
 	 * @return array<string, mixed>
 	 */
 	private function search_certificate( string $auth_code ): array {
+		// A prefix that names no verifiable document (a `P-` pairing code is
+		// a credential) is refused before any lookup, with the answer a wrong
+		// code gets, so the page says nothing about what the prefix is (#2739).
+		if ( \FreeFormCertificate\Core\DocumentFormatter::has_unknown_prefix( $auth_code ) ) {
+			return VerificationResult::not_found();
+		}
+
 		$parsed     = \FreeFormCertificate\Core\DocumentFormatter::parse_prefixed_code( $auth_code );
 		$clean_code = $parsed['code'];
 		$prefix     = $parsed['prefix'];

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- **Verification refuses a code whose prefix names no document**, before any lookup and with the answer a wrong code gets, on the page, without JavaScript and in the REST `verify` route. Only C, R and A are looked up, so a `P-` terminal pairing code, which is a credential, never reaches the verification lookups (#2739).
+
 ## [6.45.0] (2026-11-22) — `05300f6`
 
 ### Added
