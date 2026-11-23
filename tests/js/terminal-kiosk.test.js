@@ -29,7 +29,6 @@ const CONFIG = {
 		pairing: 'pairing',
 		paired: 'paired',
 		failed: 'failed',
-		locked: 'locked %s',
 		events: 'events %d',
 		until: 'until %s',
 		expired: 'expired',
@@ -45,6 +44,31 @@ const CONFIG = {
 		notOpen: 'not open yet',
 		opensAt: 'opens %s',
 		noEvents: 'no more events',
+		terminalTitle: 'Terminal',
+		notPaired: 'Not paired',
+		checkinUntil: 'check-in until %s',
+		present: '%1$d of %2$d present',
+		presentOnly: '%d present',
+		opensIn: 'opens at %s, in',
+		readyTitle: 'Show the code',
+		readyLead: 'Open the app',
+		cameraTitle: 'Show it to the camera',
+		cameraLead: 'Inside the frame',
+		recordedTitle: 'Recorded',
+		alreadyTitle: 'Already',
+		queuedTitle: 'Saved here',
+		refusedTitle: 'Refused',
+		recordedDetail: 'certificate later',
+		openBadge: 'no enrolment',
+		openDetail: 'open event',
+		help: 'ask the team',
+		nextPerson: 'next in %d s',
+		unlockWait: 'back in %d s',
+		connIdle: 'online',
+		connQueue: 'online, %d to send',
+		connOffline: 'offline, %d kept',
+		connCamera: 'camera',
+		titles: { ffc_terminal_other_event: 'Other event', ffc_presence_code_revoked: 'Phone replaced' },
 		wakeUnsupported: 'cannot keep the screen on',
 		wakeRefused: 'screen on refused',
 		check: {
@@ -61,51 +85,81 @@ const CONFIG = {
 	},
 };
 
+const resultLines = (el, name) => Array.from(el.querySelectorAll('[data-ffc-terminal-part="' + name + '"] p')).map((p) => p.textContent);
+// A recorded result as "name — what happened", from the screen's lines (#2780).
+const okLine = (el) => {
+	const l = resultLines(el, 'result-ok');
+	return l.length ? l[1] + ' — ' + l[l.length - 1].split(' · ').slice(1).join(' · ') : '';
+};
+const refusedLine = (el) => resultLines(el, 'result-refused')[1] || '';
+
 function markup() {
 	document.body.innerHTML = `
-		<main data-ffc-terminal>
+		<main data-ffc-terminal data-ffc-terminal-tone="neutral">
+			<header>
+				<h1 data-ffc-terminal-part="head-title"></h1>
+				<p data-ffc-terminal-part="head-sub"></p>
+				<p data-ffc-terminal-part="clock"></p>
+				<p data-ffc-terminal-part="head-note"></p>
+			</header>
 			<p data-ffc-terminal-part="status"></p>
 			<p data-ffc-terminal-part="error" hidden></p>
+			<form data-ffc-terminal-part="reading-form"><input data-ffc-terminal-part="reading"><button type="submit">Check in</button></form>
 			<section data-ffc-terminal-view="pairing" hidden>
 				<form data-ffc-terminal-part="form"><input data-ffc-terminal-part="code"><button type="submit">Pair</button></form>
 			</section>
 			<section data-ffc-terminal-view="locked" hidden><p data-ffc-terminal-part="countdown"></p></section>
 			<section data-ffc-terminal-view="ready" hidden>
-				<div data-ffc-terminal-part="event" hidden>
-					<p data-ffc-terminal-part="event-kind"></p>
-					<p data-ffc-terminal-part="event-title"></p>
-					<p data-ffc-terminal-part="event-when"></p>
-				</div>
-				<div data-ffc-terminal-part="result">
-					<div role="status" data-ffc-terminal-part="result-ok"></div>
-					<div role="alert" data-ffc-terminal-part="result-refused"></div>
-				</div>
-				<form data-ffc-terminal-part="reading-form"><input data-ffc-terminal-part="reading"><button type="submit">Check in</button></form>
-				<div data-ffc-terminal-part="camera" hidden>
-					<p data-ffc-terminal-part="camera-note"></p>
+				<div class="ffc-terminal-ready">
 					<div data-ffc-terminal-part="viewfinder" hidden><video data-ffc-terminal-part="camera-video"></video></div>
-					<button type="button" data-ffc-terminal-part="camera-start">Use camera</button>
-					<button type="button" data-ffc-terminal-part="camera-stop" hidden>Stop</button>
+					<div data-ffc-terminal-part="art"></div>
+					<h2 data-ffc-terminal-part="ready-title"></h2>
+					<p data-ffc-terminal-part="ready-lead"></p>
+					<ul data-ffc-terminal-part="camera-tips" hidden></ul>
+					<div data-ffc-terminal-part="camera" hidden>
+						<p data-ffc-terminal-part="camera-note"></p>
+						<button type="button" data-ffc-terminal-part="camera-start">Use camera</button>
+						<button type="button" data-ffc-terminal-part="camera-stop" hidden>Stop</button>
+					</div>
 				</div>
-				<p data-ffc-terminal-part="label"></p>
-				<p data-ffc-terminal-part="events"></p>
-				<p data-ffc-terminal-part="until"></p>
+			</section>
+			<section data-ffc-terminal-view="between" hidden>
+				<h2 data-ffc-terminal-part="next-title"></h2>
+				<p data-ffc-terminal-part="next-where"></p>
+				<p data-ffc-terminal-part="next-opens"></p>
+				<p data-ffc-terminal-part="next-countdown"></p>
+			</section>
+			<section data-ffc-terminal-view="result" data-ffc-terminal-part="result" hidden>
+				<div role="status" data-ffc-terminal-part="result-ok"></div>
+				<div role="alert" data-ffc-terminal-part="result-refused"></div>
+				<div data-ffc-terminal-part="result-next"><span><span data-ffc-terminal-part="result-bar"></span></span><p data-ffc-terminal-part="result-wait"></p></div>
+			</section>
+			<section data-ffc-terminal-view="unlock" hidden>
+				<p data-ffc-terminal-part="unlock-wait"></p>
+				<button type="button" data-ffc-terminal-part="unlock-cancel">Cancel</button>
 			</section>
 			<section data-ffc-terminal-view="menu" hidden>
-				<p data-ffc-terminal-part="operator"></p>
+				<h2 data-ffc-terminal-part="operator"></h2>
 				<p data-ffc-terminal-part="queue"></p>
 				<p data-ffc-terminal-part="wake-note" hidden></p>
 				<dl data-ffc-terminal-part="device-check"></dl>
 				<div data-ffc-terminal-part="menu-ask">
+					<button type="button" data-ffc-terminal-part="menu-close">Back</button>
 					<button type="button" data-ffc-terminal-part="menu-sync">Send</button>
-					<button type="button" data-ffc-terminal-part="menu-close">Close</button>
 					<button type="button" data-ffc-terminal-part="menu-end">End</button>
 				</div>
 				<div data-ffc-terminal-part="menu-confirm" hidden>
 					<button type="button" data-ffc-terminal-part="menu-keep">Keep</button>
 					<button type="button" data-ffc-terminal-part="menu-confirm-end">End</button>
 				</div>
+				<p data-ffc-terminal-part="label"></p>
+				<p data-ffc-terminal-part="events"></p>
+				<p data-ffc-terminal-part="until"></p>
 			</section>
+			<footer data-ffc-terminal-part="foot" hidden>
+				<p data-ffc-terminal-part="conn"></p>
+				<button type="button" data-ffc-terminal-part="lock" aria-label="Operator area"></button>
+			</footer>
 		</main>`;
 	return document.querySelector('[data-ffc-terminal]');
 }
@@ -198,7 +252,7 @@ describe('pairing', () => {
 		});
 		T().start(el, CONFIG, e);
 		el.querySelector('[data-ffc-terminal-part="code"]').value = 'p-ab12-cd34-ef56';
-		el.querySelector('form').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		el.querySelector('[data-ffc-terminal-part="form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
 		await settle();
 
 		expect(calls[0][0]).toBe(CONFIG.rest + 'pair');
@@ -217,7 +271,9 @@ describe('pairing', () => {
 		const e = env({ fetch: respond(429, { message: 'wait', retry_after: 900 }) });
 		await T().start(el, CONFIG, e).pair('P-WRON-GCOD-E000');
 		expect(visible(el)).toEqual(['locked']);
-		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('locked 15:00');
+		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('15:00');
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('warning');
+		expect(el.querySelector('[data-ffc-terminal-part="head-note"]').textContent).toBe('Not paired');
 		expect(e.storage.data.get('ffcTerminalLock')).toBe(String(NOW + 900));
 
 		const reloaded = markup();
@@ -225,7 +281,7 @@ describe('pairing', () => {
 		again.clock.now = (NOW + 600) * 1000;
 		T().start(reloaded, CONFIG, again);
 		expect(visible(reloaded)).toEqual(['locked']);
-		expect(reloaded.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('locked 5:00');
+		expect(reloaded.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('5:00');
 
 		again.clock.now = (NOW + 901) * 1000;
 		again.timers[again.timers.length - 1]();
@@ -298,8 +354,13 @@ describe('reading', () => {
 		el.querySelector('[data-ffc-terminal-part="reading-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
 		await settle();
 	};
+	const text = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]').textContent;
+	const lines = (name) => Array.from(el.querySelectorAll('[data-ffc-terminal-part="' + name + '"] p')).map((p) => p.textContent);
 	const ok = () => el.querySelector('[data-ffc-terminal-part="result-ok"]').textContent;
-	const refused = () => el.querySelector('[data-ffc-terminal-part="result-refused"]').textContent;
+	const refused = () => {
+		const found = lines('result-refused');
+		return found.length ? found[1] : '';
+	};
 
 	it('opens ready with the reading field focused', () => {
 		paired({});
@@ -315,23 +376,39 @@ describe('reading', () => {
 		expect(JSON.parse(sent[2].body)).toEqual({ code: 'FFP1ABC' });
 		expect(sent[2].headers['X-FFC-Terminal']).toBe(TOKEN);
 		expect(sent[2].credentials).toBe('omit');
-		expect(ok()).toBe('Maria S. — Attendance recorded.');
+		expect(lines('result-ok')).toEqual(['Recorded', 'Maria S.', T().wallClock(NOW * 1000) + ' · certificate later']);
 		expect(refused()).toBe('');
-		expect(el.querySelector('[data-ffc-terminal-part="result"]').className).toContain('ffc-icon-checkmark');
+		expect(visible(el)).toEqual(['result']);
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('ok');
+		expect(text('result-wait')).toBe('next in 5 s');
 		expect(el.querySelector('[data-ffc-terminal-part="reading"]').value).toBe('');
 
 		const [clear, ms] = e.timeouts[e.timeouts.length - 1];
 		expect(ms).toBe(5000);
 		clear();
 		expect(ok()).toBe('');
+		expect(visible(el)).toEqual(['ready']);
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('neutral');
+	});
+
+	it('says an open event recorded someone not enrolled, and keeps the queued tone apart', async () => {
+		paired({ 'POST readings': [200, { status: 'recorded', code: 'ffc_terminal_recorded', message: 'Attendance recorded.', name: 'Rui P.', open: true, time: '13:52' }] });
+		await submit('FFP1ABC');
+		expect(lines('result-ok')).toEqual(['Recorded', 'Rui P.', 'no enrolment', '13:52 · open event']);
+		expect(el.querySelector('[data-ffc-terminal-part="result-open"]')).not.toBeNull();
+
+		paired({ 'POST readings': [200, { status: 'already', code: 'ffc_terminal_already', message: 'Already recorded at 13:40.', name: 'Rui P.', time: '13:52' }] });
+		await submit('FFP1ABC');
+		expect(lines('result-ok')[0]).toBe('Already');
+		expect(lines('result-ok')[2]).toBe('13:52 · Already recorded at 13:40.');
 	});
 
 	it('writes a refusal in the alert region and never a name', async () => {
 		paired({ 'POST readings': [200, { status: 'refused', code: 'ffc_terminal_other_event', message: 'Another event.', name: '' }] });
 		await submit('FFP1ABC');
-		expect(refused()).toBe('Another event.');
+		expect(lines('result-refused')).toEqual(['Other event', 'Another event.', 'ask the team']);
 		expect(ok()).toBe('');
-		expect(el.querySelector('[data-ffc-terminal-part="result"]').className).toContain('ffc-icon-warning');
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('refused');
 	});
 
 	it('says the network failed when the site cannot be reached', async () => {
@@ -371,8 +448,8 @@ describe('reading', () => {
 	it('refuses an operator code the site does not accept', async () => {
 		paired({ 'POST unlock': [403, { message: 'expired code' }] });
 		await submit('FFO1OPERATOR');
-		expect(visible(el)).toEqual(['ready']);
-		expect(refused()).toBe('expired code');
+		expect(visible(el)).toEqual(['result']);
+		expect(lines('result-refused')).toEqual(['Refused', 'expired code', 'ask the team']);
 	});
 
 	it('ends the terminal only after the inline confirmation, with the operator code', async () => {
@@ -443,7 +520,7 @@ describe('failures and the page boot', () => {
 		const controls = T().start(el, CONFIG, e);
 		await controls.pair('P-WRON-GCOD-E000');
 		await controls.pair('P-WRON-GCOD-E001');
-		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('locked 15:00');
+		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('15:00');
 	});
 
 	it('boots from the localized config', () => {
@@ -486,8 +563,8 @@ describe('offline queue', () => {
 		return { e, calls, controls, storage };
 	}
 
-	const ok = () => el.querySelector('[data-ffc-terminal-part="result-ok"]').textContent;
-	const refused = () => el.querySelector('[data-ffc-terminal-part="result-refused"]').textContent;
+	const ok = () => okLine(el);
+	const refused = () => refusedLine(el);
 	const queued = (storage) => JSON.parse(storage.data.get('ffcTerminalQueue') || '[]');
 
 	it('checks the code itself and keeps it with the moment it read it', async () => {
@@ -682,8 +759,8 @@ describe('offline queue', () => {
 describe('event queue', () => {
 	let el;
 	const SCHEDULE = [
-		{ booking_id: 11, title: 'Morning talk', opens: NOW - 600, closes: NOW + 1200, opens_label: '09:50', closes_label: '10:20', open: true },
-		{ booking_id: 12, title: 'Workshop', opens: NOW + 3600, closes: NOW + 7200, opens_label: '11:00', closes_label: '12:00', open: false },
+		{ booking_id: 11, title: 'Morning talk', place: 'Hall', opens: NOW - 600, closes: NOW + 1200, opens_label: '09:50', closes_label: '10:20', open: true, present: 38, enrolled: 120 },
+		{ booking_id: 12, title: 'Workshop', place: 'Room 3', hours: '11:30–13:00', opens: NOW + 3600, closes: NOW + 7200, opens_label: '15/01 11:00', opens_time: '11:00', closes_label: '12:00', open: false },
 	];
 	const text = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]').textContent;
 
@@ -712,33 +789,59 @@ describe('event queue', () => {
 		expect(T().whatNow(undefined, NOW)).toEqual({ current: null, next: null });
 	});
 
-	it('shows only the current event during its window', () => {
+	it('shows only the current event during its window, with its place and the present count', () => {
 		paired({ schedule: SCHEDULE });
-		expect(el.querySelector('[data-ffc-terminal-part="event"]').hidden).toBe(false);
-		expect(text('event-kind')).toBe('Now');
-		expect(text('event-title')).toBe('Morning talk');
-		expect(text('event-when')).toBe('open until 10:20');
+		expect(visible(el)).toEqual(['ready']);
+		expect(text('head-title')).toBe('Morning talk');
+		expect(text('head-sub')).toBe('Hall · check-in until 10:20');
+		expect(text('head-note')).toBe('38 of 120 present');
+		expect(el.querySelector('[data-ffc-terminal-part="foot"]').hidden).toBe(false);
+		expect(text('conn')).toBe('online');
 	});
 
 	it('says a planned window waits for the organiser until it is opened', () => {
-		paired({ schedule: [{ ...SCHEDULE[0], open: false }] });
-		expect(text('event-when')).toBe('not open yet');
+		paired({ schedule: [{ ...SCHEDULE[0], open: false, present: 0, enrolled: 0 }] });
+		expect(text('head-sub')).toBe('Hall · not open yet');
+		expect(el.querySelector('[data-ffc-terminal-part="head-note"]').hidden).toBe(true);
 	});
 
-	it('shows the next event and when its check-in opens between windows', () => {
+	it('counts down to the next event between windows, and switches when it opens', () => {
 		const { e } = paired({ schedule: SCHEDULE });
 		e.clock.now = (NOW + 1800) * 1000;
 		e.timers.forEach((fn) => fn());
-		expect(text('event-kind')).toBe('Next');
-		expect(text('event-title')).toBe('Workshop');
-		expect(text('event-when')).toBe('opens 11:00');
+		expect(visible(el)).toEqual(['between']);
+		expect(text('next-title')).toBe('Workshop');
+		expect(text('next-where')).toBe('Room 3 · 11:30–13:00');
+		expect(text('next-opens')).toBe('opens at 11:00, in');
+		expect(text('next-countdown')).toBe('30:00');
+
+		e.clock.now = (NOW + 3600) * 1000;
+		e.timers.forEach((fn) => fn());
+		expect(visible(el)).toEqual(['ready']);
+		expect(text('head-title')).toBe('Workshop');
 	});
 
-	it('says there is nothing left, and shows nothing before it has a schedule', () => {
+	it('says there is nothing left, and names the terminal before it has a schedule', () => {
 		paired({ schedule: [] });
-		expect(text('event-title')).toBe('no more events');
+		expect(text('head-sub')).toBe('no more events');
 		paired({});
-		expect(el.querySelector('[data-ffc-terminal-part="event"]').hidden).toBe(true);
+		expect(text('head-title')).toBe('Entrance A');
+		expect(el.querySelector('[data-ffc-terminal-part="head-sub"]').hidden).toBe(true);
+	});
+
+	it('asks for the operator QR behind the lock, and goes back to reading on its own', () => {
+		const { e } = paired({ schedule: SCHEDULE });
+		el.querySelector('[data-ffc-terminal-part="lock"]').click();
+		expect(visible(el)).toEqual(['unlock']);
+		expect(text('unlock-wait')).toBe('back in 30 s');
+		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="reading"]'));
+		el.querySelector('[data-ffc-terminal-part="unlock-cancel"]').click();
+		expect(visible(el)).toEqual(['ready']);
+
+		el.querySelector('[data-ffc-terminal-part="lock"]').click();
+		e.clock.now += 31000;
+		e.timers[e.timers.length - 1]();
+		expect(visible(el)).toEqual(['ready']);
 	});
 
 	it('follows a change made in the app on its next request', async () => {
@@ -752,7 +855,7 @@ describe('event queue', () => {
 		expect(text('label')).toBe('Entrance B');
 		expect(text('events')).toBe('events 1');
 		expect(text('until')).toBe('until sooner');
-		expect(text('event-title')).toBe('Workshop');
+		expect(text('next-title')).toBe('Workshop');
 	});
 
 	it('keeps the schedule it has when the site does not answer, and asks nothing offline', async () => {
@@ -860,11 +963,13 @@ describe('camera', () => {
 			{ 'POST readings': [200, { status: 'recorded', message: 'Recorded.', name: 'Maria S.' }] }
 		);
 		expect(await controls.camera.ready).toBe('ok');
-		expect(text('camera-note')).toBe('allow the camera');
-		expect(node('camera-start').disabled).toBe(false);
 
-		node('camera-start').click();
+		// The ready screen starts the camera by itself (#2780).
 		await settle();
+		expect(text('ready-title')).toBe('Show it to the camera');
+		expect(node('camera-tips').hidden).toBe(false);
+		expect(node('art').hidden).toBe(true);
+		expect(el.querySelector('.ffc-terminal-ready').classList.contains('has-camera')).toBe(true);
 		expect(node('viewfinder').hidden).toBe(false);
 		expect(node('camera-stop').hidden).toBe(false);
 		expect(node('camera-start').hidden).toBe(true);
@@ -876,7 +981,7 @@ describe('camera', () => {
 		await controls.camera.scan();
 		await settle();
 		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(1);
-		expect(el.querySelector('[data-ffc-terminal-part="result-ok"]').textContent).toBe('Maria S. — Recorded.');
+		expect(okLine(el)).toBe('Maria S. — certificate later');
 
 		await controls.camera.scan();
 		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(1);

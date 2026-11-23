@@ -129,6 +129,8 @@ class AudienceTerminalReadingTest extends TestCase {
 
 		$this->assertSame( AudienceTerminalReading::RECORDED, $result['status'], $result['message'] );
 		$this->assertSame( 'Maria S.', $result['name'] );
+		$this->assertFalse( $result['open'], 'an enrolled member is not told the event is open' );
+		$this->assertNotSame( '', $result['time'], 'the result shows when it was recorded' );
 		$this->assertCount( 1, $this->db->attendance );
 		$this->assertSame( 'terminal', $this->db->attendance[0]['method'] );
 		$this->assertSame( self::TODAY, $this->db->attendance[0]['attendance_date'] );
@@ -154,6 +156,7 @@ class AudienceTerminalReadingTest extends TestCase {
 		$result = $this->read( $this->code( self::BOOKING ) );
 
 		$this->assertSame( AudienceTerminalReading::RECORDED, $result['status'], $result['message'] );
+		$this->assertTrue( $result['open'], 'the screen says the attendance counts without enrolment' );
 		$this->assertCount( 1, $this->db->attendance );
 	}
 

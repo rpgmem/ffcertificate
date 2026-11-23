@@ -131,8 +131,8 @@ final class AudienceTerminalPage {
 		echo '<meta name="robots" content="noindex,nofollow">';
 		echo '<title>' . esc_html__( 'Check-in terminal', 'ffcertificate' ) . ' — ' . esc_html( get_bloginfo( 'name' ) ) . '</title>';
 		wp_print_styles( array( 'ffc-terminal-kiosk' ) );
-		wp_print_scripts( array( 'ffc-dark-mode' ) );
 		echo '</head><body class="ffc-shortcode ffc-terminal-page">';
+		$ffc_terminal_logo = (string) get_site_icon_url( 96 );
 		include FFC_PLUGIN_DIR . 'templates/public/terminal/kiosk.php';
 		wp_print_scripts( array( 'ffc-terminal-kiosk' ) );
 		echo '</body></html>';
@@ -146,6 +146,8 @@ final class AudienceTerminalPage {
 	 */
 	private static function enqueue(): void {
 		AssetHelper::enqueue_common_style();
+		// Registered for the palette guard; the page prints the dark class itself
+		// and never the toggle, so the site's setting cannot turn it light.
 		AssetHelper::enqueue_dark_mode();
 
 		$suffix = AssetHelper::asset_suffix();
@@ -181,8 +183,6 @@ final class AudienceTerminalPage {
 					'pairing'         => __( 'Pairing…', 'ffcertificate' ),
 					'paired'          => __( 'Terminal paired.', 'ffcertificate' ),
 					'failed'          => __( 'The terminal could not reach the site. Check the connection and try again.', 'ffcertificate' ),
-					/* translators: %s: minutes and seconds left, such as 14:59 */
-					'locked'          => __( 'Too many wrong codes. Try again in %s.', 'ffcertificate' ),
 					/* translators: %d: number of events */
 					'events'          => __( 'Events: %d', 'ffcertificate' ),
 					/* translators: %s: date and time */
@@ -206,6 +206,57 @@ final class AudienceTerminalPage {
 					/* translators: %s: date and time check-in opens */
 					'opensAt'         => __( 'Check-in opens at %s', 'ffcertificate' ),
 					'noEvents'        => __( 'No more events on this terminal.', 'ffcertificate' ),
+					'terminalTitle'   => __( 'Check-in terminal', 'ffcertificate' ),
+					'notPaired'       => __( 'Not paired', 'ffcertificate' ),
+					/* translators: %s: time check-in closes */
+					'checkinUntil'    => __( 'check-in until %s', 'ffcertificate' ),
+					/* translators: 1: people present, 2: people enrolled */
+					'present'         => __( '%1$d of %2$d present', 'ffcertificate' ),
+					/* translators: %d: people present */
+					'presentOnly'     => __( '%d present', 'ffcertificate' ),
+					/* translators: %s: time check-in opens */
+					'opensIn'         => __( 'Check-in opens at %s, in', 'ffcertificate' ),
+					'readyTitle'      => __( 'Hold your phone\'s QR code to the reader', 'ffcertificate' ),
+					'readyLead'       => __( 'Open the app, tap Presence and show the screen to the reader.', 'ffcertificate' ),
+					'cameraTitle'     => __( 'Show your phone\'s QR code to the camera', 'ffcertificate' ),
+					'cameraLead'      => __( 'Hold the screen inside the frame, a hand\'s width from the tablet.', 'ffcertificate' ),
+					'recordedTitle'   => __( 'Attendance recorded', 'ffcertificate' ),
+					'alreadyTitle'    => __( 'Already recorded', 'ffcertificate' ),
+					'queuedTitle'     => __( 'Attendance saved', 'ffcertificate' ),
+					'refusedTitle'    => __( 'Not recorded', 'ffcertificate' ),
+					'recordedDetail'  => __( 'The certificate is in the app after the event.', 'ffcertificate' ),
+					'openBadge'       => __( 'Not enrolled beforehand', 'ffcertificate' ),
+					'openDetail'      => __( 'Open event: your attendance counts as usual and shows to the organisers as attendance without enrolment.', 'ffcertificate' ),
+					'help'            => __( 'Still a problem? Ask the team at the help desk.', 'ffcertificate' ),
+					/* translators: %d: seconds left */
+					'nextPerson'      => __( 'Next person in %d s', 'ffcertificate' ),
+					/* translators: %d: seconds left */
+					'unlockWait'      => __( 'Back to reading on its own in %d s', 'ffcertificate' ),
+					'connIdle'        => __( 'Connected · no reading waiting', 'ffcertificate' ),
+					/* translators: %d: readings waiting to be sent */
+					'connQueue'       => __( 'Connected · %d readings to send', 'ffcertificate' ),
+					/* translators: %d: readings kept on the terminal */
+					'connOffline'     => __( 'Offline · %d readings saved here', 'ffcertificate' ),
+					'connCamera'      => __( 'front camera', 'ffcertificate' ),
+					'titles'          => array(
+						'ffc_terminal_not_today'           => __( 'No check-in today', 'ffcertificate' ),
+						'ffc_terminal_path_off'            => __( 'No terminal check-in', 'ffcertificate' ),
+						'ffc_terminal_window_not_open'     => __( 'Check-in not open yet', 'ffcertificate' ),
+						'ffc_terminal_window_closed'       => __( 'Check-in closed', 'ffcertificate' ),
+						'ffc_terminal_not_enrolled'        => __( 'Not enrolled', 'ffcertificate' ),
+						'ffc_terminal_other_event'         => __( 'Another event', 'ffcertificate' ),
+						'ffc_terminal_failed'              => __( 'Not saved', 'ffcertificate' ),
+						'ffc_presence_code_stale'          => __( 'Code expired', 'ffcertificate' ),
+						'ffc_presence_code_future'         => __( 'Check the phone\'s clock', 'ffcertificate' ),
+						'ffc_presence_code_revoked'        => __( 'Phone replaced', 'ffcertificate' ),
+						'ffc_presence_attestation_expired' => __( 'Activation expired', 'ffcertificate' ),
+						'ffc_presence_ticket_expired'      => __( 'Ticket expired', 'ffcertificate' ),
+						'ffc_presence_ticket_mismatch'     => __( 'Ticket for someone else', 'ffcertificate' ),
+						'ffc_presence_code_malformed'      => __( 'Code not recognised', 'ffcertificate' ),
+						'ffc_presence_code_signature'      => __( 'Code not recognised', 'ffcertificate' ),
+						'invalid'                          => __( 'Code not recognised', 'ffcertificate' ),
+						'full'                             => __( 'Terminal full', 'ffcertificate' ),
+					),
 					'wakeUnsupported' => __( 'This browser cannot keep the screen on. Set the device\'s screen timeout so the screen does not turn off during the event.', 'ffcertificate' ),
 					'wakeRefused'     => __( 'The browser did not keep the screen on, for instance in battery saver. Set the device\'s screen timeout so the screen does not turn off during the event.', 'ffcertificate' ),
 					'check'           => array(
@@ -248,13 +299,16 @@ final class AudienceTerminalPage {
 	}
 
 	/**
-	 * The dark theme's class on the root element, when the site chose it, so
-	 * the first paint is already right; the dark-mode script printed in the
-	 * head handles Auto, as on every other page.
+	 * The dark theme's class on the root element, always (#2780).
+	 *
+	 * A terminal is a display at an entrance, read from a step away in any
+	 * light, so it uses the dark palette whatever the site's Dark Mode
+	 * setting says, as the approved design does. The palette is the plugin's
+	 * own dark theme, so the contrast guards measure it.
 	 *
 	 * @return string
 	 */
 	private static function root_class(): string {
-		return 'on' === (string) SettingsReader::get( 'dark_mode', 'off' ) ? ' class="ffc-dark-mode"' : '';
+		return ' class="ffc-dark-mode"';
 	}
 }

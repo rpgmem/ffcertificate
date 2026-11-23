@@ -1,39 +1,154 @@
 /**
- * Check-in terminal page (#2744).
+ * Check-in terminal page (#2744, #2780).
  *
- * A page of its own, outside the site's theme: the terminal stands at an
- * event's entrance, so the text is large and the one field is centred.
+ * A page of its own, outside the site's theme, on a tablet at an event's
+ * entrance and read from a step away. Every screen fills the display: a
+ * header with the event and the clock, the screen itself, and a footer with
+ * the connection and the operator's lock.
+ *
+ * The page always carries the dark palette (AudienceTerminalPage::root_class),
+ * so every colour here is a palette token and the contrast guards measure the
+ * same pairs the dashboard uses. A screen's tone (recorded, refused, paused)
+ * paints the whole display through the matching *-bg / *-text pair.
+ *
+ * The display sizes are above the shared type scale on purpose, so they are
+ * declared once here as multiples of its largest step.
  */
 
 .ffc-shortcode.ffc-terminal-page {
 	margin: 0;
-	background: var(--ffc-bg-alt);
+	background: var(--ffc-bg);
 	color: var(--ffc-text);
 	font-family: var(--ffc-font-family);
 }
 
 .ffc-terminal {
+	--ffc-terminal-soft: var(--ffc-text-muted);
+	--ffc-terminal-mark: var(--ffc-primary);
+	--ffc-terminal-display: calc(var(--ffc-font-size-2xl) * 2);
+	--ffc-terminal-headline: calc(var(--ffc-font-size-2xl) * 1.6);
+	--ffc-terminal-clock-size: calc(var(--ffc-font-size-2xl) * 1.35);
+	--ffc-terminal-countdown-size: calc(var(--ffc-font-size-2xl) * 2.6);
+
 	display: flex;
 	flex-direction: column;
-	gap: var(--ffc-spacing-lg);
-	max-width: var(--ffc-form-width);
 	min-height: 100vh;
-	margin: 0 auto;
-	padding: var(--ffc-spacing-2xl) var(--ffc-spacing-lg);
+	min-height: 100dvh;
 	box-sizing: border-box;
+	background: var(--ffc-bg);
+	color: var(--ffc-text);
+}
+
+.ffc-terminal[data-ffc-terminal-tone="ok"] {
+	background: var(--ffc-success-bg);
+	color: var(--ffc-success-text);
+	--ffc-terminal-soft: var(--ffc-success-text);
+	--ffc-terminal-mark: var(--ffc-success-text);
+}
+
+.ffc-terminal[data-ffc-terminal-tone="saved"] {
+	background: var(--ffc-info-bg);
+	color: var(--ffc-info-text);
+	--ffc-terminal-soft: var(--ffc-info-text);
+	--ffc-terminal-mark: var(--ffc-info-text);
+}
+
+.ffc-terminal[data-ffc-terminal-tone="refused"] {
+	background: var(--ffc-danger-bg);
+	color: var(--ffc-danger-text);
+	--ffc-terminal-soft: var(--ffc-danger-text);
+	--ffc-terminal-mark: var(--ffc-danger-text);
+}
+
+.ffc-terminal[data-ffc-terminal-tone="warning"] {
+	background: var(--ffc-warning-bg);
+	color: var(--ffc-warning-text);
+	--ffc-terminal-soft: var(--ffc-warning-text);
+	--ffc-terminal-mark: var(--ffc-warning-text);
 }
 
 .ffc-terminal p {
 	margin: 0;
 }
 
-.ffc-terminal-title {
+/* Header: the site's mark, the event, the clock. */
+.ffc-terminal-head {
+	display: flex;
+	gap: var(--ffc-spacing-lg);
+	align-items: center;
+	padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
+}
+
+.ffc-terminal-logo {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	overflow: hidden;
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-text);
+	color: var(--ffc-bg);
+	font-size: var(--ffc-font-size-sm);
+	font-weight: 700;
+}
+
+.ffc-terminal-logo img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.ffc-terminal-head-text {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--ffc-spacing-2xs);
+	min-width: 0;
+}
+
+.ffc-terminal-head-title {
 	margin: 0;
+	overflow: hidden;
 	font-size: var(--ffc-font-size-2xl);
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ffc-terminal-head-sub,
+.ffc-terminal-head-note {
+	color: var(--ffc-terminal-soft);
+	font-size: var(--ffc-font-size-base);
+}
+
+.ffc-terminal-head-side {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-2xs);
+	align-items: flex-end;
+	text-align: right;
+}
+
+.ffc-terminal-clock {
+	font-size: var(--ffc-terminal-clock-size);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.ffc-terminal-clock:empty {
+	display: none;
 }
 
 .ffc-terminal-status:empty {
 	display: none;
+}
+
+.ffc-terminal-status,
+.ffc-terminal-error {
+	margin: 0 var(--ffc-spacing-2xl);
+	font-size: var(--ffc-font-size-lg);
 }
 
 .ffc-terminal-error {
@@ -44,87 +159,250 @@
 	color: var(--ffc-danger-text);
 }
 
+/* The reader types into this field on every paired screen, so it stays in
+   the page and out of the layout. */
+.ffc-terminal-reader {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* A screen: centred, the main thing large. */
 .ffc-terminal-view {
 	display: flex;
+	flex: 1;
 	flex-direction: column;
-	gap: var(--ffc-spacing-md);
+	gap: var(--ffc-spacing-xl);
+	align-items: center;
+	justify-content: center;
+	padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
+	text-align: center;
+}
+
+.ffc-terminal-view[hidden] {
+	display: none;
 }
 
 .ffc-terminal-view h2 {
+	max-width: 22em;
 	margin: 0;
+	font-size: var(--ffc-terminal-headline);
+	font-weight: 700;
+	line-height: 1.15;
+}
+
+.ffc-terminal-lead {
+	max-width: 40em;
+	color: var(--ffc-terminal-soft);
 	font-size: var(--ffc-font-size-xl);
 }
 
-.ffc-terminal-form {
-	display: flex;
-	flex-direction: column;
-	gap: var(--ffc-spacing-sm);
+.ffc-terminal-note {
+	color: var(--ffc-terminal-soft);
+	font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-terminal-form label {
+.ffc-terminal-kicker {
+	color: var(--ffc-terminal-soft);
+	font-size: var(--ffc-font-size-lg);
 	font-weight: 600;
-}
-
-.ffc-terminal-form input {
-	padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
-	border: 1px solid var(--ffc-border);
-	border-radius: var(--ffc-radius-sm);
-	background: var(--ffc-bg-input);
-	color: var(--ffc-text);
-	font-size: var(--ffc-font-size-xl);
-	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.08em;
 	text-transform: uppercase;
 }
 
-.ffc-terminal-countdown {
-	font-size: var(--ffc-font-size-2xl);
-	font-weight: 600;
-	font-variant-numeric: tabular-nums;
+/* The illustration above a waiting screen. */
+.ffc-terminal-art {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 200px;
+	max-width: 40vw;
+	aspect-ratio: 1;
+	border: 3px dashed var(--ffc-terminal-soft);
+	border-radius: var(--ffc-radius-lg);
+	color: var(--ffc-terminal-mark);
 }
 
-/* The event the terminal checks in now, or the next one (#2746). */
-.ffc-terminal-event {
+.ffc-terminal-art[hidden] {
+	display: none;
+}
+
+/* The round badge on a result or a paused pairing. */
+.ffc-terminal-badge {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 180px;
+	max-width: 36vw;
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: var(--ffc-text);
+	color: var(--ffc-bg);
+}
+
+.ffc-terminal[data-ffc-terminal-tone="ok"] .ffc-terminal-badge {
+	background: var(--ffc-success-text);
+	color: var(--ffc-success-bg);
+}
+
+.ffc-terminal[data-ffc-terminal-tone="saved"] .ffc-terminal-badge {
+	background: var(--ffc-info-text);
+	color: var(--ffc-info-bg);
+}
+
+.ffc-terminal[data-ffc-terminal-tone="refused"] .ffc-terminal-badge {
+	background: var(--ffc-danger-text);
+	color: var(--ffc-danger-bg);
+}
+
+.ffc-terminal[data-ffc-terminal-tone="warning"] .ffc-terminal-badge {
+	background: var(--ffc-warning-text);
+	color: var(--ffc-warning-bg);
+}
+
+.ffc-terminal-badge-ok,
+.ffc-terminal-badge-refused {
+	display: none;
+}
+
+.ffc-terminal[data-ffc-terminal-tone="ok"] .ffc-terminal-badge-ok,
+.ffc-terminal[data-ffc-terminal-tone="saved"] .ffc-terminal-badge-ok,
+.ffc-terminal[data-ffc-terminal-tone="refused"] .ffc-terminal-badge-refused {
+	display: flex;
+}
+
+.ffc-terminal-count {
 	display: flex;
 	flex-direction: column;
 	gap: var(--ffc-spacing-2xs);
-	padding: var(--ffc-spacing-md);
+	align-items: center;
+	color: var(--ffc-terminal-soft);
+	font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-terminal-big {
+	color: currentColor;
+	font-size: var(--ffc-terminal-countdown-size);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.02em;
+}
+
+/* Pairing: the typed code beside its button. */
+.ffc-terminal-pair {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ffc-spacing-md);
+	align-items: flex-end;
+	justify-content: center;
+}
+
+.ffc-terminal-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-xs);
+	text-align: left;
+}
+
+.ffc-terminal-field label {
+	color: var(--ffc-terminal-soft);
+	font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-terminal-field input {
+	width: 340px;
+	max-width: 80vw;
+	min-height: 52px;
+	box-sizing: border-box;
+	padding: 0 var(--ffc-spacing-md);
 	border: 1px solid var(--ffc-border);
 	border-radius: var(--ffc-radius-md);
-}
-
-.ffc-terminal-event p {
-	margin: 0;
-}
-
-.ffc-terminal-event-kind {
-	color: var(--ffc-text-muted);
-	font-size: var(--ffc-font-size-sm);
-	font-weight: 600;
-	letter-spacing: 0.04em;
+	background: var(--ffc-bg-input);
+	color: var(--ffc-text);
+	font-size: var(--ffc-font-size-2xl);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.12em;
 	text-transform: uppercase;
 }
 
-.ffc-terminal-event-title {
-	font-size: var(--ffc-font-size-xl);
-	font-weight: 600;
+.ffc-terminal .ffc-btn {
+	min-height: 52px;
+	font-size: var(--ffc-font-size-lg);
 }
 
-/* Camera reading (#2747): a framed viewfinder, mirrored like a mirror. */
+/* Ready: the reader's illustration, or the camera beside its instructions. */
+.ffc-terminal-ready {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-xl);
+	align-items: center;
+}
+
+.ffc-terminal-ready.has-camera {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--ffc-spacing-2xl);
+	justify-content: center;
+	text-align: left;
+}
+
+.ffc-terminal-ready-text {
+	display: flex;
+	flex: 1 1 320px;
+	flex-direction: column;
+	gap: var(--ffc-spacing-lg);
+	align-items: center;
+	max-width: 40em;
+}
+
+.ffc-terminal-ready.has-camera .ffc-terminal-ready-text {
+	align-items: flex-start;
+}
+
+.ffc-terminal-tips {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-terminal-tips li {
+	display: flex;
+	gap: var(--ffc-spacing-sm);
+	align-items: center;
+}
+
+.ffc-terminal-tips[hidden],
+.ffc-terminal-camera[hidden] {
+	display: none;
+}
+
 .ffc-terminal-camera {
 	display: flex;
 	flex-direction: column;
 	gap: var(--ffc-spacing-sm);
 }
 
+/* The camera, mirrored like a mirror, under a reading frame and scan line. */
 .ffc-terminal-viewfinder {
 	position: relative;
-	width: 100%;
-	max-width: 360px;
+	flex: none;
+	width: 460px;
+	max-width: 80vw;
 	aspect-ratio: 1;
 	overflow: hidden;
-	border: 4px solid var(--ffc-primary);
-	border-radius: var(--ffc-radius-md);
+	border-radius: var(--ffc-radius-lg);
 	background: var(--ffc-bg-alt);
+}
+
+.ffc-terminal-viewfinder[hidden] {
+	display: none;
 }
 
 .ffc-terminal-viewfinder video {
@@ -134,38 +412,140 @@
 	transform: scaleX(-1);
 }
 
-.ffc-terminal-label {
+.ffc-terminal-frame {
+	position: absolute;
+	inset: 17%;
+	border: 4px solid var(--ffc-text);
+	border-radius: var(--ffc-radius-lg);
+	box-shadow: 0 0 0 999px var(--ffc-bg-overlay);
+}
+
+.ffc-terminal-scanline {
+	position: absolute;
+	top: 50%;
+	right: 20%;
+	left: 20%;
+	height: 3px;
+	background: var(--ffc-success);
+	box-shadow: 0 0 12px var(--ffc-success);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.ffc-terminal-scanline {
+		animation: ffc-terminal-scan 2.4s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes ffc-terminal-scan {
+	from {
+		top: 22%;
+	}
+
+	to {
+		top: 78%;
+	}
+}
+
+/* A result: title, name, detail, and the bar to the next person. */
+.ffc-terminal-result-ok,
+.ffc-terminal-result-refused {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-md);
+	align-items: center;
+}
+
+.ffc-terminal-result-ok:empty,
+.ffc-terminal-result-refused:empty {
+	display: none;
+}
+
+.ffc-terminal-result-title {
+	font-size: var(--ffc-terminal-display);
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.ffc-terminal-result-name {
+	font-size: var(--ffc-terminal-clock-size);
+	font-weight: 500;
+}
+
+.ffc-terminal-result-detail {
+	max-width: 40em;
+	font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-terminal-result-help {
+	font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-terminal-chip {
+	display: inline-flex;
+	gap: var(--ffc-spacing-xs);
+	align-items: center;
+	padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+	border-radius: var(--ffc-radius-pill);
+	background: var(--ffc-warning-text);
+	color: var(--ffc-warning-bg);
 	font-size: var(--ffc-font-size-lg);
 	font-weight: 600;
 }
 
-.ffc-terminal .description {
-	color: var(--ffc-text-muted);
+.ffc-terminal-next {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+	align-items: center;
 	font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-terminal-result {
-	display: flex;
-	gap: var(--ffc-spacing-sm);
-	align-items: center;
-	min-height: 3em;
-	padding: var(--ffc-spacing-md);
-	border: 1px solid transparent;
-	border-radius: var(--ffc-radius-sm);
-	font-size: var(--ffc-font-size-xl);
+.ffc-terminal[data-ffc-terminal-tone="refused"] .ffc-terminal-next {
+	display: none;
+}
+
+.ffc-terminal-progress {
+	display: block;
+	width: 320px;
+	max-width: 70vw;
+	height: 6px;
+	overflow: hidden;
+	border-radius: var(--ffc-radius-pill);
+	box-shadow: inset 0 0 0 1px var(--ffc-terminal-soft);
+}
+
+/* The bar empties over the result's five seconds; the script replaces the
+   bar on each result, which restarts it. */
+.ffc-terminal-progress span {
+	display: block;
+	width: 100%;
+	height: 100%;
+	background: currentColor;
+	animation: ffc-terminal-drain 5s linear forwards;
+}
+
+@keyframes ffc-terminal-drain {
+	from {
+		width: 100%;
+	}
+
+	to {
+		width: 0;
+	}
+}
+
+/* The operator menu. */
+.ffc-terminal-menu {
+	justify-content: flex-start;
+}
+
+.ffc-terminal-menu h2 {
+	font-size: var(--ffc-font-size-2xl);
+}
+
+.ffc-terminal-label {
+	font-size: var(--ffc-font-size-lg);
 	font-weight: 600;
-}
-
-.ffc-terminal-result.is-ok {
-	border-color: var(--ffc-success-border);
-	background: var(--ffc-success-bg);
-	color: var(--ffc-success-text);
-}
-
-.ffc-terminal-result.is-refused {
-	border-color: var(--ffc-danger-border);
-	background: var(--ffc-danger-bg);
-	color: var(--ffc-danger-text);
 }
 
 .ffc-terminal-actions {
@@ -173,6 +553,7 @@
 	flex-wrap: wrap;
 	gap: var(--ffc-spacing-sm);
 	align-items: center;
+	justify-content: center;
 }
 
 .ffc-terminal-actions[hidden] {
@@ -199,4 +580,82 @@
 .ffc-terminal-check dd {
 	margin: 0;
 	overflow-wrap: anywhere;
+}
+
+/* Footer: connection, help, the operator's lock. */
+.ffc-terminal-foot {
+	display: flex;
+	gap: var(--ffc-spacing-lg);
+	align-items: center;
+	padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
+	background: var(--ffc-bg-alt);
+	color: var(--ffc-text);
+	font-size: var(--ffc-font-size-base);
+}
+
+.ffc-terminal-foot[hidden] {
+	display: none;
+}
+
+.ffc-terminal-conn {
+	display: flex;
+	gap: var(--ffc-spacing-xs);
+	align-items: center;
+}
+
+.ffc-terminal-conn::before {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--ffc-text-muted);
+	content: "";
+}
+
+.ffc-terminal-conn.is-online::before {
+	background: var(--ffc-success);
+}
+
+.ffc-terminal-conn.is-offline::before {
+	background: var(--ffc-warning);
+}
+
+.ffc-terminal-help {
+	flex: 1;
+	color: var(--ffc-text-muted);
+	text-align: center;
+}
+
+/* At phone width the header and footer stack. */
+@media (max-width: 640px) {
+	.ffc-terminal-head,
+	.ffc-terminal-foot {
+		flex-wrap: wrap;
+		padding: var(--ffc-spacing-md);
+	}
+
+	.ffc-terminal-head-side {
+		align-items: flex-start;
+		text-align: left;
+	}
+
+	.ffc-terminal-view {
+		padding: var(--ffc-spacing-md);
+	}
+}
+
+@media (forced-colors: active) {
+	.ffc-terminal-badge,
+	.ffc-terminal[data-ffc-terminal-tone="ok"] .ffc-terminal-badge,
+	.ffc-terminal[data-ffc-terminal-tone="saved"] .ffc-terminal-badge,
+	.ffc-terminal[data-ffc-terminal-tone="refused"] .ffc-terminal-badge,
+	.ffc-terminal[data-ffc-terminal-tone="warning"] .ffc-terminal-badge,
+	.ffc-terminal-art,
+	.ffc-terminal-chip,
+	.ffc-terminal-progress {
+		border: 1px solid CanvasText;
+	}
+
+	.ffc-terminal-conn::before {
+		border: 1px solid CanvasText;
+	}
 }

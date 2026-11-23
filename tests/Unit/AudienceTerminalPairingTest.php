@@ -604,6 +604,15 @@ class AudienceTerminalPairingTest extends TestCase {
 			'geofence_locations' => '',
 		);
 
+		foreach ( array( 'terminal', 'app' ) as $method ) {
+			$this->tables->attendance[] = array(
+				'booking_id'      => 32,
+				'user_id'         => 7,
+				'attendance_date' => '2027-01-15',
+				'method'          => $method,
+			);
+		}
+
 		$plan = \FreeFormCertificate\Audience\AudienceTerminalSchedule::plan( $terminal, self::NOW + 60 );
 
 		$this->assertSame( array( 32, 31, 12 ), array_column( $plan, 'booking_id' ), 'soonest first; a cancelled event is left out' );
@@ -615,6 +624,11 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( gmmktime( 9, 0, 0, 1, 15, 2027 ), $plan[1]['opens'] );
 		$this->assertNotSame( '', $plan[1]['opens_label'] );
 		$this->assertNotSame( '', $plan[1]['closes_label'] );
+		$this->assertNotSame( '', $plan[1]['opens_time'], 'the screen between events names the opening time' );
+		$this->assertStringContainsString( '07', $plan[0]['hours'], 'the event\'s own hours, not its check-in window' );
+		$this->assertSame( 1, $plan[0]['present'], 'the open event counts who is already in, once per person' );
+		$this->assertSame( 0, $plan[2]['present'], 'an event on another day counts nobody' );
+		$this->assertSame( 0, $plan[2]['enrolled'] );
 
 		$later = \FreeFormCertificate\Audience\AudienceTerminalSchedule::plan( $terminal, gmmktime( 12, 0, 0, 1, 15, 2027 ) );
 		$this->assertSame( array( 12 ), array_column( $later, 'booking_id' ), 'a window past its close leaves the schedule' );

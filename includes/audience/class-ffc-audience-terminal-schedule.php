@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type TerminalRow from AudienceTerminalReader
  * @phpstan-type PlannedWindow array{booking_id: int, date: string, opens: int, closes: int}
- * @phpstan-type PlanEntry array{booking_id: int, title: string, place: string, date: string, opens: int, closes: int, opens_label: string, closes_label: string, open: bool}
+ * @phpstan-type PlanEntry array{booking_id: int, title: string, place: string, date: string, opens: int, closes: int, opens_label: string, opens_time: string, closes_label: string, hours: string, open: bool, present: int, enrolled: int}
  */
 final class AudienceTerminalSchedule {
 
@@ -171,7 +171,10 @@ final class AudienceTerminalSchedule {
 					$open = AudienceCheckinWindowReader::covering( $booking_id, $today, $now );
 				}
 				$closes = null === $open ? $window['closes'] : ( null === $open['closed_at'] ? $open['closes_at'] : min( $open['closed_at'], $open['closes_at'] ) );
-				$out[]  = array(
+				// Today's entries carry how many came and how many were
+				// expected, for the counter in the terminal's header (#2780).
+				$today_entry = $window['date'] === $today;
+				$out[]       = array(
 					'booking_id'   => $booking_id,
 					'title'        => self::title( $booking ),
 					'place'        => (string) ( $booking->environment_name ?? '' ),
@@ -179,13 +182,34 @@ final class AudienceTerminalSchedule {
 					'opens'        => $window['opens'],
 					'closes'       => $closes,
 					'opens_label'  => DateFormatter::format_datetime( $window['opens'] ),
+					'opens_time'   => DateFormatter::format_time( $window['opens'] ),
 					'closes_label' => DateFormatter::format_time( $closes ),
+					'hours'        => self::hours( $booking, $window['date'] ),
 					'open'         => null !== $open,
+					'present'      => $today_entry ? count( array_unique( array_column( AudienceAttendanceReader::for_day( $booking_id, $window['date'] ), 'user_id' ) ) ) : 0,
+					'enrolled'     => $today_entry ? count( AudiencePostEventForm::participants( $booking_id ) ) : 0,
 				);
 			}
 		}
 		usort( $out, static fn( array $a, array $b ): int => array( $a['opens'], $a['booking_id'] ) <=> array( $b['opens'], $b['booking_id'] ) );
 		return $out;
+	}
+
+	/**
+	 * An event's hours on one day, as the terminal shows them.
+	 *
+	 * @param object $booking Booking row.
+	 * @param string $date    Y-m-d.
+	 * @return string
+	 */
+	private static function hours( object $booking, string $date ): string {
+		if ( ! empty( $booking->is_all_day ) ) {
+			return __( 'All day', 'ffcertificate' );
+		}
+		$times = AudienceBookingRules::stored_day_times( $booking, $date );
+		$start = DateFormatter::format_wallclock_time( $times['start_time'] . ':00' );
+		$end   = DateFormatter::format_wallclock_time( $times['end_time'] . ':00' );
+		return '' === $start ? '' : ( '' === $end ? $start : $start . '–' . $end );
 	}
 
 	/**

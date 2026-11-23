@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * else; a refusal shows no name at all, so a terminal never says who tried.
  *
  * @phpstan-import-type TerminalRow from AudienceTerminalReader
- * @phpstan-type ReadingResult array{status: string, code: string, message: string, name: string}
+ * @phpstan-type ReadingResult array{status: string, code: string, message: string, name: string, open?: bool, time?: string}
  */
 final class AudienceTerminalReading {
 
@@ -206,6 +206,10 @@ final class AudienceTerminalReading {
 			'code'    => AudienceAttendanceWriter::ALREADY === $status ? 'ffc_terminal_already' : 'ffc_terminal_recorded',
 			'message' => AudienceAttendanceWriter::ALREADY === $status ? __( 'Attendance already recorded.', 'ffcertificate' ) : __( 'Attendance recorded.', 'ffcertificate' ),
 			'name'    => $reading['name'],
+			// Recorded only because the event is open to everyone (#2748):
+			// the terminal says so, as the organiser's list does (#2780).
+			'open'    => AudienceCheckinPolicy::is_open( $booking ) && ! in_array( $user_id, AudiencePostEventForm::participants( $booking_id ), true ),
+			'time'    => DateFormatter::format_time( $at ),
 		);
 	}
 
