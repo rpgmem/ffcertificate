@@ -82,6 +82,33 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/* The event the terminal checks in now, or the next one (#2746). */
+.ffc-terminal-event {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-2xs);
+	padding: var(--ffc-spacing-md);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-md);
+}
+
+.ffc-terminal-event p {
+	margin: 0;
+}
+
+.ffc-terminal-event-kind {
+	color: var(--ffc-text-muted);
+	font-size: var(--ffc-font-size-sm);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.ffc-terminal-event-title {
+	font-size: var(--ffc-font-size-xl);
+	font-weight: 600;
+}
+
 .ffc-terminal-label {
 	font-size: var(--ffc-font-size-lg);
 	font-weight: 600;

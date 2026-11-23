@@ -4,10 +4,11 @@
  * One script for the three screens the template draws, chosen by the root's
  * `data-ffc-terminal-operator`:
  *
- * - `pair`: tick the events, name the terminal, generate a one-time pairing
- *   code and show it as a QR code with its countdown;
- * - `terminals`: the operator's active terminals, each with End behind an
- *   inline confirmation;
+ * - `pair`: tick the events, or fill them from one place (#2746), name the
+ *   terminal, generate a one-time pairing code and show it as a QR code with
+ *   its countdown;
+ * - `terminals`: the operator's active terminals, each with Change events
+ *   (#2746) and End behind an inline confirmation;
  * - `qr`: the operator's own unlock code, renewed before it expires.
  *
  * Every date arrives formatted by the site. The QR is drawn by the presence
@@ -137,6 +138,82 @@
 
         // Pair terminal ------------------------------------------------------
 
+        /**
+         * Draw one checkbox per event into a container.
+         *
+         * @param {HTMLElement} list Container.
+         * @param {Array<object>} bookings Events from `GET bookings`.
+         * @param {Array<number>} held Events already held: ticked, and open even when full.
+         */
+        function drawEvents(list, bookings, held) {
+            list.textContent = '';
+            bookings.forEach(function (booking) {
+                var mine = held.indexOf(booking.id) >= 0;
+                var label = el.ownerDocument.createElement('label');
+                label.className = 'ffc-terminal-operator-event';
+                var check = el.ownerDocument.createElement('input');
+                check.type = 'checkbox';
+                check.value = String(booking.id);
+                check.checked = mine;
+                check.disabled = !!booking.full && !mine;
+                check.setAttribute('data-place', String(booking.place_id || 0));
+                var text = el.ownerDocument.createElement('span');
+                var title = el.ownerDocument.createElement('strong');
+                title.textContent = booking.description || '';
+                text.appendChild(title);
+                var detail = el.ownerDocument.createElement('span');
+                detail.className = 'description';
+                detail.textContent = [booking.when, booking.place, booking.full && !mine ? strings.full : fill(strings.held, [booking.terminals || 0])]
+                    .filter(function (v) { return !!v; }).join(' · ');
+                text.appendChild(detail);
+                label.appendChild(check);
+                label.appendChild(text);
+                list.appendChild(label);
+            });
+        }
+
+        /**
+         * The places the events are at, in the order they first appear.
+         *
+         * @param {Array<object>} bookings Events.
+         * @return {Array<{id: number, name: string}>}
+         */
+        function places(bookings) {
+            var seen = {};
+            var out = [];
+            bookings.forEach(function (booking) {
+                var id = Number(booking.place_id) || 0;
+                if (id > 0 && !seen[id]) {
+                    seen[id] = true;
+                    out.push({ id: id, name: booking.place || '' });
+                }
+            });
+            return out;
+        }
+
+        /**
+         * Tick the events at one place, soonest first, up to the limit, and
+         * untick the rest; the events arrive soonest first.
+         *
+         * @param {HTMLElement} list Container.
+         * @param {string} place Place id, or '' to leave the choice alone.
+         * @return {number} Events ticked.
+         */
+        function fillByPlace(list, place) {
+            if (!place) {
+                return 0;
+            }
+            var max = config.maxBookings || 10;
+            var count = 0;
+            Array.prototype.forEach.call(list.querySelectorAll('input[type="checkbox"]'), function (box) {
+                box.checked = !box.disabled && box.getAttribute('data-place') === place && count < max;
+                if (box.checked) {
+                    count++;
+                }
+            });
+            return count;
+        }
+
         function loadEvents() {
             say(strings.loading);
             return request('GET', 'bookings').then(function (result) {
@@ -149,32 +226,27 @@
                 }
                 var bookings = result.body.bookings || [];
                 part('events-empty').hidden = bookings.length > 0;
-                bookings.forEach(function (booking) {
-                    var label = el.ownerDocument.createElement('label');
-                    label.className = 'ffc-terminal-operator-event';
-                    var check = el.ownerDocument.createElement('input');
-                    check.type = 'checkbox';
-                    check.value = String(booking.id);
-                    check.disabled = !!booking.full;
-                    var text = el.ownerDocument.createElement('span');
-                    var title = el.ownerDocument.createElement('strong');
-                    title.textContent = booking.description || '';
-                    text.appendChild(title);
-                    var detail = el.ownerDocument.createElement('span');
-                    detail.className = 'description';
-                    detail.textContent = [booking.when, booking.place, booking.full ? strings.full : fill(strings.held, [booking.terminals || 0])]
-                        .filter(function (v) { return !!v; }).join(' · ');
-                    text.appendChild(detail);
-                    label.appendChild(check);
-                    label.appendChild(text);
-                    list.appendChild(label);
-                });
+                drawEvents(list, bookings, []);
+                var select = part('place');
+                if (select) {
+                    while (select.options.length > 1) {
+                        select.remove(1);
+                    }
+                    places(bookings).forEach(function (place) {
+                        var option = el.ownerDocument.createElement('option');
+                        option.value = String(place.id);
+                        option.textContent = place.name;
+                        select.appendChild(option);
+                    });
+                    select.value = '';
+                    part('by-place').hidden = select.options.length < 2;
+                }
                 return bookings;
             });
         }
 
-        function chosen() {
-            var boxes = part('events').querySelectorAll('input[type="checkbox"]:checked');
+        function chosen(list) {
+            var boxes = (list || part('events')).querySelectorAll('input[type="checkbox"]:checked');
             return Array.prototype.map.call(boxes, function (b) { return parseInt(b.value, 10); });
         }
 
@@ -244,6 +316,17 @@
             get('confirm-end').addEventListener('click', function () {
                 end(terminal.id, item, get('confirm-end'));
             });
+            get('edit').addEventListener('click', function () {
+                openEditor(terminal, item, get);
+            });
+            get('cancel').addEventListener('click', function () {
+                get('editor').hidden = true;
+                get('ask').hidden = false;
+                get('edit').focus();
+            });
+            get('save').addEventListener('click', function () {
+                saveEvents(terminal, item, get);
+            });
             return item;
         }
 
@@ -265,6 +348,60 @@
                     list.appendChild(row(terminal));
                 });
                 return terminals;
+            });
+        }
+
+        function openEditor(terminal, item, get) {
+            fail('');
+            get('ask').hidden = true;
+            get('editor').hidden = false;
+            var list = get('choices');
+            list.textContent = '';
+            say(strings.loading);
+            return request('GET', 'bookings').then(function (result) {
+                say('');
+                if (!result.ok) {
+                    fail(problem(result));
+                    return [];
+                }
+                var bookings = result.body.bookings || [];
+                drawEvents(list, bookings, terminal.bookings || []);
+                var first = list.querySelector('input');
+                if (first) {
+                    first.focus();
+                }
+                return bookings;
+            });
+        }
+
+        function saveEvents(terminal, item, get) {
+            var ids = chosen(get('choices'));
+            if (!ids.length) {
+                fail(strings.pickEvent);
+                return Promise.resolve(null);
+            }
+            if (ids.length > (config.maxBookings || 10)) {
+                fail(fill(strings.tooMany, [config.maxBookings || 10]));
+                return Promise.resolve(null);
+            }
+            fail('');
+            var button = get('save');
+            button.disabled = true;
+            return request('PUT', 'terminals/' + terminal.id, { bookings: ids }).then(function (result) {
+                button.disabled = false;
+                if (!result.ok) {
+                    fail(problem(result));
+                    return null;
+                }
+                terminal.bookings = result.body.bookings || ids;
+                terminal.expires_label = result.body.expires_label || terminal.expires_label;
+                get('events').textContent = fill(strings.events, [terminal.bookings.length]);
+                get('until').textContent = fill(strings.until, [terminal.expires_label || '']);
+                get('editor').hidden = true;
+                get('ask').hidden = false;
+                get('edit').focus();
+                say(strings.changed);
+                return result.body;
             });
         }
 
@@ -316,6 +453,11 @@
             part('again').addEventListener('click', function () {
                 again();
             });
+            if (part('place')) {
+                part('place').addEventListener('change', function () {
+                    fillByPlace(part('events'), part('place').value);
+                });
+            }
             ready = loadEvents();
         } else if ('terminals' === mode) {
             ready = loadTerminals();
@@ -328,6 +470,7 @@
             generate: generate,
             again: again,
             reload: loadTerminals,
+            fillByPlace: fillByPlace,
             operatorCode: operatorCode
         };
     }

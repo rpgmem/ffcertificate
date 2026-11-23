@@ -308,6 +308,7 @@ final class AudienceAppScreens {
 					/* translators: %s: date and time */
 					'until'           => __( 'Works until %s', 'ffcertificate' ),
 					'ended'           => __( 'Terminal ended.', 'ffcertificate' ),
+					'changed'         => __( 'Events saved. The terminal picks them up within a minute.', 'ffcertificate' ),
 					/* translators: 1: active terminals listed, 2: the site's limit, 3: the limit per event */
 					'summary'         => __( 'Your active terminals: %1$d. The site allows %2$d at a time, and %3$d per event.', 'ffcertificate' ),
 					/* translators: 1: active terminals listed, 2: the site's limit, 3: the limit per event */

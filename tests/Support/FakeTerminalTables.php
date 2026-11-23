@@ -43,6 +43,13 @@ final class FakeTerminalTables extends \wpdb {
 	public array $booking_list = array();
 
 	/**
+	 * Check-in window rows, for the schedule's "is it open now" question.
+	 *
+	 * @var list<array<string, mixed>>
+	 */
+	public array $windows = array();
+
+	/**
 	 * Prepared statements by handle.
 	 *
 	 * @var array<string, array{0: string, 1: list<mixed>}>
@@ -114,6 +121,13 @@ final class FakeTerminalTables extends \wpdb {
 		if ( false !== strpos( $query, 'INNER JOIN %i e ON b.environment_id = e.id' ) ) {
 			return $this->booking_list;
 		}
+		if ( false !== strpos( $query, 'WHERE booking_id = %d AND window_date = %s AND opened_at <= %d' ) ) {
+			$rows = array_filter(
+				$this->windows,
+				static fn( array $w ): bool => (int) $w['booking_id'] === (int) $args[1] && $w['window_date'] === $args[2] && (int) $w['opened_at'] <= (int) $args[3]
+			);
+			return array_reverse( array_values( $rows ) );
+		}
 		throw new \LogicException( 'Unknown query: ' . $query );
 	}
 
@@ -151,6 +165,7 @@ final class FakeTerminalTables extends \wpdb {
 			$this->terminals[ $id ] = array_merge(
 				array(
 					'id'           => $id,
+					'removed'      => null,
 					'last_seen_at' => null,
 					'revoked_at'   => null,
 					'revoked_by'   => null,
@@ -187,6 +202,16 @@ final class FakeTerminalTables extends \wpdb {
 			}
 			$this->terminals[ (int) $args[3] ]['revoked_at'] = (int) $args[1];
 			$this->terminals[ (int) $args[3] ]['revoked_by'] = (int) $args[2];
+			return 1;
+		}
+		if ( 0 === strpos( $query, 'UPDATE %i SET bookings = %s, removed = %s, expires_at = %d WHERE id = %d AND revoked_at IS NULL' ) ) {
+			$row = $this->terminals[ (int) $args[4] ] ?? null;
+			if ( null === $row || null !== $row['revoked_at'] ) {
+				return 0;
+			}
+			$this->terminals[ (int) $args[4] ]['bookings']   = $args[1];
+			$this->terminals[ (int) $args[4] ]['removed']    = $args[2];
+			$this->terminals[ (int) $args[4] ]['expires_at'] = (int) $args[3];
 			return 1;
 		}
 		if ( 0 === strpos( $query, 'UPDATE %i SET last_seen_at = %d WHERE id = %d' ) ) {

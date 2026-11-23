@@ -150,6 +150,30 @@
     }
 
     /**
+     * What the terminal is checking in at a moment (#2746): the event whose
+     * window holds that moment, preferring one an operator opened, and the
+     * next one to open.
+     *
+     * @param {Array<object>} schedule The site's schedule, soonest first.
+     * @param {number} at Unix time.
+     * @return {{current: object|null, next: object|null}}
+     */
+    function whatNow(schedule, at) {
+        var current = null;
+        var next = null;
+        (schedule || []).forEach(function (entry) {
+            if (entry.opens <= at && at < entry.closes) {
+                if (!current || (entry.open && !current.open)) {
+                    current = entry;
+                }
+            } else if (entry.opens > at && !next) {
+                next = entry;
+            }
+        });
+        return { current: current, next: next };
+    }
+
+    /**
      * Start the page.
      *
      * @param {HTMLElement} el The page root.
@@ -199,7 +223,32 @@
         var menuTimer = null;
         var menuCode = '';
 
+        function showEvent(state) {
+            var plan = whatNow(state.schedule, now());
+            var kind = '';
+            var title = '';
+            var when = '';
+            if (plan.current) {
+                kind = strings.nowChecking;
+                title = plan.current.title;
+                when = plan.current.open
+                    ? String(strings.openUntil || '%s').replace('%s', plan.current.closes_label || '')
+                    : strings.notOpen;
+            } else if (plan.next) {
+                kind = strings.nextEvent;
+                title = plan.next.title;
+                when = String(strings.opensAt || '%s').replace('%s', plan.next.opens_label || '');
+            } else if (state.schedule) {
+                title = strings.noEvents;
+            }
+            part('event-kind').textContent = kind || '';
+            part('event-title').textContent = title || '';
+            part('event-when').textContent = when || '';
+            part('event').hidden = !title;
+        }
+
         function showReady(state) {
+            showEvent(state);
             part('label').textContent = state.label || '';
             part('label').hidden = !state.label;
             part('events').textContent = String(strings.events || '%d').replace('%d', String((state.bookings || []).length));
@@ -439,6 +488,34 @@
             });
         }
 
+        function refreshSchedule() {
+            if (!current() || !online()) {
+                return Promise.resolve(false);
+            }
+            return terminalRequest('GET', 'self').then(function (result) {
+                var state = current();
+                if (!result || 200 !== result.status || !state) {
+                    return false;
+                }
+                state.label = result.body.label || '';
+                state.bookings = result.body.bookings || [];
+                state.schedule = result.body.schedule || [];
+                if (result.body.expires_at) {
+                    state.expires_at = result.body.expires_at;
+                    state.expires_label = result.body.expires_label || '';
+                }
+                store.set(STATE_KEY, JSON.stringify(state));
+                if (!el.querySelector('[data-ffc-terminal-view="ready"]').hidden) {
+                    showEvent(state);
+                    part('label').textContent = state.label;
+                    part('label').hidden = !state.label;
+                    part('events').textContent = String(strings.events || '%d').replace('%d', String(state.bookings.length));
+                    part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
+                }
+                return true;
+            });
+        }
+
         function armMenu() {
             if (menuTimer) {
                 env.clearTimeout(menuTimer);
@@ -565,6 +642,7 @@
                     say(strings.paired);
                     showReady(state);
                     refreshRevocations();
+                    refreshSchedule();
                     return state;
                 }
                 say('');
@@ -636,11 +714,21 @@
         }, EXPIRY_CHECK_MS);
 
         env.setInterval(sync, SYNC_MS);
+        // The schedule follows a change made in the app or the admin, and
+        // the event shown follows the clock between two answers.
+        env.setInterval(function () {
+            refreshSchedule();
+            var state = current();
+            if (state) {
+                showEvent(state);
+            }
+        }, SYNC_MS);
         env.setInterval(refreshRevocations, REVOCATIONS_MS);
         if (env.onOnline) {
             env.onOnline(function () {
                 sync();
                 refreshRevocations();
+                refreshSchedule();
             });
         }
 
@@ -648,6 +736,7 @@
         if (state) {
             showReady(state);
             refreshRevocations();
+            refreshSchedule();
             sync();
         } else {
             if (store.get(STATE_KEY)) {
@@ -663,7 +752,7 @@
             }
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule };
     }
 
     root.FFCTerminal = {
@@ -672,7 +761,8 @@
         clock: clock,
         newDeviceId: newDeviceId,
         readState: readState,
-        start: start
+        start: start,
+        whatNow: whatNow
     };
 
     if (root.document && root.ffcTerminal) {

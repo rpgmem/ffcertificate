@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for terminals and the pairing codes that create them.
  *
- * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, bookings: list<int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, revoked_at: int|null, revoked_by: int|null}
+ * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, bookings: list<int>, removed: array<int, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, revoked_at: int|null, revoked_by: int|null}
  * @phpstan-type PairingRow array{id: int, code_hash: string, bookings: list<int>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null}
  *
  * @since 6.50.0
@@ -149,6 +149,7 @@ class AudienceTerminalReader {
 			'device_hash'  => ArrayValue::string( $row, 'device_hash' ),
 			'label'        => ArrayValue::string( $row, 'label' ),
 			'bookings'     => self::ids( ArrayValue::string( $row, 'bookings' ) ),
+			'removed'      => self::removals( ArrayValue::string( $row, 'removed' ) ),
 			'paired_by'    => self::nullable_int( $row, 'paired_by' ),
 			'paired_at'    => ArrayValue::int( $row, 'paired_at' ),
 			'expires_at'   => ArrayValue::int( $row, 'expires_at' ),
@@ -193,6 +194,23 @@ class AudienceTerminalReader {
 			}
 		}
 		return array_values( array_unique( $out ) );
+	}
+
+	/**
+	 * A JSON map of booking id to the moment it left the queue (#2746).
+	 *
+	 * @param string $json JSON text.
+	 * @return array<int, int>
+	 */
+	public static function removals( string $json ): array {
+		$map = json_decode( $json, true );
+		$out = array();
+		foreach ( is_array( $map ) ? $map : array() as $id => $at ) {
+			if ( is_numeric( $id ) && (int) $id > 0 && is_numeric( $at ) && (int) $at > 0 ) {
+				$out[ (int) $id ] = (int) $at;
+			}
+		}
+		return $out;
 	}
 
 	/**

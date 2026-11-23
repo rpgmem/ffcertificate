@@ -1,7 +1,8 @@
 /**
  * Check-in terminal page (#2744, #2745): pairing with a `P-` code, the lock
  * the site answers with, the pairing the page keeps across a reload, reading
- * presence codes and the operator menu.
+ * presence codes and the operator menu; the event it checks in now or
+ * next, from the schedule the site hands it (#2746).
  */
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
@@ -36,6 +37,12 @@ const CONFIG = {
 		alreadyQueued: 'Already saved.',
 		queue: 'waiting %d',
 		sent: 'sent %d',
+		nowChecking: 'Now',
+		nextEvent: 'Next',
+		openUntil: 'open until %s',
+		notOpen: 'not open yet',
+		opensAt: 'opens %s',
+		noEvents: 'no more events',
 		offline: {
 			invalid: 'not a valid code',
 			ffc_presence_code_revoked: 'phone replaced',
@@ -55,6 +62,11 @@ function markup() {
 			</section>
 			<section data-ffc-terminal-view="locked" hidden><p data-ffc-terminal-part="countdown"></p></section>
 			<section data-ffc-terminal-view="ready" hidden>
+				<div data-ffc-terminal-part="event" hidden>
+					<p data-ffc-terminal-part="event-kind"></p>
+					<p data-ffc-terminal-part="event-title"></p>
+					<p data-ffc-terminal-part="event-when"></p>
+				</div>
 				<div data-ffc-terminal-part="result">
 					<div role="status" data-ffc-terminal-part="result-ok"></div>
 					<div role="alert" data-ffc-terminal-part="result-refused"></div>
@@ -647,5 +659,109 @@ describe('offline queue', () => {
 		el.querySelector('[data-ffc-terminal-part="reading-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
 		await settle();
 		expect(calls.some((c) => c[1] === 'readings')).toBe(false);
+	});
+});
+
+describe('event queue', () => {
+	let el;
+	const SCHEDULE = [
+		{ booking_id: 11, title: 'Morning talk', opens: NOW - 600, closes: NOW + 1200, opens_label: '09:50', closes_label: '10:20', open: true },
+		{ booking_id: 12, title: 'Workshop', opens: NOW + 3600, closes: NOW + 7200, opens_label: '11:00', closes_label: '12:00', open: false },
+	];
+	const text = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]').textContent;
+
+	function paired(state, routes = {}) {
+		el = markup();
+		const calls = [];
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, label: 'Entrance A', bookings: [11, 12], expires_at: NOW + 86400, expires_label: 'later', ...state }) }),
+			online: () => true,
+			fetch: (url, options) => {
+				const path = url.replace(CONFIG.rest, '');
+				calls.push([options.method, path]);
+				const answer = routes[options.method + ' ' + path];
+				return answer ? respond(answer[0], answer[1])() : Promise.reject(new Error('offline'));
+			},
+		});
+		const controls = T().start(el, CONFIG, e);
+		return { e, calls, controls };
+	}
+
+	it('picks the window that holds the moment, preferring an opened one, and the next to open', () => {
+		const closedTwin = { ...SCHEDULE[0], booking_id: 13, open: false };
+		expect(T().whatNow([closedTwin, SCHEDULE[0], SCHEDULE[1]], NOW)).toEqual({ current: SCHEDULE[0], next: SCHEDULE[1] });
+		expect(T().whatNow(SCHEDULE, NOW + 1200)).toEqual({ current: null, next: SCHEDULE[1] });
+		expect(T().whatNow(SCHEDULE, NOW + 7200)).toEqual({ current: null, next: null });
+		expect(T().whatNow(undefined, NOW)).toEqual({ current: null, next: null });
+	});
+
+	it('shows only the current event during its window', () => {
+		paired({ schedule: SCHEDULE });
+		expect(el.querySelector('[data-ffc-terminal-part="event"]').hidden).toBe(false);
+		expect(text('event-kind')).toBe('Now');
+		expect(text('event-title')).toBe('Morning talk');
+		expect(text('event-when')).toBe('open until 10:20');
+	});
+
+	it('says a planned window waits for the organiser until it is opened', () => {
+		paired({ schedule: [{ ...SCHEDULE[0], open: false }] });
+		expect(text('event-when')).toBe('not open yet');
+	});
+
+	it('shows the next event and when its check-in opens between windows', () => {
+		const { e } = paired({ schedule: SCHEDULE });
+		e.clock.now = (NOW + 1800) * 1000;
+		e.timers.forEach((fn) => fn());
+		expect(text('event-kind')).toBe('Next');
+		expect(text('event-title')).toBe('Workshop');
+		expect(text('event-when')).toBe('opens 11:00');
+	});
+
+	it('says there is nothing left, and shows nothing before it has a schedule', () => {
+		paired({ schedule: [] });
+		expect(text('event-title')).toBe('no more events');
+		paired({});
+		expect(el.querySelector('[data-ffc-terminal-part="event"]').hidden).toBe(true);
+	});
+
+	it('follows a change made in the app on its next request', async () => {
+		const { calls, controls } = paired({ schedule: SCHEDULE }, {
+			'GET self': [200, { label: 'Entrance B', bookings: [12], expires_at: NOW + 9000, expires_label: 'sooner', schedule: [SCHEDULE[1]] }],
+		});
+		await settle();
+		expect(calls.some((c) => c[0] === 'GET' && c[1] === 'self')).toBe(true);
+		expect(controls.state().bookings).toEqual([12]);
+		expect(controls.state().expires_at).toBe(NOW + 9000);
+		expect(text('label')).toBe('Entrance B');
+		expect(text('events')).toBe('events 1');
+		expect(text('until')).toBe('until sooner');
+		expect(text('event-title')).toBe('Workshop');
+	});
+
+	it('keeps the schedule it has when the site does not answer, and asks nothing offline', async () => {
+		const { controls } = paired({ schedule: SCHEDULE }, { 'GET self': [500, {}] });
+		await settle();
+		expect(await controls.refreshSchedule()).toBe(false);
+		expect(controls.state().schedule).toEqual(SCHEDULE);
+
+		el = markup();
+		const off = T().start(el, CONFIG, env({ storage: memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, expires_at: NOW + 60, schedule: SCHEDULE }) }), online: () => false }));
+		expect(await off.refreshSchedule()).toBe(false);
+	});
+
+	it('refreshes the schedule when the connection returns', async () => {
+		let reconnect = null;
+		const calls = [];
+		el = markup();
+		T().start(el, CONFIG, env({
+			storage: memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, expires_at: NOW + 600 }) }),
+			online: () => true,
+			onOnline: (fn) => { reconnect = fn; },
+			fetch: (url, options) => { calls.push(url.replace(CONFIG.rest, '')); return Promise.reject(new Error('offline')); },
+		}));
+		calls.length = 0;
+		reconnect();
+		await settle();
+		expect(calls).toContain('self');
 	});
 });

@@ -1,7 +1,8 @@
 /**
  * The operator's terminal screens in the app (#2744): generating a pairing
  * code, ending a terminal behind an inline confirmation, and the operator's
- * unlock code renewed before it expires.
+ * unlock code renewed before it expires; filling the events from one place
+ * and changing the events of a paired terminal (#2746).
  */
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { loadScript } from './helpers.js';
@@ -37,6 +38,7 @@ const CONFIG = {
 		neverSeen: 'never',
 		until: 'until %s',
 		ended: 'ended',
+		changed: 'changed',
 		summary: '%1$d of %2$d, %3$d per event',
 		summaryAll: 'all %1$d of %2$d, %3$d per event',
 		operatorExpires: 'new in %s',
@@ -47,6 +49,7 @@ function screen(mode) {
 	const parts = {
 		pair: `
 			<form data-ffc-op-part="form">
+				<p data-ffc-op-part="by-place" hidden><select data-ffc-op-part="place"><option value="">by hand</option></select></p>
 				<div data-ffc-op-part="events"></div>
 				<p data-ffc-op-part="events-empty" hidden></p>
 				<input data-ffc-op-part="label">
@@ -64,7 +67,12 @@ function screen(mode) {
 			<p data-ffc-op-part="list-empty" hidden></p>
 			<template data-ffc-op-part="row"><li>
 				<p data-ffc-op-item="label"></p><p data-ffc-op-item="events"></p><p data-ffc-op-item="seen"></p><p data-ffc-op-item="until"></p>
-				<div data-ffc-op-item="ask"><button type="button" data-ffc-op-item="end">End</button></div>
+				<div data-ffc-op-item="ask"><button type="button" data-ffc-op-item="edit">Change</button><button type="button" data-ffc-op-item="end">End</button></div>
+				<fieldset data-ffc-op-item="editor" hidden>
+					<div data-ffc-op-item="choices"></div>
+					<button type="button" data-ffc-op-item="cancel">Cancel</button>
+					<button type="button" data-ffc-op-item="save">Save</button>
+				</fieldset>
 				<div data-ffc-op-item="confirm" hidden>
 					<button type="button" data-ffc-op-item="keep">Keep</button>
 					<button type="button" data-ffc-op-item="confirm-end">End</button>
@@ -343,5 +351,123 @@ describe('failures and the page boot', () => {
 			delete window.ffcTerminalOperator;
 			delete window.FFCPresence;
 		}
+	});
+});
+
+describe('Event queue', () => {
+	const EVENTS = [200, { bookings: [
+		{ id: 11, description: 'Talk', place: 'Hall', place_id: 7, when: 'Jan 15', terminals: 1, full: false },
+		{ id: 12, description: 'Full', place: 'Hall', place_id: 7, when: 'Jan 15', terminals: 3, full: true },
+		{ id: 13, description: 'Lab', place: 'Room 2', place_id: 8, when: 'Jan 16', terminals: 0, full: false },
+		{ id: 14, description: 'Panel', place: 'Hall', place_id: 7, when: 'Jan 16', terminals: 0, full: false },
+		{ id: 15, description: 'Closing', place: 'Hall', place_id: 7, when: 'Jan 17', terminals: 0, full: false },
+		{ id: 16, description: 'Nowhere', place: '', place_id: 0, when: 'Jan 17', terminals: 0, full: false },
+	], max: 10 }];
+	const ticked = (list) => Array.from(list.querySelectorAll('input:checked')).map((b) => Number(b.value));
+
+	it('offers each place once and fills its events, soonest first, up to the limit', async () => {
+		const el = screen('pair');
+		const controls = O().start(el, CONFIG, env({ 'GET bookings': EVENTS }));
+		await controls.ready;
+		const select = part(el, 'place');
+		expect(part(el, 'by-place').hidden).toBe(false);
+		expect(Array.from(select.options).map((o) => o.textContent)).toEqual(['by hand', 'Hall', 'Room 2']);
+
+		select.value = '7';
+		select.dispatchEvent(new window.Event('change'));
+		expect(ticked(part(el, 'events'))).toEqual([11, 14]);
+
+		select.value = '8';
+		select.dispatchEvent(new window.Event('change'));
+		expect(ticked(part(el, 'events'))).toEqual([13]);
+
+		select.value = '';
+		select.dispatchEvent(new window.Event('change'));
+		expect(ticked(part(el, 'events'))).toEqual([13]);
+		expect(controls.fillByPlace(part(el, 'events'), '')).toBe(0);
+	});
+
+	it('hides the place choice when no event has a place', async () => {
+		const el = screen('pair');
+		await O().start(el, CONFIG, env({ 'GET bookings': [200, { bookings: [{ id: 16, description: 'Nowhere', place_id: 0 }] }] })).ready;
+		expect(part(el, 'by-place').hidden).toBe(true);
+	});
+
+	it('changes the events of a terminal, keeping one it holds even when full', async () => {
+		const el = screen('terminals');
+		const sent = [];
+		const e = env({
+			'GET terminals': [200, { terminals: [{ id: 4, label: 'A', bookings: [11, 12], expires_label: 'Jan 15' }], limits: {} }],
+			'GET bookings': EVENTS,
+			'PUT terminals/4': (options) => { sent.push(JSON.parse(options.body)); return [200, { id: 4, bookings: [12, 13], expires_label: 'Jan 16' }]; },
+		});
+		await O().start(el, CONFIG, e).ready;
+		const item = part(el, 'list').querySelector('li');
+		const get = (n) => item.querySelector('[data-ffc-op-item="' + n + '"]');
+
+		get('edit').click();
+		await settle();
+		expect(get('editor').hidden).toBe(false);
+		expect(get('ask').hidden).toBe(true);
+		const boxes = get('choices').querySelectorAll('input');
+		expect(ticked(get('choices'))).toEqual([11, 12]);
+		expect(boxes[1].disabled).toBe(false);
+		expect(get('choices').textContent).not.toContain('full');
+
+		boxes[0].checked = false;
+		boxes[2].checked = true;
+		get('save').click();
+		await settle();
+		expect(sent).toEqual([{ bookings: [12, 13] }]);
+		expect(get('events').textContent).toBe('events 2');
+		expect(get('until').textContent).toBe('until Jan 16');
+		expect(get('editor').hidden).toBe(true);
+		expect(part(el, 'status').textContent).toBe('changed');
+	});
+
+	it('refuses an empty or oversized choice and shows the site\'s refusal', async () => {
+		const el = screen('terminals');
+		const e = env({
+			'GET terminals': [200, { terminals: [{ id: 4, label: 'A', bookings: [11], expires_label: 'x' }], limits: {} }],
+			'GET bookings': EVENTS,
+			'PUT terminals/4': [409, { message: 'Crosses Talk.' }],
+		});
+		await O().start(el, CONFIG, e).ready;
+		const item = part(el, 'list').querySelector('li');
+		const get = (n) => item.querySelector('[data-ffc-op-item="' + n + '"]');
+		get('edit').click();
+		await settle();
+		const boxes = get('choices').querySelectorAll('input');
+
+		boxes[0].checked = false;
+		get('save').click();
+		await settle();
+		expect(part(el, 'error').textContent).toBe('pick');
+
+		[0, 2, 3].forEach((i) => { boxes[i].checked = true; });
+		get('save').click();
+		await settle();
+		expect(part(el, 'error').textContent).toBe('at most 2');
+
+		boxes[3].checked = false;
+		get('save').click();
+		await settle();
+		expect(part(el, 'error').textContent).toBe('Crosses Talk.');
+		expect(get('editor').hidden).toBe(false);
+
+		get('cancel').click();
+		expect(get('editor').hidden).toBe(true);
+		expect(document.activeElement).toBe(get('edit'));
+	});
+
+	it('says why the events could not load for the editor', async () => {
+		const el = screen('terminals');
+		await O().start(el, CONFIG, env({
+			'GET terminals': [200, { terminals: [{ id: 4, bookings: [] }], limits: {} }],
+			'GET bookings': [500, { message: 'Down.' }],
+		})).ready;
+		part(el, 'list').querySelector('[data-ffc-op-item="edit"]').click();
+		await settle();
+		expect(part(el, 'error').textContent).toBe('Down.');
 	});
 });

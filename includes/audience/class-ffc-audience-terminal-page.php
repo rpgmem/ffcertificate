@@ -187,6 +187,14 @@ final class AudienceTerminalPage {
 					'queue'         => __( 'Readings waiting to be sent: %d', 'ffcertificate' ),
 					/* translators: %d: number of readings sent */
 					'sent'          => __( 'Readings sent: %d', 'ffcertificate' ),
+					'nowChecking'   => __( 'Checking in now', 'ffcertificate' ),
+					'nextEvent'     => __( 'Next event', 'ffcertificate' ),
+					/* translators: %s: time check-in closes */
+					'openUntil'     => __( 'Check-in open until %s', 'ffcertificate' ),
+					'notOpen'       => __( 'Check-in opens when the organiser opens it.', 'ffcertificate' ),
+					/* translators: %s: date and time check-in opens */
+					'opensAt'       => __( 'Check-in opens at %s', 'ffcertificate' ),
+					'noEvents'      => __( 'No more events on this terminal.', 'ffcertificate' ),
 					'offline'       => array(
 						'invalid'                          => __( 'This is not a valid presence code. Show the code on the phone again.', 'ffcertificate' ),
 						'ffc_presence_code_stale'          => __( 'This presence code is old. Show the code on the phone again.', 'ffcertificate' ),

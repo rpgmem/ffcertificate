@@ -387,6 +387,7 @@ class AdminActivityLogPage {
 			'terminal_pairing_locked'                      => __( 'Terminal Pairing Locked Out', 'ffcertificate' ),
 			'terminal_revoked'                             => __( 'Terminal Ended', 'ffcertificate' ),
 			'terminal_readings_refused'                    => __( 'Terminal Readings Refused on Sync', 'ffcertificate' ),
+			'terminal_events_changed'                      => __( 'Terminal Events Changed', 'ffcertificate' ),
 			'scheduled_task_failed'                        => __( 'Scheduled Task Failed', 'ffcertificate' ),
 
 			// Migrations.

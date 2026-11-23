@@ -115,20 +115,10 @@ final class AudienceTerminalPairing {
 	 * @return array{code: string, expires_at: int, bookings: list<int>}|\WP_Error
 	 */
 	public static function create_code( int $user_id, array $bookings, string $label, int $now ) {
-		$bookings = array_values( array_unique( array_filter( array_map( 'intval', $bookings ), static fn( int $id ): bool => $id > 0 ) ) );
-		if ( array() === $bookings ) {
-			return new \WP_Error( 'ffc_terminal_no_bookings', __( 'Choose at least one event for the terminal.', 'ffcertificate' ), array( 'status' => 400 ) );
-		}
-		if ( count( $bookings ) > self::MAX_BOOKINGS ) {
-			/* translators: %d: maximum number of events */
-			return new \WP_Error( 'ffc_terminal_too_many', sprintf( __( 'A terminal holds at most %d events.', 'ffcertificate' ), self::MAX_BOOKINGS ), array( 'status' => 400 ) );
-		}
-		foreach ( $bookings as $booking_id ) {
-			$end = self::booking_end( $booking_id );
-			if ( null === $end || $end < $now || $end > $now + self::DAYS_AHEAD * DAY_IN_SECONDS + DAY_IN_SECONDS ) {
-				/* translators: %d: number of days */
-				return new \WP_Error( 'ffc_terminal_booking', sprintf( __( 'Every event must be active and end within the next %d days.', 'ffcertificate' ), self::DAYS_AHEAD ), array( 'status' => 400 ) );
-			}
+		$bookings = self::clean_bookings( $bookings );
+		$invalid  = self::queue_error( $bookings, $now );
+		if ( null !== $invalid ) {
+			return $invalid;
 		}
 		$limit = self::limit_error( $bookings, $now );
 		if ( null !== $limit ) {
@@ -221,6 +211,90 @@ final class AudienceTerminalPairing {
 			'bookings'    => $pairing['bookings'],
 			'expires_at'  => $expires,
 		);
+	}
+
+	/**
+	 * Change the events of an active terminal, from the app or the admin
+	 * (#2746). The terminal picks the change up the next time it asks for
+	 * its schedule.
+	 *
+	 * The new queue is held to the rules a pairing is: at least one event,
+	 * at most {@see self::MAX_BOOKINGS}, each active and ending within
+	 * {@see self::DAYS_AHEAD} days, no two whose check-in windows cross, and
+	 * an added event not already held by as many terminals as it may be.
+	 * An event that leaves keeps every reading taken for it: the moment it
+	 * left is kept, so a reading the terminal took offline before then is
+	 * still recorded when it syncs.
+	 *
+	 * @param int   $id       Terminal id.
+	 * @param int[] $bookings The events it should hold.
+	 * @param int   $by       Who changes it.
+	 * @param bool  $any      Whether they may change a terminal someone else paired.
+	 * @param int   $now      Unix time.
+	 * @phpstan-param list<int> $bookings
+	 * @return TerminalRow|\WP_Error The terminal as it is now.
+	 */
+	public static function update_bookings( int $id, array $bookings, int $by, bool $any, int $now ) {
+		$terminal = AudienceTerminalReader::terminal( $id );
+		if ( null === $terminal || ( ! $any && $terminal['paired_by'] !== $by ) || null !== $terminal['revoked_at'] || $terminal['expires_at'] <= $now ) {
+			return new \WP_Error( 'ffc_terminal_missing', __( 'There is no such terminal.', 'ffcertificate' ), array( 'status' => 404 ) );
+		}
+		$bookings = self::clean_bookings( $bookings );
+		$invalid  = self::queue_error( $bookings, $now );
+		if ( null !== $invalid ) {
+			return $invalid;
+		}
+		$added   = array_values( array_diff( $bookings, $terminal['bookings'] ) );
+		$dropped = array_values( array_diff( $terminal['bookings'], $bookings ) );
+		if ( array() === $added && array() === $dropped ) {
+			return $terminal;
+		}
+		$limit = self::booking_limit_error( $added, $now );
+		if ( null !== $limit ) {
+			return $limit;
+		}
+
+		$removed = $terminal['removed'];
+		foreach ( $dropped as $booking_id ) {
+			$removed[ $booking_id ] = $now;
+		}
+		foreach ( $added as $booking_id ) {
+			unset( $removed[ $booking_id ] );
+		}
+		$expires = self::expiry( $bookings, $now );
+		if ( ! AudienceTerminalWriter::set_bookings( $id, $bookings, $removed, $expires ) ) {
+			return new \WP_Error( 'ffc_terminal_save', __( 'The terminal could not be saved. Try again.', 'ffcertificate' ), array( 'status' => 500 ) );
+		}
+		ActivityLog::log(
+			'terminal_events_changed',
+			ActivityLog::LEVEL_INFO,
+			array(
+				'terminal_id' => $id,
+				'added'       => $added,
+				'removed'     => $dropped,
+			),
+			$by
+		);
+
+		$terminal['bookings']   = $bookings;
+		$terminal['removed']    = $removed;
+		$terminal['expires_at'] = $expires;
+		return $terminal;
+	}
+
+	/**
+	 * Whether a terminal held an event at a moment: it holds it now, or it
+	 * left the queue after that moment (#2746).
+	 *
+	 * @param array $terminal   Terminal row.
+	 * @param int   $booking_id Booking.
+	 * @param int   $at         Unix time.
+	 * @phpstan-param TerminalRow $terminal
+	 * @return bool
+	 */
+	public static function held_at( array $terminal, int $booking_id, int $at ): bool {
+		return in_array( $booking_id, $terminal['bookings'], true )
+			|| ( isset( $terminal['removed'][ $booking_id ] ) && $at < $terminal['removed'][ $booking_id ] );
 	}
 
 	/**
@@ -341,6 +415,42 @@ final class AudienceTerminalPairing {
 	}
 
 	/**
+	 * Positive, unique booking ids.
+	 *
+	 * @param int[] $bookings Booking ids.
+	 * @return list<int>
+	 */
+	private static function clean_bookings( array $bookings ): array {
+		return array_values( array_unique( array_filter( array_map( 'intval', $bookings ), static fn( int $id ): bool => $id > 0 ) ) );
+	}
+
+	/**
+	 * The refusal a queue of events gives, or null when it may be held.
+	 *
+	 * @param int[] $bookings Booking ids.
+	 * @param int   $now      Unix time.
+	 * @phpstan-param list<int> $bookings
+	 * @return \WP_Error|null
+	 */
+	private static function queue_error( array $bookings, int $now ): ?\WP_Error {
+		if ( array() === $bookings ) {
+			return new \WP_Error( 'ffc_terminal_no_bookings', __( 'Choose at least one event for the terminal.', 'ffcertificate' ), array( 'status' => 400 ) );
+		}
+		if ( count( $bookings ) > self::MAX_BOOKINGS ) {
+			/* translators: %d: maximum number of events */
+			return new \WP_Error( 'ffc_terminal_too_many', sprintf( __( 'A terminal holds at most %d events.', 'ffcertificate' ), self::MAX_BOOKINGS ), array( 'status' => 400 ) );
+		}
+		foreach ( $bookings as $booking_id ) {
+			$end = self::booking_end( $booking_id );
+			if ( null === $end || $end < $now || $end > $now + self::DAYS_AHEAD * DAY_IN_SECONDS + DAY_IN_SECONDS ) {
+				/* translators: %d: number of days */
+				return new \WP_Error( 'ffc_terminal_booking', sprintf( __( 'Every event must be active and end within the next %d days.', 'ffcertificate' ), self::DAYS_AHEAD ), array( 'status' => 400 ) );
+			}
+		}
+		return AudienceTerminalSchedule::collision_error( $bookings, $now );
+	}
+
+	/**
 	 * The refusal a limit gives, or null when there is room.
 	 *
 	 * @param int[] $bookings Booking ids.
@@ -354,10 +464,23 @@ final class AudienceTerminalPairing {
 			/* translators: %d: maximum number of terminals */
 			return new \WP_Error( 'ffc_terminal_site_limit', sprintf( __( 'This site already has %d active terminals. End one before pairing another.', 'ffcertificate' ), $limits['site'] ), array( 'status' => 409 ) );
 		}
+		return self::booking_limit_error( $bookings, $now );
+	}
+
+	/**
+	 * The refusal the per-event limit gives, or null when every event has room.
+	 *
+	 * @param int[] $bookings Booking ids.
+	 * @param int   $now      Unix time.
+	 * @phpstan-param list<int> $bookings
+	 * @return \WP_Error|null
+	 */
+	private static function booking_limit_error( array $bookings, int $now ): ?\WP_Error {
+		$limit = self::limits()['booking'];
 		foreach ( $bookings as $booking_id ) {
-			if ( AudienceTerminalReader::count_active_for_booking( $booking_id, $now ) >= $limits['booking'] ) {
+			if ( AudienceTerminalReader::count_active_for_booking( $booking_id, $now ) >= $limit ) {
 				/* translators: %d: maximum number of terminals */
-				return new \WP_Error( 'ffc_terminal_booking_limit', sprintf( __( 'One of these events already has %d active terminals. End one before pairing another.', 'ffcertificate' ), $limits['booking'] ), array( 'status' => 409 ) );
+				return new \WP_Error( 'ffc_terminal_booking_limit', sprintf( __( 'One of these events already has %d active terminals. End one before pairing another.', 'ffcertificate' ), $limit ), array( 'status' => 409 ) );
 			}
 		}
 		return null;
