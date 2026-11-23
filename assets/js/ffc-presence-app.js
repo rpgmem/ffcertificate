@@ -348,6 +348,7 @@
             select.addEventListener('change', function () {
                 self.state.chosen = select.value;
                 self.save();
+                self.heading();
                 self.draw();
             });
         }
@@ -510,6 +511,34 @@
             empty.hidden = events.length > 0;
         }
         select.hidden = events.length === 0;
+        // The picker shows only when there is a choice to make (#2781).
+        var picker = this.part('picker');
+        if (picker) {
+            picker.hidden = events.length < 2;
+        }
+        var card = this.part('card');
+        if (card) {
+            card.hidden = events.length === 0;
+        }
+        this.heading();
+    };
+
+    /**
+     * The event the code is for, and when: the title on top, then its day,
+     * hours and place (#2781).
+     */
+    App.prototype.heading = function () {
+        var event = this.current();
+        var title = this.part('title');
+        var when = this.part('when');
+        if (title) {
+            title.textContent = event ? (event.title || '') : '';
+            title.hidden = !event;
+        }
+        if (when) {
+            when.textContent = event ? [event.date, event.time, event.place].filter(Boolean).join(' · ') : '';
+            when.hidden = !event;
+        }
     };
 
     /**
@@ -578,13 +607,17 @@
         var strings = self.config.strings;
         var nowSeconds = Math.floor(self.now() / 1000);
         var windowStart = nowSeconds - (nowSeconds % ROTATION);
+        var left = ROTATION - (nowSeconds % ROTATION);
         var countdown = self.part('countdown');
         if (countdown) {
-            countdown.textContent = strings.next.replace('%d', String(ROTATION - (nowSeconds % ROTATION)));
+            // "New code in 18 s · Maria S.", under the bar that drains with
+            // the rotation (#2781).
+            countdown.textContent = [strings.next.replace('%d', String(left)), self.state.name || ''].filter(Boolean).join(' · ');
         }
-        var name = self.part('name');
-        if (name) {
-            name.textContent = self.state.name || '';
+        var progress = self.part('progress');
+        if (progress) {
+            progress.setAttribute('max', String(ROTATION));
+            progress.setAttribute('value', String(left));
         }
         var event = self.current();
         var attendance = self.part('attendance');

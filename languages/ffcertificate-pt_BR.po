@@ -35695,9 +35695,6 @@ msgstr "Um celular por conta: ativar outro depois faz este parar, e você recebe
 msgid "Activating this phone…"
 msgstr "Ativando este celular…"
 
-msgid "Hold the code up to the terminal's reader, about 20 cm away, with the screen bright. A photo or screenshot of the code stops working within a minute."
-msgstr "Aproxime o código do leitor do terminal, a uns 20 cm, com a tela clara. Uma foto ou captura de tela do código para de funcionar em até um minuto."
-
 #. translators: %d: seconds until the presence code changes
 #, php-format
 msgid "New code in %d s"
@@ -36839,3 +36836,15 @@ msgstr "Configurar este terminal"
 
 msgid "Terminal name (optional)"
 msgstr "Nome do terminal (opcional)"
+
+msgid "A screenshot will not do: the code changes every 30 seconds."
+msgstr "Um print não serve: o código muda a cada 30 segundos."
+
+msgid "Hold the screen up to the terminal's reader at the entrance."
+msgstr "Aproxime a tela do leitor do terminal na entrada."
+
+msgid "Works without internet: the code is made and signed on this phone."
+msgstr "Funciona sem internet: o código é gerado e assinado neste aparelho."
+
+msgid "The screen fills the accent colour: the event's name with its day, hours and place on top, the code on a white card, a bar that drains until the next code with the phone owner's short name beside it, and three tips. The event picker shows only when the participant has more than one event in the next 7 days."
+msgstr "A tela ocupa a cor de destaque: no topo, o nome do evento com o dia, o horário e o local, o código num cartão branco, uma barra que se esvazia até o próximo código com o nome curto do dono do celular ao lado, e três dicas. O seletor de evento só aparece quando o participante tem mais de um evento nos próximos 7 dias."
