@@ -412,6 +412,54 @@
 	transform: scaleX(-1);
 }
 
+/* The frame a code was read from, the right way round (#2786), over the
+   mirrored live view while the flash plays. */
+.ffc-terminal-still {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.ffc-terminal-still[hidden] {
+	display: none;
+}
+
+.ffc-terminal-flash {
+	position: absolute;
+	inset: 0;
+	background: var(--ffc-text);
+	opacity: 0;
+	pointer-events: none;
+}
+
+.ffc-terminal-viewfinder.is-captured .ffc-terminal-frame {
+	border-color: var(--ffc-success);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.ffc-terminal-viewfinder.is-captured .ffc-terminal-flash {
+		animation: ffc-terminal-flash 0.45s ease-out;
+	}
+}
+
+@keyframes ffc-terminal-flash {
+	from {
+		opacity: 0.85;
+	}
+
+	to {
+		opacity: 0;
+	}
+}
+
+/* On the pairing and unlock screens the viewfinder takes the place of the
+   picture, a little smaller. */
+.ffc-terminal-view > .ffc-terminal-camera-slot .ffc-terminal-viewfinder {
+	width: 320px;
+}
+
 .ffc-terminal-frame {
 	position: absolute;
 	inset: 17%;

@@ -53,6 +53,9 @@ final class OpacityContrastTest extends TestCase {
 	 * normalised to single spaces.
 	 */
 	private const ALLOWED = array(
+		'ffc-terminal-kiosk.css'          => array(
+			'.ffc-terminal-flash' => 'opacity 0: the capture flash is not painted until its animation runs, and carries no text (#2786)',
+		),
 		'ffc-admin-settings.css'          => array(
 			'.ffc-settings-tabs__external' => 'external-link icon, decorative glyph beside the label',
 			'.ffc-settings-back-to-top'    => 'floating back-to-top button; its label is a glyph',
