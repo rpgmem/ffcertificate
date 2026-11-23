@@ -707,3 +707,81 @@
 		border: 1px solid CanvasText;
 	}
 }
+
+/* The operator menu in two columns (#2780): actions and checks on the left,
+   the terminal's events on the right; one column on a narrow screen. */
+.ffc-terminal-view.ffc-terminal-menu:not([hidden]) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: var(--ffc-spacing-2xl);
+	align-items: start;
+	text-align: start;
+}
+
+.ffc-terminal-menu-main,
+.ffc-terminal-menu-side {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+	min-width: 0;
+}
+
+.ffc-terminal-queue {
+	padding: var(--ffc-spacing-lg);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-lg);
+	background: var(--ffc-bg-alt);
+	color: var(--ffc-text);
+}
+
+.ffc-terminal-queue-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-xs);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ffc-terminal-queue-item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ffc-spacing-sm);
+	padding: var(--ffc-spacing-sm);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-md);
+}
+
+.ffc-terminal-queue-item.is-open {
+	border-color: var(--ffc-success);
+}
+
+.ffc-terminal-queue-text {
+	display: flex;
+	flex: 1 1 12em;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.ffc-terminal-queue-meta {
+	color: var(--ffc-text-muted);
+	font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-terminal-queue-add {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+}
+
+.ffc-terminal-queue-add[hidden] {
+	display: none;
+}
+
+@media (max-width: 900px) {
+	.ffc-terminal-view.ffc-terminal-menu:not([hidden]) {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+

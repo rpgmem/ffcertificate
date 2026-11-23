@@ -249,6 +249,41 @@ class AudienceTerminalRestController {
 						),
 					),
 				),
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_self' ),
+					'permission_callback' => array( $this, 'check_terminal_permission' ),
+					'args'                => array(
+						'code'     => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+						),
+						'bookings' => array(
+							'type'              => 'array',
+							'required'          => true,
+							'items'             => array( 'type' => 'integer' ),
+							'sanitize_callback' => array( self::class, 'sanitize_ids' ),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/self/events',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'self_events' ),
+				'permission_callback' => array( $this, 'check_terminal_permission' ),
+				'args'                => array(
+					'code' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+					),
+				),
 			)
 		);
 	}
@@ -573,8 +608,9 @@ class AudienceTerminalRestController {
 		$user = get_userdata( $operator['user_id'] );
 		return new \WP_REST_Response(
 			array(
-				'name'    => $user instanceof \WP_User ? AudiencePresenceAttestation::display_name( $user ) : '',
-				'expires' => $operator['expires'],
+				'name'     => $user instanceof \WP_User ? AudiencePresenceAttestation::display_name( $user ) : '',
+				'expires'  => $operator['expires'],
+				'may_edit' => self::may_edit_queue( $operator['user_id'] ),
 			),
 			200,
 			array( 'Cache-Control' => 'no-store' )
@@ -602,6 +638,98 @@ class AudienceTerminalRestController {
 			return $result;
 		}
 		return new \WP_REST_Response( array( 'revoked' => $terminal['id'] ), 200 );
+	}
+
+	/**
+	 * Whether an operator may change a terminal's events from the terminal
+	 * itself (#2780): whoever may pair terminals, as in the app.
+	 *
+	 * @param int $user_id Operator.
+	 * @return bool
+	 */
+	public static function may_edit_queue( int $user_id ): bool {
+		return user_can( $user_id, AudienceTerminalPairing::CAP ) || user_can( $user_id, 'manage_options' );
+	}
+
+	/**
+	 * The operator a request's code belongs to, when they may also change
+	 * the terminal's events.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return array{user_id: int, expires: int}|\WP_Error
+	 */
+	private static function queue_operator_of( \WP_REST_Request $request ) {
+		$operator = self::operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		if ( ! self::may_edit_queue( $operator['user_id'] ) ) {
+			return new \WP_Error( 'ffc_operator_queue_not_allowed', __( 'This operator may not change the terminal\'s events.', 'ffcertificate' ), array( 'status' => 403 ) );
+		}
+		return $operator;
+	}
+
+	/**
+	 * The events the calling terminal could take, for its operator menu
+	 * (#2780), on an operator's code.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function self_events( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$operator = self::queue_operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		return new \WP_REST_Response(
+			array(
+				'bookings' => self::offered_bookings( time() ),
+				'max'      => AudienceTerminalPairing::MAX_BOOKINGS,
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
+	}
+
+	/**
+	 * Change the calling terminal's events from its operator menu (#2780),
+	 * under the rules the app's Change events follows. Any operator who may
+	 * pair terminals may do it at the terminal, as any operator may end it
+	 * there; the change is logged in that operator's name.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function update_self( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$operator = self::queue_operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		$now    = time();
+		$result = AudienceTerminalPairing::update_bookings( $terminal['id'], self::sanitize_ids( $request->get_param( 'bookings' ) ), $operator['user_id'], true, $now );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new \WP_REST_Response(
+			array(
+				'label'         => $result['label'],
+				'bookings'      => $result['bookings'],
+				'expires_at'    => $result['expires_at'],
+				'expires_label' => DateFormatter::format_datetime( $result['expires_at'] ),
+				'now'           => $now,
+				'schedule'      => AudienceTerminalSchedule::plan( $result, $now ),
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
 	}
 
 	/**

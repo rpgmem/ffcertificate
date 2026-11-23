@@ -28,6 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The check-in terminal follows the approved screens** (#2780). A full-screen page, always dark, with the event, place, closing time, clock and present count on top; a countdown between events; each reading fills the screen in green, blue or red for five seconds with the person's name and time, and says when an open event admits someone not enrolled.
 - **The check-in terminal has its own address and manifest** (#2780). `/terminal/` (the query form stays) installs as a full-screen, landscape app scoped to the terminal, with no login; the page and manifest are sent with `X-Robots-Tag: noindex` and `no-store`. No rewrite rule is stored.
 - **The terminal camera reads on every screen that takes a code** (#2786): pairing, presence and the operator unlock. A read flashes the screen and shows the captured frame the right way round; a frame a front camera hands over mirrored is read again flipped back.
+- **The terminal's operator menu changes its events** (#2780). Two columns: actions on one side, the terminal's events on the other with the one checking in now marked; an operator who may pair terminals removes or adds events there, under the app's rules, logged in their name.
 
 ### Security
 

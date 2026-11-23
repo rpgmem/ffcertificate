@@ -68,6 +68,7 @@ const CONFIG = {
 		connQueue: 'online, %d to send',
 		connOffline: 'offline, %d kept',
 		connCamera: 'camera',
+		queueEdit: { now: 'Now', remove: 'Remove', confirmRemove: 'Tap again', add: 'Add', full: 'Full', saved: 'Updated.', summary: '%1$d of %2$d events', max: 10 },
 		titles: { ffc_terminal_other_event: 'Other event', ffc_presence_code_revoked: 'Phone replaced' },
 		wakeUnsupported: 'cannot keep the screen on',
 		wakeRefused: 'screen on refused',
@@ -159,6 +160,16 @@ function markup() {
 				<p data-ffc-terminal-part="label"></p>
 				<p data-ffc-terminal-part="events"></p>
 				<p data-ffc-terminal-part="until"></p>
+				<p data-ffc-terminal-part="queue-summary"></p>
+				<ul data-ffc-terminal-part="queue-list"></ul>
+				<p data-ffc-terminal-part="queue-error" hidden></p>
+				<p data-ffc-terminal-part="queue-locked" hidden></p>
+				<div data-ffc-terminal-part="queue-edit" hidden><button type="button" data-ffc-terminal-part="queue-open-add">Add event</button></div>
+				<div data-ffc-terminal-part="queue-add" hidden>
+					<ul data-ffc-terminal-part="queue-offered"></ul>
+					<p data-ffc-terminal-part="queue-none" hidden></p>
+					<button type="button" data-ffc-terminal-part="queue-close-add">Close</button>
+				</div>
 			</section>
 			<footer data-ffc-terminal-part="foot" hidden>
 				<p data-ffc-terminal-part="conn"></p>
@@ -447,6 +458,66 @@ describe('reading', () => {
 		expect(ms).toBe(120000);
 		lock();
 		expect(visible(el)).toEqual(['ready']);
+	});
+
+	it('lists the terminal\'s events in the menu and lets only an operator who may pair change them', async () => {
+		let c = paired({ 'POST unlock': [200, { name: 'Ana L.', may_edit: false }] });
+		await submit('FFO1OPERATOR');
+		expect(text('queue-summary')).toBe('1 of 10 events');
+		expect(el.querySelector('[data-ffc-terminal-part="queue-locked"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="queue-edit"]').hidden).toBe(true);
+		expect(el.querySelectorAll('[data-ffc-terminal-remove]')).toHaveLength(0);
+
+		const schedule = [
+			{ booking_id: 11, title: 'Workshop', place: 'Hall', hours: '09:00–11:00', open: true },
+			{ booking_id: 12, title: 'Seminar', place: 'Room 2', hours: '14:00–16:00', open: false },
+		];
+		const after = { label: 'Entrance', bookings: [11, 12], schedule, expires_at: NOW + 7200, expires_label: 'tonight' };
+		c = paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'POST self/events': [200, { max: 10, bookings: [{ id: 11, description: 'Workshop' }, { id: 12, description: 'Seminar', place: 'Room 2', when: 'Tue' }, { id: 13, description: 'Packed', full: true }] }],
+			'PUT self': [200, after],
+		});
+		await submit('FFO1OPERATOR');
+		expect(el.querySelector('[data-ffc-terminal-part="queue-edit"]').hidden).toBe(false);
+
+		el.querySelector('[data-ffc-terminal-part="queue-open-add"]').click();
+		await settle();
+		const add = el.querySelectorAll('[data-ffc-terminal-add]');
+		expect(Array.from(add).map((b) => b.getAttribute('data-ffc-terminal-add'))).toEqual(['12', '13'], 'an event already held is not offered');
+		expect(add[1].disabled).toBe(true);
+		expect(add[1].textContent).toBe('Full');
+		add[0].click();
+		await settle();
+		const put = c.calls.filter((call) => 'PUT' === call[0]).pop();
+		expect(JSON.parse(put[2].body)).toEqual({ code: 'FFO1OPERATOR', bookings: [11, 12] });
+		expect(text('queue-summary')).toBe('2 of 10 events');
+		expect(el.querySelector('.ffc-terminal-queue-item.is-open strong').textContent).toBe('Workshop');
+		expect(text('events')).toBe('events 2');
+
+		const remove = el.querySelector('[data-ffc-terminal-remove="12"]');
+		remove.click();
+		expect(remove.textContent).toBe('Tap again');
+		expect(c.calls.filter((call) => 'PUT' === call[0])).toHaveLength(1);
+		remove.click();
+		await settle();
+		const second = c.calls.filter((call) => 'PUT' === call[0]).pop();
+		expect(JSON.parse(second[2].body).bookings).toEqual([11]);
+	});
+
+	it('says why the site refused a change to the events', async () => {
+		paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'POST self/events': [200, { max: 10, bookings: [{ id: 12, description: 'Seminar' }] }],
+			'PUT self': [409, { code: 'ffc_terminal_overlap', message: 'Its check-in crosses Workshop.' }],
+		});
+		await submit('FFO1OPERATOR');
+		el.querySelector('[data-ffc-terminal-part="queue-open-add"]').click();
+		await settle();
+		el.querySelector('[data-ffc-terminal-add="12"]').click();
+		await settle();
+		expect(el.querySelector('[data-ffc-terminal-part="queue-error"]').hidden).toBe(false);
+		expect(text('queue-error')).toBe('Its check-in crosses Workshop.');
 	});
 
 	it('refuses an operator code the site does not accept', async () => {

@@ -675,6 +675,64 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 'ffc_terminal_unpaired', $controller->schedule( $request )->get_error_code() );
 	}
 
+	public function test_an_operator_who_may_pair_changes_the_queue_from_the_terminal(): void {
+		$this->booking( 41, gmdate( 'Y-m-d', time() + DAY_IN_SECONDS ) );
+		$this->booking( 42, gmdate( 'Y-m-d', time() + 2 * DAY_IN_SECONDS ) );
+		// Paired on the fixture's clock; the routes then read the real one.
+		$paired  = $this->paired( array( 11 ), self::DEVICE );
+		$token   = $paired['token'];
+		$params  = array();
+		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal-Queue' )->andReturn( '' );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturnUsing( static function () use ( &$token ) {
+			return $token;
+		} );
+		$request->shouldReceive( 'get_param' )->andReturnUsing( static function ( $name ) use ( &$params ) {
+			return $params[ $name ] ?? null;
+		} );
+		$caps = array( 'ffc_checkin_audiences' );
+		Functions\when( 'user_can' )->alias( static function ( $user, $cap ) use ( &$caps ) {
+			return in_array( $cap, $caps, true );
+		} );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'display_name' => 'Ana Lima' ) );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		$this->tables->booking_list = array(
+			(object) array( 'id' => 42, 'description' => 'Workshop', 'environment_name' => 'Room 1', 'booking_date' => gmdate( 'Y-m-d', time() + 2 * DAY_IN_SECONDS ), 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00' ),
+		);
+		$controller = new AudienceTerminalRestController();
+
+		$params['code'] = AudienceOperatorCode::issue( 9, time() )['code'];
+		$this->assertFalse( $controller->unlock( $request )->get_data()['may_edit'], 'checking people in is not enough to change the queue' );
+		$this->assertSame( 'ffc_operator_queue_not_allowed', $controller->self_events( $request )->get_error_code() );
+		$params['bookings'] = array( 41, 42 );
+		$refused            = $controller->update_self( $request );
+		$this->assertSame( 403, $refused->get_error_data()['status'] );
+		$this->assertSame( array( 11 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['bookings'] );
+
+		$caps[] = AudienceTerminalPairing::CAP;
+		$this->assertTrue( $controller->unlock( $request )->get_data()['may_edit'] );
+		$offered = $controller->self_events( $request )->get_data();
+		$this->assertSame( AudienceTerminalPairing::MAX_BOOKINGS, $offered['max'] );
+		$this->assertContains( 42, array_column( $offered['bookings'], 'id' ) );
+
+		$response = $controller->update_self( $request );
+		$this->assertInstanceOf( \WP_REST_Response::class, $response, is_wp_error( $response ) ? $response->get_error_code() : '' );
+		$this->assertSame( array( 41, 42 ), $response->get_data()['bookings'] );
+		$this->assertSame( array( 41, 42 ), array_column( $response->get_data()['schedule'], 'booking_id' ), 'the menu redraws from the new plan' );
+		$this->assertSame( array( 41, 42 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['bookings'], 'an operator who did not pair it may change it at the terminal' );
+
+		$params['bookings'] = array();
+		$this->assertSame( 'ffc_terminal_no_bookings', $controller->update_self( $request )->get_error_code(), 'the rules of a pairing still hold' );
+
+		$params['code'] = 'FFO1NOTACODE';
+		$this->assertSame( 403, $controller->self_events( $request )->get_error_data()['status'] );
+
+		$token = str_repeat( 'c', 64 );
+		$this->assertSame( 'ffc_terminal_unpaired', $controller->update_self( $request )->get_error_code() );
+	}
+
 	// ---- Terminals screen (#2748) --------------------------------------
 
 	public function test_a_terminal_reports_its_queue_and_counts_what_it_recorded(): void {
