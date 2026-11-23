@@ -88,10 +88,15 @@
 	font-weight: 600;
 }
 
+/* The primary action stays in reach at the bottom of the phone. */
 .ffc-presence-actions {
+	position: sticky;
+	bottom: 0;
 	display: flex;
 	flex-direction: column;
 	gap: var(--ffc-spacing-sm);
+	padding-block: var(--ffc-spacing-sm);
+	background: var(--ffc-bg);
 }
 
 .ffc-presence-label {
