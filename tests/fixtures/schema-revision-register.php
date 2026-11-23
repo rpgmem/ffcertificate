@@ -30,8 +30,8 @@ return array(
 	),
 	'includes/recruitment/class-ffc-recruitment-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Recruitment\\RecruitmentActivator',
-		'revision'    => '4',
-		'fingerprint' => 'a237831b8cd7b2aa52e3559ab6e0da49e18bc89d',
+		'revision'    => '5',
+		'fingerprint' => 'bd29612d5a8b799543fcf53d67181c16106cc563',
 	),
 	'includes/reregistration/class-ffc-reregistration-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Reregistration\\ReregistrationActivator',
