@@ -15,6 +15,7 @@ namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\ClientIpResolver;
+use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\IpAddress;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -99,6 +100,16 @@ class AudienceTerminalRestController {
 						'sanitize_callback' => array( AudiencePresenceRestController::class, 'sanitize_b64' ),
 					),
 				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/bookings',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'list_bookings' ),
+				'permission_callback' => array( $this, 'check_manage_permission' ),
 			)
 		);
 
@@ -220,8 +231,73 @@ class AudienceTerminalRestController {
 			}
 			return $result;
 		}
-		$result['keys'] = AudiencePresenceKeys::public_keys( $now );
+		$result['keys']          = AudiencePresenceKeys::public_keys( $now );
+		$result['expires_label'] = DateFormatter::format_datetime( $result['expires_at'] );
 		return new \WP_REST_Response( $result, 201, array( 'Cache-Control' => 'no-store' ) );
+	}
+
+	/**
+	 * The events a terminal may serve: active bookings that end within the
+	 * next {@see AudienceTerminalPairing::DAYS_AHEAD} days, soonest first,
+	 * with how many terminals already hold each.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function list_bookings(): \WP_REST_Response {
+		$now    = time();
+		$today  = wp_date( 'Y-m-d', $now );
+		$last   = wp_date( 'Y-m-d', $now + AudienceTerminalPairing::DAYS_AHEAD * DAY_IN_SECONDS );
+		$rows   = AudienceBookingReader::get_all(
+			array(
+				'start_date' => is_string( $today ) ? $today : '',
+				'end_date'   => is_string( $last ) ? $last : '',
+				'status'     => 'active',
+				'limit'      => 100,
+			)
+		);
+		$limit  = AudienceTerminalPairing::limits()['booking'];
+		$events = array();
+		foreach ( $rows as $booking ) {
+			$id  = (int) $booking->id;
+			$end = AudienceTerminalPairing::booking_end( $id );
+			if ( null === $end || $end < $now ) {
+				continue;
+			}
+			$held     = AudienceTerminalReader::count_active_for_booking( $id, $now );
+			$events[] = array(
+				'id'          => $id,
+				'description' => (string) $booking->description,
+				'place'       => (string) ( $booking->environment_name ?? '' ),
+				'when'        => self::when( $booking ),
+				'terminals'   => $held,
+				'full'        => $held >= $limit,
+			);
+		}
+		return new \WP_REST_Response(
+			array(
+				'bookings' => $events,
+				'max'      => AudienceTerminalPairing::MAX_BOOKINGS,
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
+	}
+
+	/**
+	 * A booking's days and hours, in the site's formats.
+	 *
+	 * @param object $booking Booking row.
+	 * @return string
+	 */
+	private static function when( object $booking ): string {
+		$first = (string) ( $booking->booking_date ?? '' );
+		$last  = is_string( $booking->end_date ?? null ) && '' !== $booking->end_date ? $booking->end_date : $first;
+		$days  = $first === $last
+			? DateFormatter::format_date( $first )
+			/* translators: 1: first day, 2: last day */
+			: sprintf( __( '%1$s to %2$s', 'ffcertificate' ), DateFormatter::format_date( $first ), DateFormatter::format_date( $last ) );
+		/* translators: 1: day or days, 2: start time, 3: end time */
+		return sprintf( __( '%1$s, %2$s–%3$s', 'ffcertificate' ), $days, DateFormatter::format_time( (string) ( $booking->start_time ?? '' ) ), DateFormatter::format_time( (string) ( $booking->end_time ?? '' ) ) );
 	}
 
 	/**
@@ -287,19 +363,25 @@ class AudienceTerminalRestController {
 	/**
 	 * What the list shows of a terminal: never its token hash or device hash.
 	 *
+	 * The `*_label` keys are the same instants in the site's formats, so the
+	 * app never formats a date itself.
+	 *
 	 * @param array $terminal Terminal row.
 	 * @phpstan-param TerminalRow $terminal
-	 * @return array{id: int, label: string, bookings: list<int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null}
+	 * @return array{id: int, label: string, bookings: list<int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, paired_label: string, expires_label: string, last_seen_label: string}
 	 */
 	public static function present( array $terminal ): array {
 		return array(
-			'id'           => $terminal['id'],
-			'label'        => $terminal['label'],
-			'bookings'     => $terminal['bookings'],
-			'paired_by'    => $terminal['paired_by'],
-			'paired_at'    => $terminal['paired_at'],
-			'expires_at'   => $terminal['expires_at'],
-			'last_seen_at' => $terminal['last_seen_at'],
+			'id'              => $terminal['id'],
+			'label'           => $terminal['label'],
+			'bookings'        => $terminal['bookings'],
+			'paired_by'       => $terminal['paired_by'],
+			'paired_at'       => $terminal['paired_at'],
+			'expires_at'      => $terminal['expires_at'],
+			'last_seen_at'    => $terminal['last_seen_at'],
+			'paired_label'    => DateFormatter::format_datetime( $terminal['paired_at'] ),
+			'expires_label'   => DateFormatter::format_datetime( $terminal['expires_at'] ),
+			'last_seen_label' => null === $terminal['last_seen_at'] ? '' : DateFormatter::format_datetime( $terminal['last_seen_at'] ),
 		);
 	}
 

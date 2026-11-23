@@ -35583,8 +35583,6 @@ msgstr "QR do operador"
 msgid "Manual attendance"
 msgstr "Presença manual"
 
-msgid "This screen arrives in a coming update."
-msgstr "Esta tela chega numa próxima atualização."
 
 msgid "There is nothing here for your account yet."
 msgstr "Ainda não há nada aqui para a sua conta."
@@ -36001,3 +35999,150 @@ msgid "Too many wrong codes. Try again in %d minute."
 msgid_plural "Too many wrong codes. Try again in %d minutes."
 msgstr[0] "Códigos errados demais. Tente de novo em %d minuto."
 msgstr[1] "Códigos errados demais. Tente de novo em %d minutos."
+
+msgid "Check-in terminal"
+msgstr "Terminal de check-in"
+
+msgid "This browser cannot keep the terminal's pairing. Allow this site to store data, or use another browser."
+msgstr "Este navegador não consegue guardar o pareamento do terminal. Permita que este site armazene dados, ou use outro navegador."
+
+msgid "Pairing…"
+msgstr "Pareando…"
+
+msgid "Terminal paired."
+msgstr "Terminal pareado."
+
+msgid "The terminal could not reach the site. Check the connection and try again."
+msgstr "O terminal não conseguiu acessar o site. Verifique a conexão e tente de novo."
+
+msgid "Too many wrong codes. Try again in %s."
+msgstr "Códigos errados demais. Tente de novo em %s."
+
+msgid "Events: %d"
+msgstr "Eventos: %d"
+
+msgid "Works until %s"
+msgstr "Funciona até %s"
+
+msgid "This terminal's pairing has ended. Ask an operator for a new pairing code."
+msgstr "O pareamento deste terminal terminou. Peça um novo código de pareamento a um operador."
+
+msgid "The site could not be reached. Check the connection and try again."
+msgstr "Não foi possível acessar o site. Verifique a conexão e tente de novo."
+
+msgid "Tick at least one event."
+msgstr "Marque pelo menos um evento."
+
+msgid "A terminal serves at most %d events."
+msgstr "Um terminal atende no máximo %d eventos."
+
+msgid "Generating the code…"
+msgstr "Gerando o código…"
+
+msgid "Terminal limit reached"
+msgstr "Limite de terminais atingido"
+
+msgid "Terminals: %d"
+msgstr "Terminais: %d"
+
+msgid "The code expires in %s."
+msgstr "O código expira em %s."
+
+msgid "This code has expired."
+msgstr "Este código expirou."
+
+msgid "QR code to hold to the terminal's reader."
+msgstr "QR code para aproximar do leitor do terminal."
+
+msgid "Terminal %d"
+msgstr "Terminal %d"
+
+msgid "Last read: %s"
+msgstr "Última leitura: %s"
+
+msgid "Not used yet."
+msgstr "Ainda não usado."
+
+msgid "Terminal ended."
+msgstr "Terminal encerrado."
+
+msgid "Your active terminals: %1$d. The site allows %2$d at a time, and %3$d per event."
+msgstr "Seus terminais ativos: %1$d. O site permite %2$d ao mesmo tempo, e %3$d por evento."
+
+msgid "Active terminals on the site: %1$d. The site allows %2$d at a time, and %3$d per event."
+msgstr "Terminais ativos no site: %1$d. O site permite %2$d ao mesmo tempo, e %3$d por evento."
+
+msgid "A new code appears before this one expires in %s."
+msgstr "Um novo código aparece antes que este expire em %s."
+
+msgid "The check-in terminal needs JavaScript. Turn it on in the browser and open this page again."
+msgstr "O terminal de check-in precisa de JavaScript. Ative-o no navegador e abra esta página de novo."
+
+msgid "Waiting for pairing"
+msgstr "Aguardando pareamento"
+
+msgid "An operator generates a pairing code in the app, under More → Pair terminal. Hold its QR code to this terminal's reader, or type the code below."
+msgstr "Um operador gera um código de pareamento no app, em Mais → Parear terminal. Aproxime o QR code dele do leitor deste terminal, ou digite o código abaixo."
+
+msgid "Pairing code"
+msgstr "Código de pareamento"
+
+msgid "Pair"
+msgstr "Parear"
+
+msgid "Pairing paused"
+msgstr "Pareamento pausado"
+
+msgid "Wrong codes are counted on the site. Ask the operator for a new code, and type it carefully once the wait is over."
+msgstr "Os códigos errados são contados no site. Peça um novo código ao operador e digite-o com cuidado quando a espera terminar."
+
+msgid "Terminal paired"
+msgstr "Terminal pareado"
+
+msgid "Reading presence codes arrives in a coming update. An operator can end this terminal in the app, under More → My terminals."
+msgstr "A leitura dos códigos de presença chega em uma próxima atualização. Um operador pode encerrar este terminal no app, em Mais → Meus terminais."
+
+msgid "This screen needs JavaScript. Turn it on in the browser and open it again."
+msgstr "Esta tela precisa de JavaScript. Ative-o no navegador e abra a tela de novo."
+
+msgid "Events this terminal checks in"
+msgstr "Eventos em que este terminal faz o check-in"
+
+msgid "No event in the next 7 days can take a terminal."
+msgstr "Nenhum evento dos próximos 7 dias pode receber um terminal."
+
+msgid "Name for this terminal (optional)"
+msgstr "Nome deste terminal (opcional)"
+
+msgid "Entrance A"
+msgstr "Entrada A"
+
+msgid "Generate pairing code"
+msgstr "Gerar código de pareamento"
+
+msgid "Open the terminal page on the device and hold this code to its reader, or type it there. The code works once."
+msgstr "Abra a página do terminal no aparelho e aproxime este código do leitor dele, ou digite-o lá. O código funciona uma vez."
+
+msgid "Generate another code"
+msgstr "Gerar outro código"
+
+msgid "No terminal is paired. Pair one under Pair terminal."
+msgstr "Nenhum terminal está pareado. Pareie um em Parear terminal."
+
+msgid "End terminal"
+msgstr "Encerrar terminal"
+
+msgid "End this terminal? It stops checking people in at once."
+msgstr "Encerrar este terminal? Ele para de fazer check-in na hora."
+
+msgid "Keep"
+msgstr "Manter"
+
+msgid "Hold this code to a terminal's reader to unlock its operator menu. It changes every two minutes and works only for you."
+msgstr "Aproxime este código do leitor de um terminal para desbloquear o menu de operador. Ele muda a cada dois minutos e só funciona para você."
+
+msgid "The terminal opens the site's home page with ?ffc_terminal=1 added to the address, outside the theme and with no login, and waits for pairing. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires. Reading presence codes on the terminal arrives in a coming update."
+msgstr "O terminal abre a página inicial do site com ?ffc_terminal=1 acrescentado ao endereço, fora do tema e sem login, e aguarda o pareamento. No app, o operador gera o código em Mais → Parear terminal, marcando os eventos e dando um nome ao terminal; Mais → Meus terminais lista os terminais ativos com a última leitura de cada um e até quando funciona, e encerra um depois de uma confirmação na tela; Mais → QR do operador mostra o código de desbloqueio do operador, renovado antes de expirar. A leitura dos códigos de presença no terminal chega em uma próxima atualização."
+
+msgid "%1$s, %2$s–%3$s"
+msgstr "%1$s, %2$s–%3$s"
