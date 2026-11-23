@@ -36604,3 +36604,21 @@ msgstr "Compatível, inativa agora"
 
 msgid "The operator menu ends with a Device check: whether the page is served over HTTPS, whether this browser can read codes with the camera and the site allows it, whether it can keep the screen on, and the browser's own name. Note it, or take a picture of it, when trying a new tablet, so a device that cannot do one of them is found before the event."
 msgstr "O menu do operador termina com uma Verificação do aparelho: se a página é servida por HTTPS, se este navegador consegue ler códigos com a câmera e o site permite, se consegue manter a tela ligada, e o nome do próprio navegador. Anote, ou tire uma foto, ao testar um tablet novo, para que um aparelho que não consiga fazer uma dessas coisas seja descoberto antes do evento."
+
+msgid "Present: %1$d of %2$d days"
+msgstr "Presente: %1$d de %2$d dias"
+
+msgid "Attendance confirmed at %s"
+msgstr "Presença confirmada em %s"
+
+msgid "Post-event form · until %s"
+msgstr "Formulário pós-evento · até %s"
+
+msgid "Waiting for you"
+msgstr "Esperando por você"
+
+msgid "Once a reading reaches the site, the booking shows Present on the participant's dashboard and on the app's Presence screen, with the method and time; an event over several days shows the days present out of those it counts, such as \"Present: 2 of 3 days\". The app also lists what waits for the participant: \"Attendance confirmed at\" an event, for each day recorded in the last 7 days, which they can dismiss on that phone, and each post-event form still open to them, with its closing date and their link. The list comes with the events the app already fetches and is kept for when the phone is offline; nothing new is e-mailed or pushed."
+msgstr "Assim que uma leitura chega ao site, a reserva mostra Presente no painel do participante e na tela Presença do app, com o método e o horário; um evento de vários dias mostra os dias presentes entre os que ele conta, como \"Presente: 2 de 3 dias\". O app também lista o que espera pelo participante: \"Presença confirmada em\" um evento, para cada dia registrado nos últimos 7 dias, que ele pode dispensar naquele celular, e cada formulário pós-evento ainda aberto para ele, com a data de encerramento e o link pessoal. A lista vem com os eventos que o app já busca e fica guardada para quando o celular está sem internet; nada novo é enviado por e-mail ou notificação."
+
+msgid "A reading that reaches the site late, from a terminal that was offline, counts at the next hourly run: a participant it makes eligible is invited then."
+msgstr "Uma leitura que chega ao site atrasada, de um terminal que estava sem internet, conta na próxima execução de hora em hora: um participante que ela torna elegível é convidado nesse momento."

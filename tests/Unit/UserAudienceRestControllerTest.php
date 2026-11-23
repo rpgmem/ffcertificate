@@ -53,6 +53,9 @@ class UserAudienceRestControllerTest extends TestCase {
 	/** @var list<array{booking_id: int, name: string, color: string}> The audiences each booking names. */
 	private array $booking_audiences = array();
 
+	/** @var list<array<string, string>> Attendance rows the person's attendance query returns (#2749). */
+	private array $attendance = array();
+
 	/** @var bool Whether the audiences table and its allow_self_join column exist. */
 	private bool $schema = true;
 
@@ -135,6 +138,7 @@ class UserAudienceRestControllerTest extends TestCase {
 		$this->next_membership_id = 1;
 		$this->bookings           = array();
 		$this->participants       = array();
+		$this->attendance         = array();
 		$this->booking_audiences  = array();
 		$this->schema             = true;
 		// DateFormatter reads the plugin settings: none stored, so the default formats.
@@ -422,6 +426,10 @@ class UserAudienceRestControllerTest extends TestCase {
 		if ( false !== strpos( $sql, 'WHERE audience_booking_id = %d' ) ) {
 			// AudienceFormInviteReader::answers(): nobody answered yet.
 			return array();
+		}
+		if ( false !== strpos( $sql, 'WHERE user_id = %d AND booking_id IN' ) ) {
+			// AudienceAttendanceReader::for_user(): the person's rows (#2749).
+			return $this->attendance;
 		}
 		return $this->unknown( 'get_results', $sql );
 	}
@@ -839,6 +847,32 @@ class UserAudienceRestControllerTest extends TestCase {
 				'post_event_window_days' => 7,
 			)
 		);
+	}
+
+	public function test_get_user_audience_bookings_carries_whether_the_person_was_present(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-06-06' );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+
+		$this->stored_booking( $this->plain_booking( 7 ) );
+		$this->stored_booking( $this->plain_booking( 8 ) );
+		$this->attendance = array(
+			array(
+				'booking_id'      => '7',
+				'attendance_date' => $this->plain_booking( 7 )['booking_date'],
+				'checked_at'      => '1780000000',
+				'method'          => 'terminal',
+			),
+		);
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )->get_user_audience_bookings( $this->make_request() );
+
+		$by_id = array_column( $result['bookings'], 'attendance', 'id' );
+		$this->assertSame( 'Present', $by_id[7]['label'] );
+		$this->assertTrue( $by_id[7]['met'] );
+		$this->assertSame( 'Self-service terminal · ' . gmdate( 'd/m/Y H:i', 1780000000 ), $by_id[7]['detail'] );
+		$this->assertNull( $by_id[8] );
 	}
 
 	public function test_get_user_audience_bookings_carries_the_post_event_form_waiting_and_counts_it(): void {

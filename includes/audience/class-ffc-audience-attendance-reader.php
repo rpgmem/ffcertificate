@@ -91,6 +91,40 @@ class AudienceAttendanceReader {
 	}
 
 	/**
+	 * One person's attendance rows on several bookings, in one query (#2749).
+	 *
+	 * @param int        $user_id     User.
+	 * @param array<int> $booking_ids Booking IDs.
+	 * @return array<int, list<array{date: string, checked_at: int, method: string}>> Booking ID => rows, oldest first.
+	 */
+	public static function for_user( int $user_id, array $booking_ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $booking_ids ) ) ) );
+		if ( $user_id <= 0 || array() === $ids ) {
+			return array();
+		}
+
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				// The IN list is one %d per id, built here; the table is bound with %i.
+				'SELECT booking_id, attendance_date, checked_at, method FROM %i WHERE user_id = %d AND booking_id IN (' . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ') ORDER BY attendance_date ASC, checked_at ASC',
+				array_merge( array( self::get_table_name(), $user_id ), $ids )
+			),
+			ARRAY_A
+		);
+
+		$by_booking = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$by_booking[ ArrayValue::int( $row, 'booking_id' ) ][] = array(
+				'date'       => ArrayValue::string( $row, 'attendance_date' ),
+				'checked_at' => ArrayValue::int( $row, 'checked_at' ),
+				'method'     => ArrayValue::string( $row, 'method' ),
+			);
+		}
+		return $by_booking;
+	}
+
+	/**
 	 * How many people checked in at least once, per booking, in one query
 	 * (#2243): the bookings list shows it beside who the booking reaches.
 	 *

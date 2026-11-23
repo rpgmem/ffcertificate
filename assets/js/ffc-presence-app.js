@@ -372,6 +372,7 @@
             }
             self.show('code');
             self.listEvents();
+            self.listPending();
             self.draw();
             self.timer = root.setInterval(function () { self.draw(); }, 1000);
             return self.refresh();
@@ -453,7 +454,9 @@
             return self.request('GET', 'events');
         }).then(function (answer) {
             self.state.events = answer.events || [];
+            self.state.pending = answer.pending || [];
             self.listEvents();
+            self.listPending();
             self.draw();
             return self.save();
         }).catch(function (error) {
@@ -509,6 +512,67 @@
         select.hidden = events.length === 0;
     };
 
+    /**
+     * The items waiting for the person (#2749): a confirmation they may
+     * dismiss, and a post-event form with its link. Dismissed keys are kept
+     * with the device state, trimmed to the items the site still sends.
+     */
+    App.prototype.listPending = function () {
+        var self = this;
+        var list = self.part('pending');
+        if (!list) {
+            return;
+        }
+        var strings = self.config.strings;
+        var pending = self.state.pending || [];
+        var keys = pending.map(function (item) { return item.key; });
+        self.state.dismissed = (self.state.dismissed || []).filter(function (key) {
+            return keys.indexOf(key) !== -1;
+        });
+        var shown = pending.filter(function (item) {
+            return self.state.dismissed.indexOf(item.key) === -1;
+        });
+        list.textContent = '';
+        shown.forEach(function (item) {
+            var li = document.createElement('li');
+            li.className = 'ffc-presence-pending-item ffc-presence-pending-' + (item.type === 'form' ? 'form' : 'confirmed');
+            var body = document.createElement('div');
+            body.className = 'ffc-presence-pending-body';
+            var text = document.createElement('strong');
+            text.textContent = item.text || '';
+            body.appendChild(text);
+            if (item.detail) {
+                var detail = document.createElement('small');
+                detail.textContent = item.detail;
+                body.appendChild(detail);
+            }
+            li.appendChild(body);
+            if (item.type === 'form') {
+                if (typeof item.url === 'string' && /^https?:\/{2}/.test(item.url)) {
+                    var link = document.createElement('a');
+                    link.className = 'ffc-btn ffc-btn-primary ffc-icon-award';
+                    link.href = item.url;
+                    link.textContent = strings.fillForm;
+                    li.appendChild(link);
+                }
+            } else {
+                var dismiss = document.createElement('button');
+                dismiss.type = 'button';
+                dismiss.className = 'ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross';
+                dismiss.setAttribute('aria-label', strings.dismiss);
+                dismiss.title = strings.dismiss;
+                dismiss.addEventListener('click', function () {
+                    self.state.dismissed.push(item.key);
+                    self.listPending();
+                    self.save();
+                });
+                li.appendChild(dismiss);
+            }
+            list.appendChild(li);
+        });
+        list.hidden = shown.length === 0;
+    };
+
     App.prototype.draw = function () {
         var self = this;
         var strings = self.config.strings;
@@ -523,6 +587,11 @@
             name.textContent = self.state.name || '';
         }
         var event = self.current();
+        var attendance = self.part('attendance');
+        if (attendance) {
+            attendance.textContent = event && event.attendance ? event.attendance : '';
+            attendance.hidden = !(event && event.attendance);
+        }
         var holder = self.part('qr');
         if (!event || !holder) {
             if (holder) {

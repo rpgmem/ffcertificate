@@ -36526,3 +36526,21 @@ msgstr ""
 
 msgid "The operator menu ends with a Device check: whether the page is served over HTTPS, whether this browser can read codes with the camera and the site allows it, whether it can keep the screen on, and the browser's own name. Note it, or take a picture of it, when trying a new tablet, so a device that cannot do one of them is found before the event."
 msgstr ""
+
+msgid "Present: %1$d of %2$d days"
+msgstr ""
+
+msgid "Attendance confirmed at %s"
+msgstr ""
+
+msgid "Post-event form · until %s"
+msgstr ""
+
+msgid "Waiting for you"
+msgstr ""
+
+msgid "Once a reading reaches the site, the booking shows Present on the participant's dashboard and on the app's Presence screen, with the method and time; an event over several days shows the days present out of those it counts, such as \"Present: 2 of 3 days\". The app also lists what waits for the participant: \"Attendance confirmed at\" an event, for each day recorded in the last 7 days, which they can dismiss on that phone, and each post-event form still open to them, with its closing date and their link. The list comes with the events the app already fetches and is kept for when the phone is offline; nothing new is e-mailed or pushed."
+msgstr ""
+
+msgid "A reading that reaches the site late, from a terminal that was offline, counts at the next hourly run: a participant it makes eligible is invited then."
+msgstr ""

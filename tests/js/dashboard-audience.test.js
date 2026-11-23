@@ -170,6 +170,18 @@ describe('FFCDashboard.panels.audience.render', () => {
 		expect(row.textContent).toContain('<u>t</u>');
 	});
 
+	it('says Present, with how and when as the title, escaped (#2749)', () => {
+		panel().render([
+			makeBooking({ is_past: true, attendance: { label: 'Present: 2 of 3 days', detail: 'Terminal " <b>x</b>' } }),
+			makeBooking({ id: 2, status: 'cancelled', attendance: { label: 'Present', detail: '' } }),
+			makeBooking({ id: 3, attendance: null }),
+		], 1);
+		const pills = document.querySelectorAll('#ffc-tabpanel-audience .ffc-dashboard-status-present');
+		expect(pills.length).toBe(1);
+		expect(pills[0].textContent).toBe('Present: 2 of 3 days');
+		expect(pills[0].getAttribute('title')).toBe('Terminal " <b>x</b>');
+	});
+
 	it('draws no reason line for a booking without one', () => {
 		panel().render([makeBooking({ description: 'Yoga' })], 1);
 		expect(document.querySelector('#ffc-tabpanel-audience .ffc-booking-cancel-reason')).toBeNull();

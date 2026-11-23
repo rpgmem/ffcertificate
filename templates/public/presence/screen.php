@@ -42,8 +42,10 @@ use FreeFormCertificate\Core\Notice;
 	</div>
 
 	<div class="ffc-presence-code" data-ffc-presence-part="code-view" data-ffc-presence-view="code" hidden>
+		<ul class="ffc-presence-pending" data-ffc-presence-part="pending" aria-label="<?php esc_attr_e( 'Waiting for you', 'ffcertificate' ); ?>" hidden></ul>
 		<label class="ffc-presence-label" for="ffc-presence-event"><?php esc_html_e( 'Event', 'ffcertificate' ); ?></label>
 		<select id="ffc-presence-event" class="ffc-presence-event" data-ffc-presence-part="event"></select>
+		<p class="ffc-presence-attendance ffc-icon-checkmark" data-ffc-presence-part="attendance" hidden></p>
 		<p class="ffc-presence-empty" data-ffc-presence-part="empty" hidden><?php esc_html_e( 'You have no event in the next 7 days. Open this screen while online to update the list.', 'ffcertificate' ); ?></p>
 		<div class="ffc-presence-qr" data-ffc-presence-part="qr"></div>
 		<p class="ffc-presence-name" data-ffc-presence-part="name"></p>

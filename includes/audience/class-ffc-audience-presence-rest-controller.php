@@ -207,13 +207,17 @@ class AudiencePresenceRestController {
 	 * The user's events over the next days, each with its ticket (#2742).
 	 *
 	 * A ticket names the user only by id, so the list carries nothing a
-	 * participant's own dashboard does not already show them.
+	 * participant's own dashboard does not already show them; the pending
+	 * items (#2749) are the attendance and post-event forms it shows too.
 	 *
 	 * @return \WP_REST_Response
 	 */
 	public function events(): \WP_REST_Response {
 		return new \WP_REST_Response(
-			array( 'events' => AudiencePresenceEvents::for_user( get_current_user_id(), time() ) ),
+			array(
+				'events'  => AudiencePresenceEvents::for_user( get_current_user_id(), time() ),
+				'pending' => AudiencePresenceEvents::pending( get_current_user_id(), time() ),
+			),
 			200,
 			array( 'Cache-Control' => 'no-store' )
 		);

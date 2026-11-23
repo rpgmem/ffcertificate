@@ -669,6 +669,13 @@
     color: var(--ffc-success-text);
 }
 
+/* Recorded present on an audience booking (#2749). */
+.ffc-pill.ffc-dashboard-status-present {
+    margin-top: var(--ffc-spacing-2xs);
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
 .ffc-pill.ffc-dashboard-status-cancelled {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
@@ -2135,6 +2142,7 @@
     .ffc-pill.ffc-dashboard-status-in_progress,
     .ffc-pill.ffc-dashboard-status-no_show,
     .ffc-pill.ffc-dashboard-status-pending,
+    .ffc-pill.ffc-dashboard-status-present,
     .ffc-pill.ffc-dashboard-status-rejected,
     .ffc-pill.ffc-dashboard-status-submitted,
     .ffc-pill.ffc-dashboard-status-waitlist {

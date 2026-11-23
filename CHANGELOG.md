@@ -24,6 +24,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **An event's Check-in tab sets who may check in and by which paths** (#2748): Enrolled only or Open (attendance without enrolment counts toward no rule), the projected QR code and the terminal each on or off and enforced everywhere, the terminals holding the event with "N of M allowed" and an unsent-readings warning, and the day's attendance by path. New events take their paths from Scheduling → Settings → Check-in.
 - **The check-in terminal keeps the screen on while it has an event** (#2775), through the browser's Screen Wake Lock, asked again when the page returns and released when no event is left or the terminal ends; where the browser cannot, the operator menu says to set the device's screen timeout.
 - **The check-in terminal's operator menu shows a Device check** (#2747): HTTPS, camera reading, screen kept on and the browser's name, read from the browser itself, to try a new tablet before an event.
+- **The dashboard and the app say when a participant was present** (#2749): a booking shows Present ("Present: 2 of 3 days" over several days) with the method and time, and the app's Presence screen lists dismissible attendance confirmations and open post-event forms, sent with the events it already fetches.
 
 ### Security
 
