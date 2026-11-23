@@ -113,6 +113,16 @@
     }
 
     /**
+     * Whether a reading is shaped like a pairing code, P-XXXX-XXXX-XXXX.
+     *
+     * @param {string} code Cleaned code.
+     * @return {boolean}
+     */
+    function isPairingCode(code) {
+        return /^P-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code);
+    }
+
+    /**
      * A code as the reader typed it, minus the spaces and line end around
      * it. Base45 never ends in a space, so trimming cannot cut a code.
      *
@@ -264,14 +274,19 @@
             }
             el.setAttribute('data-ffc-terminal-tone', tone || ('locked' === view ? 'warning' : 'neutral'));
             el.setAttribute('data-ffc-terminal-screen', view);
-            part('foot').hidden = !('ready' === view || 'between' === view);
-            if ('pairing' === view || 'locked' === view || 'setup' === view) {
+            part('foot').hidden = !('ready' === view || 'between' === view || 'idle' === view);
+            if ('pairing' === view || 'locked' === view || 'setup' === view || ('idle' === view && !current())) {
                 head(strings.terminalTitle, '', strings.notPaired);
             }
             if ('pairing' === view) {
                 var input = part('code');
                 input.value = '';
                 input.focus();
+            }
+            if ('idle' === view) {
+                // A wedge reader still types here: an operator code opens
+                // the operator area, anything else is refused (#2794).
+                focusReading();
             }
             if (cameraReady) {
                 placeCamera();
@@ -338,8 +353,12 @@
                 part('next-countdown').textContent = duration(at.next.opens - now());
                 return 'between';
             }
+            // Nothing now and nothing next: locked until an operator adds
+            // events (#2794).
             head(state.label || strings.terminalTitle, state.schedule ? strings.noEvents : '', '');
-            return 'ready';
+            // Before the first schedule answer the queued events are taken
+            // on trust, so a terminal that has some stays ready.
+            return state.schedule || !(state.bookings || []).length ? 'idle' : 'ready';
         }
 
         function showReady(state) {
@@ -361,7 +380,7 @@
         // to the next check-in, and the switch to reading when it opens.
         function followPlan() {
             var state = current();
-            if (!state || ('ready' !== screen && 'between' !== screen)) {
+            if (!state || ('ready' !== screen && 'between' !== screen && 'idle' !== screen)) {
                 return;
             }
             var view = showEvent(state);
@@ -486,11 +505,22 @@
             wakeNote('');
             releaseAwake();
             fail(strings.expired);
-            show('pairing');
+            show('idle');
         }
 
         function current() {
             return readState(store.get(STATE_KEY), now());
+        }
+
+        // Where the terminal rests: its events when it has some, otherwise
+        // locked until an operator releases it (#2794).
+        function rest() {
+            var state = current();
+            if (state) {
+                showReady(state);
+            } else {
+                show('idle');
+            }
         }
 
         // Keep the screen on (#2775) ----------------------------------------
@@ -1034,6 +1064,7 @@
                 part('unlock-wait').textContent = fill(strings.unlockWait, [Math.ceil(left / 1000)]);
             };
             show('unlock');
+            part('unlock-code').hidden = !!current();
             wait();
             unlockTimer = env.setInterval(wait, 1000);
             focusReading();
@@ -1041,13 +1072,16 @@
 
         function leaveUnlock() {
             stopUnlockWait();
-            var state = current();
-            if (state && 'unlock' === screen) {
-                showReady(state);
+            if ('unlock' === screen) {
+                rest();
             }
         }
 
         function unlock(code) {
+            if (!current()) {
+                stopUnlockWait();
+                return startSetup(code);
+            }
             return terminalRequest('POST', 'unlock', { code: code }).then(function (result) {
                 if (!result) {
                     return null;
@@ -1068,7 +1102,8 @@
                 updateQueue();
                 deviceCheck();
                 show('menu');
-                part('menu-close').focus();
+                var empty = !(current().bookings || []).length;
+                part(empty && menuMayEdit ? 'queue-open-add' : 'menu-close').focus();
                 armMenu();
                 return result.body;
             });
@@ -1095,7 +1130,7 @@
                 wakeNote('');
                 releaseAwake();
                 say(strings.ended);
-                show('pairing');
+                show('idle');
                 return true;
             });
         }
@@ -1112,7 +1147,7 @@
                     timer = null;
                     store.remove(LOCK_KEY);
                     say('');
-                    show('pairing');
+                    show('idle');
                     return;
                 }
                 part('countdown').textContent = clock(left);
@@ -1337,7 +1372,7 @@
         });
         part('setup-cancel').addEventListener('click', function () {
             setupCode = '';
-            show('pairing');
+            show('idle');
         });
 
         part('form').addEventListener('submit', function (event) {
@@ -1359,7 +1394,22 @@
             if (!code) {
                 return null;
             }
-            return 0 === code.indexOf(OPERATOR_PREFIX) ? unlock(code) : read(code);
+            if (0 === code.indexOf(OPERATOR_PREFIX)) {
+                return unlock(code);
+            }
+            if (!current()) {
+                // Unpaired: a pairing code read here pairs, anything else
+                // waits for an operator (#2794).
+                var pairing = cleanCode(raw);
+                if (isPairingCode(pairing)) {
+                    return pair(pairing);
+                }
+            }
+            if ('idle' === screen || !current()) {
+                showResult({ status: 'refused', code: 'ffc_terminal_idle', message: strings.idleRefused });
+                return null;
+            }
+            return read(code);
         }
 
         part('reading-form').addEventListener('submit', function (event) {
@@ -1505,11 +1555,14 @@
                 return null;
             }
             var reading = cleanReading(raw);
-            if ('pairing' === screen || 'setup' === screen) {
+            if ('pairing' === screen || 'setup' === screen || ('unlock' === screen && !current())) {
                 if (0 === reading.indexOf(OPERATOR_PREFIX)) {
                     return startSetup(reading);
                 }
-                var code = 'pairing' === screen ? cleanCode(raw) : '';
+                var code = 'setup' !== screen ? cleanCode(raw) : '';
+                if ('unlock' === screen && !isPairingCode(code)) {
+                    return take(raw);
+                }
                 return code ? pair(code) : null;
             }
             return take(raw);
@@ -1600,6 +1653,14 @@
         });
         part('lock').addEventListener('click', askUnlock);
         part('unlock-cancel').addEventListener('click', leaveUnlock);
+        part('pairing-cancel').addEventListener('click', function () {
+            fail('');
+            show('idle');
+        });
+        part('unlock-code').addEventListener('click', function () {
+            stopUnlockWait();
+            show('pairing');
+        });
         part('menu-end').addEventListener('click', function () {
             part('menu-ask').hidden = true;
             part('menu-confirm').hidden = false;
@@ -1671,7 +1732,7 @@
                 lockUntil(locked);
             } else {
                 store.remove(LOCK_KEY);
-                show('pairing');
+                show('idle');
             }
         }
 

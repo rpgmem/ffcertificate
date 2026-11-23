@@ -65,11 +65,17 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 		<button type="submit"><?php esc_html_e( 'Check in', 'ffcertificate' ); ?></button>
 	</form>
 
+	<section class="ffc-terminal-view" data-ffc-terminal-view="idle" hidden>
+		<div class="ffc-terminal-badge" aria-hidden="true"><?php echo Icons::svg( 'lock', 88 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
+		<h2><?php esc_html_e( 'Terminal without events', 'ffcertificate' ); ?></h2>
+		<p class="ffc-terminal-lead"><?php esc_html_e( 'An operator must release this terminal: tap the lock below and hold the operator QR code to the reader.', 'ffcertificate' ); ?></p>
+	</section>
+
 	<section class="ffc-terminal-view" data-ffc-terminal-view="pairing" hidden>
 		<div class="ffc-terminal-camera-slot" data-ffc-terminal-camera-slot="pairing"></div>
 		<div class="ffc-terminal-art" data-ffc-terminal-camera-art aria-hidden="true"><?php echo Icons::svg( 'qr', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
 		<h2><?php esc_html_e( 'Waiting for pairing', 'ffcertificate' ); ?></h2>
-		<p class="ffc-terminal-lead"><?php esc_html_e( 'Operator: hold your operator QR code to this terminal\'s reader (app → More → Operator QR) and choose the events here, or pair it from the app under More → Pair terminal.', 'ffcertificate' ); ?></p>
+		<p class="ffc-terminal-lead"><?php esc_html_e( 'Type the pairing code the app shows under More → Pair terminal, or hold its QR code to the reader.', 'ffcertificate' ); ?></p>
 		<form class="ffc-terminal-pair" data-ffc-terminal-part="form" novalidate>
 			<div class="ffc-terminal-field">
 				<label for="ffc-terminal-code"><?php esc_html_e( 'Or type the pairing code', 'ffcertificate' ); ?></label>
@@ -87,6 +93,16 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 			?>
 		</form>
 		<p class="ffc-terminal-note"><?php esc_html_e( 'The code lasts five minutes and works once. No one signs in on this device.', 'ffcertificate' ); ?></p>
+		<?php
+		Button::render(
+			array(
+				'label'    => __( 'Cancel', 'ffcertificate' ),
+				'category' => 'neutral',
+				'icon'     => 'chevron-left',
+				'attrs'    => array( 'data-ffc-terminal-part' => 'pairing-cancel' ),
+			)
+		);
+		?>
 	</section>
 
 	<section class="ffc-terminal-view ffc-terminal-setup" data-ffc-terminal-view="setup" hidden>
@@ -234,6 +250,7 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 			)
 		);
 		?>
+		<button type="button" class="ffc-terminal-link" data-ffc-terminal-part="unlock-code" hidden><?php esc_html_e( 'I have a pairing code', 'ffcertificate' ); ?></button>
 	</section>
 
 	<section class="ffc-terminal-view ffc-terminal-menu" data-ffc-terminal-view="menu" hidden>

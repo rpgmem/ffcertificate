@@ -32,6 +32,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A terminal can be set up on the terminal itself** (#2780). On Waiting for pairing, an operator who may pair terminals shows their operator QR code, ticks the events (or fills them from one place) and the terminal pairs at once; no pairing code is shown.
 - **The app's Presence screen follows the approved screen** (#2781): on the accent colour, the event and its hours on top, the code on a white card, a draining bar with the owner's short name, three tips; the event picker only with more than one event.
 - **Activate presence names the phone it replaces** (#2781). The screen follows the approved one: the phone holding the code now ("Android · Chrome, active since …"), device changes used of 3 in 30 days, the 7 offline days, *Activate on this phone* and *Not now*. Enrolment keeps the platform and browser families, never the User-Agent; `GET presence/device` serves the status.
+- **A terminal without events rests locked** (#2794). Unpaired, or paired with an empty queue, it shows *Terminal without events* with the lock; an operator QR opens setup or the menu, a participant code is refused, and the pairing-code field sits behind *I have a pairing code* on the unlock prompt.
 
 ### Security
 

@@ -36738,8 +36738,6 @@ msgstr ""
 msgid "No event in the next 7 days takes terminal check-in."
 msgstr ""
 
-msgid "Operator: hold your operator QR code to this terminal's reader (app → More → Operator QR) and choose the events here, or pair it from the app under More → Pair terminal."
-msgstr ""
 
 msgid "Pair this terminal"
 msgstr ""
@@ -36802,4 +36800,22 @@ msgid "%d days"
 msgstr ""
 
 msgid "The Activate screen names the phone that holds the code now by its system and browser (\"Android · Chrome\") and the day it was activated, how many of the 3 device changes allowed in 30 days were used, and how long the code works without internet. Only those two families are kept from the browser's identification, never the identification itself."
+msgstr ""
+
+msgid "Terminal without events"
+msgstr ""
+
+msgid "An operator must release this terminal: tap the lock below and hold the operator QR code to the reader."
+msgstr ""
+
+msgid "I have a pairing code"
+msgstr ""
+
+msgid "Type the pairing code the app shows under More → Pair terminal, or hold its QR code to the reader."
+msgstr ""
+
+msgid "Terminal without events. An operator must release it first."
+msgstr ""
+
+msgid "A terminal with no event to check in, unpaired or paired with an empty queue, rests on Terminal without events: a lock, no reading offered, and a participant code read there is refused. The lock in the footer opens the operator area; an operator QR code then opens Set up this terminal on an unpaired terminal and the operator menu on a paired one. On an unpaired terminal the operator area also offers a small I have a pairing code link, which opens the field for the code the app shows under More → Pair terminal; that code read as a QR code pairs directly."
 msgstr ""
