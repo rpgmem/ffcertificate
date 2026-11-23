@@ -39,6 +39,7 @@ class AudienceTerminalPageTest extends TestCase {
 		} );
 		Functions\when( 'get_option' )->alias( fn ( $key, $default = false ) => 'ffc_settings' === $key ? $this->settings : $default );
 		Functions\when( 'get_query_var' )->alias( fn () => $this->query_var );
+		Functions\when( 'get_site_icon_url' )->justReturn( '' );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 	}
@@ -105,17 +106,17 @@ class AudienceTerminalPageTest extends TestCase {
 
 		$html = AudienceTerminalPage::document();
 
-		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="en-US"><head>', $html );
+		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="en-US" class="ffc-dark-mode"><head>', $html, 'a terminal is always dark, whatever the site\'s setting (#2780)' );
 		$this->assertStringContainsString( '<body class="ffc-shortcode ffc-terminal-page">', $html );
 		$this->assertStringContainsString( 'data-ffc-terminal', $html );
-		foreach ( array( 'pairing', 'locked', 'ready', 'menu' ) as $view ) {
+		foreach ( array( 'pairing', 'locked', 'ready', 'between', 'result', 'unlock', 'menu' ) as $view ) {
 			$this->assertStringContainsString( 'data-ffc-terminal-view="' . $view . '"', $html, $view );
 		}
 		$this->assertStringContainsString( 'id="ffc-terminal-code"', $html );
 		$this->assertStringContainsString( 'id="ffc-terminal-reading"', $html );
 		$this->assertMatchesRegularExpression( '/role="status"[^>]*data-ffc-terminal-part="result-ok"/', $html, 'a recorded result is announced politely' );
 		$this->assertMatchesRegularExpression( '/role="alert"[^>]*data-ffc-terminal-part="result-refused"/', $html, 'a refusal is announced at once' );
-		$this->assertSame( array( 'style:ffc-terminal-kiosk', 'script:ffc-dark-mode', 'script:ffc-terminal-kiosk' ), $printed );
+		$this->assertSame( array( 'style:ffc-terminal-kiosk', 'script:ffc-terminal-kiosk' ), $printed, 'the dark-mode toggle is never printed, so the setting cannot turn the terminal light' );
 		$this->assertSame( array( 'ffc-common' ), $enqueued['style:ffc-terminal-kiosk'][1] ?? null );
 		$this->assertSame( array( 'ffc-presence-verifier' ), $enqueued['ffc-terminal-kiosk'][1] ?? null, 'the kiosk checks codes offline with the verifier' );
 		$this->assertStringContainsString( 'assets/js/ffc-presence-verifier', $enqueued['ffc-presence-verifier'][0] ?? '' );
@@ -128,7 +129,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( array( 'ready', 'reading', 'insecure', 'unsupported', 'denied', 'failed' ), array_keys( $config['strings']['camera'] ) );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="camera-start"', $html );
 		$this->assertMatchesRegularExpression( '/<video[^>]*playsinline[^>]*muted/', $html, 'the viewfinder plays inline and silent' );
-		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
 	}
 
 	public function test_the_camera_follows_its_option(): void {
@@ -140,8 +141,8 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertFalse( AudienceTerminalPage::camera_allowed(), 'off until an administrator turns it on' );
 	}
 
-	public function test_the_dark_theme_is_on_the_root_from_the_first_paint(): void {
-		$this->settings['dark_mode'] = 'on';
+	public function test_the_dark_theme_is_on_the_root_whatever_the_setting(): void {
+		$this->settings['dark_mode'] = 'off';
 		Functions\when( 'get_language_attributes' )->justReturn( 'lang="en-US"' );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Example' );
 		Functions\when( 'wp_style_is' )->justReturn( false );

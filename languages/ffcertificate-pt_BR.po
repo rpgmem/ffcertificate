@@ -35972,8 +35972,6 @@ msgstr "Este terminal não enviou um identificador de aparelho. Recarregue a pá
 msgid "This terminal was already ended."
 msgstr "Este terminal já foi encerrado."
 
-msgid "Wrong codes are counted on the site. Three in a row lock that terminal for 15 minutes, and each further one for 30. One network address may send at most 20 wrong codes an hour across all its terminals. A correct pairing, or an hour without attempts, starts the count over. The lock screen shows how long to wait, never the code typed."
-msgstr "Os códigos errados são contados no site. Três seguidos bloqueiam aquele terminal por 15 minutos, e cada um a mais por 30. Um endereço de rede pode enviar no máximo 20 códigos errados por hora, somando todos os seus terminais. Um pareamento correto, ou uma hora sem tentativas, zera a contagem. A tela de bloqueio mostra quanto falta esperar, nunca o código digitado."
 
 msgid "pair a check-in terminal with events, list the terminals you paired and end them. Held by the Manager tier and above; existing holders of ffc_manage_audiences received it on update. The Operator tier keeps ffc_checkin_audiences, which is enough to show the operator QR code."
 msgstr "parear um terminal de check-in com eventos, listar os terminais que você pareou e encerrá-los. Concedida ao nível Gerente e acima; quem já tinha ffc_manage_audiences a recebeu na atualização. O nível Operador mantém ffc_checkin_audiences, que basta para mostrar o QR code de operador."
@@ -35998,8 +35996,6 @@ msgstr "Terminal pareado."
 msgid "The terminal could not reach the site. Check the connection and try again."
 msgstr "O terminal não conseguiu acessar o site. Verifique a conexão e tente de novo."
 
-msgid "Too many wrong codes. Try again in %s."
-msgstr "Códigos errados demais. Tente de novo em %s."
 
 msgid "Events: %d"
 msgstr "Eventos: %d"
@@ -36064,20 +36060,12 @@ msgstr "O terminal de check-in precisa de JavaScript. Ative-o no navegador e abr
 msgid "Waiting for pairing"
 msgstr "Aguardando pareamento"
 
-msgid "An operator generates a pairing code in the app, under More → Pair terminal. Hold its QR code to this terminal's reader, or type the code below."
-msgstr "Um operador gera um código de pareamento no app, em Mais → Parear terminal. Aproxime o QR code dele do leitor deste terminal, ou digite o código abaixo."
 
-msgid "Pairing code"
-msgstr "Código de pareamento"
 
 msgid "Pair"
 msgstr "Parear"
 
-msgid "Pairing paused"
-msgstr "Pareamento pausado"
 
-msgid "Wrong codes are counted on the site. Ask the operator for a new code, and type it carefully once the wait is over."
-msgstr "Os códigos errados são contados no site. Peça um novo código ao operador e digite-o com cuidado quando a espera terminar."
 
 
 
@@ -36163,23 +36151,15 @@ msgstr "Este operador não pode mais conduzir check-ins."
 msgid "This terminal is no longer paired. Ask an operator for a new pairing code."
 msgstr "Este terminal não está mais pareado. Peça um novo código de pareamento a um operador."
 
-msgid "Show your presence code"
-msgstr "Mostre seu código de presença"
 
-msgid "Open Presence in the app, choose this event and hold the code to the reader."
-msgstr "Abra Presença no app, escolha este evento e aproxime o código do leitor."
 
 msgid "Code read"
 msgstr "Código lido"
 
-msgid "Operator menu"
-msgstr "Menu do operador"
 
 msgid "The menu locks again after two minutes without use."
 msgstr "O menu volta a travar depois de dois minutos sem uso."
 
-msgid "Close menu"
-msgstr "Fechar menu"
 
 msgid "End this terminal? It stops checking people in at once, and pairing it again needs a new code."
 msgstr "Encerrar este terminal? Ele para de fazer check-in na hora, e pareá-lo de novo exige um novo código."
@@ -36221,8 +36201,6 @@ msgstr "Leituras do terminal recusadas no envio"
 msgid "Send queue now"
 msgstr "Enviar fila agora"
 
-msgid "The result shows for five seconds and is announced to screen readers: attendance recorded with the person's short name, such as Maria S., or a refusal that says what to do, such as an old code, another event's code, a window not yet open or already closed, someone not enrolled, or attendance already recorded at a given time. A refusal names nobody, and the terminal shows no list."
-msgstr "O resultado aparece por cinco segundos e é anunciado aos leitores de tela: presença registrada, com o nome curto da pessoa, como Maria S., ou uma recusa que diz o que fazer, como um código antigo, o código de outro evento, uma janela que ainda não abriu ou que já fechou, alguém não inscrito, ou presença já registrada em certo horário. Uma recusa não mostra nome nenhum, e o terminal não mostra lista."
 
 msgid "Without a connection, the terminal checks each code itself, with the site's keys it received when paired and a revocation list it refreshes every ten minutes, and keeps the reading with the moment it was read. A person is kept once per event and day. The queue is sent every 30 seconds, when the connection returns, from the operator menu (Send queue now, which also shows how many are waiting) and before the terminal is ended. The site then checks every reading again as of its own moment: a reading taken before the phone was replaced, inside a check-in window that was open then, is recorded with that time; one taken after a revocation, or outside every window, is refused and the refusal is written to the activity log. Sending the same queue twice records nothing twice. A queue that was never sent is lost when the pairing ends, so connect the terminal before its last event finishes."
 msgstr "Sem conexão, o terminal confere cada código ele mesmo, com as chaves do site que recebeu ao ser pareado e uma lista de revogações que atualiza a cada dez minutos, e guarda a leitura com o momento em que foi feita. Cada pessoa é guardada uma vez por evento e dia. A fila é enviada a cada 30 segundos, quando a conexão volta, pelo menu do operador (Enviar fila agora, que também mostra quantas aguardam) e antes de o terminal ser encerrado. O site então confere cada leitura de novo no momento em que foi feita: uma leitura feita antes de o celular ser trocado, dentro de uma janela de check-in que estava aberta naquele momento, é registrada com esse horário; uma feita depois de uma revogação, ou fora de toda janela, é recusada e a recusa vai para o registro de atividades. Enviar a mesma fila duas vezes não registra nada em dobro. Uma fila que nunca foi enviada se perde quando o pareamento termina, então conecte o terminal antes de o último evento acabar."
@@ -36302,8 +36280,6 @@ msgstr "A câmera não foi permitida. Permita nas configurações do site no nav
 msgid "The camera could not be started. Use a reader connected to the device."
 msgstr "Não foi possível iniciar a câmera. Use um leitor conectado ao aparelho."
 
-msgid "Camera view"
-msgstr "Imagem da câmera"
 
 msgid "Use the camera"
 msgstr "Usar a câmera"
@@ -36622,3 +36598,165 @@ msgstr "Assim que uma leitura chega ao site, a reserva mostra Presente no painel
 
 msgid "A reading that reaches the site late, from a terminal that was offline, counts at the next hourly run: a participant it makes eligible is invited then."
 msgstr "Uma leitura que chega ao site atrasada, de um terminal que estava sem internet, conta na próxima execução de hora em hora: um participante que ela torna elegível é convidado nesse momento."
+
+msgid "%1$d of %2$d present"
+msgstr "%1$d de %2$d presentes"
+
+msgid "%d present"
+msgstr "%d presentes"
+
+msgid "A new mistake after this wait means 30 minutes. A correct pairing, or an hour without attempts, resets the count."
+msgstr "Um novo erro depois desta espera significa 30 minutos. Um pareamento correto, ou uma hora sem tentativas, zera a contagem."
+
+msgid "Activation expired"
+msgstr "Ativação expirada"
+
+msgid "Already recorded"
+msgstr "Já registrada"
+
+msgid "Another event"
+msgstr "Outro evento"
+
+msgid "Attendance saved"
+msgstr "Presença guardada"
+
+msgid "Back to reading"
+msgstr "Voltar à leitura"
+
+msgid "Back to reading on its own in %d s"
+msgstr "Volta à leitura sozinho em %d s"
+
+msgid "Check the phone's clock"
+msgstr "Confira o relógio do celular"
+
+msgid "Check-in closed"
+msgstr "Check-in encerrado"
+
+msgid "Check-in not open yet"
+msgstr "Check-in ainda não aberto"
+
+msgid "Check-in opens at %s, in"
+msgstr "O check-in abre às %s, em"
+
+msgid "Code expired"
+msgstr "Código expirado"
+
+msgid "Code not recognised"
+msgstr "Código não reconhecido"
+
+msgid "Connected · %d readings to send"
+msgstr "Conectado · %d leituras a enviar"
+
+msgid "Connected · no reading waiting"
+msgstr "Conectado · nenhuma leitura esperando"
+
+msgid "End this terminal? It sends the queue, stops checking people in at once, and pairing it again needs a new code."
+msgstr "Encerrar este terminal? Ele envia a fila, deixa de fazer check-in na hora, e pareá-lo de novo exige um novo código."
+
+msgid "Front camera view, with the reading frame"
+msgstr "Imagem da câmera frontal, com a moldura de leitura"
+
+msgid "Hold the operator QR code to the reader (app → More → Operator QR). Only someone who may check people in at these events unlocks the terminal."
+msgstr "Aproxime o QR de operador do leitor (app → Mais → QR de operador). Só quem pode fazer check-in nestes eventos desbloqueia o terminal."
+
+msgid "Hold the screen inside the frame, a hand's width from the tablet."
+msgstr "Mantenha a tela dentro da moldura, a um palmo do tablet."
+
+msgid "Hold your phone's QR code to the reader"
+msgstr "Aproxime o QR do seu celular do leitor"
+
+msgid "Next person in %d s"
+msgstr "Próxima pessoa em %d s"
+
+msgid "No app? Ask the team at the help desk."
+msgstr "Sem o app? Peça ajuda à equipe no balcão de atendimento."
+
+msgid "No check-in today"
+msgstr "Sem check-in hoje"
+
+msgid "No terminal check-in"
+msgstr "Sem check-in por terminal"
+
+msgid "Not enrolled"
+msgstr "Sem inscrição"
+
+msgid "Not enrolled beforehand"
+msgstr "Sem inscrição prévia"
+
+msgid "Not paired"
+msgstr "Não pareado"
+
+msgid "Not recorded"
+msgstr "Não registrada"
+
+msgid "Not saved"
+msgstr "Não guardada"
+
+msgid "Offline · %d readings saved here"
+msgstr "Sem internet · %d leituras guardadas aqui"
+
+msgid "Open Presence in the app, not a screenshot"
+msgstr "Abra Presença no app, não uma captura de tela"
+
+msgid "Open event: your attendance counts as usual and shows to the organisers as attendance without enrolment."
+msgstr "Evento aberto: sua presença conta normalmente e aparece aos organizadores como presença sem inscrição."
+
+msgid "Open the app, tap Presence and show the screen to the reader."
+msgstr "Abra o app, toque em Presença e mostre a tela ao leitor."
+
+msgid "Operator area"
+msgstr "Área do operador"
+
+msgid "Operator: in the app, open More → Pair terminal and hold the pairing QR code to this terminal's reader."
+msgstr "Operador: no app, abra Mais → Parear terminal e aproxime o QR de pareamento do leitor deste terminal."
+
+msgid "Or type the pairing code"
+msgstr "Ou digite o código de pareamento"
+
+msgid "Phone replaced"
+msgstr "Celular substituído"
+
+msgid "Several wrong codes in a row. Generate a new pairing QR code in the operator app: the reader reads it without typing mistakes."
+msgstr "Vários códigos errados seguidos. Gere um novo QR de pareamento no app do operador: o leitor o lê sem erros de digitação."
+
+msgid "Show your phone's QR code to the camera"
+msgstr "Mostre o QR do seu celular à câmera"
+
+msgid "Still a problem? Ask the team at the help desk."
+msgstr "Ainda com problema? Peça ajuda à equipe no balcão de atendimento."
+
+msgid "Terminal full"
+msgstr "Terminal cheio"
+
+msgid "The certificate is in the app after the event."
+msgstr "O certificado fica no app depois do evento."
+
+msgid "The code lasts five minutes and works once. No one signs in on this device."
+msgstr "O código vale cinco minutos e funciona uma vez. Ninguém entra com conta neste aparelho."
+
+msgid "Ticket expired"
+msgstr "Ingresso expirado"
+
+msgid "Ticket for someone else"
+msgstr "Ingresso de outra pessoa"
+
+msgid "Too many pairing attempts"
+msgstr "Tentativas de pareamento demais"
+
+msgid "Try again in"
+msgstr "Tente de novo em"
+
+msgid "Turn the phone's brightness up"
+msgstr "Aumente o brilho do celular"
+
+msgid "check-in until %s"
+msgstr "check-in até %s"
+
+msgid "front camera"
+msgstr "câmera frontal"
+
+msgid "Wrong codes are counted on the site. Three in a row lock that terminal for 15 minutes, and each further one for 30. One network address may send at most 20 wrong codes an hour across all its terminals. A correct pairing, or an hour without attempts, starts the count over. The lock screen shows how long to wait, never the code typed."
+msgstr "Os códigos errados são contados no site. Três seguidos bloqueiam aquele terminal por 15 minutos, e cada um a mais por 30. Um endereço de rede pode enviar no máximo 20 códigos errados por hora, somando todos os seus terminais. Um pareamento correto, ou uma hora sem tentativas, zera a contagem. A tela de bloqueio mostra quanto falta esperar, nunca o código digitado."
+
+msgid "The terminal is a full-screen page, always in the dark theme whatever the site's setting, with the event, its place and until when check-in runs at the top, the clock, and how many people are present out of those enrolled. Between events it counts down to the next check-in. Each reading fills the screen for five seconds, in green for attendance recorded, blue for attendance already recorded or saved to send later, and red for a refusal, with a bar showing when the next person may read; it is announced to screen readers. A recorded result shows the person's short name, such as Maria S., and the time; at an open event, someone not enrolled is told their attendance counts without enrolment. A refusal says what to do, such as an old code, another event's code, a window not yet open or already closed, or someone not enrolled, and names nobody; the terminal shows no list. The lock button at the bottom asks for an operator QR code, and goes back to reading on its own after 30 seconds."
+msgstr "O terminal é uma página em tela cheia, sempre no tema escuro qualquer que seja a configuração do site, com o evento, o local e até quando vai o check-in no topo, o relógio e quantas pessoas estão presentes entre as inscritas. Entre eventos, ele faz a contagem regressiva até o próximo check-in. Cada leitura ocupa a tela por cinco segundos, em verde para presença registrada, azul para presença já registrada ou guardada para envio, e vermelho para uma recusa, com uma barra que mostra quando a próxima pessoa pode ler; ela é anunciada aos leitores de tela. Um resultado registrado mostra o nome curto da pessoa, como Maria S., e o horário; num evento aberto, quem não se inscreveu é avisado de que a presença conta sem inscrição. Uma recusa diz o que fazer, como um código antigo, o código de outro evento, uma janela ainda não aberta ou já encerrada, ou alguém sem inscrição, e não nomeia ninguém; o terminal não mostra lista. O botão de cadeado embaixo pede um QR de operador e volta sozinho à leitura depois de 30 segundos."

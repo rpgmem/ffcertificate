@@ -129,6 +129,19 @@ final class FakeTerminalTables extends \wpdb {
 		if ( false !== strpos( $query, 'INNER JOIN %i e ON b.environment_id = e.id' ) ) {
 			return $this->booking_list;
 		}
+		if ( false !== strpos( $query, 'WHERE ba.booking_id = %d' ) ) {
+			// A booking's audiences: the doubles name their people directly.
+			return array();
+		}
+		if ( false !== strpos( $query, 'WHERE booking_id = %d AND attendance_date = %s ORDER BY checked_at ASC' ) ) {
+			// The day's attendance, for the terminal's present counter (#2780).
+			return array_values(
+				array_filter(
+					$this->attendance,
+					static fn( array $r ): bool => (int) ( $r['booking_id'] ?? 0 ) === (int) $args[1] && $r['attendance_date'] === $args[2]
+				)
+			);
+		}
 		if ( false !== strpos( $query, 'WHERE booking_id = %d AND window_date = %s AND opened_at <= %d' ) ) {
 			$rows = array_filter(
 				$this->windows,
@@ -142,7 +155,7 @@ final class FakeTerminalTables extends \wpdb {
 	/**
 	 * Attendance rows, for the Terminals screen's count of today's readings.
 	 *
-	 * @var list<array{attendance_date: string, method: string}>
+	 * @var list<array{attendance_date: string, method: string, booking_id?: int, user_id?: int}>
 	 */
 	public array $attendance = array();
 
