@@ -91,6 +91,7 @@ class AdminPageScopeTest extends TestCase {
 		'ffc-page-scheduling-audiences'   => 'ffc-scheduling-audiences',
 		'ffc-page-scheduling-bookings'    => 'ffc-scheduling-bookings',
 		'ffc-page-scheduling-presence'    => 'ffc-scheduling-presence',
+		'ffc-page-scheduling-terminals'   => 'ffc-scheduling-terminals',
 		'ffc-page-scheduling-attendance'  => 'ffc-scheduling-attendance',
 		'ffc-page-scheduling-calendars'   => 'ffc-scheduling-calendars',
 		// The parent menu `ffc-scheduling` and the submenu `ffc-scheduling-dashboard`

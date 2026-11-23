@@ -429,6 +429,7 @@ class AudiencePresenceTest extends TestCase {
 		$request->shouldReceive( 'get_header' )->with( 'X-WP-Nonce' )->andReturnUsing( static function () use ( &$nonce ) {
 			return $nonce;
 		} );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal-Queue' )->andReturn( '' );
 		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturn( null );
 		$logged_in = true;
 		$caps      = array( 'ffc_view_own_audience_bookings' );

@@ -312,7 +312,9 @@
             }
             var options = {
                 method: method,
-                headers: { 'X-FFC-Terminal': state.token },
+                // The queue's size rides on every request, so the site can
+                // say which terminal still has readings to send (#2748).
+                headers: { 'X-FFC-Terminal': state.token, 'X-FFC-Terminal-Queue': String(queue().length) },
                 credentials: 'omit'
             };
             if (undefined !== body) {

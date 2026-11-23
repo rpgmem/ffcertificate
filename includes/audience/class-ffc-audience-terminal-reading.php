@@ -194,6 +194,9 @@ final class AudienceTerminalReading {
 			return self::refused( 'ffc_terminal_failed', __( 'The attendance could not be saved. Show the code again.', 'ffcertificate' ) );
 		}
 
+		if ( AudienceAttendanceWriter::ALREADY !== $status ) {
+			AudienceTerminalWriter::count_reading( $terminal['id'] );
+		}
 		return array(
 			'status'  => AudienceAttendanceWriter::ALREADY === $status ? self::ALREADY : self::RECORDED,
 			'code'    => AudienceAttendanceWriter::ALREADY === $status ? 'ffc_terminal_already' : 'ffc_terminal_recorded',

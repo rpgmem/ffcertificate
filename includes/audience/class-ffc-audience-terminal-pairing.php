@@ -289,11 +289,16 @@ final class AudienceTerminalPairing {
 	/**
 	 * The terminal a token belongs to, while it may still record attendance.
 	 *
-	 * @param string $token The token the terminal holds.
-	 * @param int    $now   Unix time.
+	 * Notes that it was heard from at most once a minute, or at once when the
+	 * count of readings it holds unsent changed, so the Terminals screen
+	 * (#2748) can say which terminal still has readings to send.
+	 *
+	 * @param string   $token  The token the terminal holds.
+	 * @param int      $now    Unix time.
+	 * @param int|null $queued Readings the terminal says it holds unsent, or null when it did not say.
 	 * @return TerminalRow|null
 	 */
-	public static function authenticate( string $token, int $now ): ?array {
+	public static function authenticate( string $token, int $now, ?int $queued = null ): ?array {
 		if ( 1 !== preg_match( '/^[a-f0-9]{64}$/', $token ) ) {
 			return null;
 		}
@@ -301,8 +306,12 @@ final class AudienceTerminalPairing {
 		if ( null === $terminal || null !== $terminal['revoked_at'] || $terminal['expires_at'] <= $now ) {
 			return null;
 		}
-		if ( null === $terminal['last_seen_at'] || $now - $terminal['last_seen_at'] >= 60 ) {
-			AudienceTerminalWriter::touch( $terminal['id'], $now );
+		$queued  = null === $queued ? $terminal['queued'] : max( 0, $queued );
+		$changed = $queued !== $terminal['queued'];
+		if ( $changed || null === $terminal['last_seen_at'] || $now - $terminal['last_seen_at'] >= 60 ) {
+			AudienceTerminalWriter::touch( $terminal['id'], $now, $queued );
+			$terminal['last_seen_at'] = $now;
+			$terminal['queued']       = $queued;
 		}
 		return $terminal;
 	}

@@ -54,6 +54,12 @@ class AudienceTerminalRestController {
 	public const TOKEN_HEADER = 'X-FFC-Terminal';
 
 	/**
+	 * The header a terminal sends the count of readings it holds unsent in
+	 * (#2748).
+	 */
+	public const QUEUE_HEADER = 'X-FFC-Terminal-Queue';
+
+	/**
 	 * Register the routes.
 	 *
 	 * @return void
@@ -352,7 +358,24 @@ class AudienceTerminalRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function list_bookings(): \WP_REST_Response {
-		$now    = time();
+		return new \WP_REST_Response(
+			array(
+				'bookings' => self::offered_bookings( time() ),
+				'max'      => AudienceTerminalPairing::MAX_BOOKINGS,
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
+	}
+
+	/**
+	 * The events a terminal may serve, as the pairing screen and the
+	 * Terminals screen list them (#2748).
+	 *
+	 * @param int $now Unix time.
+	 * @return list<array{id: int, description: string, place: string, place_id: int, when: string, terminals: int, full: bool}>
+	 */
+	public static function offered_bookings( int $now ): array {
 		$today  = wp_date( 'Y-m-d', $now );
 		$last   = wp_date( 'Y-m-d', $now + AudienceTerminalPairing::DAYS_AHEAD * DAY_IN_SECONDS );
 		$rows   = AudienceBookingReader::get_all(
@@ -382,14 +405,7 @@ class AudienceTerminalRestController {
 				'full'        => $held >= $limit,
 			);
 		}
-		return new \WP_REST_Response(
-			array(
-				'bookings' => $events,
-				'max'      => AudienceTerminalPairing::MAX_BOOKINGS,
-			),
-			200,
-			array( 'Cache-Control' => 'no-store' )
-		);
+		return $events;
 	}
 
 	/**
@@ -665,8 +681,9 @@ class AudienceTerminalRestController {
 	 * @return TerminalRow|null
 	 */
 	public static function terminal_of( \WP_REST_Request $request ): ?array {
-		$token = (string) $request->get_header( self::TOKEN_HEADER );
-		return '' === $token ? null : AudienceTerminalPairing::authenticate( $token, time() );
+		$token  = (string) $request->get_header( self::TOKEN_HEADER );
+		$queued = (string) $request->get_header( self::QUEUE_HEADER );
+		return '' === $token ? null : AudienceTerminalPairing::authenticate( $token, time(), 1 === preg_match( '/^\d{1,6}$/', $queued ) ? (int) $queued : null );
 	}
 
 	/**

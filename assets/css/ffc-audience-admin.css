@@ -704,6 +704,44 @@
 /* Presence devices (#2743): the device list takes the whole column beside
    "Needs attention", scrolls inside its card on a narrow screen, and every
    row's actions sit on one wrapping line. */
+/* Terminals (#2748). */
+.ffc-page-scheduling-terminals .ffc-terminals-scroll {
+    overflow-x: auto;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-action {
+    margin: 0;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminal-state {
+    white-space: nowrap;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminal-state-online {
+    color: var(--ffc-success-text);
+    font-weight: 600;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-events {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-sm);
+    margin: var(--ffc-spacing-md) 0;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-event {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-xs);
+}
+
 .ffc-page-scheduling-presence .ffc-presence-main {
     min-width: 0;
 }

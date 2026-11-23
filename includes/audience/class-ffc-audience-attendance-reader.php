@@ -144,6 +144,25 @@ class AudienceAttendanceReader {
 	}
 
 	/**
+	 * How many attendances were recorded one way on one day (#2748).
+	 *
+	 * @param string $method {@see AudienceAttendanceWriter::METHOD_TERMINAL} or another method.
+	 * @param string $date   Day (Y-m-d).
+	 * @return int
+	 */
+	public static function count_by_method_on( string $method, string $date ): int {
+		$wpdb = self::db();
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE attendance_date = %s AND method = %s',
+				self::get_table_name(),
+				$date,
+				$method
+			)
+		);
+	}
+
+	/**
 	 * Type one raw row.
 	 *
 	 * @param array<string, mixed> $row Raw row.
