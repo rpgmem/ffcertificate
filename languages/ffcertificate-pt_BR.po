@@ -36300,3 +36300,39 @@ msgstr "Salvar eventos"
 
 msgid "In the app, Pair terminal can fill the events from one place, soonest first, up to 10, instead of ticking them one by one. My terminals has Change events on each terminal, which the terminal picks up within a minute. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
 msgstr "No app, Parear terminal pode preencher os eventos a partir de um local, dos mais próximos aos mais distantes, até 10, em vez de marcá-los um a um. Meus terminais tem Alterar eventos em cada terminal, que o terminal recebe em até um minuto. Durante uma janela de check-in o terminal mostra só o evento cujo check-in está fazendo, e se o organizador já abriu o check-in; entre janelas ele mostra o próximo evento e quando o check-in dele abre."
+
+msgid "The browser asks for permission to use the camera. Allow it, then hold the presence code inside the frame."
+msgstr "O navegador pede permissão para usar a câmera. Permita e segure o código de presença dentro do quadro."
+
+msgid "Hold the presence code inside the frame."
+msgstr "Segure o código de presença dentro do quadro."
+
+msgid "The camera needs this page to be served over HTTPS. Use a reader connected to the device."
+msgstr "A câmera exige que esta página seja servida por HTTPS. Use um leitor conectado ao aparelho."
+
+msgid "This browser cannot read QR codes with the camera. Use a reader connected to the device."
+msgstr "Este navegador não consegue ler códigos QR com a câmera. Use um leitor conectado ao aparelho."
+
+msgid "The camera was not allowed. Allow it in the browser's site settings, or use a reader connected to the device."
+msgstr "A câmera não foi permitida. Permita nas configurações do site no navegador ou use um leitor conectado ao aparelho."
+
+msgid "The camera could not be started. Use a reader connected to the device."
+msgstr "Não foi possível iniciar a câmera. Use um leitor conectado ao aparelho."
+
+msgid "Camera view"
+msgstr "Imagem da câmera"
+
+msgid "Use the camera"
+msgstr "Usar a câmera"
+
+msgid "Stop the camera"
+msgstr "Parar a câmera"
+
+msgid "Allow the device camera"
+msgstr "Permitir a câmera do aparelho"
+
+msgid "A terminal may read presence codes with its own camera, where the browser can read QR codes by itself and the site is served over HTTPS. Elsewhere the option shows as unavailable, with its reason. A reader connected to the device stays the recommended way. Saved with the Save Settings button below."
+msgstr "Um terminal pode ler códigos de presença com a própria câmera, onde o navegador consegue ler códigos QR sozinho e o site é servido por HTTPS. Nos demais casos a opção aparece como indisponível, com o motivo. Um leitor conectado ao aparelho continua sendo a forma recomendada. Salvo com o botão Salvar Configurações abaixo."
+
+msgid "A terminal can also read codes with its own camera when Scheduling → Settings → Audience Calendars → Check-in terminals has Allow the device camera on. The option is offered only where the browser can read QR codes by itself (the BarcodeDetector interface) and the site is served over HTTPS; elsewhere it shows as unavailable with its reason, and the decision is made from what the browser offers, never from its name. Use the camera opens a framed viewfinder with the front camera, after the browser asks for permission, and a code held in it is read exactly as the reader would type it. The same code held still is read once every five seconds. A reader connected to the device stays the recommended way: it works in every browser and in poor light. The camera is off by default."
+msgstr "Um terminal também pode ler códigos com a própria câmera quando Agendamento → Configurações → Calendários de Público-alvo → Terminais de check-in tem Permitir a câmera do aparelho ativado. A opção só é oferecida onde o navegador consegue ler códigos QR sozinho (a interface BarcodeDetector) e o site é servido por HTTPS; nos demais casos aparece como indisponível, com o motivo, e a decisão vem do que o navegador oferece, nunca do nome dele. Usar a câmera abre um visor emoldurado com a câmera frontal, depois que o navegador pede permissão, e um código segurado nele é lido exatamente como o leitor o digitaria. O mesmo código parado é lido uma vez a cada cinco segundos. Um leitor conectado ao aparelho continua sendo a forma recomendada: funciona em todo navegador e com pouca luz. A câmera vem desligada."

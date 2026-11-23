@@ -828,10 +828,26 @@ class AudienceAdminSettingsTest extends TestCase {
 				'ffc_aud_scheduling_message'       => 'Book',
 				'ffc_aud_multiple_audiences_color' => '#aabbcc',
 				'ffc_aud_self_join_note'           => '<p>Ask <strong>HR</strong>.</p>',
+				'ffc_aud_terminal_camera'          => '0',
 			),
 			$written->getArrayCopy()
 		);
 		$this->assertSame( array( 'Audience visibility settings saved.' ), $notices->getArrayCopy() );
+	}
+
+	public function test_audience_visibility_turns_the_terminal_camera_on_when_ticked(): void {
+		$written = $this->record_writes();
+		$this->record_notices();
+		$_POST = array(
+			'ffc_action'               => 'save_aud_visibility_settings',
+			'ffc_aud_visibility_nonce' => 'n',
+			'ffc_aud_terminal_camera'  => '1',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertSame( '1', $written['ffc_aud_terminal_camera'] ?? null );
 	}
 
 	public function test_audience_visibility_drops_an_invalid_colour_and_mode(): void {

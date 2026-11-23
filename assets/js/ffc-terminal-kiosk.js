@@ -42,6 +42,8 @@
     var REVOCATIONS_MS = 600000;
     var SYNC_BATCH = 50;
     var QUEUE_MAX = 2000;
+    var CAMERA_SCAN_MS = 250;
+    var CAMERA_REPEAT_MS = 5000;
 
     /**
      * A storage that may refuse: a private window or blocked site data.
@@ -283,6 +285,9 @@
         }
 
         function expire() {
+            if (camera && camera.stream) {
+                stopCamera();
+            }
             store.remove(STATE_KEY);
             store.remove(QUEUE_KEY);
             store.remove(REVOKED_KEY);
@@ -670,19 +675,125 @@
             }
         });
 
+        function take(raw) {
+            var code = cleanReading(raw);
+            if (!code) {
+                return null;
+            }
+            return 0 === code.indexOf(OPERATOR_PREFIX) ? unlock(code) : read(code);
+        }
+
         part('reading-form').addEventListener('submit', function (event) {
             event.preventDefault();
-            var code = cleanReading(part('reading').value);
+            var raw = part('reading').value;
             part('reading').value = '';
-            if (!code) {
-                return;
-            }
-            if (0 === code.indexOf(OPERATOR_PREFIX)) {
-                unlock(code);
-            } else {
-                read(code);
-            }
+            take(raw);
         });
+
+        // Camera (#2747) ------------------------------------------------------
+        //
+        // Only where the browser reads QR codes by itself (BarcodeDetector),
+        // in a secure context, and where the site allows it. The decision is
+        // made from what the browser offers, never from its name.
+
+        var camera = { stream: null, detector: null, timer: null, last: '', lastAt: 0 };
+        var cameraStrings = strings.camera || {};
+
+        function cameraNote(text) {
+            part('camera-note').textContent = text || '';
+        }
+
+        function cameraSupport() {
+            if (!env.secure) {
+                return Promise.resolve('insecure');
+            }
+            if (!env.BarcodeDetector || !env.mediaDevices || !env.mediaDevices.getUserMedia) {
+                return Promise.resolve('unsupported');
+            }
+            var formats = env.BarcodeDetector.getSupportedFormats ? env.BarcodeDetector.getSupportedFormats() : Promise.resolve(['qr_code']);
+            return Promise.resolve(formats).then(function (list) {
+                return (list || []).indexOf('qr_code') >= 0 ? 'ok' : 'unsupported';
+            }, function () {
+                return 'unsupported';
+            });
+        }
+
+        function stopCamera() {
+            if (camera.timer) {
+                env.clearTimeout(camera.timer);
+                camera.timer = null;
+            }
+            if (camera.stream) {
+                camera.stream.getTracks().forEach(function (track) { track.stop(); });
+                camera.stream = null;
+            }
+            var video = part('camera-video');
+            video.srcObject = null;
+            part('viewfinder').hidden = true;
+            part('camera-stop').hidden = true;
+            part('camera-start').hidden = false;
+            cameraNote(cameraStrings.ready);
+        }
+
+        function scan() {
+            camera.timer = null;
+            if (!camera.stream || !camera.detector) {
+                return Promise.resolve(null);
+            }
+            return Promise.resolve(camera.detector.detect(part('camera-video'))).then(function (codes) {
+                var raw = codes && codes.length ? String(codes[0].rawValue || '') : '';
+                var at = env.now();
+                var taken = null;
+                if (raw && (raw !== camera.last || at - camera.lastAt >= CAMERA_REPEAT_MS)) {
+                    camera.last = raw;
+                    camera.lastAt = at;
+                    taken = take(raw);
+                }
+                return taken;
+            }, function () {
+                return null;
+            }).then(function (taken) {
+                if (camera.stream) {
+                    camera.timer = env.setTimeout(scan, CAMERA_SCAN_MS);
+                }
+                return taken;
+            });
+        }
+
+        function startCamera() {
+            part('camera-start').disabled = true;
+            return env.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }).then(function (stream) {
+                camera.stream = stream;
+                camera.detector = new env.BarcodeDetector({ formats: ['qr_code'] });
+                var video = part('camera-video');
+                video.srcObject = stream;
+                part('viewfinder').hidden = false;
+                part('camera-start').hidden = true;
+                part('camera-start').disabled = false;
+                part('camera-stop').hidden = false;
+                cameraNote(cameraStrings.reading);
+                return Promise.resolve(video.play ? video.play() : null).catch(function () { return null; }).then(function () {
+                    camera.timer = env.setTimeout(scan, CAMERA_SCAN_MS);
+                    return true;
+                });
+            }, function (error) {
+                part('camera-start').disabled = false;
+                cameraNote(error && 'NotAllowedError' === error.name ? cameraStrings.denied : cameraStrings.failed);
+                return false;
+            });
+        }
+
+        var cameraReady = Promise.resolve(null);
+        if (config.camera) {
+            part('camera').hidden = false;
+            part('camera-start').addEventListener('click', startCamera);
+            part('camera-stop').addEventListener('click', stopCamera);
+            cameraReady = cameraSupport().then(function (support) {
+                part('camera-start').disabled = 'ok' !== support;
+                cameraNote('ok' === support ? cameraStrings.ready : cameraStrings[support]);
+                return support;
+            });
+        }
 
         part('menu-close').addEventListener('click', closeMenu);
         part('menu-end').addEventListener('click', function () {
@@ -752,7 +863,7 @@
             }
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 
     root.FFCTerminal = {
@@ -783,6 +894,9 @@
                 subtle: root.crypto && root.crypto.subtle,
                 verifier: root.FFCPresenceVerifier,
                 online: function () { return false !== root.navigator.onLine; },
+                secure: !!root.isSecureContext,
+                BarcodeDetector: root.BarcodeDetector,
+                mediaDevices: root.navigator.mediaDevices,
                 onOnline: function (fn) { root.addEventListener('online', fn); }
             });
         };

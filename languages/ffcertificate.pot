@@ -36222,3 +36222,39 @@ msgstr ""
 
 msgid "In the app, Pair terminal can fill the events from one place, soonest first, up to 10, instead of ticking them one by one. My terminals has Change events on each terminal, which the terminal picks up within a minute. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
 msgstr ""
+
+msgid "The browser asks for permission to use the camera. Allow it, then hold the presence code inside the frame."
+msgstr ""
+
+msgid "Hold the presence code inside the frame."
+msgstr ""
+
+msgid "The camera needs this page to be served over HTTPS. Use a reader connected to the device."
+msgstr ""
+
+msgid "This browser cannot read QR codes with the camera. Use a reader connected to the device."
+msgstr ""
+
+msgid "The camera was not allowed. Allow it in the browser's site settings, or use a reader connected to the device."
+msgstr ""
+
+msgid "The camera could not be started. Use a reader connected to the device."
+msgstr ""
+
+msgid "Camera view"
+msgstr ""
+
+msgid "Use the camera"
+msgstr ""
+
+msgid "Stop the camera"
+msgstr ""
+
+msgid "Allow the device camera"
+msgstr ""
+
+msgid "A terminal may read presence codes with its own camera, where the browser can read QR codes by itself and the site is served over HTTPS. Elsewhere the option shows as unavailable, with its reason. A reader connected to the device stays the recommended way. Saved with the Save Settings button below."
+msgstr ""
+
+msgid "A terminal can also read codes with its own camera when Scheduling → Settings → Audience Calendars → Check-in terminals has Allow the device camera on. The option is offered only where the browser can read QR codes by itself (the BarcodeDetector interface) and the site is served over HTTPS; elsewhere it shows as unavailable with its reason, and the decision is made from what the browser offers, never from its name. Use the camera opens a framed viewfinder with the front camera, after the browser asks for permission, and a code held in it is read exactly as the reader would type it. The same code held still is read once every five seconds. A reader connected to the device stays the recommended way: it works in every browser and in poor light. The camera is off by default."
+msgstr ""

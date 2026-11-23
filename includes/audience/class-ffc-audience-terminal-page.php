@@ -39,6 +39,21 @@ final class AudienceTerminalPage {
 	public const QUERY_VAR = 'ffc_terminal';
 
 	/**
+	 * The option that lets a terminal read codes with its own camera (#2747).
+	 */
+	public const CAMERA_OPTION = 'ffc_aud_terminal_camera';
+
+	/**
+	 * Whether a terminal may read codes with its own camera. Off unless an
+	 * administrator turned it on: the wedge reader is the recommended mode.
+	 *
+	 * @return bool
+	 */
+	public static function camera_allowed(): bool {
+		return '1' === (string) get_option( self::CAMERA_OPTION, '0' );
+	}
+
+	/**
 	 * Hook the page in.
 	 *
 	 * The page renders on `template_redirect` at priority 1, ahead of the
@@ -165,6 +180,7 @@ final class AudienceTerminalPage {
 			array(
 				'rest'     => esc_url_raw( rest_url( AudienceTerminalRestController::NAMESPACE . '/' . AudienceTerminalRestController::REST_BASE . '/' ) ),
 				'presence' => esc_url_raw( rest_url( AudiencePresenceRestController::NAMESPACE . '/' . AudiencePresenceRestController::REST_BASE . '/' ) ),
+				'camera'   => self::camera_allowed(),
 				'strings'  => array(
 					'storage'       => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
 					'pairing'       => __( 'Pairing…', 'ffcertificate' ),
@@ -195,6 +211,14 @@ final class AudienceTerminalPage {
 					/* translators: %s: date and time check-in opens */
 					'opensAt'       => __( 'Check-in opens at %s', 'ffcertificate' ),
 					'noEvents'      => __( 'No more events on this terminal.', 'ffcertificate' ),
+					'camera'        => array(
+						'ready'       => __( 'The browser asks for permission to use the camera. Allow it, then hold the presence code inside the frame.', 'ffcertificate' ),
+						'reading'     => __( 'Hold the presence code inside the frame.', 'ffcertificate' ),
+						'insecure'    => __( 'The camera needs this page to be served over HTTPS. Use a reader connected to the device.', 'ffcertificate' ),
+						'unsupported' => __( 'This browser cannot read QR codes with the camera. Use a reader connected to the device.', 'ffcertificate' ),
+						'denied'      => __( 'The camera was not allowed. Allow it in the browser\'s site settings, or use a reader connected to the device.', 'ffcertificate' ),
+						'failed'      => __( 'The camera could not be started. Use a reader connected to the device.', 'ffcertificate' ),
+					),
 					'offline'       => array(
 						'invalid'                          => __( 'This is not a valid presence code. Show the code on the phone again.', 'ffcertificate' ),
 						'ffc_presence_code_stale'          => __( 'This presence code is old. Show the code on the phone again.', 'ffcertificate' ),

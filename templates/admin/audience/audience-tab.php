@@ -3,6 +3,7 @@
  * Template: Audience admin settings — Audience tab (manage links + visibility settings + badge color).
  * In-scope: $display_mode, $visibility_message, $scheduling_message,
  * $multiple_audiences_color, $max_self_join_groups, $self_join_note, $max_range_days,
+ * $terminal_camera,
  * $this->menu_slug.
  *
  * Extracted verbatim from the matching AudienceAdminSettings method
@@ -104,6 +105,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</tr>
 					</tbody>
 				</table>
+			</div>
+
+			<div class="card">
+				<h2 class="ffc-icon-qr"><?php esc_html_e( 'Check-in terminals', 'ffcertificate' ); ?></h2>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_toggle(
+					array(
+						'name'        => \FreeFormCertificate\Audience\AudienceTerminalPage::CAMERA_OPTION,
+						'checked'     => ! empty( $terminal_camera ),
+						'label'       => __( 'Allow the device camera', 'ffcertificate' ),
+						'description' => __( 'A terminal may read presence codes with its own camera, where the browser can read QR codes by itself and the site is served over HTTPS. Elsewhere the option shows as unavailable, with its reason. A reader connected to the device stays the recommended way. Saved with the Save Settings button below.', 'ffcertificate' ),
+					)
+				);
+				?>
 			</div>
 
 			<div class="card">
