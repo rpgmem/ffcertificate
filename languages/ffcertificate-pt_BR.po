@@ -35567,3 +35567,30 @@ msgstr "Terminal de autoatendimento"
 
 msgid "Each attendance line says how it was recorded: QR, when the participant scanned the projected code; by hand, when an organiser marked it; terminal, when a self-service terminal at the entrance read the participant's own code. Whatever the way, a person counts once per booking and day: a second reading on the same day changes nothing. A terminal reading keeps the time it was taken, not the time the terminal sent it, and counts on that day."
 msgstr "Cada linha de presença diz como foi registrada: QR, quando o participante leu o código projetado; manual, quando um organizador a marcou; terminal, quando um terminal de autoatendimento na entrada leu o código do próprio participante. Seja qual for o caminho, uma pessoa conta uma vez por agendamento e dia: uma segunda leitura no mesmo dia não muda nada. Uma leitura do terminal guarda a hora em que foi feita, não a hora em que o terminal a enviou, e conta naquele dia."
+
+msgid "Presence"
+msgstr "Presença"
+
+msgid "Pair terminal"
+msgstr "Parear terminal"
+
+msgid "My terminals"
+msgstr "Meus terminais"
+
+msgid "Operator QR"
+msgstr "QR do operador"
+
+msgid "Manual attendance"
+msgstr "Presença manual"
+
+msgid "This screen arrives in a coming update."
+msgstr "Esta tela chega numa próxima atualização."
+
+msgid "There is nothing here for your account yet."
+msgstr "Ainda não há nada aqui para a sua conta."
+
+msgid "With the Site PWA plugin installed, the dashboard also appears inside its installable app, one screen per part: Calendar (personal appointments and audience bookings) and Certificates in the bottom navigation, and Messages, Reregistration, Recruitment and Profile under More. Each screen appears only to an account that has the matching tab. The app also lists Presence, and, for holders of ffc_checkin_audiences, Pair terminal, My terminals and Operator QR, each saying it arrives in a coming update until the self-service check-in lands; Manual attendance opens Audience Bookings in wp-admin. Without Site PWA nothing changes."
+msgstr "Com o plugin Site PWA instalado, o painel aparece também dentro do app instalável, uma tela por parte: Agenda (agendamentos pessoais e reservas de público-alvo) e Certificados na navegação inferior, e Mensagens, Recadastramento, Recrutamento e Perfil em Mais. Cada tela aparece só para a conta que tem a aba correspondente. O app lista também Presença e, para quem tem ffc_checkin_audiences, Parear terminal, Meus terminais e QR do operador, cada uma dizendo que chega numa próxima atualização até o check-in de autoatendimento ficar pronto; Presença manual abre Reservas de Público-alvo no wp-admin. Sem o Site PWA nada muda."
+
+msgid "Optional. Shows only the tabs named, separated by commas: certificates, appointments, audience, reregistrations, recruitment, messages, profile. A narrowed dashboard leaves out the summary cards and the Log Out link, and shows its tab bar only with two tabs or more."
+msgstr "Opcional. Mostra só as abas indicadas, separadas por vírgulas: certificates, appointments, audience, reregistrations, recruitment, messages, profile. Um painel restrito deixa de fora os cartões de resumo e o link Sair, e mostra a barra de abas só com duas abas ou mais."

@@ -35489,3 +35489,30 @@ msgstr ""
 
 msgid "Each attendance line says how it was recorded: QR, when the participant scanned the projected code; by hand, when an organiser marked it; terminal, when a self-service terminal at the entrance read the participant's own code. Whatever the way, a person counts once per booking and day: a second reading on the same day changes nothing. A terminal reading keeps the time it was taken, not the time the terminal sent it, and counts on that day."
 msgstr ""
+
+msgid "Presence"
+msgstr ""
+
+msgid "Pair terminal"
+msgstr ""
+
+msgid "My terminals"
+msgstr ""
+
+msgid "Operator QR"
+msgstr ""
+
+msgid "Manual attendance"
+msgstr ""
+
+msgid "This screen arrives in a coming update."
+msgstr ""
+
+msgid "There is nothing here for your account yet."
+msgstr ""
+
+msgid "With the Site PWA plugin installed, the dashboard also appears inside its installable app, one screen per part: Calendar (personal appointments and audience bookings) and Certificates in the bottom navigation, and Messages, Reregistration, Recruitment and Profile under More. Each screen appears only to an account that has the matching tab. The app also lists Presence, and, for holders of ffc_checkin_audiences, Pair terminal, My terminals and Operator QR, each saying it arrives in a coming update until the self-service check-in lands; Manual attendance opens Audience Bookings in wp-admin. Without Site PWA nothing changes."
+msgstr ""
+
+msgid "Optional. Shows only the tabs named, separated by commas: certificates, appointments, audience, reregistrations, recruitment, messages, profile. A narrowed dashboard leaves out the summary cards and the Log Out link, and shows its tab bar only with two tabs or more."
+msgstr ""

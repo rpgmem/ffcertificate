@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Attendance has one write path for any module** (#2740). `Core\Attendance::record()` takes a target type and id, the person, the reading's own time and the method, and routes it through `AttendanceTargetRegistry` to the module that stores it; the audience booking registers the first type. A new method, `terminal`, shows on the attendance screen and in the privacy export, and a person still counts once per booking and day whatever the path. An unknown method is now refused instead of stored as a QR check-in.
+- **The dashboard inside the installable app** (#2750). With Site PWA installed, FFC registers Calendar and Certificates in the app's navigation and Messages, Reregistration, Recruitment and Profile under More, each drawn in the app from `[user_dashboard_personal tabs="…"]`, a new attribute. Presence and the operator screens are listed ahead of their releases.
 
 ### Security
 

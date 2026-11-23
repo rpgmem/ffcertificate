@@ -75,6 +75,10 @@ class AudienceLoader {
 			static fn(): AudienceAttendanceTarget => new AudienceAttendanceTarget()
 		);
 
+		// The attendance screens in the installable app (#2750); a no-op
+		// unless the Site PWA plugin fires its registration action.
+		AudienceAppScreens::init();
+
 		// Register hooks.
 		$this->register_hooks();
 

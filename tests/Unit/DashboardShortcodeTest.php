@@ -473,6 +473,72 @@ class DashboardShortcodeTest extends TestCase {
 	}
 
 	// ==================================================================
+	// render() — narrowed to some tabs (#2750)
+	// ==================================================================
+
+	/**
+	 * Signs a member in who may see their certificates and appointments.
+	 */
+	private function sign_in_with_certificates_and_appointments(): void {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_user_by' )->justReturn( $this->user( 1, 'Member', 'member@example.org' ) );
+		Functions\when( 'user_can' )->alias(
+			static fn ( $user, $cap ) => in_array( $cap, array( 'ffc_view_own_certificates', 'ffc_view_own_appointments' ), true )
+		);
+	}
+
+	public function test_a_dashboard_narrowed_to_one_tab_shows_that_panel_alone(): void {
+		$this->sign_in_with_certificates_and_appointments();
+
+		$output = DashboardShortcode::render( array( 'tabs' => 'certificates' ) );
+
+		$this->assertStringContainsString( 'id="ffc-tabpanel-certificates"', $output );
+		$this->assertStringNotContainsString( 'id="ffc-tabpanel-appointments"', $output );
+		$this->assertStringNotContainsString( 'id="ffc-tabpanel-profile"', $output );
+		$this->assertStringContainsString( '<div class="ffc-dashboard-tabbar" hidden>', $output, 'One tab: the bar stays for the script, hidden.' );
+		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="certificates"#', $output );
+		$this->assertStringNotContainsString( 'ffc-dashboard-summary', $output );
+		$this->assertStringNotContainsString( 'ffc-logout-link', $output );
+	}
+
+	public function test_a_dashboard_narrowed_to_two_tabs_keeps_its_tab_bar(): void {
+		$this->sign_in_with_certificates_and_appointments();
+
+		$output = DashboardShortcode::render( array( 'tabs' => 'appointments, certificates' ) );
+
+		$this->assertStringContainsString( '<div class="ffc-dashboard-tabbar">', $output );
+		$this->assertStringContainsString( 'id="ffc-tabpanel-appointments"', $output );
+		$this->assertStringContainsString( 'id="ffc-tabpanel-certificates"', $output );
+		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="certificates"#', $output, 'The dashboard order decides the first tab, not the attribute order.' );
+	}
+
+	public function test_a_dashboard_narrowed_to_tabs_this_account_lacks_says_so(): void {
+		$this->sign_in_with_certificates_and_appointments();
+
+		$output = DashboardShortcode::render( array( 'tabs' => 'reregistrations' ) );
+
+		$this->assertStringContainsString( 'data-ffc-notice="dashboard-empty"', $output );
+		$this->assertStringNotContainsString( 'ffc-user-dashboard', $output );
+	}
+
+	public function test_without_the_attribute_the_dashboard_is_unchanged(): void {
+		$this->sign_in_with_certificates_and_appointments();
+
+		$output = DashboardShortcode::render( '' );
+
+		$this->assertStringContainsString( 'id="ffc-dashboard-summary"', $output );
+		$this->assertStringContainsString( 'ffc-logout-link', $output );
+		$this->assertStringContainsString( 'id="ffc-tabpanel-profile"', $output );
+		$this->assertStringContainsString( '<div class="ffc-dashboard-tabbar">', $output );
+	}
+
+	public function test_parse_tabs_keeps_known_names_in_dashboard_order(): void {
+		$this->assertSame( array( 'certificates', 'profile' ), DashboardShortcode::parse_tabs( ' Profile ,bogus,certificates' ) );
+		$this->assertSame( array(), DashboardShortcode::parse_tabs( '' ) );
+	}
+
+	// ==================================================================
 	// send_nocache_headers() — no post object (null)
 	// ==================================================================
 
