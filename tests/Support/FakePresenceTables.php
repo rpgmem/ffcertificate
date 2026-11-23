@@ -84,6 +84,10 @@ final class FakePresenceTables extends \wpdb {
 			}
 			return null;
 		}
+		if ( 'SELECT * FROM %i WHERE id = %d LIMIT 1' === $query ) {
+			$rows = 'wp_ffc_audience_presence_requests' === $args[0] ? $this->requests : $this->devices;
+			return $rows[ (int) $args[1] ] ?? null;
+		}
 		throw new \LogicException( 'Unknown query: ' . $query );
 	}
 
@@ -97,6 +101,21 @@ final class FakePresenceTables extends \wpdb {
 		if ( false !== strpos( $query, 'WHERE user_id = %d ORDER BY activated_at DESC' ) ) {
 			$rows = array_values( array_filter( $this->devices, static fn( array $r ): bool => (int) $r['user_id'] === (int) $args[1] ) );
 			usort( $rows, static fn( array $a, array $b ): int => array( $b['activated_at'], $b['id'] ) <=> array( $a['activated_at'], $a['id'] ) );
+			return $rows;
+		}
+		if ( false !== strpos( $query, 'WHERE revoked_at IS NULL ORDER BY activated_at DESC, id DESC LIMIT %d OFFSET %d' ) ) {
+			$rows = array_values( array_filter( $this->devices, static fn( array $r ): bool => null === $r['revoked_at'] ) );
+			usort( $rows, static fn( array $a, array $b ): int => array( $b['activated_at'], $b['id'] ) <=> array( $a['activated_at'], $a['id'] ) );
+			return array_slice( $rows, (int) $args[2], (int) $args[1] );
+		}
+		if ( false !== strpos( $query, 'WHERE status = %s ORDER BY created_at ASC' ) ) {
+			$rows = array_values( array_filter( $this->requests, static fn( array $r ): bool => $r['status'] === $args[1] ) );
+			usort( $rows, static fn( array $a, array $b ): int => array( $a['created_at'], $a['id'] ) <=> array( $b['created_at'], $b['id'] ) );
+			return $rows;
+		}
+		if ( false !== strpos( $query, 'WHERE revoked_at IS NULL AND signals_hash IS NOT NULL ORDER BY' ) ) {
+			$rows = array_values( array_filter( $this->devices, static fn( array $r ): bool => null === $r['revoked_at'] && null !== $r['signals_hash'] ) );
+			usort( $rows, static fn( array $a, array $b ): int => $a['activated_at'] <=> $b['activated_at'] );
 			return $rows;
 		}
 		throw new \LogicException( 'Unknown query: ' . $query );
@@ -129,6 +148,12 @@ final class FakePresenceTables extends \wpdb {
 				}
 			}
 			return (string) $count;
+		}
+		if ( 'SELECT COUNT(*) FROM %i WHERE revoked_at IS NULL' === $query ) {
+			return (string) count( array_filter( $this->devices, static fn( array $r ): bool => null === $r['revoked_at'] ) );
+		}
+		if ( 'SELECT COUNT(*) FROM %i WHERE is_change = 1 AND activated_at >= %d' === $query ) {
+			return (string) count( array_filter( $this->devices, static fn( array $r ): bool => 1 === (int) $r['is_change'] && (int) $r['activated_at'] >= (int) $args[1] ) );
 		}
 		if ( false !== strpos( $query, 'SELECT id FROM %i WHERE user_id = %d AND device_id = %s AND reason = %s AND status = %s' ) ) {
 			$found = null;
@@ -187,6 +212,8 @@ final class FakePresenceTables extends \wpdb {
 					'revoked_by'     => null,
 					'released_at'    => null,
 					'released_by'    => null,
+					'attested_at'    => null,
+					'signals_dismissed_at' => null,
 				),
 				$data
 			);
@@ -222,6 +249,45 @@ final class FakePresenceTables extends \wpdb {
 			$this->devices[ $id ]['revoked_reason'] = (string) $args[2];
 			$this->devices[ $id ]['revoked_by']     = $by;
 			return 1;
+		}
+		if ( 'UPDATE %i SET attested_at = %d WHERE id = %d' === $query ) {
+			$id = (int) $args[2];
+			if ( ! isset( $this->devices[ $id ] ) ) {
+				return 0;
+			}
+			$this->devices[ $id ]['attested_at'] = (int) $args[1];
+			return 1;
+		}
+		if ( 0 === strpos( $query, 'UPDATE %i SET released_at = %d, released_by = %d WHERE device_id = %s AND user_id <> %d' ) ) {
+			$count = 0;
+			foreach ( $this->devices as $id => $row ) {
+				if ( $row['device_id'] === $args[3] && (int) $row['user_id'] !== (int) $args[4] && null === $row['released_at'] ) {
+					$this->devices[ $id ]['released_at'] = (int) $args[1];
+					$this->devices[ $id ]['released_by'] = (int) $args[2];
+					++$count;
+				}
+			}
+			return $count;
+		}
+		if ( 0 === strpos( $query, 'UPDATE %i SET status = %s, decided_at = %d, decided_by = %d WHERE id = %d AND status = %s' ) ) {
+			$id = (int) $args[4];
+			if ( ! isset( $this->requests[ $id ] ) || $this->requests[ $id ]['status'] !== $args[5] ) {
+				return 0;
+			}
+			$this->requests[ $id ]['status']     = (string) $args[1];
+			$this->requests[ $id ]['decided_at'] = (int) $args[2];
+			$this->requests[ $id ]['decided_by'] = (int) $args[3];
+			return 1;
+		}
+		if ( 0 === strpos( $query, 'UPDATE %i SET signals_dismissed_at = %d WHERE signals_hash = %s' ) ) {
+			$count = 0;
+			foreach ( $this->devices as $id => $row ) {
+				if ( $row['signals_hash'] === $args[2] && null === $row['revoked_at'] && null === $row['signals_dismissed_at'] ) {
+					$this->devices[ $id ]['signals_dismissed_at'] = (int) $args[1];
+					++$count;
+				}
+			}
+			return $count;
 		}
 		if ( 0 === strpos( $query, 'UPDATE %i SET status = %s WHERE id = %d AND status = %s' ) ) {
 			$id = (int) $args[2];

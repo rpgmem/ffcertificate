@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The dashboard inside the installable app** (#2750). With Site PWA installed, FFC registers Calendar and Certificates in the app's navigation and Messages, Reregistration, Recruitment and Profile under More, each drawn in the app from `[user_dashboard_personal tabs="…"]`, a new attribute. Presence and the operator screens are listed ahead of their releases.
 - **Presence devices for the app** (#2741). A phone's non-extractable P-256 key is bound to the account by a site-signed, 7-day attestation; one active device per account, a phone reserved 30 days, 3 changes in 30 days, shared signals logged. REST `presence/enrol`, `renew`, `revocations`.
 - **The presence code** (#2742). The app's Presence screen draws a QR code every 30 seconds, offline: the attestation, the event, the moment and the booking's site-signed ticket, signed by the phone's key, in Base45 over QR alphanumeric (version 12 with a ticket). `AudiencePresenceCode` is the one verifier (±60 s). REST `presence/events`. Nayuki's encoder is vendored as `libs/js/qrcodegen-1.8.0.js`.
+- **Scheduling → Presence devices** (#2743). Lists active phones with when each works offline until and a per-participant history; Deactivate revokes the key, Release frees a reserved phone, Release one change lets one more activation through, Refuse and Dismiss answer the rest. Each answer is logged. New capability `ffc_manage_audiences_presence`, granted to holders of `ffc_manage_audiences`.
 
 ### Security
 

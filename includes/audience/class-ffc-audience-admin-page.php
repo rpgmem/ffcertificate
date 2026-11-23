@@ -108,6 +108,13 @@ class AudienceAdminPage {
 	private AudienceAdminAttendance $attendance;
 
 	/**
+	 * Presence devices screen (#2743).
+	 *
+	 * @var AudienceAdminPresence
+	 */
+	private AudienceAdminPresence $presence;
+
+	/**
 	 * Initialize admin page
 	 *
 	 * @return void
@@ -124,6 +131,7 @@ class AudienceAdminPage {
 		$this->audience    = new AudienceAdminAudience( self::MENU_SLUG );
 		$this->bookings    = new AudienceAdminBookings( self::MENU_SLUG );
 		$this->attendance  = new AudienceAdminAttendance( self::MENU_SLUG );
+		$this->presence    = new AudienceAdminPresence( self::MENU_SLUG );
 		$this->import      = new AudienceAdminImport( self::MENU_SLUG );
 		$this->settings    = new AudienceAdminSettings( self::MENU_SLUG, $this->import );
 
@@ -229,6 +237,17 @@ class AudienceAdminPage {
 			AudienceAdminAttendance::CAP,
 			self::MENU_SLUG . '-attendance',
 			array( $this->attendance, 'render_page' )
+		);
+
+		// Submenu: Presence devices (#2743), the phones participants
+		// activated to show their presence code.
+		add_submenu_page(
+			self::MENU_SLUG,
+			__( 'Presence devices', 'ffcertificate' ),
+			__( 'Presence devices', 'ffcertificate' ),
+			AudienceAdminPresence::CAP,
+			self::MENU_SLUG . AudienceAdminPresence::SLUG_SUFFIX,
+			array( $this->presence, 'render_page' )
 		);
 
 		// Import & Export used to be its own submenu here; it is now the
@@ -355,6 +374,7 @@ class AudienceAdminPage {
 			self::MENU_SLUG . '-calendars',            // Audience Calendars (and its Environments view).
 			self::MENU_SLUG . '-audiences',            // Audiences.
 			self::MENU_SLUG . '-bookings',             // Audience Bookings.
+			self::MENU_SLUG . '-presence',             // Presence devices (#2743).
 			self::MENU_SLUG . '-settings',             // Settings (hosts Import & Export as a tab).
 		);
 
@@ -404,5 +424,6 @@ class AudienceAdminPage {
 		$this->environment->handle_actions();
 		$this->audience->handle_actions();
 		$this->attendance->handle_actions();
+		$this->presence->handle_actions();
 	}
 }

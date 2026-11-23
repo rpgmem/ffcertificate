@@ -65,7 +65,7 @@ final class AdminMenuVisibility {
 	 *
 	 * @var list<string>
 	 */
-	public const AUDIENCE_SCREEN_SUFFIXES = array( 'dashboard', 'calendars', 'environments', 'audiences', 'bookings', 'attendance', 'settings' );
+	public const AUDIENCE_SCREEN_SUFFIXES = array( 'dashboard', 'calendars', 'environments', 'audiences', 'bookings', 'attendance', 'presence', 'settings' );
 
 	/**
 	 * `?page=` of the Short URLs list, registered by
@@ -133,7 +133,10 @@ final class AdminMenuVisibility {
 		}
 		// The attendance screen runs check-in (`ffc_checkin_audiences`, #1947),
 		// which the view-only roles do not hold.
-		$audience_view_screens = array_values( array_diff( $audience_screens, array( AudienceAdminPage::MENU_SLUG . '-attendance' ) ) );
+		// Presence devices (#2743) need `ffc_manage_audiences_presence`, on
+		// the Manager tier and above.
+		$audience_operator_screens = array_values( array_diff( $audience_screens, array( AudienceAdminPage::MENU_SLUG . '-presence' ) ) );
+		$audience_view_screens     = array_values( array_diff( $audience_operator_screens, array( AudienceAdminPage::MENU_SLUG . '-attendance' ) ) );
 
 		// The Certificates screens (#1776). The forms' list is also the parent
 		// of the Dashboard and Submissions submenus, whose menu links take the
@@ -249,7 +252,7 @@ final class AdminMenuVisibility {
 			),
 			'ffc_audiences_operator'      => array(
 				'landing_page'         => AudienceAdminPage::MENU_SLUG,
-				'allowed_pages'        => $audience_screens,
+				'allowed_pages'        => $audience_operator_screens,
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),

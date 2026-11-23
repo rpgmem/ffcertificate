@@ -136,10 +136,11 @@ class AudienceAdminPageTest extends TestCase {
 		$page->add_admin_menus();
 
 		// Should register: dashboard, calendars, environments (hidden),
-		// audiences, bookings, attendance (hidden, #1947), settings = 7.
+		// audiences, bookings, attendance (hidden, #1947), presence
+		// devices (#2743), settings = 8.
 		// Import & Export is now the 4th tab of Settings, not a separate
 		// submenu entry.
-		$this->assertCount( 7, $submenu_pages, 'Should register 7 submenu pages' );
+		$this->assertCount( 8, $submenu_pages, 'Should register 8 submenu pages' );
 
 		// add_submenu_page args: parent_slug, page_title, menu_title, capability, menu_slug, callback
 		$submenu_slugs = array_column( $submenu_pages, 4 );
@@ -149,6 +150,7 @@ class AudienceAdminPageTest extends TestCase {
 		$this->assertContains( 'ffc-scheduling-audiences', $submenu_slugs );
 		$this->assertContains( 'ffc-scheduling-bookings', $submenu_slugs );
 		$this->assertContains( 'ffc-scheduling-attendance', $submenu_slugs );
+		$this->assertContains( 'ffc-scheduling-presence', $submenu_slugs );
 		$this->assertContains( 'ffc-scheduling-settings', $submenu_slugs );
 		$this->assertNotContains( 'ffc-scheduling-import', $submenu_slugs );
 	}

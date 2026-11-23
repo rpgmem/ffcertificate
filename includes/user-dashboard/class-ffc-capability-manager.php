@@ -284,6 +284,12 @@ class CapabilityManager {
 		// `RoleRegistrar::register_module_roles()` adds it to the stored roles
 		// and no grant migration seeds it.
 		'ffc_checkin_audiences',
+		// Presence devices (#2743): release a reserved phone, allow one more
+		// device change, dismiss a shared-signals alert and deactivate a
+		// device. It sits on the Audience Calendars Manager tier; the one-shot
+		// `migrate_presence_cap_grant()` seeds it onto every current
+		// `ffc_manage_audiences` holder, so a per-user grant reaches it too.
+		'ffc_manage_audiences_presence',
 
 		// Granular "export" tier (GAP G). Each `ffc_export_<domain>` cap gates
 		// the bulk CSV data-extraction path of its domain *strictly* — the
@@ -859,7 +865,7 @@ class CapabilityManager {
 
 		$audiences_viewer   = array( 'ffc_view_audiences' );
 		$audiences_operator = array_merge( $audiences_viewer, array( 'ffc_import_audiences', 'ffc_checkin_audiences' ) );
-		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences', 'ffc_view_audiences_pii' ) );
+		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences', 'ffc_view_audiences_pii', 'ffc_manage_audiences_presence' ) );
 
 		$rereg_viewer   = array( 'ffc_view_reregistration' );
 		$rereg_operator = array_merge( $rereg_viewer, array( 'ffc_export_reregistration' ) );

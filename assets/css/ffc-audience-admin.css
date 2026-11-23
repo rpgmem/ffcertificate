@@ -700,3 +700,43 @@
 .ffc-bookings-table .ffc-row-buttons .ffc-btn {
     white-space: nowrap;
 }
+
+/* Presence devices (#2743): the device list takes the whole column beside
+   "Needs attention", scrolls inside its card on a narrow screen, and every
+   row's actions sit on one wrapping line. */
+.ffc-page-scheduling-presence .ffc-presence-main {
+    min-width: 0;
+}
+
+.ffc-page-scheduling-presence .ffc-presence-scroll {
+    overflow-x: auto;
+}
+
+.ffc-page-scheduling-presence .ffc-presence-table code {
+    white-space: nowrap;
+}
+
+.ffc-page-scheduling-presence .ffc-presence-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-page-scheduling-presence .ffc-presence-action {
+    margin: 0;
+}
+
+.ffc-page-scheduling-presence .ffc-presence-table .ffc-presence-actions {
+    flex-wrap: nowrap;
+}
+
+.ffc-page-scheduling-presence .ffc-presence-attention-list {
+    margin: 0;
+}
+
+.ffc-page-scheduling-presence .ffc-presence-attention-list > li + li {
+    margin-top: var(--ffc-spacing-md);
+    padding-top: var(--ffc-spacing-md);
+    border-top: 1px solid var(--ffc-border-light);
+}

@@ -35767,3 +35767,142 @@ msgstr "Você não tem evento nos próximos 7 dias. Abra esta tela com internet 
 
 msgid "Your presence code. Hold it up to the terminal's reader."
 msgstr "O seu código de presença. Aproxime-o do leitor do terminal."
+
+msgid "%1$d device change in the last %2$d days."
+msgid_plural "%1$d device changes in the last %2$d days."
+msgstr[0] "%1$d troca de aparelho nos últimos %2$d dias."
+msgstr[1] "%1$d trocas de aparelho nos últimos %2$d dias."
+
+msgid "%1$s already changed devices %2$d times in %3$d days and asks for one more (%4$s)."
+msgstr "%1$s já trocou de aparelho %2$d vezes em %3$d dias e pede mais uma (%4$s)."
+
+msgid "%1$s tried to activate a phone reserved to another account (%2$s)."
+msgstr "%1$s tentou ativar um celular reservado a outra conta (%2$s)."
+
+msgid "Activated"
+msgstr "Ativado"
+
+msgid "Active devices"
+msgstr "Aparelhos ativos"
+
+msgid "Active since"
+msgstr "Ativo desde"
+
+msgid "Alert dismissed. It comes back if another phone reports the same signals."
+msgstr "Alerta dispensado. Ele volta se outro celular informar os mesmos sinais."
+
+msgid "Back to presence devices"
+msgstr "Voltar aos aparelhos de presença"
+
+msgid "Changes in %d days"
+msgstr "Trocas em %d dias"
+
+msgid "Deactivate"
+msgstr "Desativar"
+
+msgid "Deactivate this device? Its presence codes stop working, and the participant has to activate a phone again in the app."
+msgstr "Desativar este aparelho? Os códigos de presença dele param de funcionar, e o participante precisa ativar um celular de novo no app."
+
+msgid "Deactivated by an administrator on %s"
+msgstr "Desativado por um administrador em %s"
+
+msgid "Device"
+msgstr "Aparelho"
+
+msgid "Device deactivated. Its codes stop working at each terminal's next sync, and the app asks to activate it again."
+msgstr "Aparelho desativado. Os códigos dele param de funcionar na próxima sincronização de cada terminal, e o app pede para ativá-lo de novo."
+
+msgid "Device history: %s"
+msgstr "Histórico de aparelhos: %s"
+
+msgid "Expired; renews when the app goes online"
+msgstr "Expirada; renova quando o app ficar online"
+
+msgid "History of %s"
+msgstr "Histórico de %s"
+
+msgid "Identical school phones look the same, so this is a reason to look, not proof of sharing."
+msgstr "Celulares escolares idênticos parecem iguais, então isto é motivo para olhar, não prova de compartilhamento."
+
+msgid "Manage presence devices"
+msgstr "Gerenciar aparelhos de presença"
+
+msgid "No participant has activated a phone yet. A device appears here once someone activates it on the app's Presence screen."
+msgstr "Nenhum participante ativou um celular ainda. Um aparelho aparece aqui quando alguém o ativa na tela Presença do app."
+
+msgid "Nothing changed: someone already answered this, or the device is no longer active."
+msgstr "Nada mudou: alguém já respondeu a isto, ou o aparelho não está mais ativo."
+
+msgid "Nothing needs a look."
+msgstr "Nada precisa de atenção."
+
+msgid "One more device change allowed. The participant can now activate the phone in the app."
+msgstr "Mais uma troca de aparelho liberada. O participante já pode ativar o celular no app."
+
+msgid "Phone released. The participant can now activate it in the app."
+msgstr "Celular liberado. O participante já pode ativá-lo no app."
+
+msgid "Presence Device Change Allowed"
+msgstr "Troca de aparelho de presença liberada"
+
+msgid "Presence Device Released"
+msgstr "Aparelho de presença liberado"
+
+msgid "Presence Device Request Refused"
+msgstr "Pedido de aparelho de presença recusado"
+
+msgid "Presence Device Signals Dismissed"
+msgstr "Sinais de aparelho de presença dispensados"
+
+msgid "Refuse"
+msgstr "Recusar"
+
+msgid "Release"
+msgstr "Liberar"
+
+msgid "Release a phone reserved to another account, allow one more device change, dismiss a shared-signals alert and deactivate a participant's presence device."
+msgstr "Liberar um celular reservado a outra conta, liberar mais uma troca de aparelho, dispensar um alerta de sinais compartilhados e desativar o aparelho de presença de um participante."
+
+msgid "Release one change"
+msgstr "Liberar uma troca"
+
+msgid "Release this phone from the other account? That account can no longer show codes from it."
+msgstr "Liberar este celular da outra conta? Aquela conta não poderá mais mostrar códigos por ele."
+
+msgid "Replaced by another phone on %s"
+msgstr "Substituído por outro celular em %s"
+
+msgid "Request refused. The participant keeps the device they had."
+msgstr "Pedido recusado. O participante continua com o aparelho que tinha."
+
+msgid "Requests"
+msgstr "Pedidos"
+
+msgid "Scheduling → Presence devices lists the active phones with when each was activated and until when it works offline, and a History per participant with every phone they used and why each one stopped. Deactivate stops a phone at once: its codes are refused from each terminal's next sync and the app asks to activate a phone again. Needs attention holds the requests to answer: Release frees a reserved phone from the other account, Release one change lets one more activation through beyond the limit, and Refuse keeps things as they are. A shared-signals alert can be dismissed, and comes back when another phone reports the same signals. Every answer is in the activity log. The screen needs ffc_manage_audiences_presence."
+msgstr "Agendamento → Aparelhos de presença lista os celulares ativos, com quando cada um foi ativado e até quando funciona sem internet, e um Histórico por participante com todos os celulares que usou e por que cada um parou. Desativar para um celular na hora: os códigos dele são recusados a partir da próxima sincronização de cada terminal, e o app pede para ativar um celular de novo. Precisa de atenção reúne os pedidos a responder: Liberar solta um celular reservado da outra conta, Liberar uma troca deixa passar mais uma ativação além do limite, e Recusar mantém tudo como está. Um alerta de sinais compartilhados pode ser dispensado e volta quando outro celular informar os mesmos sinais. Toda resposta fica no registro de atividades. A tela exige ffc_manage_audiences_presence."
+
+msgid "Signal alerts"
+msgstr "Alertas de sinais"
+
+msgid "The change could not be saved. Try again."
+msgstr "Não foi possível salvar a alteração. Tente de novo."
+
+msgid "This page has expired. Reload it and try again."
+msgstr "Esta página expirou. Recarregue-a e tente de novo."
+
+msgid "This participant has never activated a phone."
+msgstr "Este participante nunca ativou um celular."
+
+msgid "Works offline until"
+msgstr "Funciona sem internet até"
+
+msgid "You do not have permission to manage presence devices."
+msgstr "Você não tem permissão para gerenciar aparelhos de presença."
+
+msgid "open Presence devices: deactivate a participant's phone, release a reserved one, allow one more device change and dismiss shared-signals alerts. Held by the Manager tier and above; existing holders of ffc_manage_audiences received it on update."
+msgstr "abrir Aparelhos de presença: desativar o celular de um participante, liberar um reservado, liberar mais uma troca de aparelho e dispensar alertas de sinais compartilhados. Concedida ao nível Gerente e acima; quem já tinha ffc_manage_audiences a recebeu na atualização."
+
+msgid "%1$d account reports the same device signals: %2$s."
+msgid_plural "%1$d accounts report the same device signals: %2$s."
+msgstr[0] "%1$d conta informa os mesmos sinais de aparelho: %2$s."
+msgstr[1] "%1$d contas informam os mesmos sinais de aparelho: %2$s."

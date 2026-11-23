@@ -282,35 +282,39 @@ final class CapabilityCatalog {
 				'label' => __( 'Audience Calendars', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_audiences'     => array(
+					'ffc_view_audiences'            => array(
 						'label'       => __( 'View audiences', 'ffcertificate' ),
 						'description' => __( 'Read-only access to audiences and their members.', 'ffcertificate' ),
 					),
-					'ffc_manage_audiences'   => array(
+					'ffc_manage_audiences'          => array(
 						'label'       => __( 'Manage audiences', 'ffcertificate' ),
 						'description' => __( 'Everything View audiences allows, plus saving audiences, their members and audience calendars, cancelling audience bookings and setting who may book a schedule.', 'ffcertificate' ),
 					),
-					'ffc_import_audiences'   => array(
+					'ffc_import_audiences'          => array(
 						'label'       => __( 'Import audiences', 'ffcertificate' ),
 						'description' => __( 'Bulk-load members and audiences from CSV.', 'ffcertificate' ),
 					),
-					'ffc_checkin_audiences'  => array(
+					'ffc_checkin_audiences'         => array(
 						'label'       => __( 'Run attendance check-in', 'ffcertificate' ),
 						'description' => __( 'Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand.', 'ffcertificate' ),
 					),
-					'ffc_export_audiences'   => array(
+					'ffc_manage_audiences_presence' => array(
+						'label'       => __( 'Manage presence devices', 'ffcertificate' ),
+						'description' => __( 'Release a phone reserved to another account, allow one more device change, dismiss a shared-signals alert and deactivate a participant\'s presence device.', 'ffcertificate' ),
+					),
+					'ffc_export_audiences'          => array(
 						'label'       => __( 'Export audiences', 'ffcertificate' ),
 						'description' => __( 'Download the members and audiences CSV exports.', 'ffcertificate' ),
 					),
-					'ffc_delete_audiences'   => array(
+					'ffc_delete_audiences'          => array(
 						'label'       => __( 'Delete audiences', 'ffcertificate' ),
 						'description' => __( 'Delete audiences, calendars, environments and bookings.', 'ffcertificate' ),
 					),
-					'ffc_view_audiences_pii' => array(
+					'ffc_view_audiences_pii'        => array(
 						'label'       => __( 'Reveal audience PII', 'ffcertificate' ),
 						'description' => __( 'Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user\'s profile, and export them in clear (audited). Without it they stay masked.', 'ffcertificate' ),
 					),
-					'ffc_bypass_audiences'   => array(
+					'ffc_bypass_audiences'          => array(
 						'label'       => __( 'Audience calendar bypass', 'ffcertificate' ),
 						'description' => __( 'Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on.', 'ffcertificate' ),
 						'surface'     => 'frontend',
