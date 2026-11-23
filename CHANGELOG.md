@@ -33,6 +33,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The app's Certificates screen follows the approved screen** (#2781): a search by course or code, the newest certificate as a card (New for 7 days) with *Open PDF* and *Share*, the rest as rows with a chevron. It reads `user/certificates`, so the download rules are the dashboard's; outside the app nothing changes.
 - **The app's Presence screen follows the approved screen** (#2781): on the accent colour, the event and its hours on top, the code on a white card, a draining bar with the owner's short name, three tips; the event picker only with more than one event.
 - **Activate presence names the phone it replaces** (#2781). The screen follows the approved one: the phone holding the code now ("Android · Chrome, active since …"), device changes used of 3 in 30 days, the 7 offline days, *Activate on this phone* and *Not now*. Enrolment keeps the platform and browser families, never the User-Agent; `GET presence/device` serves the status.
+- **The app's Calendar screen follows the approved screen** (#2781): *My bookings* / *Book*, the month, day cards with today highlighted, status and attendance chips, the presence code, post-event form and receipt inline, the past folded, a dashed *New booking*. It reads the dashboard's two routes; outside the app nothing changes.
 
 ### Security
 

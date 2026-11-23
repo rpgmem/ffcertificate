@@ -1,0 +1,225 @@
+/**
+ * Calendar screen of the installable app (#2781): a My bookings / Book
+ * switch, the month, one day card per booking with today highlighted, the
+ * past folded away, and a dashed New booking button.
+ */
+
+.ffc-app-agenda {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-md);
+	max-width: var(--ffc-form-width);
+	margin: 0 auto;
+	color: var(--ffc-text);
+}
+
+.ffc-app-agenda p {
+	margin: 0;
+}
+
+.ffc-app-agenda-views {
+	display: flex;
+	padding: var(--ffc-spacing-3xs);
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-gray-100);
+}
+
+.ffc-app-agenda-view {
+	flex: 1;
+	padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+	border: 0;
+	border-radius: var(--ffc-radius-sm);
+	background: transparent;
+	color: var(--ffc-text-muted);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.ffc-app-agenda-view[aria-selected="true"] {
+	background: var(--ffc-bg-card);
+	color: var(--ffc-text);
+}
+
+.ffc-app-agenda-view:focus-visible,
+.ffc-app-agenda-new:focus-visible {
+	outline: 2px solid var(--ffc-border-focus);
+	outline-offset: 2px;
+}
+
+.ffc-app-agenda-status:empty {
+	display: none;
+}
+
+.ffc-app-agenda-month {
+	margin: 0;
+	font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-app-agenda-list,
+.ffc-app-agenda-book {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ffc-app-agenda-past summary {
+	color: var(--ffc-text-muted);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.ffc-app-agenda-past[open] summary {
+	margin-bottom: var(--ffc-spacing-sm);
+}
+
+.ffc-app-agenda-card {
+	display: flex;
+	gap: var(--ffc-spacing-md);
+	padding: var(--ffc-spacing-md);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-lg);
+	background: var(--ffc-bg-card);
+}
+
+.ffc-app-agenda-today {
+	border-color: var(--ffc-primary);
+	box-shadow: inset 4px 0 0 var(--ffc-primary);
+}
+
+.ffc-app-agenda-day {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 44px;
+	color: var(--ffc-text-muted);
+}
+
+.ffc-app-agenda-weekday {
+	font-size: var(--ffc-font-size-xs);
+	text-transform: uppercase;
+}
+
+.ffc-app-agenda-number {
+	color: var(--ffc-text);
+	font-size: var(--ffc-font-size-2xl);
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.ffc-app-agenda-body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--ffc-spacing-2xs);
+	min-width: 0;
+}
+
+.ffc-app-agenda-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-app-agenda-chip {
+	padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+	border-radius: var(--ffc-radius-full);
+	font-size: var(--ffc-font-size-xs);
+	font-weight: 600;
+}
+
+.ffc-app-agenda-chip-accent {
+	background: var(--ffc-info-bg);
+	color: var(--ffc-info-text);
+}
+
+.ffc-app-agenda-chip-info {
+	background: var(--ffc-gray-100);
+	color: var(--ffc-text);
+}
+
+.ffc-app-agenda-chip-success {
+	background: var(--ffc-success-bg);
+	color: var(--ffc-success-text);
+}
+
+.ffc-app-agenda-chip-warning {
+	background: var(--ffc-warning-bg);
+	color: var(--ffc-warning-text);
+}
+
+.ffc-app-agenda-title {
+	margin: 0;
+	font-size: var(--ffc-font-size-base);
+	line-height: 1.3;
+}
+
+.ffc-app-agenda-when {
+	color: var(--ffc-text-muted);
+	font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-app-agenda-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ffc-spacing-sm);
+	margin-top: var(--ffc-spacing-2xs);
+}
+
+.ffc-app-agenda-action {
+	color: var(--ffc-primary);
+	font-size: var(--ffc-font-size-sm);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.ffc-app-agenda-new {
+	padding: var(--ffc-spacing-sm);
+	border: 2px dashed var(--ffc-border);
+	border-radius: var(--ffc-radius-lg);
+	background: transparent;
+	color: var(--ffc-text-muted);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.ffc-app-agenda-book-row {
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-bg-card);
+}
+
+.ffc-app-agenda-book-link {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--ffc-spacing-sm);
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+	color: var(--ffc-text);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.ffc-app-agenda-book-empty,
+.ffc-app-agenda-chevron {
+	color: var(--ffc-text-muted);
+}
+
+/* Chips and the view switch keep their boundary when forced colors drop
+   their ground. */
+@media (forced-colors: active) {
+	.ffc-app-agenda-chip-accent,
+	.ffc-app-agenda-chip-info,
+	.ffc-app-agenda-chip-success,
+	.ffc-app-agenda-chip-warning {
+		border: 1px solid CanvasText;
+	}
+
+	.ffc-app-agenda-view[aria-selected="true"] {
+		border: 1px solid ButtonText;
+	}
+}

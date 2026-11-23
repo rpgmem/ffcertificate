@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers the dashboard's screens with Site PWA.
  *
- * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, tabs: list<string>, render?: callable(): string}
+ * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, tabs: list<string>, render?: callable(array<int, string>): string}
  */
 final class DashboardAppScreens {
 
@@ -69,6 +69,7 @@ final class DashboardAppScreens {
 				continue;
 			}
 			$attribute = implode( ',', $tabs );
+			$render    = $screen['render'] ?? null;
 			$screens->add(
 				$id,
 				array(
@@ -76,7 +77,9 @@ final class DashboardAppScreens {
 					'icon'     => $screen['icon'],
 					'place'    => $screen['place'],
 					'position' => $screen['position'],
-					'render'   => $screen['render'] ?? static fn(): string => DashboardShortcode::render( array( 'tabs' => $attribute ) ),
+					'render'   => null !== $render
+						? static fn(): string => $render( $tabs )
+						: static fn(): string => DashboardShortcode::render( array( 'tabs' => $attribute ) ),
 				)
 			);
 		}
@@ -95,7 +98,8 @@ final class DashboardAppScreens {
 
 	/**
 	 * The dashboard's screens, by id. A screen with its own `render` draws
-	 * the app's design; the rest draw their dashboard tab.
+	 * the app's design and is handed the tabs this person sees; the rest
+	 * draw their dashboard tab.
 	 *
 	 * @return array<string, ScreenDef>
 	 */
@@ -107,6 +111,8 @@ final class DashboardAppScreens {
 				'place'    => 'nav',
 				'position' => 1,
 				'tabs'     => array( 'appointments', 'audience' ),
+				// The app draws its own screen over the same routes (#2781).
+				'render'   => array( AgendaAppScreen::class, 'render' ),
 			),
 			'certificates'   => array(
 				'label'    => __( 'Certificates', 'ffcertificate' ),
