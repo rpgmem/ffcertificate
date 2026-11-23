@@ -237,6 +237,9 @@ trait DatabaseHelperTrait {
 	 *                                               uses `IS NOT NULL` instead of `= 0`.
 	 * @param array<int, string>    $drop_indexes    Index names to drop before the column rename.
 	 * @param array<string, string> $recreate_indexes Index name => `(col, col)` to recreate after rename.
+	 * @param string                $key             The table's key column. `id` for most tables;
+	 *                                               a table keyed otherwise names its own (#2763),
+	 *                                               or the backfill selects a column that is not there.
 	 * @return void
 	 */
 	protected static function migrate_datetime_column_to_unix(
@@ -244,7 +247,8 @@ trait DatabaseHelperTrait {
 		string $column,
 		bool $nullable = true,
 		array $drop_indexes = array(),
-		array $recreate_indexes = array()
+		array $recreate_indexes = array(),
+		string $key = 'id'
 	): void {
 		if ( ! self::table_exists( $table_name ) ) {
 			return;
@@ -288,10 +292,17 @@ trait DatabaseHelperTrait {
 			// `$column` / `$where_unmigrated` are not user input — they're
 			// internal column-name strings the caller passes in. WPCS can't
 			// see that, hence the targeted ignores on the prepare() call.
-			$select_sql = "SELECT id, {$column} AS legacy_value FROM %i WHERE {$where_unmigrated} LIMIT %d";
+			$select_key = 'id' === $key ? 'id' : "{$key} AS id";
+			$select_sql = "SELECT {$select_key}, {$column} AS legacy_value FROM %i WHERE {$where_unmigrated} LIMIT %d";
 			do {
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $select_sql built from trusted internal column names; placeholders covered.
-				$rows      = $wpdb->get_results( $wpdb->prepare( $select_sql, $table_name, $batch_size ) );
+				$rows = $wpdb->get_results( $wpdb->prepare( $select_sql, $table_name, $batch_size ) );
+				if ( ! empty( $wpdb->last_error ) ) {
+					// A backfill that could not read must not go on to drop the
+					// column it was reading (#2763): the staging column stays,
+					// and the next run resumes from it.
+					return;
+				}
 				$row_count = is_array( $rows ) ? count( $rows ) : 0;
 				if ( 0 === $row_count ) {
 					break;
@@ -314,9 +325,9 @@ trait DatabaseHelperTrait {
 					$updated = $wpdb->update(
 						$table_name,
 						array( $staging_name => $ts ),
-						array( 'id' => (int) $row->id ),
+						array( $key => 'id' === $key ? (int) $row->id : (string) $row->id ),
 						array( '%d' ),
-						array( '%d' )
+						array( 'id' === $key ? '%d' : '%s' )
 					);
 					if ( is_int( $updated ) && $updated > 0 ) {
 						++$changed;

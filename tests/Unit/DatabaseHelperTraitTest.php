@@ -60,8 +60,8 @@ class DatabaseHelperTraitHost {
 	public static function pub_add_indexes_if_missing( string $t, array $idx ): int {
 		return self::add_indexes_if_missing( $t, $idx );
 	}
-	public static function pub_migrate_datetime_column_to_unix( string $t, string $c, bool $nullable = true, array $drop = array(), array $recreate = array() ): void {
-		self::migrate_datetime_column_to_unix( $t, $c, $nullable, $drop, $recreate );
+	public static function pub_migrate_datetime_column_to_unix( string $t, string $c, bool $nullable = true, array $drop = array(), array $recreate = array(), string $key = 'id' ): void {
+		self::migrate_datetime_column_to_unix( $t, $c, $nullable, $drop, $recreate, $key );
 	}
 }
 
@@ -604,5 +604,68 @@ class DatabaseHelperTraitTest extends TestCase {
 		DatabaseHelperTraitHost::pub_migrate_datetime_column_to_unix( 'wp_foo', 'called_at', false );
 
 		$this->assertSame( 1, $selects, 'A batch that changed nothing ends the loop.' );
+	}
+
+	public function test_migrate_datetime_backfills_a_table_keyed_by_another_column(): void {
+		// ffc_recruitment_import_jobs is keyed by job_id; selecting `id` there
+		// failed and the column was dropped with every value lost (#2763).
+		$selects = array();
+		$updates = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_jobs' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) use ( &$selects ) {
+				$sql = (string) $sql;
+				if ( 0 === strpos( $sql, 'SELECT job_id AS id' ) ) {
+					$selects[] = $sql;
+					return 1 === count( $selects ) ? array( (object) array( 'id' => 'a1b2', 'legacy_value' => '2026-01-02 03:04:05' ) ) : array();
+				}
+				return 0 === strpos( $sql, 'SHOW COLUMNS' ) && false === strpos( $sql, '_ts' )
+					? array( (object) array( 'Field' => 'created_at', 'Type' => 'datetime' ) )
+					: array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where, $format, $where_format ) use ( &$updates ) {
+				$updates[] = array( $where, $where_format );
+				return 1;
+			}
+		);
+
+		DatabaseHelperTraitHost::pub_migrate_datetime_column_to_unix( 'wp_jobs', 'created_at', false, array(), array(), 'job_id' );
+
+		$this->assertCount( 1, $selects, 'The backfill reads the key the table has.' );
+		$this->assertSame( array( array( array( 'job_id' => 'a1b2' ), array( '%s' ) ) ), $updates, 'And writes back by that key, as a string.' );
+	}
+
+	public function test_migrate_datetime_keeps_the_column_when_the_backfill_cannot_read(): void {
+		$this->wpdb->last_error = '';
+		$wpdb                   = $this->wpdb;
+		$queries                = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_foo' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) use ( $wpdb ) {
+				$sql = (string) $sql;
+				if ( 0 === strpos( $sql, 'SELECT id' ) ) {
+					$wpdb->last_error = "Unknown column 'id' in 'SELECT'";
+					return array();
+				}
+				return 0 === strpos( $sql, 'SHOW COLUMNS' ) && false === strpos( $sql, '_ts' )
+					? array( (object) array( 'Field' => 'called_at', 'Type' => 'datetime' ) )
+					: array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$queries ) {
+				$queries[] = (string) $sql;
+				return 1;
+			}
+		);
+
+		DatabaseHelperTraitHost::pub_migrate_datetime_column_to_unix( 'wp_foo', 'called_at', false );
+
+		$this->assertSame( array(), array_values( preg_grep( '/DROP COLUMN|CHANGE/', $queries ) ), 'A backfill that failed leaves the old column in place.' );
 	}
 }
