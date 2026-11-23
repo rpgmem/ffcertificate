@@ -154,11 +154,16 @@ class AudiencePresenceRestController {
 	}
 
 	/**
-	 * Who may read the revocation list, until terminals pair (#2744).
+	 * Who may read the revocation list: a paired terminal, by its token
+	 * (#2744), or a logged-in operator who runs check-ins.
 	 *
+	 * @param \WP_REST_Request $request Request.
 	 * @return bool
 	 */
-	public function check_terminal_permission(): bool {
+	public function check_terminal_permission( \WP_REST_Request $request ): bool {
+		if ( null !== AudienceTerminalRestController::terminal_of( $request ) ) {
+			return true;
+		}
 		return is_user_logged_in() && Capabilities::current_user_can_admin_or( 'ffc_checkin_audiences' );
 	}
 

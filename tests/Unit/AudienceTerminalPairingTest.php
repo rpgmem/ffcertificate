@@ -1,0 +1,437 @@
+<?php
+declare(strict_types=1);
+
+namespace FreeFormCertificate\Tests\Unit;
+
+use Brain\Monkey;
+use Brain\Monkey\Functions;
+use FreeFormCertificate\Audience\AudienceOperatorCode;
+use FreeFormCertificate\Audience\AudienceTerminalLockout;
+use FreeFormCertificate\Audience\AudienceTerminalPairing;
+use FreeFormCertificate\Audience\AudienceTerminalReader;
+use FreeFormCertificate\Audience\AudienceTerminalRestController;
+use FreeFormCertificate\Audience\AudienceTerminalWriter;
+use FreeFormCertificate\Core\Base45;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\FakeCredentials;
+use FreeFormCertificate\Tests\Support\FakeTerminalTables;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Terminal pairing (#2744): the one-time `P-` codes, the lockout counted on
+ * the server, the token a terminal keeps, ending a terminal, the operator's
+ * unlock code and who may call each route.
+ *
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalPairing
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalLockout
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalReader
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalWriter
+ * @covers \FreeFormCertificate\Audience\AudienceOperatorCode
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalRestController
+ */
+class AudienceTerminalPairingTest extends TestCase {
+
+	use MockeryPHPUnitIntegration;
+
+	private const NOW = 1800000000;
+
+	private const OPERATOR = 5;
+
+	private const DEVICE = 'terminal-device-0001';
+
+	private const ADDRESS = 'address-fingerprint-0001';
+
+	private FakeTerminalTables $tables;
+
+	/** @var array<string, mixed> */
+	private array $options = array();
+
+	/** @var array<string, mixed> */
+	private array $transients = array();
+
+	/** @var array<int, object> */
+	private array $bookings = array();
+
+	/** @var mixed */
+	private $wpdb_backup;
+
+	private bool $had_wpdb = false;
+
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+
+		$this->tables  = new FakeTerminalTables();
+		$this->options = array( 'ffc_settings' => ActivityLogBuffer::ENABLED_SETTINGS );
+		ActivityLogBuffer::stub_functions();
+		ActivityLogBuffer::reset();
+
+		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $s ) => trim( strip_tags( (string) $s ) ) );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
+		Functions\when( 'apply_filters' )->alias( static fn( $hook, $value ) => $value );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => array_key_exists( $key, $this->options ) ? $this->options[ $key ] : $default
+		);
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) {
+				$this->options[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'delete_transient' )->alias(
+			function ( $key ) {
+				unset( $this->transients[ $key ] );
+				return true;
+			}
+		);
+		// The booking reader looks in the object cache first; serving the
+		// bookings from there keeps its own queries out of this test.
+		Functions\when( 'wp_cache_get' )->alias(
+			fn( $key ) => 1 === preg_match( '/^id_(\d+)$/', (string) $key, $m ) && isset( $this->bookings[ (int) $m[1] ] ) ? $this->bookings[ (int) $m[1] ] : false
+		);
+
+		$this->had_wpdb = array_key_exists( 'wpdb', $GLOBALS );
+		if ( $this->had_wpdb ) {
+			$this->wpdb_backup = $GLOBALS['wpdb'];
+		}
+		$GLOBALS['wpdb'] = $this->tables;
+
+		$this->booking( 11, '2027-01-15' );
+		$this->booking( 12, '2027-01-16' );
+	}
+
+	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		Monkey\tearDown();
+		parent::tearDown();
+	}
+
+	// ---- Codes ------------------------------------------------------------
+
+	public function test_a_code_is_a_p_code_stored_only_as_a_keyed_hash_for_five_minutes(): void {
+		$result = AudienceTerminalPairing::create_code( self::OPERATOR, array( 11, '12', 11, -3 ), ' Entrance <b>A</b> ', self::NOW );
+
+		$this->assertIsArray( $result );
+		$this->assertMatchesRegularExpression( '/^P-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/', $result['code'] );
+		$this->assertSame( self::NOW + AudienceTerminalPairing::CODE_TTL, $result['expires_at'] );
+		$this->assertSame( array( 11, 12 ), $result['bookings'] );
+
+		$row = array_values( $this->tables->pairings )[0];
+		$this->assertSame( AudienceTerminalPairing::code_hash( $result['code'] ), $row['code_hash'] );
+		$this->assertStringNotContainsString( substr( $result['code'], 2, 4 ), json_encode( $row ), 'the code itself is never stored' );
+		$this->assertSame( 'Entrance A', $row['label'] );
+
+		$log = ActivityLogBuffer::contexts();
+		$this->assertSame( 'terminal_pairing_created', $log[0]['action'] );
+		$this->assertStringNotContainsString( substr( $result['code'], 2, 4 ), json_encode( $log ), 'nor logged' );
+	}
+
+	public function test_a_code_reads_the_same_in_any_case_with_or_without_its_prefix_and_hyphens(): void {
+		$hash = AudienceTerminalPairing::code_hash( 'P-AB12-CD34-EF56' );
+		$this->assertSame( $hash, AudienceTerminalPairing::code_hash( 'ab12cd34ef56' ) );
+		$this->assertSame( $hash, AudienceTerminalPairing::code_hash( 'p ab12 cd34 ef56' ) );
+		$this->assertNotSame( $hash, AudienceTerminalPairing::code_hash( 'P-AB12-CD34-EF57' ) );
+	}
+
+	public function test_a_code_needs_active_bookings_that_end_within_seven_days(): void {
+		$this->assertSame( 'ffc_terminal_no_bookings', AudienceTerminalPairing::create_code( self::OPERATOR, array(), '', self::NOW )->get_error_code() );
+		$this->assertSame( 'ffc_terminal_too_many', AudienceTerminalPairing::create_code( self::OPERATOR, range( 1, 11 ), '', self::NOW )->get_error_code() );
+		$this->assertSame( 'ffc_terminal_booking', AudienceTerminalPairing::create_code( self::OPERATOR, array( 99 ), '', self::NOW )->get_error_code(), 'no such booking' );
+
+		$this->booking( 13, '2027-01-15', 'cancelled' );
+		$this->assertSame( 'ffc_terminal_booking', AudienceTerminalPairing::create_code( self::OPERATOR, array( 13 ), '', self::NOW )->get_error_code(), 'cancelled' );
+		$this->booking( 14, '2026-12-01' );
+		$this->assertSame( 'ffc_terminal_booking', AudienceTerminalPairing::create_code( self::OPERATOR, array( 14 ), '', self::NOW )->get_error_code(), 'already over' );
+		$this->booking( 15, '2027-03-01' );
+		$this->assertSame( 'ffc_terminal_booking', AudienceTerminalPairing::create_code( self::OPERATOR, array( 15 ), '', self::NOW )->get_error_code(), 'too far ahead' );
+		$this->assertSame( array(), $this->tables->pairings );
+	}
+
+	// ---- Pairing ----------------------------------------------------------
+
+	public function test_a_code_pairs_once_and_the_terminal_keeps_a_token_the_site_only_hashes(): void {
+		$code   = AudienceTerminalPairing::create_code( self::OPERATOR, array( 11, 12 ), 'Entrance', self::NOW )['code'];
+		$result = AudienceTerminalPairing::pair( strtolower( $code ), self::DEVICE, self::ADDRESS, self::NOW + 60 );
+
+		$this->assertIsArray( $result );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{64}$/', $result['token'] );
+		$this->assertSame( array( 11, 12 ), $result['bookings'] );
+		$this->assertSame( 'Entrance', $result['label'] );
+		$this->assertSame( AudienceTerminalPairing::booking_end( 12 ) + AudienceTerminalPairing::AFTER_LAST, $result['expires_at'], 'two hours after the last booking ends' );
+
+		$terminal = AudienceTerminalReader::terminal( $result['terminal_id'] );
+		$this->assertSame( hash( 'sha256', $result['token'] ), $terminal['token_hash'] );
+		$this->assertSame( self::OPERATOR, $terminal['paired_by'], 'attributed to the operator who generated the code' );
+		$this->assertStringNotContainsString( $result['token'], json_encode( $this->tables->terminals ) );
+		$this->assertSame( $result['terminal_id'], array_values( $this->tables->pairings )[0]['terminal_id'] );
+
+		$this->assertSame( 'terminal_paired', ActivityLogBuffer::contexts()[1]['action'] );
+		$this->assertStringNotContainsString( $result['token'], json_encode( ActivityLogBuffer::contexts() ) );
+
+		$again = AudienceTerminalPairing::pair( $code, 'another-terminal-0002', self::ADDRESS, self::NOW + 61 );
+		$this->assertSame( 'ffc_terminal_code_wrong', $again->get_error_code(), 'single use' );
+	}
+
+	public function test_an_expired_code_does_not_pair(): void {
+		$code = AudienceTerminalPairing::create_code( self::OPERATOR, array( 11 ), '', self::NOW )['code'];
+		$late = AudienceTerminalPairing::pair( $code, self::DEVICE, self::ADDRESS, self::NOW + AudienceTerminalPairing::CODE_TTL + 1 );
+		$this->assertSame( 'ffc_terminal_code_wrong', $late->get_error_code() );
+		$this->assertSame( 403, $late->get_error_data()['status'] );
+	}
+
+	public function test_a_terminal_without_a_device_id_is_refused_before_anything_counts(): void {
+		$this->assertSame( 'ffc_terminal_device', AudienceTerminalPairing::pair( 'P-AAAA-BBBB-CCCC', 'short', self::ADDRESS, self::NOW )->get_error_code() );
+		$this->assertSame( array(), $this->transients );
+	}
+
+	// ---- Lockout ----------------------------------------------------------
+
+	public function test_three_wrong_codes_lock_the_device_for_fifteen_minutes_then_each_one_for_thirty(): void {
+		for ( $i = 1; $i <= 2; $i++ ) {
+			$this->assertSame( 'ffc_terminal_code_wrong', $this->wrong( self::NOW + $i )->get_error_code() );
+		}
+		$third = $this->wrong( self::NOW + 3 );
+		$this->assertSame( 'ffc_terminal_locked', $third->get_error_code() );
+		$this->assertSame( 429, $third->get_error_data()['status'] );
+		$this->assertSame( AudienceTerminalLockout::FIRST_LOCK, $third->get_error_data()['retry_after'] );
+		$this->assertStringContainsString( '15 minutes', $third->get_error_message() );
+		$this->assertStringNotContainsString( 'WRONG', $third->get_error_message(), 'never echoes the code typed' );
+
+		// A correct code is refused while the lock holds.
+		$code = AudienceTerminalPairing::create_code( self::OPERATOR, array( 11 ), '', self::NOW )['code'];
+		$this->assertSame( 'ffc_terminal_locked', AudienceTerminalPairing::pair( $code, self::DEVICE, self::ADDRESS, self::NOW + 600 )->get_error_code() );
+
+		$fourth = $this->wrong( self::NOW + 3 + AudienceTerminalLockout::FIRST_LOCK );
+		$this->assertSame( AudienceTerminalLockout::NEXT_LOCK, $fourth->get_error_data()['retry_after'], 'each further error: 30 minutes' );
+		$fifth = $this->wrong( self::NOW + 3 + AudienceTerminalLockout::FIRST_LOCK + AudienceTerminalLockout::NEXT_LOCK );
+		$this->assertSame( AudienceTerminalLockout::NEXT_LOCK, $fifth->get_error_data()['retry_after'], 'capped at 30' );
+
+		$actions = array_column( ActivityLogBuffer::contexts(), 'action' );
+		$this->assertContains( 'terminal_pairing_locked', $actions );
+		$this->assertContains( 'terminal_pairing_refused', $actions );
+	}
+
+	public function test_a_correct_pairing_or_an_hour_of_quiet_resets_the_count(): void {
+		$this->wrong( self::NOW );
+		$this->wrong( self::NOW + 1 );
+		$code = AudienceTerminalPairing::create_code( self::OPERATOR, array( 11 ), '', self::NOW )['code'];
+		$this->assertIsArray( AudienceTerminalPairing::pair( $code, self::DEVICE, self::ADDRESS, self::NOW + 2 ) );
+		$this->assertSame( 'ffc_terminal_code_wrong', $this->wrong( self::NOW + 3 )->get_error_code(), 'counting starts over after a pairing' );
+		$this->assertSame( 'ffc_terminal_code_wrong', $this->wrong( self::NOW + 4 )->get_error_code() );
+
+		$later = self::NOW + 4 + AudienceTerminalLockout::RESET_AFTER;
+		$this->assertSame( 'ffc_terminal_code_wrong', $this->wrong( $later )->get_error_code(), 'an hour of quiet forgets the two' );
+		$this->assertSame( 'ffc_terminal_code_wrong', $this->wrong( $later + 1 )->get_error_code() );
+		$this->assertSame( 'ffc_terminal_locked', $this->wrong( $later + 2 )->get_error_code() );
+	}
+
+	public function test_one_address_may_send_twenty_wrong_codes_an_hour_across_every_device(): void {
+		$start = intdiv( self::NOW, AudienceTerminalLockout::ADDRESS_WINDOW ) * AudienceTerminalLockout::ADDRESS_WINDOW;
+		for ( $i = 1; $i < AudienceTerminalLockout::ADDRESS_MAX; $i++ ) {
+			$result = AudienceTerminalPairing::pair( 'P-WRON-GCOD-E000', 'device-number-' . str_pad( (string) $i, 4, '0', STR_PAD_LEFT ), self::ADDRESS, $start + $i );
+			$this->assertSame( 'ffc_terminal_code_wrong', $result->get_error_code(), "device $i" );
+		}
+		$last = AudienceTerminalPairing::pair( 'P-WRON-GCOD-E000', 'device-number-0020', self::ADDRESS, $start + 20 );
+		$this->assertSame( 'ffc_terminal_locked', $last->get_error_code() );
+		$this->assertSame( AudienceTerminalLockout::ADDRESS_WINDOW - 20, $last->get_error_data()['retry_after'], 'until the hour turns' );
+
+		$fresh = AudienceTerminalPairing::pair( 'P-WRON-GCOD-E000', 'brand-new-device-0021', self::ADDRESS, $start + 30 );
+		$this->assertSame( 'ffc_terminal_locked', $fresh->get_error_code(), 'a new device id still meets the wall' );
+		$other = AudienceTerminalPairing::pair( 'P-WRON-GCOD-E000', 'brand-new-device-0021', 'another-address', $start + 30 );
+		$this->assertSame( 'ffc_terminal_code_wrong', $other->get_error_code(), 'other addresses are not affected' );
+	}
+
+	// ---- Limits -----------------------------------------------------------
+
+	public function test_three_terminals_per_event_and_ten_per_site(): void {
+		for ( $i = 0; $i < 3; $i++ ) {
+			$this->paired( array( 11 ), 'device-for-eleven-' . $i );
+		}
+		$this->assertSame( 'ffc_terminal_booking_limit', AudienceTerminalPairing::create_code( self::OPERATOR, array( 11 ), '', self::NOW )->get_error_code() );
+
+		// A code made before the limit was reached refuses at pairing, unspent.
+		$code = AudienceTerminalPairing::create_code( self::OPERATOR, array( 12 ), '', self::NOW )['code'];
+		Functions\when( 'apply_filters' )->alias(
+			static fn( $hook, $value ) => 'ffc_terminal_limits' === $hook ? array(
+				'site'    => 3,
+				'booking' => 3,
+			) : $value
+		);
+		$this->assertSame( 'ffc_terminal_site_limit', AudienceTerminalPairing::pair( $code, self::DEVICE, self::ADDRESS, self::NOW + 5 )->get_error_code() );
+		$this->assertNull( array_values( $this->tables->pairings )[3]['used_at'], 'still usable once a terminal ends' );
+
+		$this->assertSame(
+			array(
+				'site'    => 3,
+				'booking' => 3,
+			),
+			AudienceTerminalPairing::limits()
+		);
+	}
+
+	// ---- Tokens and ending ------------------------------------------------
+
+	public function test_a_token_authenticates_until_its_terminal_ends_or_expires(): void {
+		$paired = $this->paired( array( 11 ), self::DEVICE );
+		$this->assertSame( $paired['terminal_id'], AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 100 )['id'] );
+		$this->assertSame( self::NOW + 100, $this->tables->terminals[ $paired['terminal_id'] ]['last_seen_at'] );
+		$this->assertNull( AudienceTerminalPairing::authenticate( 'not-a-token', self::NOW ) );
+		$this->assertNull( AudienceTerminalPairing::authenticate( str_repeat( 'a', 64 ), self::NOW ) );
+		$this->assertNull( AudienceTerminalPairing::authenticate( $paired['token'], $paired['expires_at'] ), 'expired' );
+
+		$this->assertSame( 'ffc_terminal_missing', AudienceTerminalPairing::revoke( $paired['terminal_id'], 99, false, self::NOW )->get_error_code(), 'an operator ends only their own' );
+		$this->assertTrue( AudienceTerminalPairing::revoke( $paired['terminal_id'], self::OPERATOR, false, self::NOW + 200 ) );
+		$this->assertNull( AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 201 ) );
+		$this->assertSame( 'ffc_terminal_ended', AudienceTerminalPairing::revoke( $paired['terminal_id'], 1, true, self::NOW + 300 )->get_error_code() );
+		$this->assertSame( 'terminal_revoked', ActivityLogBuffer::contexts()[ count( ActivityLogBuffer::contexts() ) - 1 ]['action'] );
+	}
+
+	public function test_an_administrator_ends_any_terminal_and_lists_are_per_operator(): void {
+		$mine   = $this->paired( array( 11 ), self::DEVICE );
+		$theirs = AudienceTerminalPairing::pair( AudienceTerminalPairing::create_code( 8, array( 12 ), '', self::NOW )['code'], 'second-device-0002', self::ADDRESS, self::NOW + 2 );
+
+		$this->assertSame( array( $mine['terminal_id'] ), array_column( AudienceTerminalReader::active_terminals( self::NOW + 3, self::OPERATOR ), 'id' ) );
+		$this->assertCount( 2, AudienceTerminalReader::active_terminals( self::NOW + 3 ) );
+		$this->assertTrue( AudienceTerminalPairing::revoke( $theirs['terminal_id'], 1, true, self::NOW + 4 ) );
+		$this->assertSame( 2, AudienceTerminalWriter::purge_pairings( self::NOW + AudienceTerminalPairing::CODE_TTL + 1 ), 'spent or expired codes go' );
+		$this->assertSame( array(), $this->tables->pairings );
+	}
+
+	// ---- Operator code ----------------------------------------------------
+
+	public function test_an_operator_code_is_signed_by_the_site_and_expires(): void {
+		$issued = AudienceOperatorCode::issue( self::OPERATOR, self::NOW );
+		$this->assertIsArray( $issued );
+		$this->assertStringStartsWith( 'FFO1', $issued['code'] );
+		$this->assertSame( 1, preg_match( '/^[0-9A-Z $%*+\-.\/:]+$/', $issued['code'] ), 'QR alphanumeric set' );
+
+		$read = AudienceOperatorCode::verify( $issued['code'], self::NOW + 30 );
+		$this->assertSame( self::OPERATOR, $read['user_id'] );
+		$this->assertSame( 'ffc_operator_code_expired', AudienceOperatorCode::verify( $issued['code'], $issued['expires_at'] + AudienceOperatorCode::SKEW + 1 )->get_error_code() );
+		$this->assertIsArray( AudienceOperatorCode::verify( $issued['code'], $issued['expires_at'] + AudienceOperatorCode::SKEW ), 'clock tolerance' );
+
+		$raw    = Base45::decode( substr( $issued['code'], 4 ) );
+		$forged = substr( $raw, 0, -70 ) . pack( 'N', 1 ) . substr( $raw, -66 );
+		$this->assertSame( 'ffc_operator_code_signature', AudienceOperatorCode::verify( 'FFO1' . Base45::encode( $forged ), self::NOW )->get_error_code(), 'another user id under the same signature' );
+		$this->assertSame( 'ffc_operator_code_malformed', AudienceOperatorCode::verify( 'FFP1ABC', self::NOW )->get_error_code() );
+		$this->assertNull( AudienceOperatorCode::issue( 0, self::NOW ) );
+	}
+
+	// ---- Routes -----------------------------------------------------------
+
+	public function test_pairing_routes_need_the_terminals_capability_and_the_rest_nonce(): void {
+		$controller = new AudienceTerminalRestController();
+		$headers    = array( 'X-WP-Nonce' => 'good' );
+		$request    = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->andReturnUsing(
+			static function ( $name ) use ( &$headers ) {
+				return $headers[ $name ] ?? null;
+			}
+		);
+		$caps = array( AudienceTerminalPairing::CAP );
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) use ( &$caps ) {
+				return in_array( $cap, $caps, true );
+			}
+		);
+		Functions\when( 'wp_verify_nonce' )->alias( static fn( $nonce ) => 'good' === $nonce ? 1 : false );
+
+		$this->assertTrue( $controller->check_manage_permission( $request ) );
+		$this->assertFalse( $controller->check_operator_permission( $request ), 'the unlock code is for whoever runs check-ins' );
+		$caps = array( 'ffc_checkin_audiences' );
+		$this->assertFalse( $controller->check_manage_permission( $request ), 'running check-ins is not enough to pair' );
+		$this->assertTrue( $controller->check_operator_permission( $request ) );
+		$headers = array();
+		$this->assertFalse( $controller->check_operator_permission( $request ), 'no nonce' );
+		$this->assertTrue( $controller->check_pair_permission(), 'a terminal has no account' );
+	}
+
+	public function test_a_terminal_token_opens_the_revocation_list(): void {
+		$paired  = $this->paired( array( 11 ), self::DEVICE );
+		$token   = $paired['token'];
+		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturnUsing( static function () use ( &$token ) {
+			return $token;
+		} );
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+
+		$presence = new \FreeFormCertificate\Audience\AudiencePresenceRestController();
+		$this->assertTrue( $presence->check_terminal_permission( $request ) );
+		$token = str_repeat( 'b', 64 );
+		$this->assertFalse( $presence->check_terminal_permission( $request ) );
+	}
+
+	public function test_the_list_never_shows_a_token_or_device_hash(): void {
+		$paired   = $this->paired( array( 11 ), self::DEVICE );
+		$terminal = AudienceTerminalReader::terminal( $paired['terminal_id'] );
+		$shown    = AudienceTerminalRestController::present( $terminal );
+		$this->assertArrayNotHasKey( 'token_hash', $shown );
+		$this->assertArrayNotHasKey( 'device_hash', $shown );
+		$this->assertSame( array( 3, 7 ), AudienceTerminalRestController::sanitize_ids( array( '3', 7, 'x', -1, 3 ) ) );
+		$this->assertSame( 'P-AB12-CD34script', AudienceTerminalRestController::sanitize_code( 'P-AB12-CD34<script>' ) );
+		$this->assertSame( '', AudienceTerminalRestController::sanitize_code( array( 'P' ) ) );
+	}
+
+	// ---- Helpers ----------------------------------------------------------
+
+	/**
+	 * A booking the reader finds in the object cache.
+	 *
+	 * @param int    $id     Booking id.
+	 * @param string $day    Day.
+	 * @param string $status Status.
+	 */
+	private function booking( int $id, string $day, string $status = 'active' ): void {
+		$this->bookings[ $id ] = (object) array(
+			'id'           => $id,
+			'booking_date' => $day,
+			'end_date'     => null,
+			'end_time'     => '17:00:00',
+			'status'       => $status,
+		);
+	}
+
+	/**
+	 * Send a wrong code from the test device.
+	 *
+	 * @param int $now Unix time.
+	 * @return \WP_Error
+	 */
+	private function wrong( int $now ): \WP_Error {
+		$result = AudienceTerminalPairing::pair( 'P-WRON-GCOD-E000', self::DEVICE, self::ADDRESS, $now );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		return $result;
+	}
+
+	/**
+	 * Generate a code and pair a terminal with it.
+	 *
+	 * @param list<int> $bookings Bookings.
+	 * @param string    $device   Device id.
+	 * @return array{token: string, terminal_id: int, label: string, bookings: list<int>, expires_at: int}
+	 */
+	private function paired( array $bookings, string $device ): array {
+		$code   = AudienceTerminalPairing::create_code( self::OPERATOR, $bookings, '', self::NOW )['code'];
+		$result = AudienceTerminalPairing::pair( $code, $device, self::ADDRESS, self::NOW + 1 );
+		$this->assertIsArray( $result );
+		return $result;
+	}
+}

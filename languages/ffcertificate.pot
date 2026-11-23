@@ -35828,3 +35828,98 @@ msgid "%1$d account reports the same device signals: %2$s."
 msgid_plural "%1$d accounts report the same device signals: %2$s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "A terminal holds at most %d events."
+msgstr ""
+
+msgid "A terminal is a tablet or computer at the entrance that reads participants' presence codes. It never signs in with anyone's account. An operator who holds ffc_manage_audiences_terminals chooses the events it will serve, up to 10, each ending within the next 7 days, and generates a pairing code. The code reads P-XXXX-XXXX-XXXX, lives five minutes, pairs one terminal once, and the site keeps only a hash of it; it is shown as a QR code to hold up to the terminal's reader, or typed."
+msgstr ""
+
+msgid "An operator QR code, signed by the site and valid for two minutes, unlocks a paired terminal's menu. Anyone who runs check-ins can show one; it pairs nothing."
+msgstr ""
+
+msgid "At most 10 terminals may be active on the site and 3 on one event at a time; the ffc_terminal_limits filter changes both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
+msgstr ""
+
+msgid "Check-in terminals"
+msgstr ""
+
+msgid "Choose at least one event for the terminal."
+msgstr ""
+
+msgid "Every event must be active and end within the next %d days."
+msgstr ""
+
+msgid "Every pairing code, pairing, refusal, lockout and ended terminal is written to the activity log, never with the code or the token. An operator sees the terminals they paired; an administrator sees all of them."
+msgstr ""
+
+msgid "Manage check-in terminals"
+msgstr ""
+
+msgid "One of these events already has %d active terminals. End one before pairing another."
+msgstr ""
+
+msgid "Pair a self-service check-in terminal with events, list the terminals you paired and end them. A paired terminal records attendance with nobody from staff beside it."
+msgstr ""
+
+msgid "Terminal Ended"
+msgstr ""
+
+msgid "Terminal Paired"
+msgstr ""
+
+msgid "Terminal Pairing Code Created"
+msgstr ""
+
+msgid "Terminal Pairing Code Refused"
+msgstr ""
+
+msgid "Terminal Pairing Locked Out"
+msgstr ""
+
+msgid "The paired terminal receives a token of its own, kept on the site only as a hash. It works for those events only, stops two hours after the last of them ends, and can be ended at any time. It is attributed to the operator who generated the code."
+msgstr ""
+
+msgid "The pairing code could not be saved. Try again."
+msgstr ""
+
+msgid "The site could not sign an operator code. Try again."
+msgstr ""
+
+msgid "The terminal could not be saved. Generate a new code and try again."
+msgstr ""
+
+msgid "There is no such terminal."
+msgstr ""
+
+msgid "This is not an operator code."
+msgstr ""
+
+msgid "This operator code has expired. Show a new one."
+msgstr ""
+
+msgid "This operator code was not issued by this site."
+msgstr ""
+
+msgid "This pairing code is wrong, used or expired. Generate a new one and try again."
+msgstr ""
+
+msgid "This site already has %d active terminals. End one before pairing another."
+msgstr ""
+
+msgid "This terminal sent no device id. Reload the page and try again."
+msgstr ""
+
+msgid "This terminal was already ended."
+msgstr ""
+
+msgid "Wrong codes are counted on the site. Three in a row lock that terminal for 15 minutes, and each further one for 30. One network address may send at most 20 wrong codes an hour across all its terminals. A correct pairing, or an hour without attempts, starts the count over. The lock screen shows how long to wait, never the code typed."
+msgstr ""
+
+msgid "pair a check-in terminal with events, list the terminals you paired and end them. Held by the Manager tier and above; existing holders of ffc_manage_audiences received it on update. The Operator tier keeps ffc_checkin_audiences, which is enough to show the operator QR code."
+msgstr ""
+
+msgid "Too many wrong codes. Try again in %d minute."
+msgid_plural "Too many wrong codes. Try again in %d minutes."
+msgstr[0] ""
+msgstr[1] ""

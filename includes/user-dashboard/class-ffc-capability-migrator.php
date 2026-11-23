@@ -1256,6 +1256,34 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Source-to-target map for the check-in terminals cap (#2744).
+	 *
+	 * @since 6.50.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function terminals_cap_grant_map(): array {
+		return array(
+			'ffc_manage_audiences' => array( 'ffc_manage_audiences_terminals' ),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_manage_audiences_terminals` onto
+	 * every user and role already holding `ffc_manage_audiences`: the
+	 * Manager tier and above, which is where the capability sits, so nobody
+	 * who runs audience calendars today loses the terminals.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_terminals_cap_v1` option.
+	 *
+	 * @since 6.50.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_terminals_cap_grant(): array {
+		return self::seed_caps( self::terminals_cap_grant_map() );
+	}
+
+	/**
 	 * Source-to-target map for the presence devices cap (#2743).
 	 *
 	 * @since 6.50.0
@@ -1329,6 +1357,7 @@ class CapabilityMigrator {
 			self::ip_pii_caps_grant_map(),
 			self::forms_api_submit_cap_grant_map(),
 			self::presence_cap_grant_map(),
+			self::terminals_cap_grant_map(),
 		);
 		foreach ( $multiple as $map ) {
 			foreach ( $map as $source => $targets ) {

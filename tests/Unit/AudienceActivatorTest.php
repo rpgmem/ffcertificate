@@ -148,7 +148,7 @@ class AudienceActivatorTest extends TestCase {
 
 		AudienceActivator::create_tables();
 
-		$this->assertSame( 14, $delta_count, 'dbDelta should be called 14 times for 14 audience tables' );
+		$this->assertSame( 16, $delta_count, 'dbDelta should be called 16 times for 16 audience tables' );
 	}
 
 	// ==================================================================
@@ -578,7 +578,7 @@ class AudienceActivatorTest extends TestCase {
 
 		AudienceActivator::maybe_migrate();
 
-		$this->assertCount( 14, array_unique( $created ), 'Every table the module declares is created when it is missing.' );
+		$this->assertCount( 16, array_unique( $created ), 'Every table the module declares is created when it is missing.' );
 	}
 
 	// ==================================================================

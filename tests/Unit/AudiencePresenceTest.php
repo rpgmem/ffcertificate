@@ -429,6 +429,7 @@ class AudiencePresenceTest extends TestCase {
 		$request->shouldReceive( 'get_header' )->with( 'X-WP-Nonce' )->andReturnUsing( static function () use ( &$nonce ) {
 			return $nonce;
 		} );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturn( null );
 		$logged_in = true;
 		$caps      = array( 'ffc_view_own_audience_bookings' );
 		Functions\when( 'is_user_logged_in' )->alias( static function () use ( &$logged_in ) {
@@ -452,9 +453,9 @@ class AudiencePresenceTest extends TestCase {
 		$this->assertFalse( $controller->check_app_permission( $request ) );
 
 		$logged_in = true;
-		$this->assertFalse( $controller->check_terminal_permission() );
+		$this->assertFalse( $controller->check_terminal_permission( $request ) );
 		$caps = array( 'ffc_checkin_audiences' );
-		$this->assertTrue( $controller->check_terminal_permission() );
+		$this->assertTrue( $controller->check_terminal_permission( $request ) );
 	}
 
 	// ---- Helpers ----------------------------------------------------------

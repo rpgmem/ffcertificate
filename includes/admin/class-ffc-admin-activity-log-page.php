@@ -381,6 +381,11 @@ class AdminActivityLogPage {
 			'presence_request_approved'                    => __( 'Presence Device Change Allowed', 'ffcertificate' ),
 			'presence_request_refused'                     => __( 'Presence Device Request Refused', 'ffcertificate' ),
 			'presence_signals_dismissed'                   => __( 'Presence Device Signals Dismissed', 'ffcertificate' ),
+			'terminal_pairing_created'                     => __( 'Terminal Pairing Code Created', 'ffcertificate' ),
+			'terminal_paired'                              => __( 'Terminal Paired', 'ffcertificate' ),
+			'terminal_pairing_refused'                     => __( 'Terminal Pairing Code Refused', 'ffcertificate' ),
+			'terminal_pairing_locked'                      => __( 'Terminal Pairing Locked Out', 'ffcertificate' ),
+			'terminal_revoked'                             => __( 'Terminal Ended', 'ffcertificate' ),
 			'scheduled_task_failed'                        => __( 'Scheduled Task Failed', 'ffcertificate' ),
 
 			// Migrations.

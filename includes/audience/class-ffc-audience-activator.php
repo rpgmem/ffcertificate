@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '15';
+	public const SCHEMA_REVISION = '16';
 
 	/**
 	 * Option holding the revision last applied.
@@ -84,6 +84,8 @@ class AudienceActivator {
 		self::create_form_invites_table();
 		self::create_presence_devices_table();
 		self::create_presence_requests_table();
+		self::create_terminals_table();
+		self::create_terminal_pairings_table();
 		self::add_composite_indexes();
 	}
 
@@ -589,6 +591,86 @@ class AudienceActivator {
 	}
 
 	/**
+	 * Create the check-in terminals table (#2744).
+	 *
+	 * One row per paired terminal. The terminal holds the token; the site
+	 * keeps only its SHA-256, so a copy of the table does not pair anything.
+	 * `bookings` is the JSON list of booking ids the terminal may record
+	 * attendance for. A row is active while `revoked_at` is null and
+	 * `expires_at` is ahead; a revoked row stays, as the record of who paired
+	 * it and who ended it.
+	 *
+	 * @return void
+	 */
+	private static function create_terminals_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_terminals';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            token_hash char(64) NOT NULL,
+            device_hash char(64) NOT NULL,
+            label varchar(100) NOT NULL DEFAULT '',
+            bookings text NOT NULL,
+            paired_by bigint(20) unsigned DEFAULT NULL,
+            paired_at bigint(20) unsigned NOT NULL,
+            expires_at bigint(20) unsigned NOT NULL,
+            last_seen_at bigint(20) unsigned DEFAULT NULL,
+            revoked_at bigint(20) unsigned DEFAULT NULL,
+            revoked_by bigint(20) unsigned DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_token (token_hash),
+            KEY idx_paired_by (paired_by),
+            KEY idx_expires (expires_at)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the terminal pairings table (#2744).
+	 *
+	 * One row per pairing code an operator generated. The code itself is
+	 * never stored, only its keyed hash; a row lives five minutes and is
+	 * spent by the pairing that uses it.
+	 *
+	 * @return void
+	 */
+	private static function create_terminal_pairings_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_terminal_pairings';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            code_hash char(64) NOT NULL,
+            label varchar(100) NOT NULL DEFAULT '',
+            bookings text NOT NULL,
+            created_by bigint(20) unsigned DEFAULT NULL,
+            created_at bigint(20) unsigned NOT NULL,
+            expires_at bigint(20) unsigned NOT NULL,
+            used_at bigint(20) unsigned DEFAULT NULL,
+            terminal_id bigint(20) unsigned DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_code (code_hash),
+            KEY idx_expires (expires_at)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
 	 * Create booking audiences table
 	 *
 	 * N:N relationship between bookings and audience groups.
@@ -1039,6 +1121,9 @@ class AudienceActivator {
 		// The presence devices of #2741, the same way.
 		self::create_presence_devices_table();
 		self::create_presence_requests_table();
+		// The terminals of #2744, the same way.
+		self::create_terminals_table();
+		self::create_terminal_pairings_table();
 		$healed = self::migrate_attendance_method_terminal() && $healed;
 		$healed = self::migrate_presence_admin_columns() && $healed;
 		$healed = $healed
@@ -1046,7 +1131,9 @@ class AudienceActivator {
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' )
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_form_invites' )
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_presence_devices' )
-			&& self::table_exists( $wpdb->prefix . 'ffc_audience_presence_requests' );
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_presence_requests' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_terminals' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_terminal_pairings' );
 
 		if ( $healed ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );

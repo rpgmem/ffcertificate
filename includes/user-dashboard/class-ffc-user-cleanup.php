@@ -232,6 +232,10 @@ class UserCleanup {
 			'ffc_audience_checkin_windows'      => array( 'opened_by', 'closed_by' ),
 			'ffc_audience_presence_devices'     => array( 'revoked_by', 'released_by' ),
 			'ffc_audience_presence_requests'    => array( 'decided_by' ),
+			// Terminals (#2744): a paired terminal is a record of who paired
+			// and who ended it; the row stays and loses the operator.
+			'ffc_audience_terminals'            => array( 'paired_by', 'revoked_by' ),
+			'ffc_audience_terminal_pairings'    => array( 'created_by' ),
 		);
 
 		foreach ( $map as $basename => $columns ) {
