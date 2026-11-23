@@ -238,7 +238,7 @@
 	width: 180px;
 	max-width: 36vw;
 	aspect-ratio: 1;
-	border-radius: 50%;
+	border-radius: var(--ffc-radius-full);
 	background: var(--ffc-text);
 	color: var(--ffc-bg);
 }
@@ -606,7 +606,7 @@
 .ffc-terminal-conn::before {
 	width: 10px;
 	height: 10px;
-	border-radius: 50%;
+	border-radius: var(--ffc-radius-full);
 	background: var(--ffc-text-muted);
 	content: "";
 }
