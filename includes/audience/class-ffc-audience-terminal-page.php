@@ -419,6 +419,13 @@ final class AudienceTerminalPage {
 					/* translators: %d: readings kept on the terminal */
 					'connOffline'     => __( 'Offline · %d readings saved here', 'ffcertificate' ),
 					'connCamera'      => __( 'front camera', 'ffcertificate' ),
+					'setup'           => array(
+						/* translators: %s: the operator's short name, such as Maria S. */
+						'operator' => __( 'Set up by %s. Choose the events this terminal checks in.', 'ffcertificate' ),
+						/* translators: 1: events chosen, 2: the most a terminal may hold */
+						'count'    => __( '%1$d of %2$d events chosen', 'ffcertificate' ),
+						'full'     => __( 'Full', 'ffcertificate' ),
+					),
 					'queueEdit'       => array(
 						'now'           => __( 'Now', 'ffcertificate' ),
 						'remove'        => __( 'Remove', 'ffcertificate' ),
