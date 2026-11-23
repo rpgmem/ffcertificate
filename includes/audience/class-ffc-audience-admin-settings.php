@@ -298,14 +298,17 @@ class AudienceAdminSettings {
 	}
 
 	/**
-	 * Render the Check-in tab (#2747): how attendance is taken, the terminals
-	 * included. Each field saves on its own through the settings autosave.
+	 * Render the Check-in tab (#2747, #2748): how attendance is taken, the
+	 * terminals included. Each field saves on its own through the settings autosave.
 	 *
 	 * @return void
 	 */
 	private function render_checkin_tab(): void {
 		$can_edit        = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
-		$terminal_camera = AudienceTerminalPage::camera_allowed();
+		$terminal_camera = AudienceCheckinSettings::camera_allowed();
+		$site_limit      = AudienceCheckinSettings::site_limit();
+		$event_limit     = AudienceCheckinSettings::event_limit();
+		$auto_end_hours  = intdiv( AudienceCheckinSettings::auto_end_seconds(), HOUR_IN_SECONDS );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/checkin-tab.php';
 	}

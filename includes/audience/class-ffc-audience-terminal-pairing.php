@@ -31,8 +31,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The terminal sends the code with an id it generated for itself, and gets
  * back a token: random, returned once, stored only as its SHA-256. The
- * token is limited to those bookings, ends two hours after the last of them
- * ends, can be ended by hand, and is attributed to the operator who
+ * token is limited to those bookings, ends a set time after the last of them
+ * ends (two hours unless the Check-in settings say otherwise), can be ended by hand, and is attributed to the operator who
  * generated the code.
  *
  * @phpstan-import-type TerminalRow from AudienceTerminalReader
@@ -50,11 +50,6 @@ final class AudienceTerminalPairing {
 	public const CODE_TTL = 300;
 
 	/**
-	 * How long a terminal outlives the last booking it holds, in seconds.
-	 */
-	public const AFTER_LAST = 7200;
-
-	/**
 	 * How far ahead a booking may end, in days.
 	 */
 	public const DAYS_AHEAD = 7;
@@ -65,28 +60,22 @@ final class AudienceTerminalPairing {
 	public const MAX_BOOKINGS = 10;
 
 	/**
-	 * Active terminals per site, unless filtered.
-	 */
-	public const SITE_LIMIT = 10;
-
-	/**
-	 * Active terminals per booking, unless filtered.
-	 */
-	public const BOOKING_LIMIT = 3;
-
-	/**
 	 * The virtual prefix of a pairing code.
 	 */
 	public const PREFIX = 'P';
 
 	/**
-	 * The limits in force.
+	 * The limits in force: Scheduling → Settings → Check-in (#2748), then the
+	 * filter.
 	 *
 	 * @return array{site: int, booking: int}
 	 */
 	public static function limits(): array {
+		$site  = AudienceCheckinSettings::site_limit();
+		$event = AudienceCheckinSettings::event_limit();
 		/**
-		 * Filters how many terminals may be active at once (#2744).
+		 * Filters how many terminals may be active at once (#2744). The
+		 * values arrive from the Check-in settings (#2748).
 		 *
 		 * @since 6.50.0
 		 * @param array<string, mixed> $limits Per site (`site`) and per booking (`booking`).
@@ -94,13 +83,13 @@ final class AudienceTerminalPairing {
 		$limits = apply_filters(
 			'ffc_terminal_limits',
 			array(
-				'site'    => self::SITE_LIMIT,
-				'booking' => self::BOOKING_LIMIT,
+				'site'    => $site,
+				'booking' => $event,
 			)
 		);
 		return array(
-			'site'    => max( 1, isset( $limits['site'] ) && is_numeric( $limits['site'] ) ? (int) $limits['site'] : self::SITE_LIMIT ),
-			'booking' => max( 1, isset( $limits['booking'] ) && is_numeric( $limits['booking'] ) ? (int) $limits['booking'] : self::BOOKING_LIMIT ),
+			'site'    => max( 1, isset( $limits['site'] ) && is_numeric( $limits['site'] ) ? (int) $limits['site'] : $site ),
+			'booking' => max( 1, isset( $limits['booking'] ) && is_numeric( $limits['booking'] ) ? (int) $limits['booking'] : $event ),
 		);
 	}
 
@@ -375,7 +364,8 @@ final class AudienceTerminalPairing {
 	}
 
 	/**
-	 * When a terminal stops: two hours after the last of its bookings ends.
+	 * When a terminal stops: the auto-end of the Check-in settings (two hours
+	 * by default) after the last of its bookings ends.
 	 *
 	 * @param int[] $bookings Booking ids.
 	 * @param int   $now      Unix time.
@@ -390,7 +380,7 @@ final class AudienceTerminalPairing {
 				$last = $end;
 			}
 		}
-		return $last + self::AFTER_LAST;
+		return $last + AudienceCheckinSettings::auto_end_seconds();
 	}
 
 	/**

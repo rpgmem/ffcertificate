@@ -431,6 +431,11 @@ class Settings {
 			// Scheduling → Settings → Check-in: a terminal may read codes with
 			// its own camera (#2747). Off: the wedge reader is recommended.
 			'terminal_camera'                   => 0,
+			// The same tab (#2748): terminal limits and how long a terminal
+			// outlives its last event.
+			'terminal_site_limit'               => 10,
+			'terminal_event_limit'              => 3,
+			'terminal_auto_end_hours'           => 2,
 			'csv_download_page_url'             => '',
 			'dangerzone_reset_counter_default'  => 1,
 			'dark_mode'                         => 'off',
