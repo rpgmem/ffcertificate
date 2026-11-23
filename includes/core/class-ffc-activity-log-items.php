@@ -314,6 +314,10 @@ final class ActivityLogItems {
 		'attendance_removed'                      => 'sched_attendance',
 		'checkin_window_opened'                   => 'sched_attendance',
 		'checkin_window_closed'                   => 'sched_attendance',
+		'presence_device_activated'               => 'sched_attendance',
+		'presence_device_revoked'                 => 'sched_attendance',
+		'presence_enrolment_refused'              => 'sched_attendance',
+		'presence_signals_match'                  => 'sched_attendance',
 
 		'settings_changed'                        => 'system_settings',
 		'scheduled_task_failed'                   => 'system_tasks',

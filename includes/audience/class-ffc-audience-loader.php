@@ -212,6 +212,8 @@ class AudienceLoader {
 			$controller = new AudienceRestController();
 			$controller->register_routes();
 		}
+		// Presence devices of the app (#2741).
+		( new AudiencePresenceRestController() )->register_routes();
 	}
 
 	/**

@@ -144,6 +144,8 @@ $ffcertificate_tables = array(
 	// Audience.
 	$wpdb->prefix . 'ffc_audience_attendance',
 	$wpdb->prefix . 'ffc_audience_form_invites',
+	$wpdb->prefix . 'ffc_audience_presence_devices',
+	$wpdb->prefix . 'ffc_audience_presence_requests',
 	$wpdb->prefix . 'ffc_audience_checkin_windows',
 	$wpdb->prefix . 'ffc_audience_booking_users',
 	$wpdb->prefix . 'ffc_audience_booking_audiences',
@@ -216,6 +218,7 @@ $ffcertificate_options = array(
 	'ffc_bulk_issue_db_version',
 	'ffc_certificate_signatures_db_version',
 	'ffc_signing_keys', // Written only when a signing key is generated (#2639).
+	'ffc_presence_keys', // Written only when the first presence device enrols (#2741).
 	'ffc_user_access_settings',
 	'ffc_global_holidays',
 	'ffc_calendar_appearance', // Written only when the calendar colours and labels are saved (#2215).
