@@ -370,6 +370,24 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$this->assertSame( 'certificate_not_found', $result->get_error_code() );
 	}
 
+	/**
+	 * A pairing code (`P-`) is a credential: the REST verification answers it
+	 * as a code that does not exist, without asking the repository (#2739).
+	 */
+	public function test_verify_certificate_refuses_an_unknown_prefix_without_a_lookup(): void {
+		$repo = Mockery::mock( SubmissionRepository::class );
+		$repo->shouldNotReceive( 'findByAuthCode' );
+
+		$ctrl    = new SubmissionRestController( 'ffc/v1', $repo );
+		$request = Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_param' )->with( 'auth_code' )->andReturn( 'P-ABCD-1234-EFGH' );
+
+		$result = $ctrl->verify_certificate( $request );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'certificate_not_found', $result->get_error_code() );
+		$this->assertSame( 404, $result->get_error_data()['status'] );
+	}
+
 	public function test_verify_certificate_rejects_trashed(): void {
 		$repo = Mockery::mock( SubmissionRepository::class );
 		$repo->shouldReceive( 'findByAuthCode' )->once()->andReturn(

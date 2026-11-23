@@ -850,6 +850,33 @@ class DocumentFormatterTest extends TestCase {
 		];
 	}
 
+	/**
+	 * Only C, R and A name a verifiable document. `P` is the terminal
+	 * pairing prefix (#2738): adding it to the verification prefixes for any
+	 * other use breaks this on purpose, because a pairing code is a
+	 * credential and must never be looked up on the verification page (#2739).
+	 *
+	 * @dataProvider unknown_prefix_provider
+	 */
+	public function test_has_unknown_prefix( string $input, bool $expected ): void {
+		$this->assertSame( $expected, DocumentFormatter::has_unknown_prefix( $input ) );
+	}
+
+	public static function unknown_prefix_provider(): array {
+		return [
+			'pairing code'        => [ 'P-ABCD-1234-EFGH', true ],
+			'pairing lowercase'   => [ 'p abcd 1234 efgh', true ],
+			'unused letter'       => [ 'Z-ABCD-1234-EFGH', true ],
+			'digit first'         => [ '1ABCD1234EFGH', true ],
+			'certificate prefix'  => [ 'C-ABCD-1234-EFGH', false ],
+			'reregistration'      => [ 'R-ABCD-1234-EFGH', false ],
+			'appointment'         => [ 'A-ABCD-1234-EFGH', false ],
+			'no prefix'           => [ 'ABCD-1234-EFGH', false ],
+			'too long'            => [ 'P-ABCD-1234-EFGH-X', false ],
+			'empty'               => [ '', false ],
+		];
+	}
+
 	public function test_parse_prefixed_code_returns_array_with_keys(): void {
 		$result = DocumentFormatter::parse_prefixed_code('ABCD1234EFGH');
 		$this->assertArrayHasKey('prefix', $result);
