@@ -265,7 +265,7 @@
             el.setAttribute('data-ffc-terminal-tone', tone || ('locked' === view ? 'warning' : 'neutral'));
             el.setAttribute('data-ffc-terminal-screen', view);
             part('foot').hidden = !('ready' === view || 'between' === view);
-            if ('pairing' === view || 'locked' === view) {
+            if ('pairing' === view || 'locked' === view || 'setup' === view) {
                 head(strings.terminalTitle, '', strings.notPaired);
             }
             if ('pairing' === view) {
@@ -1143,25 +1143,7 @@
                 });
             }).then(function (result) {
                 if (201 === result.status && result.body.token) {
-                    var state = {
-                        token: result.body.token,
-                        terminal_id: result.body.terminal_id,
-                        label: result.body.label || '',
-                        bookings: result.body.bookings || [],
-                        expires_at: result.body.expires_at,
-                        expires_label: result.body.expires_label || '',
-                        keys: result.body.keys || {}
-                    };
-                    if (!store.set(STATE_KEY, JSON.stringify(state))) {
-                        say('');
-                        fail(strings.storage);
-                        return null;
-                    }
-                    say(strings.paired);
-                    showReady(state);
-                    refreshRevocations();
-                    refreshSchedule();
-                    return state;
+                    return keepPairing(result.body);
                 }
                 say('');
                 if (429 === result.status) {
@@ -1180,9 +1162,193 @@
             });
         }
 
+        // What a pairing answer leaves on the terminal, from a pairing code or
+        // from the setup on the terminal itself (#2780).
+        function keepPairing(body) {
+            var state = {
+                token: body.token,
+                terminal_id: body.terminal_id,
+                label: body.label || '',
+                bookings: body.bookings || [],
+                expires_at: body.expires_at,
+                expires_label: body.expires_label || '',
+                keys: body.keys || {}
+            };
+            if (!store.set(STATE_KEY, JSON.stringify(state))) {
+                say('');
+                fail(strings.storage);
+                return null;
+            }
+            say(strings.paired);
+            showReady(state);
+            refreshRevocations();
+            refreshSchedule();
+            return state;
+        }
+
+        // Setting the terminal up on the terminal itself (#2780): an operator
+        // who may pair terminals shows their operator code on the pairing
+        // screen, chooses the events here, and the terminal pairs at once.
+        // A pairing code is made and spent on the site; none is shown.
+        var setupCode = '';
+        var setupMax = 10;
+        var setupStrings = strings.setup || {};
+
+        function publicRequest(path, body) {
+            return env.fetch(config.rest + path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'omit',
+                body: JSON.stringify(body)
+            }).then(function (response) {
+                return response.json().catch(function () { return {}; }).then(function (data) {
+                    return { status: response.status, body: data || {} };
+                });
+            }, function () {
+                return { status: 0, body: { message: strings.failed } };
+            });
+        }
+
+        function setupError(text) {
+            part('setup-error').textContent = text || '';
+            part('setup-error').hidden = !text;
+        }
+
+        function setupChecks() {
+            return Array.prototype.slice.call(part('setup-list').querySelectorAll('input[type="checkbox"]'));
+        }
+
+        function setupCount() {
+            var checks = setupChecks();
+            var chosen = checks.filter(function (box) { return box.checked; }).length;
+            checks.forEach(function (box) {
+                box.disabled = box.hasAttribute('data-ffc-terminal-full') || (!box.checked && chosen >= setupMax);
+            });
+            part('setup-count').textContent = fill(setupStrings.count || '%1$d / %2$d', [chosen, setupMax]);
+        }
+
+        function renderSetup(events) {
+            var list = part('setup-list');
+            var place = part('setup-place');
+            list.textContent = '';
+            while (place.options.length > 1) {
+                place.remove(1);
+            }
+            var places = {};
+            events.forEach(function (event) {
+                var item = el.ownerDocument.createElement('li');
+                item.className = 'ffc-terminal-queue-item';
+                var label = el.ownerDocument.createElement('label');
+                label.className = 'ffc-terminal-setup-choice';
+                var box = el.ownerDocument.createElement('input');
+                box.type = 'checkbox';
+                box.value = String(event.id);
+                box.setAttribute('data-ffc-terminal-place', String(event.place_id || 0));
+                if (event.full) {
+                    box.setAttribute('data-ffc-terminal-full', '');
+                }
+                box.addEventListener('change', setupCount);
+                var text = el.ownerDocument.createElement('span');
+                text.className = 'ffc-terminal-queue-text';
+                var name = el.ownerDocument.createElement('strong');
+                name.textContent = event.description || '';
+                var meta = el.ownerDocument.createElement('span');
+                meta.className = 'ffc-terminal-queue-meta';
+                meta.textContent = [event.place, event.when, event.full ? setupStrings.full : ''].filter(Boolean).join(' · ');
+                text.appendChild(name);
+                text.appendChild(meta);
+                label.appendChild(box);
+                label.appendChild(text);
+                item.appendChild(label);
+                list.appendChild(item);
+                if (event.place_id && !places[event.place_id]) {
+                    places[event.place_id] = event.place || String(event.place_id);
+                    var option = el.ownerDocument.createElement('option');
+                    option.value = String(event.place_id);
+                    option.textContent = places[event.place_id];
+                    place.appendChild(option);
+                }
+            });
+            part('setup-none').hidden = events.length > 0;
+            setupCount();
+        }
+
+        function startSetup(code) {
+            fail('');
+            return publicRequest('setup/events', { code: code }).then(function (result) {
+                if (200 !== result.status) {
+                    if ('setup' === screen) {
+                        setupError(result.body.message || strings.failed);
+                    } else {
+                        fail(result.body.message || strings.failed);
+                    }
+                    return false;
+                }
+                var fresh = 'setup' !== screen;
+                setupCode = code;
+                setupMax = result.body.max || 10;
+                part('setup-operator').textContent = fill(setupStrings.operator || '%s', [result.body.name || '']);
+                setupError('');
+                if (fresh) {
+                    renderSetup(result.body.bookings || []);
+                    part('setup-label').value = '';
+                    part('setup-place').value = '';
+                    show('setup');
+                }
+                return true;
+            });
+        }
+
+        function finishSetup() {
+            var id = device();
+            if (!id) {
+                setupError(strings.storage);
+                return Promise.resolve(null);
+            }
+            var bookings = setupChecks().filter(function (box) { return box.checked; }).map(function (box) { return Number(box.value); });
+            setupError('');
+            part('setup-submit').disabled = true;
+            return publicRequest('setup', { code: setupCode, device: id, bookings: bookings, label: part('setup-label').value }).then(function (result) {
+                part('setup-submit').disabled = false;
+                if (201 === result.status && result.body.token) {
+                    setupCode = '';
+                    return keepPairing(result.body);
+                }
+                setupError(result.body.message || strings.failed);
+                return null;
+            });
+        }
+
+        part('setup-place').addEventListener('change', function () {
+            var chosen = part('setup-place').value;
+            var count = 0;
+            setupChecks().forEach(function (box) {
+                var take = '' !== chosen && box.getAttribute('data-ffc-terminal-place') === chosen && !box.hasAttribute('data-ffc-terminal-full') && count < setupMax;
+                box.checked = take;
+                if (take) {
+                    count++;
+                }
+            });
+            setupCount();
+        });
+        part('setup-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            finishSetup();
+        });
+        part('setup-cancel').addEventListener('click', function () {
+            setupCode = '';
+            show('pairing');
+        });
+
         part('form').addEventListener('submit', function (event) {
             event.preventDefault();
-            var code = cleanCode(part('code').value);
+            var raw = part('code').value;
+            if (0 === cleanReading(raw).indexOf(OPERATOR_PREFIX)) {
+                part('code').value = '';
+                startSetup(cleanReading(raw));
+                return;
+            }
+            var code = cleanCode(raw);
             if (code) {
                 pair(code);
             }
@@ -1338,8 +1504,12 @@
             if ('locked' === screen) {
                 return null;
             }
-            if ('pairing' === screen) {
-                var code = cleanCode(raw);
+            var reading = cleanReading(raw);
+            if ('pairing' === screen || 'setup' === screen) {
+                if (0 === reading.indexOf(OPERATOR_PREFIX)) {
+                    return startSetup(reading);
+                }
+                var code = 'pairing' === screen ? cleanCode(raw) : '';
                 return code ? pair(code) : null;
             }
             return take(raw);
@@ -1505,7 +1675,7 @@
             }
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, startSetup: startSetup, finishSetup: finishSetup, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 
     root.FFCTerminal = {

@@ -46,11 +46,13 @@ function markup() {
 			</div>
 			<div data-ffc-presence-part="code-view" data-ffc-presence-view="code" hidden>
 				<ul data-ffc-presence-part="pending" hidden></ul>
-				<select data-ffc-presence-part="event"></select>
+				<h2 data-ffc-presence-part="title"></h2>
+				<p data-ffc-presence-part="when"></p>
+				<div data-ffc-presence-part="picker" hidden><select data-ffc-presence-part="event"></select></div>
 				<p data-ffc-presence-part="attendance" hidden></p>
 				<p data-ffc-presence-part="empty" hidden></p>
-				<div data-ffc-presence-part="qr"></div>
-				<p data-ffc-presence-part="name"></p>
+				<div data-ffc-presence-part="card"><div data-ffc-presence-part="qr"></div></div>
+				<progress data-ffc-presence-part="progress"></progress>
 				<p data-ffc-presence-part="countdown"></p>
 			</div>
 		</div>`;
@@ -311,7 +313,8 @@ describe('presence app screen', () => {
 		expect(el.querySelector('[data-ffc-presence-view="code"]').hidden).toBe(false);
 		expect(el.querySelector('[data-ffc-presence-part="qr"] svg')).not.toBeNull();
 		expect(el.querySelector('[data-ffc-presence-part="qr"]').getAttribute('aria-label')).toBe('qr label');
-		expect(el.querySelector('[data-ffc-presence-part="name"]').textContent).toBe('Maria S.');
+		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent).toMatch(/ · Maria S\.$/);
+		expect(el.querySelector('[data-ffc-presence-part="picker"]').hidden).toBe(false, 'two events: the picker shows');
 		expect(el.querySelectorAll('option').length).toBe(2);
 		app.stop();
 	});
@@ -397,7 +400,9 @@ describe('presence app screen', () => {
 		await settle();
 		const holder = el.querySelector('[data-ffc-presence-part="qr"]');
 		expect(app.drawn).toBe('42@' + (NOW - (NOW % 30)));
-		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent).toBe('next ' + (30 - (NOW % 30)));
+		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent.split(' · ')[0]).toBe('next ' + (30 - (NOW % 30)));
+		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('value')).toBe(String(30 - (NOW % 30)), 'the bar drains with the rotation');
+		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('max')).toBe('30');
 
 		const first = holder.innerHTML;
 		expect(await app.draw()).toBeNull();
@@ -411,6 +416,7 @@ describe('presence app screen', () => {
 		select.dispatchEvent(new Event('change'));
 		await settle();
 		expect(app.state.chosen).toBe('43');
+		expect(el.querySelector('[data-ffc-presence-part="title"]').textContent).toBe(app.current().title || '', 'the heading follows the chosen event');
 		expect(app.drawn.startsWith('43@')).toBe(true);
 		app.stop();
 	});
@@ -426,6 +432,9 @@ describe('presence app screen', () => {
 		app.listEvents();
 		expect(el.querySelector('[data-ffc-presence-part="empty"]').hidden).toBe(false);
 		expect(el.querySelector('[data-ffc-presence-part="event"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-presence-part="picker"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-presence-part="card"]').hidden).toBe(true, 'no event, no code card');
+		expect(el.querySelector('[data-ffc-presence-part="title"]').hidden).toBe(true);
 		app.drawn = '';
 		expect(await app.draw()).toBeNull();
 		expect(el.querySelector('[data-ffc-presence-part="qr"]').textContent).toBe('');

@@ -785,3 +785,37 @@
 	}
 }
 
+/* Setting the terminal up on the terminal itself (#2780): the queue of the
+   app's Pair terminal, as a list to tick. */
+.ffc-terminal-setup-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-lg);
+	width: 100%;
+	max-width: 720px;
+	text-align: start;
+}
+
+.ffc-terminal-setup-form fieldset {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.ffc-terminal-setup-choice {
+	display: flex;
+	flex: 1 1 auto;
+	align-items: center;
+	gap: var(--ffc-spacing-sm);
+	cursor: pointer;
+}
+
+.ffc-terminal-setup-choice input {
+	width: 24px;
+	height: 24px;
+	flex: none;
+}
+
