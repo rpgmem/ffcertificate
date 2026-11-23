@@ -257,6 +257,7 @@
             part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
             show('ready');
             focusReading();
+            keepAwake();
         }
 
         function focusReading() {
@@ -292,12 +293,90 @@
             store.remove(QUEUE_KEY);
             store.remove(REVOKED_KEY);
             closeMenu();
+            wakeNote('');
+            releaseAwake();
             fail(strings.expired);
             show('pairing');
         }
 
         function current() {
             return readState(store.get(STATE_KEY), now());
+        }
+
+        // Keep the screen on (#2775) ----------------------------------------
+        //
+        // While the terminal is paired and has an event now or next, it asks
+        // the browser to keep the screen on, so the tablet does not dim at
+        // the entrance. The browser drops the lock whenever the page is
+        // hidden, so it is asked again when the page shows. Without the API,
+        // or when the browser refuses, nothing else changes: the operator
+        // menu says the screen may dim.
+
+        var awake = { sentinel: null, pending: false, note: '' };
+
+        function wakeNote(text) {
+            awake.note = text || '';
+            var note = part('wake-note');
+            if (note) {
+                note.textContent = awake.note;
+                note.hidden = !awake.note;
+            }
+        }
+
+        function wantsAwake() {
+            var state = current();
+            if (!state) {
+                return false;
+            }
+            if (!state.schedule) {
+                return (state.bookings || []).length > 0;
+            }
+            var plan = whatNow(state.schedule, now());
+            return !!(plan.current || plan.next);
+        }
+
+        function releaseAwake() {
+            var sentinel = awake.sentinel;
+            awake.sentinel = null;
+            if (!sentinel) {
+                return Promise.resolve(false);
+            }
+            return Promise.resolve(sentinel.release ? sentinel.release() : null).then(function () { return false; }, function () { return false; });
+        }
+
+        function keepAwake() {
+            if (!wantsAwake()) {
+                wakeNote('');
+                return releaseAwake();
+            }
+            if (env.visible && !env.visible()) {
+                return Promise.resolve(false);
+            }
+            if (!env.wakeLock || !env.wakeLock.request) {
+                wakeNote(strings.wakeUnsupported);
+                return Promise.resolve(false);
+            }
+            if ((awake.sentinel && !awake.sentinel.released) || awake.pending) {
+                return Promise.resolve(!!awake.sentinel);
+            }
+            awake.pending = true;
+            return Promise.resolve(env.wakeLock.request('screen')).then(function (sentinel) {
+                awake.pending = false;
+                awake.sentinel = sentinel || null;
+                if (sentinel && sentinel.addEventListener) {
+                    sentinel.addEventListener('release', function () {
+                        if (awake.sentinel === sentinel) {
+                            awake.sentinel = null;
+                        }
+                    });
+                }
+                wakeNote('');
+                return !!sentinel;
+            }, function () {
+                awake.pending = false;
+                wakeNote(strings.wakeRefused);
+                return false;
+            });
         }
 
         function url(path) {
@@ -583,6 +662,8 @@
                 store.remove(QUEUE_KEY);
                 store.remove(REVOKED_KEY);
                 closeMenu();
+                wakeNote('');
+                releaseAwake();
                 say(strings.ended);
                 show('pairing');
                 return true;
@@ -835,7 +916,11 @@
             if (state) {
                 showEvent(state);
             }
+            keepAwake();
         }, SYNC_MS);
+        if (env.onVisible) {
+            env.onVisible(keepAwake);
+        }
         env.setInterval(refreshRevocations, REVOCATIONS_MS);
         if (env.onOnline) {
             env.onOnline(function () {
@@ -865,7 +950,7 @@
             }
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 
     root.FFCTerminal = {
@@ -899,7 +984,16 @@
                 secure: !!root.isSecureContext,
                 BarcodeDetector: root.BarcodeDetector,
                 mediaDevices: root.navigator.mediaDevices,
-                onOnline: function (fn) { root.addEventListener('online', fn); }
+                onOnline: function (fn) { root.addEventListener('online', fn); },
+                wakeLock: root.navigator.wakeLock,
+                visible: function () { return 'visible' === root.document.visibilityState; },
+                onVisible: function (fn) {
+                    root.document.addEventListener('visibilitychange', function () {
+                        if ('visible' === root.document.visibilityState) {
+                            fn();
+                        }
+                    });
+                }
             });
         };
         if ('loading' === root.document.readyState) {

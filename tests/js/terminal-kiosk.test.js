@@ -3,7 +3,8 @@
  * the site answers with, the pairing the page keeps across a reload, reading
  * presence codes and the operator menu; the event it checks in now or
  * next, from the schedule the site hands it (#2746); reading with the
- * device camera through BarcodeDetector (#2747).
+ * device camera through BarcodeDetector (#2747); keeping the screen on
+ * while it has an event (#2775).
  */
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
@@ -44,6 +45,8 @@ const CONFIG = {
 		notOpen: 'not open yet',
 		opensAt: 'opens %s',
 		noEvents: 'no more events',
+		wakeUnsupported: 'cannot keep the screen on',
+		wakeRefused: 'screen on refused',
 		offline: {
 			invalid: 'not a valid code',
 			ffc_presence_code_revoked: 'phone replaced',
@@ -86,6 +89,7 @@ function markup() {
 			<section data-ffc-terminal-view="menu" hidden>
 				<p data-ffc-terminal-part="operator"></p>
 				<p data-ffc-terminal-part="queue"></p>
+				<p data-ffc-terminal-part="wake-note" hidden></p>
 				<div data-ffc-terminal-part="menu-ask">
 					<button type="button" data-ffc-terminal-part="menu-sync">Send</button>
 					<button type="button" data-ffc-terminal-part="menu-close">Close</button>
@@ -925,3 +929,121 @@ describe('camera', () => {
 		expect(feed.tracks[0].stopped).toBe(true);
 	});
 });
+
+describe('screen wake lock', () => {
+	const NOW_EVENT = [{ booking_id: 11, title: 'Morning talk', opens: NOW - 600, closes: NOW + 1200, opens_label: '09:50', closes_label: '10:20', open: true }];
+
+	function wakeLock(refuse = false) {
+		const lock = { requests: 0, sentinels: [] };
+		lock.request = (type) => {
+			lock.requests++;
+			lock.type = type;
+			if (refuse) {
+				return Promise.reject(new Error('NotAllowedError'));
+			}
+			const listeners = [];
+			const sentinel = {
+				released: false,
+				releases: 0,
+				addEventListener: (name, fn) => { if ('release' === name) { listeners.push(fn); } },
+				release: () => { sentinel.released = true; sentinel.releases++; listeners.forEach((fn) => fn()); return Promise.resolve(); },
+			};
+			lock.sentinels.push(sentinel);
+			return Promise.resolve(sentinel);
+		};
+		return lock;
+	}
+
+	function start(state, overrides = {}) {
+		const el = markup();
+		const visibleHandlers = [];
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, bookings: [11], expires_at: NOW + 86400, expires_label: 'later', schedule: NOW_EVENT, ...state }) }),
+			onVisible: (fn) => visibleHandlers.push(fn),
+			visible: () => true,
+			...overrides,
+		});
+		const controls = T().start(el, CONFIG, e);
+		return { el, e, controls, visibleHandlers };
+	}
+
+	const note = (el) => el.querySelector('[data-ffc-terminal-part="wake-note"]');
+
+	it('keeps the screen on while paired with an event, and asks only once', async () => {
+		const lock = wakeLock();
+		const { controls } = start({}, { wakeLock: lock });
+		await settle();
+
+		expect(lock.requests).toBe(1);
+		expect(lock.type).toBe('screen');
+		await controls.keepAwake();
+		expect(lock.requests).toBe(1);
+	});
+
+	it('asks again when the page shows after the browser dropped the lock', async () => {
+		const lock = wakeLock();
+		const { visibleHandlers } = start({}, { wakeLock: lock });
+		await settle();
+		lock.sentinels[0].release();
+
+		visibleHandlers.forEach((fn) => fn());
+		await settle();
+
+		expect(lock.requests).toBe(2);
+	});
+
+	it('does not ask while the page is hidden', async () => {
+		const lock = wakeLock();
+		start({}, { wakeLock: lock, visible: () => false });
+		await settle();
+
+		expect(lock.requests).toBe(0);
+	});
+
+	it('lets the screen dim once no event is left', async () => {
+		const lock = wakeLock();
+		const { e, controls } = start({}, { wakeLock: lock });
+		await settle();
+
+		const state = JSON.parse(e.storage.getItem('ffcTerminal'));
+		state.schedule = [];
+		e.storage.setItem('ffcTerminal', JSON.stringify(state));
+		await controls.keepAwake();
+
+		expect(lock.sentinels[0].releases).toBe(1);
+		expect(lock.requests).toBe(1);
+	});
+
+	it('lets the screen dim when the pairing ends on its own', async () => {
+		const lock = wakeLock();
+		const { e } = start({}, { wakeLock: lock });
+		await settle();
+
+		e.clock.now = (NOW + 86400 + 60) * 1000;
+		e.timers.forEach((fn) => fn());
+		await settle();
+
+		expect(lock.sentinels[0].releases).toBe(1);
+	});
+
+	it('says in the operator menu when the browser cannot or will not keep the screen on', async () => {
+		const unsupported = start({});
+		await settle();
+		expect(note(unsupported.el).hidden).toBe(false);
+		expect(note(unsupported.el).textContent).toBe('cannot keep the screen on');
+
+		const refused = start({}, { wakeLock: wakeLock(true) });
+		await settle();
+		expect(note(refused.el).textContent).toBe('screen on refused');
+	});
+
+	it('asks nothing of a terminal that is not paired', async () => {
+		const lock = wakeLock();
+		const el = markup();
+		T().start(el, CONFIG, env({ wakeLock: lock }));
+		await settle();
+
+		expect(lock.requests).toBe(0);
+	});
+});
+

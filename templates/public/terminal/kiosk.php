@@ -4,7 +4,7 @@
  *
  * The markup only: `assets/js/ffc-terminal-kiosk.js` shows one view at a
  * time. It pairs the terminal (#2744), reads presence codes online or into
- * its offline queue (#2745), shows the event it checks in now or next (#2746), reads with the device camera where allowed (#2747) and opens the operator menu on an operator code. The two result regions stay
+ * its offline queue (#2745), shows the event it checks in now or next (#2746), reads with the device camera where allowed (#2747), keeps the screen on while it has an event (#2775) and opens the operator menu on an operator code. The two result regions stay
  * in the page, so a screen reader announces each result as it is written.
  *
  * @package FreeFormCertificate\Audience
@@ -117,6 +117,7 @@ use FreeFormCertificate\Core\Notice;
 		<p data-ffc-terminal-part="operator"></p>
 		<p data-ffc-terminal-part="queue"></p>
 		<p class="description"><?php esc_html_e( 'The menu locks again after two minutes without use.', 'ffcertificate' ); ?></p>
+		<p class="description ffc-icon-warning" data-ffc-terminal-part="wake-note" hidden></p>
 		<div class="ffc-terminal-actions" data-ffc-terminal-part="menu-ask">
 			<?php
 			Button::render(

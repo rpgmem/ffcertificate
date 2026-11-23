@@ -199,7 +199,11 @@ class AudiencePresenceCodeTest extends TestCase {
 
 	public function test_an_expired_or_forged_ticket_is_refused(): void {
 		$expired = (string) AudiencePresenceTicket::issue( 7, AudienceAttendanceTarget::TYPE, 42, self::NOW - 1 );
-		$forged  = substr( (string) AudiencePresenceTicket::issue( 7, AudienceAttendanceTarget::TYPE, 42, self::NOW + 3600 ), 0, -1 ) . 'x';
+		$valid   = (string) AudiencePresenceTicket::issue( 7, AudienceAttendanceTarget::TYPE, 42, self::NOW + 3600 );
+		// Flip a bit of the signature's last byte: replacing it with a fixed
+		// character left the ticket intact whenever the random signature
+		// already ended in that character (1 run in 256).
+		$forged = substr( $valid, 0, -1 ) . chr( ord( substr( $valid, -1 ) ) ^ 1 );
 
 		$this->assertSame( 'ffc_presence_ticket_expired', $this->error( $this->code( 42, self::NOW, $expired ) ) );
 		$this->assertSame( 'ffc_presence_ticket_signature', $this->error( $this->code( 42, self::NOW, $forged ) ) );
