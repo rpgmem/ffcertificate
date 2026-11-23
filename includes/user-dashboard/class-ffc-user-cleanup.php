@@ -150,6 +150,21 @@ class UserCleanup {
 			}
 		}
 
+		// Presence devices and their requests (#2741): relationships between
+		// a person and a phone, deleted with the person, outside the footprint
+		// short-circuit for the reason the invitations above give. A deleted
+		// account's device is therefore free at once, which is what an
+		// administrator releasing it would have done.
+		foreach ( array( 'presence_devices', 'presence_requests' ) as $presence ) {
+			$presence_table = $wpdb->prefix . 'ffc_audience_' . $presence;
+			if ( self::has_table( $presence_table ) ) {
+				$rows = $wpdb->delete( $presence_table, array( 'user_id' => $user_id ), array( '%d' ) );
+				if ( $rows > 0 ) {
+					$anonymized[ $presence ] = $rows;
+				}
+			}
+		}
+
 		// Log the anonymization only when something actually changed.
 		if ( ! empty( $anonymized ) && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
@@ -215,6 +230,8 @@ class UserCleanup {
 			// ran the window.
 			'ffc_audience_attendance'           => array( 'user_id', 'marked_by' ),
 			'ffc_audience_checkin_windows'      => array( 'opened_by', 'closed_by' ),
+			'ffc_audience_presence_devices'     => array( 'revoked_by', 'released_by' ),
+			'ffc_audience_presence_requests'    => array( 'decided_by' ),
 		);
 
 		foreach ( $map as $basename => $columns ) {

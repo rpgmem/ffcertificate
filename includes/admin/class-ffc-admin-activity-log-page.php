@@ -373,6 +373,10 @@ class AdminActivityLogPage {
 			'attendance_removed'                           => __( 'Attendance Removed', 'ffcertificate' ),
 			'checkin_window_opened'                        => __( 'Check-in Opened', 'ffcertificate' ),
 			'checkin_window_closed'                        => __( 'Check-in Closed', 'ffcertificate' ),
+			'presence_device_activated'                    => __( 'Presence Device Activated', 'ffcertificate' ),
+			'presence_device_revoked'                      => __( 'Presence Device Revoked', 'ffcertificate' ),
+			'presence_enrolment_refused'                   => __( 'Presence Device Refused', 'ffcertificate' ),
+			'presence_signals_match'                       => __( 'Presence Device Signals Shared', 'ffcertificate' ),
 			'scheduled_task_failed'                        => __( 'Scheduled Task Failed', 'ffcertificate' ),
 
 			// Migrations.

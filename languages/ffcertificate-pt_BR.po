@@ -35594,3 +35594,93 @@ msgstr "Com o plugin Site PWA instalado, o painel aparece também dentro do app 
 
 msgid "Optional. Shows only the tabs named, separated by commas: certificates, appointments, audience, reregistrations, recruitment, messages, profile. A narrowed dashboard leaves out the summary cards and the Log Out link, and shows its tab bar only with two tabs or more."
 msgstr "Opcional. Mostra só as abas indicadas, separadas por vírgulas: certificates, appointments, audience, reregistrations, recruitment, messages, profile. Um painel restrito deixa de fora os cartões de resumo e o link Sair, e mostra a barra de abas só com duas abas ou mais."
+
+msgid "A new device was activated for your presence code"
+msgstr "Um novo aparelho foi ativado para o seu código de presença"
+
+msgid "New presence device"
+msgstr "Novo aparelho de presença"
+
+msgid "A new device was activated for your presence code on {{activated_at}}. The device you used before no longer shows a valid code."
+msgstr "Um novo aparelho foi ativado para o seu código de presença em {{activated_at}}. O aparelho que você usava antes não mostra mais um código válido."
+
+msgid "If this was not you, contact the administrator of {{site_name}}."
+msgstr "Se não foi você, fale com o administrador de {{site_name}}."
+
+msgid "Log in to activate this device."
+msgstr "Entre na sua conta para ativar este aparelho."
+
+msgid "Presence Device Activated"
+msgstr "Aparelho de Presença Ativado"
+
+msgid "Presence Device Refused"
+msgstr "Aparelho de Presença Recusado"
+
+msgid "Presence Device Revoked"
+msgstr "Aparelho de Presença Revogado"
+
+msgid "Presence Device Signals Shared"
+msgstr "Sinais de Aparelho de Presença Repetidos"
+
+msgid "Presence device replaced"
+msgstr "Aparelho de presença substituído"
+
+msgid "The device could not be activated. Try again."
+msgstr "Não foi possível ativar o aparelho. Tente de novo."
+
+msgid "The site cannot sign presence codes right now. Contact the administrator."
+msgstr "O site não consegue assinar códigos de presença agora. Fale com o administrador."
+
+msgid "This device could not be identified. Reinstall the app and try again."
+msgstr "Não foi possível identificar este aparelho. Reinstale o app e tente de novo."
+
+msgid "This device could not prove it holds its key. Check the phone's clock and try again."
+msgstr "Este aparelho não conseguiu provar que tem a sua chave. Confira o relógio do celular e tente de novo."
+
+msgid "This device created a key the site cannot use."
+msgstr "Este aparelho criou uma chave que o site não consegue usar."
+
+msgid "This device is in use by another account. An administrator can release it; your request was sent."
+msgstr "Este aparelho está em uso por outra conta. Um administrador pode liberá-lo; o seu pedido foi enviado."
+
+msgid "This device is not activated for your account. Activate it again."
+msgstr "Este aparelho não está ativado para a sua conta. Ative-o de novo."
+
+msgid "This device was replaced or revoked. Activate it again to use it."
+msgstr "Este aparelho foi substituído ou revogado. Ative-o de novo para usá-lo."
+
+msgid "This key cannot be activated again. Reinstall the app and try again."
+msgstr "Esta chave não pode ser ativada de novo. Reinstale o app e tente de novo."
+
+msgid "This presence code could not be read."
+msgstr "Não foi possível ler este código de presença."
+
+msgid "This presence code has expired. Open the app while online to renew it."
+msgstr "Este código de presença expirou. Abra o app com internet para renová-lo."
+
+msgid "This presence code was not issued by this site."
+msgstr "Este código de presença não foi emitido por este site."
+
+msgid "You changed devices too many times in the last 30 days. An administrator can allow one more; your request was sent."
+msgstr "Você trocou de aparelho vezes demais nos últimos 30 dias. Um administrador pode permitir mais uma troca; o seu pedido foi enviado."
+
+msgid "Presence devices"
+msgstr "Aparelhos de presença"
+
+msgid "A participant who installs the app activates their phone once, while online, to show a presence code at a terminal. The phone creates a key that cannot be copied, and the site signs a statement binding that key to the account and to a short name, such as \"Maria S.\". The statement lasts 7 days and the app renews it whenever it is online. It never carries a CPF or RF."
+msgstr "O participante que instala o app ativa o celular uma vez, com internet, para mostrar um código de presença num terminal. O celular cria uma chave que não pode ser copiada, e o site assina uma declaração que liga essa chave à conta e a um nome curto, como \"Maria S.\". A declaração vale 7 dias e o app a renova sempre que está com internet. Ela nunca leva CPF nem RF."
+
+msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so."
+msgstr "Um aparelho ativo por conta: ativar um celular novo faz o antigo deixar de mostrar um código válido, e o participante recebe um e-mail avisando."
+
+msgid "A phone stays reserved to its account for 30 days after it was last used there. Another account trying to activate it is refused until an administrator releases it."
+msgstr "Um celular fica reservado à sua conta por 30 dias depois do último uso nela. Outra conta que tentar ativá-lo é recusada até um administrador liberá-lo."
+
+msgid "At most 3 device changes per account in 30 days. The first phone is not a change, and neither is setting the app up again on the same phone. Beyond that, an administrator has to allow one more."
+msgstr "No máximo 3 trocas de aparelho por conta em 30 dias. O primeiro celular não conta como troca, e configurar o app de novo no mesmo celular também não. Passando disso, um administrador precisa permitir mais uma."
+
+msgid "Two accounts whose phones report the same device signals raise a warning in the activity log and are not blocked, because identical school-issued phones look the same."
+msgstr "Duas contas cujos celulares informam os mesmos sinais de aparelho geram um aviso no registro de atividades e não são bloqueadas, porque celulares iguais entregues pela escola parecem o mesmo."
+
+msgid "A refusal an administrator can lift leaves a request for them. Every activation, revocation and refusal is in the activity log, with the device and key identifiers. These rules apply to presence codes only: logging in, certificates and bookings work on any device."
+msgstr "Uma recusa que um administrador pode desfazer deixa um pedido para ele. Toda ativação, revogação e recusa fica no registro de atividades, com os identificadores do aparelho e da chave. Essas regras valem só para códigos de presença: entrar, certificados e reservas funcionam em qualquer aparelho."

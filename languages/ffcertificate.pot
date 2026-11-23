@@ -35516,3 +35516,93 @@ msgstr ""
 
 msgid "Optional. Shows only the tabs named, separated by commas: certificates, appointments, audience, reregistrations, recruitment, messages, profile. A narrowed dashboard leaves out the summary cards and the Log Out link, and shows its tab bar only with two tabs or more."
 msgstr ""
+
+msgid "A new device was activated for your presence code"
+msgstr ""
+
+msgid "New presence device"
+msgstr ""
+
+msgid "A new device was activated for your presence code on {{activated_at}}. The device you used before no longer shows a valid code."
+msgstr ""
+
+msgid "If this was not you, contact the administrator of {{site_name}}."
+msgstr ""
+
+msgid "Log in to activate this device."
+msgstr ""
+
+msgid "Presence Device Activated"
+msgstr ""
+
+msgid "Presence Device Refused"
+msgstr ""
+
+msgid "Presence Device Revoked"
+msgstr ""
+
+msgid "Presence Device Signals Shared"
+msgstr ""
+
+msgid "Presence device replaced"
+msgstr ""
+
+msgid "The device could not be activated. Try again."
+msgstr ""
+
+msgid "The site cannot sign presence codes right now. Contact the administrator."
+msgstr ""
+
+msgid "This device could not be identified. Reinstall the app and try again."
+msgstr ""
+
+msgid "This device could not prove it holds its key. Check the phone's clock and try again."
+msgstr ""
+
+msgid "This device created a key the site cannot use."
+msgstr ""
+
+msgid "This device is in use by another account. An administrator can release it; your request was sent."
+msgstr ""
+
+msgid "This device is not activated for your account. Activate it again."
+msgstr ""
+
+msgid "This device was replaced or revoked. Activate it again to use it."
+msgstr ""
+
+msgid "This key cannot be activated again. Reinstall the app and try again."
+msgstr ""
+
+msgid "This presence code could not be read."
+msgstr ""
+
+msgid "This presence code has expired. Open the app while online to renew it."
+msgstr ""
+
+msgid "This presence code was not issued by this site."
+msgstr ""
+
+msgid "You changed devices too many times in the last 30 days. An administrator can allow one more; your request was sent."
+msgstr ""
+
+msgid "Presence devices"
+msgstr ""
+
+msgid "A participant who installs the app activates their phone once, while online, to show a presence code at a terminal. The phone creates a key that cannot be copied, and the site signs a statement binding that key to the account and to a short name, such as \"Maria S.\". The statement lasts 7 days and the app renews it whenever it is online. It never carries a CPF or RF."
+msgstr ""
+
+msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so."
+msgstr ""
+
+msgid "A phone stays reserved to its account for 30 days after it was last used there. Another account trying to activate it is refused until an administrator releases it."
+msgstr ""
+
+msgid "At most 3 device changes per account in 30 days. The first phone is not a change, and neither is setting the app up again on the same phone. Beyond that, an administrator has to allow one more."
+msgstr ""
+
+msgid "Two accounts whose phones report the same device signals raise a warning in the activity log and are not blocked, because identical school-issued phones look the same."
+msgstr ""
+
+msgid "A refusal an administrator can lift leaves a request for them. Every activation, revocation and refusal is in the activity log, with the device and key identifiers. These rules apply to presence codes only: logging in, certificates and bookings work on any device."
+msgstr ""

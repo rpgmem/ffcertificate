@@ -48,6 +48,7 @@ final class EmailTemplates {
 		'audience-admin-cancellation',
 		'audience-change',
 		'audience-post-event-invite',
+		'presence-device-replaced',
 		'certificate-user',
 		'quiz-graded-passed',
 		'quiz-graded-not-passed',

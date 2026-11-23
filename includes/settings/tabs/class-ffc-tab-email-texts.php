@@ -255,6 +255,10 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Audience post-event form invitation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'event', 'schedule_name', 'form_title', 'form_link', 'closes_at', 'site_name' ),
 			),
+			'presence-device-replaced'      => array(
+				'label'  => __( 'Presence device replaced', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'activated_at', 'site_name' ),
+			),
 			'access-granted'                => array(
 				'label'  => __( 'Access granted to a user', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'context_label', 'site_name', 'dashboard_button' ),
@@ -361,7 +365,7 @@ class TabEmailTexts extends SettingsTab {
 				'reregistration-rejected',
 				'reregistration-returned',
 			),
-			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation', 'audience-change', 'audience-post-event-invite' ),
+			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation', 'audience-change', 'audience-post-event-invite', 'presence-device-replaced' ),
 			__( 'Account access', 'ffcertificate' )     => array( 'access-granted' ),
 			__( 'Date Messages', 'ffcertificate' )      => array( 'date-message-birthday', 'date-message-announcement' ),
 		);

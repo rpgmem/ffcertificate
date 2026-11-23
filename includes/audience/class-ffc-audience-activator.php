@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '13';
+	public const SCHEMA_REVISION = '14';
 
 	/**
 	 * Option holding the revision last applied.
@@ -82,6 +82,8 @@ class AudienceActivator {
 		self::create_attendance_table();
 		self::create_checkin_windows_table();
 		self::create_form_invites_table();
+		self::create_presence_devices_table();
+		self::create_presence_requests_table();
 		self::add_composite_indexes();
 	}
 
@@ -496,6 +498,88 @@ class AudienceActivator {
             PRIMARY KEY (id),
             UNIQUE KEY uq_booking_user (booking_id,user_id),
             KEY idx_user (user_id)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the presence devices table (#2741).
+	 *
+	 * One row per device key a user activated. A row is active while
+	 * `revoked_at` is null; a revoked row stays, because it is what reserves
+	 * the device to its account for 30 days and what the change limit counts.
+	 * `is_change` is decided when the row is written: 1 when the user had a
+	 * device before and this one is a different device.
+	 *
+	 * @return void
+	 */
+	private static function create_presence_devices_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_presence_devices';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            device_id varchar(64) NOT NULL,
+            key_id varchar(16) NOT NULL,
+            public_key varchar(100) NOT NULL,
+            signals_hash varchar(64) DEFAULT NULL,
+            is_change tinyint(1) NOT NULL DEFAULT 0,
+            activated_at bigint(20) unsigned NOT NULL,
+            revoked_at bigint(20) unsigned DEFAULT NULL,
+            revoked_reason varchar(20) DEFAULT NULL,
+            revoked_by bigint(20) unsigned DEFAULT NULL,
+            released_at bigint(20) unsigned DEFAULT NULL,
+            released_by bigint(20) unsigned DEFAULT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_key_id (key_id),
+            KEY idx_user (user_id),
+            KEY idx_device (device_id),
+            KEY idx_signals (signals_hash)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the presence requests table (#2741).
+	 *
+	 * An enrolment the rules refused for a reason an administrator can lift
+	 * (a device reserved to another account, the change limit) leaves one
+	 * pending request here. Approving it lets the next enrolment through
+	 * once, and that enrolment marks it used.
+	 *
+	 * @return void
+	 */
+	private static function create_presence_requests_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_audience_presence_requests';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            device_id varchar(64) NOT NULL,
+            reason varchar(20) NOT NULL,
+            status varchar(20) NOT NULL DEFAULT 'pending',
+            created_at bigint(20) unsigned NOT NULL,
+            decided_at bigint(20) unsigned DEFAULT NULL,
+            decided_by bigint(20) unsigned DEFAULT NULL,
+            PRIMARY KEY (id),
+            KEY idx_user_status (user_id,status),
+            KEY idx_status (status)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -950,11 +1034,16 @@ class AudienceActivator {
 		self::create_attendance_table();
 		self::create_checkin_windows_table();
 		self::create_form_invites_table();
+		// The presence devices of #2741, the same way.
+		self::create_presence_devices_table();
+		self::create_presence_requests_table();
 		$healed = self::migrate_attendance_method_terminal() && $healed;
 		$healed = $healed
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_attendance' )
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' )
-			&& self::table_exists( $wpdb->prefix . 'ffc_audience_form_invites' );
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_form_invites' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_presence_devices' )
+			&& self::table_exists( $wpdb->prefix . 'ffc_audience_presence_requests' );
 
 		if ( $healed ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
