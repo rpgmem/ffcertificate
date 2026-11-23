@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers the dashboard's screens with Site PWA.
  *
- * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, tabs: list<string>}
+ * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, tabs: list<string>, render?: callable(): string}
  */
 final class DashboardAppScreens {
 
@@ -76,7 +76,7 @@ final class DashboardAppScreens {
 					'icon'     => $screen['icon'],
 					'place'    => $screen['place'],
 					'position' => $screen['position'],
-					'render'   => static fn(): string => DashboardShortcode::render( array( 'tabs' => $attribute ) ),
+					'render'   => $screen['render'] ?? static fn(): string => DashboardShortcode::render( array( 'tabs' => $attribute ) ),
 				)
 			);
 		}
@@ -94,7 +94,8 @@ final class DashboardAppScreens {
 	}
 
 	/**
-	 * The dashboard's screens, by id.
+	 * The dashboard's screens, by id. A screen with its own `render` draws
+	 * the app's design; the rest draw their dashboard tab.
 	 *
 	 * @return array<string, ScreenDef>
 	 */
@@ -113,6 +114,8 @@ final class DashboardAppScreens {
 				'place'    => 'nav',
 				'position' => 2,
 				'tabs'     => array( 'certificates' ),
+				// The app draws its own screen over the same route (#2781).
+				'render'   => array( CertificatesAppScreen::class, 'render' ),
 			),
 			'messages'       => array(
 				'label'    => __( 'Messages', 'ffcertificate' ),

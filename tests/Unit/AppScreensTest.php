@@ -6,6 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAppScreens;
+use FreeFormCertificate\Shortcodes\CertificatesAppScreen;
 use FreeFormCertificate\Shortcodes\DashboardAppScreens;
 use PHPUnit\Framework\TestCase;
 
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
  * version checked.
  *
  * @covers \FreeFormCertificate\Shortcodes\DashboardAppScreens
+ * @covers \FreeFormCertificate\Shortcodes\CertificatesAppScreen
  * @covers \FreeFormCertificate\Audience\AudienceAppScreens
  */
 class AppScreensTest extends TestCase {
@@ -125,7 +127,46 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 1, $registry->added['calendar']['position'] );
 		$this->assertSame( 'nav', $registry->added['certificates']['place'] );
 		$this->assertSame( 'more', $registry->added['profile']['place'] );
-		$this->assertIsCallable( $registry->added['certificates']['render'] );
+		$this->assertSame( array( CertificatesAppScreen::class, 'render' ), $registry->added['certificates']['render'], 'the app draws its own Certificates screen' );
+		$this->assertIsCallable( $registry->added['calendar']['render'] );
+	}
+
+	public function test_the_certificates_screen_reads_the_dashboard_route(): void {
+		$styles    = array();
+		$scripts   = array();
+		$localized = array();
+		Functions\when( 'wp_enqueue_style' )->alias( static function ( $handle, $src = '' ) use ( &$styles ) {
+			$styles[ $handle ] = $src;
+		} );
+		Functions\when( 'wp_enqueue_script' )->alias( static function ( $handle, $src = '', $deps = array() ) use ( &$scripts ) {
+			$scripts[ $handle ] = array( $src, $deps );
+		} );
+		Functions\when( 'wp_localize_script' )->alias( static function ( $handle, $name, $data ) use ( &$localized ) {
+			$localized[ $handle ] = array( $name, $data );
+			return true;
+		} );
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_attr_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'rest_url' )->alias( static fn( $path ) => 'https://example.com/wp-json/' . $path );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+
+		$html = CertificatesAppScreen::render();
+
+		$this->assertStringContainsString( 'data-ffc-app-certificates', $html );
+		$this->assertStringContainsString( 'type="search"', $html );
+		$this->assertStringContainsString( 'aria-label="Search by course or code"', $html );
+		$this->assertArrayHasKey( 'ffc-app-certificates', $styles );
+		$this->assertStringContainsString( 'assets/js/ffc-app-certificates', $scripts['ffc-app-certificates'][0] );
+		$this->assertSame( 'ffcAppCertificates', $localized['ffc-app-certificates'][0] );
+		$config = $localized['ffc-app-certificates'][1];
+		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/certificates', $config['rest'] );
+		$this->assertSame( CertificatesAppScreen::NEW_DAYS, $config['newDays'] );
+		$this->assertStringContainsString( '%s', $config['strings']['issued'] );
 	}
 
 	public function test_a_signed_out_request_registers_nothing(): void {
