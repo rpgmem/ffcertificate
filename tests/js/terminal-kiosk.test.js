@@ -203,3 +203,52 @@ describe('pairing', () => {
 		expect(storage.data.has('ffcTerminal')).toBe(false);
 	});
 });
+
+describe('failures and the page boot', () => {
+	let el;
+	beforeEach(() => { el = markup(); });
+
+	it('starts on pairing when the storage refuses to be read', () => {
+		const storage = { getItem: () => { throw new Error('blocked'); }, setItem: () => {}, removeItem: () => { throw new Error('blocked'); } };
+		T().start(el, CONFIG, env({ storage }));
+		expect(visible(el)).toEqual(['pairing']);
+	});
+
+	it('refuses to show paired when the token cannot be kept', async () => {
+		const data = new Map();
+		const storage = {
+			getItem: (k) => (data.has(k) ? data.get(k) : null),
+			setItem: (k, v) => { if ('ffcTerminal' === k) { throw new Error('quota'); } data.set(k, v); },
+			removeItem: (k) => { data.delete(k); },
+		};
+		const controls = T().start(el, CONFIG, env({ storage, fetch: respond(201, { token: TOKEN, bookings: [1], expires_at: NOW + 60 }) }));
+		await controls.pair('P-AB12-CD34-EF56');
+		expect(visible(el)).toEqual(['pairing']);
+		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('storage');
+	});
+
+	it('reads an answer that is not JSON as a refusal', async () => {
+		const fetch = () => Promise.resolve({ status: 502, json: () => Promise.reject(new Error('html')) });
+		const controls = T().start(el, CONFIG, env({ fetch }));
+		await controls.pair('P-AB12-CD34-EF56');
+		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('failed');
+	});
+
+	it('restarts the countdown when a second lock arrives', async () => {
+		const e = env({ fetch: respond(429, { retry_after: 900 }) });
+		const controls = T().start(el, CONFIG, e);
+		await controls.pair('P-WRON-GCOD-E000');
+		await controls.pair('P-WRON-GCOD-E001');
+		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('locked 15:00');
+	});
+
+	it('boots from the localized config', () => {
+		window.ffcTerminal = CONFIG;
+		try {
+			loadScript('assets/js/ffc-terminal-kiosk.js');
+			expect(visible(el)).toEqual(['pairing']);
+		} finally {
+			delete window.ffcTerminal;
+		}
+	});
+});
