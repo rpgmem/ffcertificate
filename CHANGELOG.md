@@ -26,6 +26,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The check-in terminal's operator menu shows a Device check** (#2747): HTTPS, camera reading, screen kept on and the browser's name, read from the browser itself, to try a new tablet before an event.
 - **The dashboard and the app say when a participant was present** (#2749): a booking shows Present ("Present: 2 of 3 days" over several days) with the method and time, and the app's Presence screen lists dismissible attendance confirmations and open post-event forms, sent with the events it already fetches.
 - **The check-in terminal follows the approved screens** (#2780). A full-screen page, always dark, with the event, place, closing time, clock and present count on top; a countdown between events; each reading fills the screen in green, blue or red for five seconds with the person's name and time, and says when an open event admits someone not enrolled.
+- **The check-in terminal has its own address and manifest** (#2780). `/terminal/` (the query form stays) installs as a full-screen, landscape app scoped to the terminal, with no login; the page and manifest are sent with `X-Robots-Tag: noindex` and `no-store`. No rewrite rule is stored.
 
 ### Security
 
