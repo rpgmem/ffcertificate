@@ -160,6 +160,8 @@ class UserAudienceRestController {
 			$bookings_formatted = array();
 			$now                = time();
 			$pending            = 0;
+			// Whether the person was recorded present, from one query (#2749).
+			$attendance = \FreeFormCertificate\Audience\AudienceAttendanceStatus::for_bookings( (int) $user_id, $bookings );
 
 			foreach ( $bookings as $booking ) {
 				// booking_date is a wall-clock DATE (Category B), rendered literally with no
@@ -246,6 +248,7 @@ class UserAudienceRestController {
 					// not left to the script (#1826).
 					'audiences'           => \FreeFormCertificate\Core\BadgeHtml::with_row_colors( $booking['audiences'] ),
 					'post_event'          => $post_event,
+					'attendance'          => $attendance[ (int) $booking['id'] ] ?? null,
 				);
 			}
 

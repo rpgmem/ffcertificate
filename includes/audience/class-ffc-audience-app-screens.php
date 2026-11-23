@@ -201,6 +201,8 @@ final class AudienceAppScreens {
 					'next'       => __( 'New code in %d s', 'ffcertificate' ),
 					'expired'    => __( 'This phone\'s activation has expired. Open this screen while online to renew it.', 'ffcertificate' ),
 					'qrLabel'    => __( 'Your presence code. Hold it up to the terminal\'s reader.', 'ffcertificate' ),
+					'dismiss'    => __( 'Dismiss', 'ffcertificate' ),
+					'fillForm'   => __( 'Fill in the form', 'ffcertificate' ),
 				),
 			)
 		);

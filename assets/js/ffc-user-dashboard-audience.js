@@ -69,7 +69,13 @@
         html += '<td>' + esc(booking.environment_name || '');
         if (booking.schedule_name) html += '<br><small class="ffc-booking-schedule">' + esc(booking.schedule_name) + '</small>';
         html += '</td>';
-        html += '<td>' + esc(booking.booking_date || '') + '</td>';
+        html += '<td>' + esc(booking.booking_date || '');
+        // Recorded present (#2749): the count follows the event's rule, and
+        // how and when the last reading arrived is the pill's title.
+        if (booking.attendance && booking.status !== 'cancelled') {
+            html += '<br><span class="ffc-pill ffc-dashboard-status-present" title="' + helpers.escAttr(booking.attendance.detail || '') + '">' + esc(booking.attendance.label) + '</span>';
+        }
+        html += '</td>';
         html += '<td>' + esc(booking.time_label || (booking.start_time + ' - ' + booking.end_time)) + '</td>';
         html += '<td>' + esc(booking.description || '');
         // Why it was cancelled, in the canceller's words (#2243).

@@ -32,6 +32,8 @@ const STRINGS = {
 	next: 'next %d',
 	expired: 'expired',
 	qrLabel: 'qr label',
+	dismiss: 'dismiss',
+	fillForm: 'fill form',
 };
 
 function markup() {
@@ -43,7 +45,9 @@ function markup() {
 				<button type="button" data-ffc-presence-part="activate">Activate</button>
 			</div>
 			<div data-ffc-presence-part="code-view" data-ffc-presence-view="code" hidden>
+				<ul data-ffc-presence-part="pending" hidden></ul>
 				<select data-ffc-presence-part="event"></select>
+				<p data-ffc-presence-part="attendance" hidden></p>
 				<p data-ffc-presence-part="empty" hidden></p>
 				<div data-ffc-presence-part="qr"></div>
 				<p data-ffc-presence-part="name"></p>
@@ -482,3 +486,89 @@ function decodeBase45(text) {
 	}
 	return new Uint8Array(out);
 }
+
+describe('presence app attendance (#2749)', () => {
+	const PENDING = [
+		{ type: 'confirmed', key: 'confirmed:42:2027-01-16', title: 'Library', text: 'Attendance confirmed at Library', detail: 'Self-service terminal · 16/01 09:12' },
+		{ type: 'form', key: 'form:41', title: 'Lab', text: 'Post-event form · until 20/01', detail: 'Feedback', url: 'https://example.org/form/?t=x' },
+		{ type: 'form', key: 'form:40', title: 'Old', text: 'Post-event form · until 19/01', detail: '', url: 'javascript:alert(1)' },
+	];
+
+	beforeEach(() => {
+		window.ffcPresence = { rest: rest(''), nonce: 'n', userId: USER, strings: STRINGS };
+	});
+
+	afterEach(() => {
+		delete window.ffcPresence;
+		document.body.innerHTML = '';
+	});
+
+	const items = (el) => Array.from(el.querySelectorAll('[data-ffc-presence-part="pending"] li'));
+
+	it('lists what waits and says Present on the chosen event', async () => {
+		const { state } = await deviceState();
+		const el = markup();
+		const store = memoryStore(state);
+		const events = [Object.assign({}, EVENTS[0], { attendance: 'Present: 2 of 3 days' }), EVENTS[1]];
+		const fetch = vi.fn(() => reply(200, { events, pending: PENDING }));
+		const [app] = P().boot({ store, fetch, now: () => NOW * 1000 });
+		await settle();
+
+		const list = el.querySelector('[data-ffc-presence-part="pending"]');
+		expect(list.hidden).toBe(false);
+		expect(items(el).map((li) => li.querySelector('strong').textContent)).toEqual(PENDING.map((p) => p.text));
+		const link = items(el)[1].querySelector('a');
+		expect(link.getAttribute('href')).toBe('https://example.org/form/?t=x');
+		expect(link.textContent).toBe('fill form');
+		expect(items(el)[2].querySelector('a')).toBeNull();
+		expect(store.data.get('device').pending).toHaveLength(3);
+
+		const attendance = el.querySelector('[data-ffc-presence-part="attendance"]');
+		expect(attendance.hidden).toBe(false);
+		expect(attendance.textContent).toBe('Present: 2 of 3 days');
+
+		const select = el.querySelector('[data-ffc-presence-part="event"]');
+		select.value = '43';
+		select.dispatchEvent(new Event('change'));
+		await settle();
+		expect(attendance.hidden).toBe(true);
+		app.stop();
+	});
+
+	it('keeps a dismissed confirmation away, and forgets it once the site stops sending it', async () => {
+		const { state } = await deviceState();
+		const el = markup();
+		const store = memoryStore(state);
+		let pending = PENDING;
+		const fetch = vi.fn(() => reply(200, { events: EVENTS, pending }));
+		const [app] = P().boot({ store, fetch, now: () => NOW * 1000 });
+		await settle();
+
+		const dismiss = items(el)[0].querySelector('button');
+		expect(dismiss.getAttribute('aria-label')).toBe('dismiss');
+		dismiss.click();
+		await settle();
+		expect(items(el)).toHaveLength(2);
+		expect(store.data.get('device').dismissed).toEqual(['confirmed:42:2027-01-16']);
+
+		await app.refresh();
+		expect(items(el)).toHaveLength(2);
+
+		pending = [];
+		await app.refresh();
+		expect(el.querySelector('[data-ffc-presence-part="pending"]').hidden).toBe(true);
+		expect(store.data.get('device').dismissed).toEqual([]);
+		app.stop();
+	});
+
+	it('shows the kept list while offline', async () => {
+		const { state } = await deviceState({ pending: PENDING.slice(0, 1) });
+		const el = markup();
+		const fetch = vi.fn(() => Promise.reject(new Error('offline')));
+		const [app] = P().boot({ store: memoryStore(state), fetch, now: () => NOW * 1000 });
+		await settle();
+		expect(items(el)).toHaveLength(1);
+		app.stop();
+	});
+});
+

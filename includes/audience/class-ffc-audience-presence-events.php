@@ -26,7 +26,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * for the right event offline. The window is {@see self::DAYS_AHEAD} days,
  * the same horizon a terminal's queue has (#2738).
  *
- * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, expires: int, ticket: string}
+ * @phpstan-import-type AttendanceConfirmation from AudienceAttendanceStatus
+ * @phpstan-type PresencePending array{type: string, key: string, title: string, text: string, detail: string, url?: string}
+ * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, expires: int, ticket: string, attendance: string}
  */
 final class AudiencePresenceEvents {
 
@@ -57,8 +59,10 @@ final class AudiencePresenceEvents {
 			$bookings[] = $open;
 		}
 
-		$events = array();
-		$seen   = array();
+		// The attendance each event already has (#2749), from one query.
+		$attendance = AudienceAttendanceStatus::for_bookings( $user_id, $bookings );
+		$events     = array();
+		$seen       = array();
 		foreach ( $bookings as $booking ) {
 			$id = (int) ( $booking['id'] ?? 0 );
 			if ( isset( $seen[ $id ] ) ) {
@@ -67,7 +71,8 @@ final class AudiencePresenceEvents {
 			$seen[ $id ] = true;
 			$event       = self::event( $booking, $user_id, $now );
 			if ( null !== $event ) {
-				$events[] = $event;
+				$event['attendance'] = isset( $attendance[ $id ] ) ? $attendance[ $id ]['label'] : '';
+				$events[]            = $event;
 			}
 		}
 		usort(
@@ -75,6 +80,48 @@ final class AudiencePresenceEvents {
 			static fn( array $a, array $b ): int => array( $a['first_date'], $a['target_id'] ) <=> array( $b['first_date'], $b['target_id'] )
 		);
 		return $events;
+	}
+
+	/**
+	 * What waits for the person in the app (#2749): a confirmation for each
+	 * day recorded lately, and each post-event form still open to them.
+	 *
+	 * Built from what the site already holds and sent with the events, so the
+	 * app asks for nothing per item and keeps the list for when it is offline.
+	 *
+	 * @param int $user_id User.
+	 * @param int $now     Unix time.
+	 * @return list<PresencePending>
+	 */
+	public static function pending( int $user_id, int $now ): array {
+		// A form stays open up to the longest window after its event.
+		$since    = wp_date( 'Y-m-d', $now - ( AudiencePostEventForm::MAX_WINDOW_DAYS + 1 ) * DAY_IN_SECONDS );
+		$bookings = AudienceQueryService::find_user_bookings(
+			$user_id,
+			array(
+				'start_date'     => (string) $since,
+				'end_date'       => (string) wp_date( 'Y-m-d', $now ),
+				'exclude_status' => 'cancelled',
+			)
+		);
+
+		$items = AudienceAttendanceStatus::confirmations( $user_id, $bookings, $now );
+		foreach ( $bookings as $booking ) {
+			$form = AudiencePostEventPending::for_user( (object) $booking, $user_id, $now );
+			if ( null === $form ) {
+				continue;
+			}
+			$items[] = array(
+				'type'   => 'form',
+				'key'    => 'form:' . (int) $booking['id'],
+				'title'  => AudienceAttendanceStatus::title( $booking ),
+				/* translators: %s: date the form closes */
+				'text'   => sprintf( __( 'Post-event form · until %s', 'ffcertificate' ), $form['closes_label'] ),
+				'detail' => '' === $form['form_title'] ? AudienceAttendanceStatus::title( $booking ) : $form['form_title'],
+				'url'    => $form['url'],
+			);
+		}
+		return $items;
 	}
 
 	/**
@@ -130,6 +177,7 @@ final class AudiencePresenceEvents {
 			'last_date'   => $last,
 			'expires'     => $expires,
 			'ticket'      => SigningKeys::b64( $ticket ),
+			'attendance'  => '',
 		);
 	}
 }

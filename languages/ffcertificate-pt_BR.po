@@ -36571,3 +36571,21 @@ msgstr "O navegador não manteve a tela ligada, por exemplo na economia de bater
 
 msgid "While the terminal is paired and has an event now or next, it asks the browser to keep the screen on, and asks again whenever the page comes back to the front; once no event is left, or the terminal ends, the screen dims as usual. A browser that cannot keep the screen on, or refuses to (for instance in battery saver), leaves the terminal working as before, and the operator menu says so: set the device's screen timeout instead. Keeping the screen on does not stop someone from leaving the page: to hold the tablet on the terminal, use the device's own kiosk mode, Screen pinning on Android or Guided Access on iPad."
 msgstr "Enquanto o terminal está pareado e tem um evento agora ou a seguir, ele pede ao navegador para manter a tela ligada, e pede de novo sempre que a página volta para a frente; quando não resta evento, ou o terminal é encerrado, a tela apaga como de costume. Um navegador que não consegue manter a tela ligada, ou se recusa (por exemplo na economia de bateria), deixa o terminal funcionando como antes, e o menu do operador avisa: ajuste então o tempo de desligamento da tela do aparelho. Manter a tela ligada não impede alguém de sair da página: para prender o tablet no terminal, use o modo quiosque do próprio aparelho, a Fixação de tela no Android ou o Acesso Guiado no iPad."
+
+msgid "Present: %1$d of %2$d days"
+msgstr "Presente: %1$d de %2$d dias"
+
+msgid "Attendance confirmed at %s"
+msgstr "Presença confirmada em %s"
+
+msgid "Post-event form · until %s"
+msgstr "Formulário pós-evento · até %s"
+
+msgid "Waiting for you"
+msgstr "Esperando por você"
+
+msgid "Once a reading reaches the site, the booking shows Present on the participant's dashboard and on the app's Presence screen, with the method and time; an event over several days shows the days present out of those it counts, such as \"Present: 2 of 3 days\". The app also lists what waits for the participant: \"Attendance confirmed at\" an event, for each day recorded in the last 7 days, which they can dismiss on that phone, and each post-event form still open to them, with its closing date and their link. The list comes with the events the app already fetches and is kept for when the phone is offline; nothing new is e-mailed or pushed."
+msgstr "Assim que uma leitura chega ao site, a reserva mostra Presente no painel do participante e na tela Presença do app, com o método e o horário; um evento de vários dias mostra os dias presentes entre os que ele conta, como \"Presente: 2 de 3 dias\". O app também lista o que espera pelo participante: \"Presença confirmada em\" um evento, para cada dia registrado nos últimos 7 dias, que ele pode dispensar naquele celular, e cada formulário pós-evento ainda aberto para ele, com a data de encerramento e o link pessoal. A lista vem com os eventos que o app já busca e fica guardada para quando o celular está sem internet; nada novo é enviado por e-mail ou notificação."
+
+msgid "A reading that reaches the site late, from a terminal that was offline, counts at the next hourly run: a participant it makes eligible is invited then."
+msgstr "Uma leitura que chega ao site atrasada, de um terminal que estava sem internet, conta na próxima execução de hora em hora: um participante que ela torna elegível é convidado nesse momento."

@@ -77,3 +77,42 @@
 	color: var(--ffc-text-muted);
 	font-size: var(--ffc-font-size-sm);
 }
+
+/* What waits for the person (#2749). */
+.ffc-presence-pending {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-xs);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ffc-presence-pending-item {
+	display: flex;
+	align-items: center;
+	gap: var(--ffc-spacing-sm);
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+	border: 1px solid var(--ffc-success-border);
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-success-bg);
+	color: var(--ffc-success-text);
+}
+
+.ffc-presence-pending-form {
+	border-color: var(--ffc-info-border);
+	background: var(--ffc-info-bg);
+	color: var(--ffc-info-text);
+}
+
+.ffc-presence-pending-body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.ffc-presence-attendance {
+	font-weight: 600;
+	color: var(--ffc-success-text);
+}
