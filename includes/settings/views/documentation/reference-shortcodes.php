@@ -70,7 +70,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><code>[user_dashboard_personal]</code></td>
 				<td>
 					<?php esc_html_e( 'Displays dashboard page.', 'ffcertificate' ); ?><br>
-					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Logged-in users will be able to view all certificates generated for their own CPF/RF (Brazilian tax identification number).', 'ffcertificate' ); ?>
+					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Logged-in users will be able to view all certificates generated for their own CPF/RF (Brazilian tax identification number).', 'ffcertificate' ); ?><br>
+					<code>tabs</code> — <?php esc_html_e( 'Optional. Shows only the tabs named, separated by commas: certificates, appointments, audience, reregistrations, recruitment, messages, profile. A narrowed dashboard leaves out the summary cards and the Log Out link, and shows its tab bar only with two tabs or more.', 'ffcertificate' ); ?> <code>[user_dashboard_personal tabs="appointments,audience"]</code>
 				</td>
 			</tr>
 			<tr>

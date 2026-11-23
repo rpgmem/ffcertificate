@@ -133,6 +133,13 @@
     border-bottom: 2px solid var(--ffc-border-light);
 }
 
+/* A dashboard narrowed to one tab (#2750) keeps its bar in the markup for the
+   script, and shows nothing of it: the flex above would otherwise beat the
+   hidden attribute. */
+.ffc-dashboard-tabbar[hidden] {
+    display: none;
+}
+
 /* Between the phone layout and a width that fits every tab, the tabs flow
    onto a second row instead of pushing the page sideways (#1840). The row gap
    is wider than the tabs' 2px overlap, so a tab on an upper row never reaches

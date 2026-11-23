@@ -35,6 +35,9 @@ class DashboardShortcode {
 	public static function init(): void {
 		add_shortcode( 'user_dashboard_personal', array( __CLASS__, 'render' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'send_nocache_headers' ) );
+		// The dashboard's screens in the installable app (#2750); a no-op
+		// unless the Site PWA plugin fires its registration action.
+		DashboardAppScreens::init();
 	}
 
 	/**
@@ -60,12 +63,28 @@ class DashboardShortcode {
 	}
 
 	/**
+	 * Every tab the dashboard can show, in the order it shows them.
+	 *
+	 * @var list<string>
+	 */
+	public const TABS = array( 'certificates', 'appointments', 'audience', 'reregistrations', 'recruitment', 'messages', 'profile' );
+
+	/**
 	 * Render dashboard
 	 *
-	 * @param array<string, mixed> $atts Shortcode attributes.
+	 * The `tabs` attribute narrows the dashboard to some of its tabs, as a
+	 * comma-separated list (`tabs="appointments,audience"`). A narrowed
+	 * dashboard is a part of another screen — the installable app draws one
+	 * per screen (#2750) — so it leaves out the summary cards and the Log Out
+	 * link, shows the tab bar only when more than one tab remains, and shows
+	 * a banner only beside the tab it belongs to.
+	 *
+	 * @param array<string, mixed>|string $atts Shortcode attributes (WordPress passes '' when there are none).
 	 * @return string HTML output
 	 */
-	public static function render( array $atts = array() ): string {
+	public static function render( $atts = array() ): string {
+		$only = self::parse_tabs( is_array( $atts ) && is_string( $atts['tabs'] ?? null ) ? $atts['tabs'] : '' );
+
 		// Check if user is logged in.
 		if ( ! is_user_logged_in() ) {
 			return self::render_login_required();
@@ -132,6 +151,26 @@ class DashboardShortcode {
 			'messages'        => $can_view_messages,
 			'profile'         => true,
 		);
+		if ( array() !== $only ) {
+			foreach ( $visible as $tab => $shown ) {
+				$visible[ $tab ] = $shown && in_array( $tab, $only, true );
+			}
+			$remaining = array_keys( array_filter( $visible ) );
+			if ( array() === $remaining ) {
+				return self::render_nothing_here();
+			}
+			$default_tab                = $remaining[0];
+			$can_view_certificates      = $visible['certificates'];
+			$can_view_appointments      = $visible['appointments'];
+			$can_view_audience_bookings = $visible['audience'];
+			$can_view_reregistrations   = $visible['reregistrations'];
+			$can_view_recruitment       = $visible['recruitment'];
+			$can_view_messages          = $visible['messages'];
+		}
+		$narrowed     = array() !== $only;
+		$show_profile = $visible['profile'];
+		$tab_count    = count( array_filter( $visible ) );
+
 		if ( empty( $visible[ $current_tab ] ) ) {
 			$current_tab = $default_tab;
 		}
@@ -147,8 +186,13 @@ class DashboardShortcode {
 				echo wp_kses_post( DashboardViewMode::render_admin_viewing_banner( (int) $view_as_user_id ) );
 			}
 			echo wp_kses_post( self::render_redirect_message() );
-			echo wp_kses_post( self::render_reregistration_banners( $user_id ) );
-			echo self::render_message_notices( $current_messages, (int) $user_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value; the actions are Button::html().
+			// A narrowed dashboard shows a banner only beside its own tab.
+			if ( ! $narrowed || $can_view_reregistrations ) {
+				echo wp_kses_post( self::render_reregistration_banners( $user_id ) );
+			}
+			if ( ! $narrowed || $can_view_messages ) {
+				echo self::render_message_notices( $current_messages, (int) $user_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value; the actions are Button::html().
+			}
 
 			// Form panel for reregistration editing — always present when reregistrations tab is visible.
 			// Previously rendered inside render_reregistration_banners(), which could omit it.
@@ -158,13 +202,17 @@ class DashboardShortcode {
 			<div id="ffc-rereg-form-panel" style="display:none;"></div>
 			<?php endif; ?>
 
+			<?php if ( ! $narrowed ) : ?>
 			<div class="ffc-dashboard-summary" id="ffc-dashboard-summary"></div>
+			<?php endif; ?>
 
 			<?php
 			// The tab bar holds the tablist and, outside it, the Log Out link,
 			// so the link shows on every tab without being read as a tab (#1840).
+			// A narrowed dashboard with one tab keeps the bar in the markup,
+			// hidden: the script reads the active tab from it.
 			?>
-			<div class="ffc-dashboard-tabbar">
+			<div class="ffc-dashboard-tabbar"<?php echo $narrowed && $tab_count < 2 ? ' hidden' : ''; ?>>
 			<nav class="ffc-dashboard-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Dashboard', 'ffcertificate' ); ?>">
 				<?php if ( $can_view_certificates ) : ?>
 					<button class="ffc-tab <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"
@@ -249,6 +297,7 @@ class DashboardShortcode {
 					</button>
 				<?php endif; ?>
 
+				<?php if ( $show_profile ) : ?>
 				<button class="ffc-tab <?php echo esc_attr( 'profile' === $current_tab ? 'is-active' : '' ); ?>"
 						data-tab="profile"
 						role="tab"
@@ -258,11 +307,14 @@ class DashboardShortcode {
 						tabindex="<?php echo esc_attr( 'profile' === $current_tab ? '0' : '-1' ); ?>">
 					<span class="ffc-icon-user" aria-hidden="true"></span><?php esc_html_e( 'Profile', 'ffcertificate' ); ?>
 				</button>
+				<?php endif; ?>
 			</nav>
 
+			<?php if ( ! $narrowed ) : ?>
 			<a href="<?php echo esc_url( wp_logout_url( home_url() ) ); ?>" class="ffc-logout-link">
 				<span class="ffc-icon-logout" aria-hidden="true"></span><?php esc_html_e( 'Log Out', 'ffcertificate' ); ?>
 			</a>
+			<?php endif; ?>
 			</div>
 
 			<?php if ( $can_view_certificates ) : ?>
@@ -333,6 +385,7 @@ class DashboardShortcode {
 				</div>
 			<?php endif; ?>
 
+			<?php if ( $show_profile ) : ?>
 			<div class="ffc-tab-content <?php echo esc_attr( 'profile' === $current_tab ? 'is-active' : '' ); ?>"
 				id="ffc-tabpanel-profile"
 				role="tabpanel"
@@ -341,11 +394,44 @@ class DashboardShortcode {
 					<?php esc_html_e( 'Loading profile...', 'ffcertificate' ); ?>
 				</div>
 			</div>
+			<?php endif; ?>
 		</div>
 		<?php
 
 		$dashboard_html = ob_get_clean();
 		return $dashboard_html ? $dashboard_html : '';
+	}
+
+	/**
+	 * The tabs a `tabs` attribute names, in the dashboard's order. Unknown
+	 * names are dropped; an empty result means every tab.
+	 *
+	 * @param string $value Comma-separated tab names.
+	 * @return list<string>
+	 */
+	public static function parse_tabs( string $value ): array {
+		$asked = array_map( 'trim', explode( ',', strtolower( $value ) ) );
+		return array_values( array_intersect( self::TABS, $asked ) );
+	}
+
+	/**
+	 * What a narrowed dashboard says when none of its tabs is this person's.
+	 *
+	 * @return string HTML output
+	 */
+	private static function render_nothing_here(): string {
+		DashboardAssetManager::enqueue_styles();
+
+		return '<div class="ffc-shortcode">' . Notice::render(
+			'info',
+			'info',
+			__( 'There is nothing here for your account yet.', 'ffcertificate' ),
+			'',
+			array(
+				'role' => 'note',
+				'hook' => 'dashboard-empty',
+			)
+		) . '</div>';
 	}
 
 	/**
