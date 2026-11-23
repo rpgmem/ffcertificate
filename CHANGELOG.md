@@ -11,6 +11,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Attendance has one write path for any module** (#2740). `Core\Attendance::record()` takes a target type and id, the person, the reading's own time and the method, and routes it through `AttendanceTargetRegistry` to the module that stores it; the audience booking registers the first type. A new method, `terminal`, shows on the attendance screen and in the privacy export, and a person still counts once per booking and day whatever the path. An unknown method is now refused instead of stored as a QR check-in.
 
+### Security
+
+- **Verification refuses a code whose prefix names no document**, before any lookup and with the answer a wrong code gets, on the page, without JavaScript and in the REST `verify` route. Only C, R and A are looked up, so a `P-` terminal pairing code, which is a credential, never reaches the verification lookups (#2739).
+
 ## [6.45.0] (2026-11-22) — `05300f6`
 
 ### Added

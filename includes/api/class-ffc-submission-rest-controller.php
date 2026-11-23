@@ -369,7 +369,18 @@ class SubmissionRestController {
 				}
 			}
 
-			$auth_code = $request->get_param( 'auth_code' );
+			$auth_code = (string) $request->get_param( 'auth_code' );
+
+			// Same refusal as the verification page: an unknown prefix is
+			// answered as a code that does not exist, with no lookup (#2739).
+			if ( \FreeFormCertificate\Core\DocumentFormatter::has_unknown_prefix( $auth_code ) ) {
+				return new \WP_Error(
+					'certificate_not_found',
+					__( 'Certificate not found. Please check the authentication code.', 'ffcertificate' ),
+					array( 'status' => 404 )
+				);
+			}
+
 			$auth_code = \FreeFormCertificate\Core\DocumentFormatter::clean_auth_code( $auth_code );
 
 			if ( ! $this->submission_repository ) {

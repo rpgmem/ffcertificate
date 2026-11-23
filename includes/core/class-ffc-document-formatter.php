@@ -917,6 +917,23 @@ class DocumentFormatter {
 	}
 
 	/**
+	 * Whether the input is a prefixed code whose prefix is not one of the
+	 * verification prefixes (C, R, A).
+	 *
+	 * Every stored code is 12 characters, so 13 alphanumeric characters can
+	 * only be a prefix and a code. A prefix this list does not name belongs to
+	 * no verifiable document: a pairing code (`P-`) is a credential, and must
+	 * be refused before any lookup rather than by the lookup finding nothing.
+	 *
+	 * @since 6.46.0
+	 * @param string $input Raw user input (with or without prefix/dashes).
+	 */
+	public static function has_unknown_prefix( string $input ): bool {
+		$alphanumeric = preg_replace( '/[^A-Z0-9]/', '', strtoupper( trim( $input ) ) ) ?? '';
+		return 13 === strlen( $alphanumeric ) && ! in_array( $alphanumeric[0], self::VALID_PREFIXES, true );
+	}
+
+	/**
 	 * Clean authentication code (remove special chars, prefix, uppercase).
 	 *
 	 * Strips the virtual prefix if present, returning only the 12-char code.

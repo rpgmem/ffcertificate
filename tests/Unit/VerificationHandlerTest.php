@@ -324,6 +324,52 @@ class VerificationHandlerTest extends TestCase {
 	}
 
 	/**
+	 * A pairing code (`P-`) is a credential, never a document: it is refused
+	 * before any query, with the "not found" a wrong code gets (#2739).
+	 *
+	 * @dataProvider unknown_prefix_codes
+	 */
+	public function test_search_certificate_refuses_an_unknown_prefix_without_a_query( string $code ): void {
+		global $wpdb;
+		$wpdb->shouldNotReceive( 'get_row' );
+		$wpdb->shouldNotReceive( 'get_var' );
+		$wpdb->shouldNotReceive( 'get_results' );
+
+		$result = $this->invokePrivate( 'search_certificate', [ $code ] );
+
+		$this->assertSame( \FreeFormCertificate\Frontend\VerificationResult::not_found(), $result );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function unknown_prefix_codes(): array {
+		return array(
+			'pairing code'          => array( 'P-ABCD-1234-EFGH' ),
+			'pairing, no dashes'    => array( 'pabcd1234efgh' ),
+			'another unused letter' => array( 'X-ABCD-1234-EFGH' ),
+			'digit in prefix place' => array( '9ABCD1234EFGH' ),
+		);
+	}
+
+	/**
+	 * The page without JavaScript refuses it the same way (#2739).
+	 */
+	public function test_verify_certificate_refuses_a_pairing_code_without_a_query(): void {
+		global $wpdb;
+		$wpdb->shouldNotReceive( 'get_row' );
+		$wpdb->shouldNotReceive( 'get_var' );
+		$wpdb->shouldNotReceive( 'get_results' );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+
+		$result = $this->handler->verify_certificate( 'P-ABCD-1234-EFGH' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( '', $result['html'] );
+	}
+
+	/**
 	 * A spaced code of the right length still reaches the lookups (#2730).
 	 */
 	public function test_search_certificate_spaced_code_still_queries(): void {
