@@ -23,7 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for presence devices and the requests the rules leave.
  *
- * @phpstan-type DeviceRow array{id: int, user_id: int, device_id: string, key_id: string, public_key: string, signals_hash: string|null, is_change: bool, activated_at: int, revoked_at: int|null, revoked_reason: string|null, revoked_by: int|null, released_at: int|null, released_by: int|null}
+ * @phpstan-type DeviceRow array{id: int, user_id: int, device_id: string, key_id: string, public_key: string, signals_hash: string|null, is_change: bool, activated_at: int, revoked_at: int|null, revoked_reason: string|null, revoked_by: int|null, released_at: int|null, released_by: int|null, attested_at: int|null, signals_dismissed_at: int|null}
+ * @phpstan-type RequestRow array{id: int, user_id: int, device_id: string, reason: string, status: string, created_at: int, decided_at: int|null, decided_by: int|null}
+ * @phpstan-type SignalGroup array{signals_hash: string, user_ids: list<int>, devices: list<DeviceRow>}
  *
  * @since 6.50.0
  */
@@ -194,6 +196,157 @@ class AudiencePresenceReader {
 	}
 
 	/**
+	 * One device row by its id.
+	 *
+	 * @param int $id Row id.
+	 * @return DeviceRow|null
+	 */
+	public static function by_id( int $id ): ?array {
+		$wpdb = self::db();
+		$row  = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d LIMIT 1', self::devices_table(), $id ),
+			ARRAY_A
+		);
+		return is_array( $row ) ? self::shape( $row ) : null;
+	}
+
+	/**
+	 * Active devices, newest first, one page of them (#2743).
+	 *
+	 * @param int $limit  Rows per page.
+	 * @param int $offset Rows to skip.
+	 * @return list<DeviceRow>
+	 */
+	public static function active_devices( int $limit, int $offset ): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE revoked_at IS NULL ORDER BY activated_at DESC, id DESC LIMIT %d OFFSET %d',
+				self::devices_table(),
+				max( 1, $limit ),
+				max( 0, $offset )
+			),
+			ARRAY_A
+		);
+		return array_map( array( self::class, 'shape' ), is_array( $rows ) ? $rows : array() );
+	}
+
+	/**
+	 * How many devices are active.
+	 *
+	 * @return int
+	 */
+	public static function count_active(): int {
+		$wpdb = self::db();
+		return (int) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE revoked_at IS NULL', self::devices_table() )
+		);
+	}
+
+	/**
+	 * How many device changes every account made since a moment.
+	 *
+	 * @param int $since Unix time.
+	 * @return int
+	 */
+	public static function count_changes_since( int $since ): int {
+		$wpdb = self::db();
+		return (int) $wpdb->get_var(
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_change = 1 AND activated_at >= %d', self::devices_table(), $since )
+		);
+	}
+
+	/**
+	 * The requests waiting for an administrator, oldest first.
+	 *
+	 * @return list<RequestRow>
+	 */
+	public static function pending_requests(): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE status = %s ORDER BY created_at ASC, id ASC LIMIT 100',
+				self::requests_table(),
+				AudiencePresenceWriter::REQUEST_PENDING
+			),
+			ARRAY_A
+		);
+		return array_map( array( self::class, 'shape_request' ), is_array( $rows ) ? $rows : array() );
+	}
+
+	/**
+	 * One request by its id.
+	 *
+	 * @param int $id Request id.
+	 * @return RequestRow|null
+	 */
+	public static function request( int $id ): ?array {
+		$wpdb = self::db();
+		$row  = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d LIMIT 1', self::requests_table(), $id ),
+			ARRAY_A
+		);
+		return is_array( $row ) ? self::shape_request( $row ) : null;
+	}
+
+	/**
+	 * Active devices of more than one account that report the same device
+	 * signals, and whose alert nobody dismissed (#2743).
+	 *
+	 * Identical school-issued phones look the same, so a group is a reason
+	 * to look, never a refusal.
+	 *
+	 * @return list<SignalGroup>
+	 */
+	public static function signal_groups(): array {
+		$wpdb    = self::db();
+		$rows    = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE revoked_at IS NULL AND signals_hash IS NOT NULL ORDER BY activated_at ASC LIMIT 500',
+				self::devices_table()
+			),
+			ARRAY_A
+		);
+		$by_hash = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$device                                        = self::shape( $row );
+			$by_hash[ (string) $device['signals_hash'] ][] = $device;
+		}
+		$groups = array();
+		foreach ( $by_hash as $hash => $devices ) {
+			$users = array_values( array_unique( array_column( $devices, 'user_id' ) ) );
+			$fresh = array_filter( $devices, static fn( array $d ): bool => null === $d['signals_dismissed_at'] );
+			if ( count( $users ) > 1 && array() !== $fresh ) {
+				$groups[] = array(
+					'signals_hash' => (string) $hash,
+					'user_ids'     => array_map( 'intval', $users ),
+					'devices'      => $devices,
+				);
+			}
+		}
+		return $groups;
+	}
+
+	/**
+	 * Type one raw request row.
+	 *
+	 * @param array<string, mixed> $row Raw row.
+	 * @return RequestRow
+	 */
+	private static function shape_request( array $row ): array {
+		return array(
+			'id'         => ArrayValue::int( $row, 'id' ),
+			'user_id'    => ArrayValue::int( $row, 'user_id' ),
+			'device_id'  => ArrayValue::string( $row, 'device_id' ),
+			'reason'     => ArrayValue::string( $row, 'reason' ),
+			'status'     => ArrayValue::string( $row, 'status' ),
+			'created_at' => ArrayValue::int( $row, 'created_at' ),
+			'decided_at' => null === ( $row['decided_at'] ?? null ) ? null : ArrayValue::int( $row, 'decided_at' ),
+			'decided_by' => null === ( $row['decided_by'] ?? null ) ? null : ArrayValue::int( $row, 'decided_by' ),
+		);
+	}
+
+	/**
 	 * Type one raw device row.
 	 *
 	 * @param array<string, mixed> $row Raw row.
@@ -208,19 +361,21 @@ class AudiencePresenceReader {
 		};
 
 		return array(
-			'id'             => ArrayValue::int( $row, 'id' ),
-			'user_id'        => ArrayValue::int( $row, 'user_id' ),
-			'device_id'      => ArrayValue::string( $row, 'device_id' ),
-			'key_id'         => ArrayValue::string( $row, 'key_id' ),
-			'public_key'     => ArrayValue::string( $row, 'public_key' ),
-			'signals_hash'   => $nullable_str( 'signals_hash' ),
-			'is_change'      => 1 === ArrayValue::int( $row, 'is_change' ),
-			'activated_at'   => ArrayValue::int( $row, 'activated_at' ),
-			'revoked_at'     => $nullable_int( 'revoked_at' ),
-			'revoked_reason' => $nullable_str( 'revoked_reason' ),
-			'revoked_by'     => $nullable_int( 'revoked_by' ),
-			'released_at'    => $nullable_int( 'released_at' ),
-			'released_by'    => $nullable_int( 'released_by' ),
+			'id'                   => ArrayValue::int( $row, 'id' ),
+			'user_id'              => ArrayValue::int( $row, 'user_id' ),
+			'device_id'            => ArrayValue::string( $row, 'device_id' ),
+			'key_id'               => ArrayValue::string( $row, 'key_id' ),
+			'public_key'           => ArrayValue::string( $row, 'public_key' ),
+			'signals_hash'         => $nullable_str( 'signals_hash' ),
+			'is_change'            => 1 === ArrayValue::int( $row, 'is_change' ),
+			'activated_at'         => ArrayValue::int( $row, 'activated_at' ),
+			'revoked_at'           => $nullable_int( 'revoked_at' ),
+			'revoked_reason'       => $nullable_str( 'revoked_reason' ),
+			'revoked_by'           => $nullable_int( 'revoked_by' ),
+			'released_at'          => $nullable_int( 'released_at' ),
+			'released_by'          => $nullable_int( 'released_by' ),
+			'attested_at'          => $nullable_int( 'attested_at' ),
+			'signals_dismissed_at' => $nullable_int( 'signals_dismissed_at' ),
 		);
 	}
 }

@@ -52,6 +52,11 @@ class AudiencePresenceWriter {
 	public const REQUEST_USED = 'used';
 
 	/**
+	 * A request an administrator refused (#2743).
+	 */
+	public const REQUEST_REFUSED = 'refused';
+
+	/**
 	 * Record an activated device.
 	 *
 	 * @param int         $user_id      User.
@@ -75,8 +80,9 @@ class AudiencePresenceWriter {
 				'signals_hash' => $signals_hash,
 				'is_change'    => $is_change ? 1 : 0,
 				'activated_at' => $now,
+				'attested_at'  => $now,
 			),
-			array( '%d', '%s', '%s', '%s', '%s', '%d', '%d' )
+			array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d' )
 		);
 		return false === $ok ? 0 : (int) $wpdb->insert_id;
 	}
@@ -150,5 +156,99 @@ class AudiencePresenceWriter {
 		// `prepare()` returns `string|null`, and `query()` takes a string only.
 		$rows = is_string( $sql ) ? $wpdb->query( $sql ) : false; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepare()'s output, held to test its type.
 		return is_int( $rows ) && $rows > 0;
+	}
+
+	/**
+	 * Record that a device's attestation was signed again, so the Presence
+	 * devices screen can say until when it works offline (#2743).
+	 *
+	 * @param int $id  Device row id.
+	 * @param int $now Unix time.
+	 * @return bool Whether the row was updated.
+	 */
+	public static function attested( int $id, int $now ): bool {
+		return self::run(
+			self::db()->prepare( 'UPDATE %i SET attested_at = %d WHERE id = %d', AudiencePresenceReader::devices_table(), $now, $id )
+		) > 0;
+	}
+
+	/**
+	 * Release a device from every other account it is reserved to, so the
+	 * account asking can activate it (#2743).
+	 *
+	 * @param string $device_id  Device id.
+	 * @param int    $except_user The account asking, whose rows stay as they are.
+	 * @param int    $by         The administrator.
+	 * @param int    $now        Unix time.
+	 * @return int How many rows were released.
+	 */
+	public static function release_device( string $device_id, int $except_user, int $by, int $now ): int {
+		return self::run(
+			self::db()->prepare(
+				'UPDATE %i SET released_at = %d, released_by = %d WHERE device_id = %s AND user_id <> %d AND released_at IS NULL',
+				AudiencePresenceReader::devices_table(),
+				$now,
+				$by,
+				$device_id,
+				$except_user
+			)
+		);
+	}
+
+	/**
+	 * Decide a pending request.
+	 *
+	 * @param int    $id     Request id.
+	 * @param string $status REQUEST_APPROVED or REQUEST_REFUSED.
+	 * @param int    $by     The administrator.
+	 * @param int    $now    Unix time.
+	 * @return bool Whether the request was still pending and is now decided.
+	 */
+	public static function decide_request( int $id, string $status, int $by, int $now ): bool {
+		if ( self::REQUEST_APPROVED !== $status && self::REQUEST_REFUSED !== $status ) {
+			return false;
+		}
+		return self::run(
+			self::db()->prepare(
+				'UPDATE %i SET status = %s, decided_at = %d, decided_by = %d WHERE id = %d AND status = %s',
+				AudiencePresenceReader::requests_table(),
+				$status,
+				$now,
+				$by,
+				$id,
+				self::REQUEST_PENDING
+			)
+		) > 0;
+	}
+
+	/**
+	 * Dismiss a shared-signals alert: every active device reporting those
+	 * signals stops being listed, until a new device reports them (#2743).
+	 *
+	 * @param string $signals_hash Keyed hash of the signals.
+	 * @param int    $now          Unix time.
+	 * @return int How many rows were dismissed.
+	 */
+	public static function dismiss_signals( string $signals_hash, int $now ): int {
+		return self::run(
+			self::db()->prepare(
+				'UPDATE %i SET signals_dismissed_at = %d WHERE signals_hash = %s AND revoked_at IS NULL AND signals_dismissed_at IS NULL',
+				AudiencePresenceReader::devices_table(),
+				$now,
+				$signals_hash
+			)
+		);
+	}
+
+	/**
+	 * Run a prepared UPDATE.
+	 *
+	 * @param string|null $sql The prepared statement.
+	 * @return int Rows changed; 0 on failure.
+	 */
+	private static function run( ?string $sql ): int {
+		// `prepare()` returns `string|null`, and `query()` takes a string only.
+		$rows = is_string( $sql ) ? self::db()->query( $sql ) : false; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepare()'s output, held to test its type.
+		return is_int( $rows ) ? $rows : 0;
 	}
 }

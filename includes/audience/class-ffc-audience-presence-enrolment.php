@@ -241,7 +241,11 @@ final class AudiencePresenceEnrolment {
 		if ( ! self::proof_holds( self::RENEW_DOMAIN . $user_id . '|' . $key_id . '|' . $timestamp, $proof, $raw, $timestamp, $now ) ) {
 			return self::error( 'ffc_presence_bad_proof', __( 'This device could not prove it holds its key. Check the phone\'s clock and try again.', 'ffcertificate' ), 400 );
 		}
-		return self::attest( $user, $raw, $key_id, $now );
+		$attestation = self::attest( $user, $raw, $key_id, $now );
+		if ( ! is_wp_error( $attestation ) ) {
+			AudiencePresenceWriter::attested( $device['id'], $now );
+		}
+		return $attestation;
 	}
 
 	/**

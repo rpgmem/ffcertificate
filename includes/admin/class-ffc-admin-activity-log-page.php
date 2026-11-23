@@ -377,6 +377,10 @@ class AdminActivityLogPage {
 			'presence_device_revoked'                      => __( 'Presence Device Revoked', 'ffcertificate' ),
 			'presence_enrolment_refused'                   => __( 'Presence Device Refused', 'ffcertificate' ),
 			'presence_signals_match'                       => __( 'Presence Device Signals Shared', 'ffcertificate' ),
+			'presence_device_released'                     => __( 'Presence Device Released', 'ffcertificate' ),
+			'presence_request_approved'                    => __( 'Presence Device Change Allowed', 'ffcertificate' ),
+			'presence_request_refused'                     => __( 'Presence Device Request Refused', 'ffcertificate' ),
+			'presence_signals_dismissed'                   => __( 'Presence Device Signals Dismissed', 'ffcertificate' ),
 			'scheduled_task_failed'                        => __( 'Scheduled Task Failed', 'ffcertificate' ),
 
 			// Migrations.
