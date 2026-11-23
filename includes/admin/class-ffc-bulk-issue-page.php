@@ -440,14 +440,18 @@ final class BulkIssuePage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- verified by check_ajax_referer() in handle_preview(); the file is checked by is_uploaded_file() and read, never echoed.
 		$file = $_FILES[ self::FILE_FIELD ] ?? null;
 
-		if ( ! is_array( $file ) || UPLOAD_ERR_NO_FILE === ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
+		// The upload's error code, read once: a second `?? …` on the same
+		// key is one PHPStan 2.3.7 proves can never fall back.
+		$code = is_array( $file ) ? ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) : UPLOAD_ERR_NO_FILE;
+
+		if ( ! is_array( $file ) || UPLOAD_ERR_NO_FILE === $code ) {
 			$error = __( 'Choose a CSV file to upload.', 'ffcertificate' );
 			return null;
 		}
 
 		$tmp = is_string( $file['tmp_name'] ?? null ) ? $file['tmp_name'] : '';
 
-		if ( UPLOAD_ERR_OK !== ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) || '' === $tmp || ! is_uploaded_file( $tmp ) ) {
+		if ( UPLOAD_ERR_OK !== $code || '' === $tmp || ! is_uploaded_file( $tmp ) ) {
 			$error = __( 'The file could not be uploaded.', 'ffcertificate' );
 			return null;
 		}
