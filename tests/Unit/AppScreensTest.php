@@ -192,6 +192,9 @@ class AppScreensTest extends TestCase {
 		Functions\when( 'esc_html_e' )->alias( static function ( $text ) {
 			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
 		} );
+		Functions\when( 'esc_attr_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
 		Functions\when( 'esc_url_raw' )->returnArg();
 		Functions\when( 'rest_url' )->alias( static fn( $path ) => 'https://example.com/wp-json/' . $path );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
@@ -211,7 +214,7 @@ class AppScreensTest extends TestCase {
 		$config = $localized['ffc-presence-app'][1];
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/presence/', $config['rest'] );
 		$this->assertSame( 7, $config['userId'] );
-		$this->assertSame( array( 'storage', 'activating', 'activated', 'failed', 'next', 'expired', 'qrLabel' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'storage', 'activating', 'activated', 'failed', 'next', 'expired', 'qrLabel', 'dismiss', 'fillForm' ), array_keys( $config['strings'] ) );
 		$this->assertStringContainsString( '%d', $config['strings']['next'] );
 	}
 

@@ -548,7 +548,7 @@
             }
             li.appendChild(body);
             if (item.type === 'form') {
-                if (typeof item.url === 'string' && /^https?:\/\//.test(item.url)) {
+                if (typeof item.url === 'string' && /^https?:\/{2}/.test(item.url)) {
                     var link = document.createElement('a');
                     link.className = 'ffc-btn ffc-btn-primary ffc-icon-award';
                     link.href = item.url;
