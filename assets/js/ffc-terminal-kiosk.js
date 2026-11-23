@@ -16,6 +16,13 @@
  * seconds later. An operator code opens the operator menu instead, which
  * locks again after two minutes unused.
  *
+ * Offline, the page checks the code itself with `FFCPresenceVerifier`, the
+ * site's keys from the pairing and the revocation list it refreshes every
+ * ten minutes, and keeps the reading in a queue with the moment it read it.
+ * The queue is sent every 30 seconds, when the connection returns, and from
+ * the operator menu; the site checks every reading again as of its own
+ * moment, so the queue decides nothing on its own.
+ *
  * Exposes window.FFCTerminal; the pure helpers are there for the tests.
  */
 (function (root) {
@@ -29,6 +36,12 @@
     var RESULT_MS = 5000;
     var MENU_MS = 120000;
     var EXPIRY_CHECK_MS = 30000;
+    var QUEUE_KEY = 'ffcTerminalQueue';
+    var REVOKED_KEY = 'ffcTerminalRevoked';
+    var SYNC_MS = 30000;
+    var REVOCATIONS_MS = 600000;
+    var SYNC_BATCH = 50;
+    var QUEUE_MAX = 2000;
 
     /**
      * A storage that may refuse: a private window or blocked site data.
@@ -213,7 +226,7 @@
 
         function showResult(body) {
             clearResult();
-            var ok = 'recorded' === body.status || 'already' === body.status;
+            var ok = 'recorded' === body.status || 'already' === body.status || 'queued' === body.status;
             var text = ok && body.name ? body.name + ' — ' + (body.message || '') : (body.message || strings.failed);
             part('result').className = 'ffc-terminal-result ' + (ok ? 'is-ok ffc-icon-checkmark' : 'is-refused ffc-icon-warning');
             part(ok ? 'result-ok' : 'result-refused').textContent = text;
@@ -222,6 +235,8 @@
 
         function expire() {
             store.remove(STATE_KEY);
+            store.remove(QUEUE_KEY);
+            store.remove(REVOKED_KEY);
             closeMenu();
             fail(strings.expired);
             show('pairing');
@@ -231,18 +246,26 @@
             return readState(store.get(STATE_KEY), now());
         }
 
+        function url(path) {
+            return 0 === path.indexOf('presence/') ? (config.presence || '') + path.slice(9) : config.rest + path;
+        }
+
         function terminalRequest(method, path, body) {
             var state = current();
             if (!state) {
                 expire();
                 return Promise.resolve(null);
             }
-            return env.fetch(config.rest + path, {
+            var options = {
                 method: method,
-                headers: { 'Content-Type': 'application/json', 'X-FFC-Terminal': state.token },
-                credentials: 'omit',
-                body: JSON.stringify(body)
-            }).then(function (response) {
+                headers: { 'X-FFC-Terminal': state.token },
+                credentials: 'omit'
+            };
+            if (undefined !== body) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
+            }
+            return env.fetch(url(path), options).then(function (response) {
                 return response.json().catch(function () { return {}; }).then(function (data) {
                     if (401 === response.status) {
                         expire();
@@ -255,14 +278,164 @@
             });
         }
 
+        function online() {
+            return !env.online || env.online();
+        }
+
         function read(code) {
+            if (!online()) {
+                return readOffline(code);
+            }
             return terminalRequest('POST', 'readings', { code: code }).then(function (result) {
                 if (!result) {
                     return null;
                 }
+                if (0 === result.status) {
+                    return readOffline(code);
+                }
                 showResult(200 === result.status ? result.body : { status: 'refused', message: result.body.message || strings.failed });
                 focusReading();
                 return result.body;
+            });
+        }
+
+        function queue() {
+            try {
+                var list = JSON.parse(store.get(QUEUE_KEY) || '[]');
+                return Array.isArray(list) ? list : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveQueue(list) {
+            if (!list.length) {
+                store.remove(QUEUE_KEY);
+                return true;
+            }
+            return store.set(QUEUE_KEY, JSON.stringify(list));
+        }
+
+        function revoked() {
+            try {
+                var data = JSON.parse(store.get(REVOKED_KEY) || '{}');
+                return Array.isArray(data.revoked) ? data.revoked : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function day(seconds) {
+            var date = new Date(seconds * 1000);
+            return date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+        }
+
+        function refusal(code) {
+            var messages = strings.offline || {};
+            return { status: 'refused', message: messages[code] || messages.invalid || strings.failed };
+        }
+
+        function readOffline(code) {
+            var state = current();
+            if (!state) {
+                expire();
+                return Promise.resolve(null);
+            }
+            var at = now();
+            var done = function (body) {
+                showResult(body);
+                focusReading();
+                updateQueue();
+                return body;
+            };
+            // Without WebCrypto (an old browser, or a page not served over
+            // HTTPS) nothing can be checked here, so nothing is kept.
+            if (!env.verifier || !env.subtle) {
+                return Promise.resolve(done({ status: 'refused', message: strings.failed }));
+            }
+            return env.verifier.verify(code, { now: at, keys: state.keys || {}, revoked: revoked(), subtle: env.subtle }).then(function (reading) {
+                if (!reading.ok) {
+                    return done(refusal(reading.code));
+                }
+                if ('audience_booking' !== reading.targetType || (state.bookings || []).indexOf(reading.targetId) < 0) {
+                    return done(refusal('ffc_terminal_other_event'));
+                }
+                var list = queue();
+                var key = reading.userId + ':' + reading.targetId + ':' + day(at);
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i].key === key) {
+                        return done({ status: 'already', name: reading.name, message: strings.alreadyQueued });
+                    }
+                }
+                if (list.length >= QUEUE_MAX) {
+                    return done(refusal('full'));
+                }
+                list.push({ id: newDeviceId(env.crypto).slice(0, 24), code: code, at: at, key: key });
+                if (!saveQueue(list)) {
+                    return done({ status: 'refused', message: strings.storage });
+                }
+                return done({ status: 'queued', name: reading.name, message: strings.queued });
+            });
+        }
+
+        var syncing = null;
+
+        function sync() {
+            if (syncing) {
+                return syncing;
+            }
+            var list = queue();
+            if (!list.length || !current()) {
+                updateQueue();
+                return Promise.resolve(0);
+            }
+            if (!online()) {
+                updateQueue();
+                return Promise.resolve(-1);
+            }
+            var batch = list.slice(0, SYNC_BATCH);
+            syncing = terminalRequest('POST', 'sync', {
+                readings: batch.map(function (item) { return { id: item.id, code: item.code, at: item.at }; })
+            }).then(function (result) {
+                syncing = null;
+                if (!result || 200 !== result.status) {
+                    updateQueue();
+                    return -1;
+                }
+                var answered = result.body.results || {};
+                var rest = queue().filter(function (item) { return !Object.prototype.hasOwnProperty.call(answered, item.id); });
+                saveQueue(rest);
+                updateQueue();
+                var sent = list.length - rest.length;
+                return rest.length && sent > 0 ? sync().then(function (more) { return sent + Math.max(0, more); }) : sent;
+            });
+            return syncing;
+        }
+
+        function updateQueue() {
+            var count = queue().length;
+            var line = part('queue');
+            if (line) {
+                line.textContent = String(strings.queue || '%d').replace('%d', String(count));
+            }
+            return count;
+        }
+
+        function refreshRevocations() {
+            if (!current() || !online()) {
+                return Promise.resolve(false);
+            }
+            return terminalRequest('GET', 'presence/revocations').then(function (result) {
+                if (!result || 200 !== result.status) {
+                    return false;
+                }
+                store.set(REVOKED_KEY, JSON.stringify({ revoked: result.body.revoked || [], generated: result.body.generated || now() }));
+                var state = current();
+                if (state && result.body.keys) {
+                    state.keys = result.body.keys;
+                    store.set(STATE_KEY, JSON.stringify(state));
+                }
+                return true;
             });
         }
 
@@ -300,6 +473,7 @@
                 clearResult();
                 menuCode = code;
                 part('operator').textContent = String(strings.operator || '%s').replace('%s', result.body.name || '');
+                updateQueue();
                 show('menu');
                 part('menu-close').focus();
                 armMenu();
@@ -309,7 +483,10 @@
 
         function endSelf() {
             fail('');
-            return terminalRequest('DELETE', 'self', { code: menuCode }).then(function (result) {
+            var code = menuCode;
+            return sync().then(function () {
+                return terminalRequest('DELETE', 'self', { code: code });
+            }).then(function (result) {
                 if (!result) {
                     return false;
                 }
@@ -319,6 +496,8 @@
                     return false;
                 }
                 store.remove(STATE_KEY);
+                store.remove(QUEUE_KEY);
+                store.remove(REVOKED_KEY);
                 closeMenu();
                 say(strings.ended);
                 show('pairing');
@@ -385,6 +564,7 @@
                     }
                     say(strings.paired);
                     showReady(state);
+                    refreshRevocations();
                     return state;
                 }
                 say('');
@@ -440,6 +620,12 @@
             armMenu();
         });
         part('menu-confirm-end').addEventListener('click', endSelf);
+        part('menu-sync').addEventListener('click', function () {
+            armMenu();
+            sync().then(function (sent) {
+                say(sent < 0 ? strings.failed : String(strings.sent || '%d').replace('%d', String(Math.max(0, sent))));
+            });
+        });
 
         // The pairing ends on its own two hours after the last event; the
         // page notices without waiting for the next reading.
@@ -449,9 +635,20 @@
             }
         }, EXPIRY_CHECK_MS);
 
+        env.setInterval(sync, SYNC_MS);
+        env.setInterval(refreshRevocations, REVOCATIONS_MS);
+        if (env.onOnline) {
+            env.onOnline(function () {
+                sync();
+                refreshRevocations();
+            });
+        }
+
         var state = current();
         if (state) {
             showReady(state);
+            refreshRevocations();
+            sync();
         } else {
             if (store.get(STATE_KEY)) {
                 store.remove(STATE_KEY);
@@ -466,7 +663,7 @@
             }
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations };
     }
 
     root.FFCTerminal = {
@@ -492,7 +689,11 @@
                 setInterval: root.setInterval.bind(root),
                 clearInterval: root.clearInterval.bind(root),
                 setTimeout: root.setTimeout.bind(root),
-                clearTimeout: root.clearTimeout.bind(root)
+                clearTimeout: root.clearTimeout.bind(root),
+                subtle: root.crypto && root.crypto.subtle,
+                verifier: root.FFCPresenceVerifier,
+                online: function () { return false !== root.navigator.onLine; },
+                onOnline: function (fn) { root.addEventListener('online', fn); }
             });
         };
         if ('loading' === root.document.readyState) {

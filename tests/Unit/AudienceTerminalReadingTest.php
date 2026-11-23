@@ -14,6 +14,7 @@ use FreeFormCertificate\Audience\AudienceTerminalRestController;
 use FreeFormCertificate\Core\Base45;
 use FreeFormCertificate\Core\EcdsaP256;
 use FreeFormCertificate\Core\SigningKeys;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -27,6 +28,10 @@ use PHPUnit\Framework\TestCase;
  *
  * @covers \FreeFormCertificate\Audience\AudienceTerminalReading
  * @covers \FreeFormCertificate\Audience\AudienceTerminalRestController::sanitize_reading
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalRestController::sanitize_queue
+ * @covers \FreeFormCertificate\Audience\AudienceCheckinWindowReader::covering
+ * @covers \FreeFormCertificate\Audience\AudienceCheckinWindowReader::opened_by
+ * @covers \FreeFormCertificate\Audience\AudiencePresenceReader::revoked_key_ids_between
  */
 class AudienceTerminalReadingTest extends TestCase {
 
@@ -170,7 +175,7 @@ class AudienceTerminalReadingTest extends TestCase {
 		$code = $this->code( self::BOOKING );
 		$key  = AudiencePresenceAttestation::key_id( $this->device['public'] );
 
-		$this->db->revoked = array( $key );
+		$this->db->revoked = array( $key => self::NOW - 60 );
 		$this->assertSame( 'ffc_presence_code_revoked', $this->read( $code )['code'] );
 
 		$this->db->revoked = array();
@@ -192,6 +197,119 @@ class AudienceTerminalReadingTest extends TestCase {
 		$this->assertSame( '', AudienceTerminalRestController::sanitize_reading( array( 'FFP1' ) ) );
 	}
 
+	// ---- Offline queue --------------------------------------------------
+
+	public function test_a_queued_reading_is_recorded_as_of_the_moment_it_was_read(): void {
+		$at               = self::NOW - 1800;
+		$this->db->window = $this->window( $at - 600, $at + 600 );
+
+		$result = $this->queued( $this->code( self::BOOKING, '', $at ), $at );
+
+		$this->assertSame( AudienceTerminalReading::RECORDED, $result['status'], $result['message'] );
+		$this->assertSame( $at, $this->db->attendance[0]['checked_at'], 'the moment of the reading, not of the sync' );
+		$this->assertSame( 'ffc_terminal_window_closed', $this->read( $this->code( self::BOOKING ) )['code'], 'that window has closed by now' );
+	}
+
+	public function test_a_reading_before_a_revocation_stands_and_one_after_it_is_refused(): void {
+		$at                = self::NOW - 1800;
+		$this->db->window  = $this->window( $at - 600, self::NOW + 600 );
+		$key               = AudiencePresenceAttestation::key_id( $this->device['public'] );
+		$this->db->revoked = array( $key => $at + 60 );
+
+		$this->assertSame( AudienceTerminalReading::RECORDED, $this->queued( $this->code( self::BOOKING, '', $at ), $at )['status'] );
+		$this->db->attendance = array();
+		$later                = $at + 120;
+		$this->assertSame( 'ffc_presence_code_revoked', $this->queued( $this->code( self::BOOKING, '', $later ), $later )['code'] );
+	}
+
+	public function test_a_window_closed_and_reopened_counts_the_moment_inside_either(): void {
+		$this->db->windows = array( array_merge( $this->window( self::NOW - 3500, self::NOW - 2500 ), array( 'id' => 2 ) ) );
+		$this->db->window  = $this->window( self::NOW - 600, self::NOW + 600 );
+
+		$this->assertSame( AudienceTerminalReading::RECORDED, $this->queued( $this->code( self::BOOKING, '', self::NOW - 3000 ), self::NOW - 3000 )['status'] );
+		$this->db->attendance = array();
+		$this->assertSame( 'ffc_terminal_window_closed', $this->queued( $this->code( self::BOOKING, '', self::NOW - 2000 ), self::NOW - 2000 )['code'], 'between the two windows' );
+		$this->assertSame( 'ffc_terminal_window_not_open', $this->queued( $this->code( self::BOOKING, '', self::NOW - 3550 ), self::NOW - 3550 )['code'], 'before the first one' );
+	}
+
+	public function test_a_moment_the_terminal_cannot_vouch_for_is_refused(): void {
+		$future = self::NOW + AudiencePresenceCode::SKEW + 1;
+		$this->assertSame( 'ffc_terminal_reading_time', $this->queued( $this->code( self::BOOKING, '', $future ), $future )['code'] );
+		$before = self::NOW - 3600 - AudiencePresenceCode::SKEW - 1;
+		$this->assertSame( 'ffc_terminal_reading_time', $this->queued( $this->code( self::BOOKING, '', $before ), $before )['code'], 'before the terminal was paired' );
+		$this->assertSame( array(), $this->db->attendance );
+	}
+
+	public function test_a_batch_sent_twice_records_once_and_logs_the_refusals(): void {
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'ffc_settings' === $key ? array_merge( $this->options['ffc_settings'], ActivityLogBuffer::ENABLED_SETTINGS ) : ( $this->options[ $key ] ?? $default )
+		);
+		ActivityLogBuffer::stub_functions();
+		ActivityLogBuffer::reset();
+		Functions\when( 'wp_cache_get' )->alias(
+			fn( $key ) => 1 === preg_match( '/^id_(\d+)$/', (string) $key, $m ) && isset( $this->bookings[ (int) $m[1] ] ) ? $this->bookings[ (int) $m[1] ] : false
+		);
+		$batch = array(
+			array(
+				'id'   => 'r1',
+				'code' => $this->code( self::BOOKING, '', self::NOW - 60 ),
+				'at'   => self::NOW - 60,
+			),
+			array(
+				'id'   => 'r2',
+				'code' => $this->code( 99, '', self::NOW - 30 ),
+				'at'   => self::NOW - 30,
+			),
+		);
+
+		$first = AudienceTerminalReading::sync( $this->terminal(), $batch, self::NOW );
+		$this->assertSame( array( 'r1', 'r2' ), array_keys( $first ) );
+		$this->assertSame( AudienceTerminalReading::RECORDED, $first['r1']['status'] );
+		$this->assertSame( 'ffc_terminal_other_event', $first['r2']['code'] );
+
+		$again = AudienceTerminalReading::sync( $this->terminal(), $batch, self::NOW + 5 );
+		$this->assertSame( AudienceTerminalReading::ALREADY, $again['r1']['status'] );
+		$this->assertCount( 1, $this->db->attendance, 'replaying the batch records nothing twice' );
+
+		$refusals = array_values( array_filter( ActivityLogBuffer::contexts(), static fn( array $c ): bool => 'terminal_readings_refused' === $c['action'] ) );
+		$this->assertCount( 2, $refusals );
+		$this->assertSame( array( 'ffc_terminal_other_event' => 1 ), $refusals[0]['context']['reasons'] );
+		$this->assertStringNotContainsString( 'FFP1', (string) wp_json_encode( $refusals ), 'the log never carries a code' );
+	}
+
+	public function test_the_queue_route_keeps_well_formed_readings_only(): void {
+		$queue = AudienceTerminalRestController::sanitize_queue(
+			array(
+				array(
+					'id'   => 'ok_1',
+					'code' => 'ffp1abc',
+					'at'   => '1800000000',
+				),
+				array(
+					'id'   => str_repeat( 'x', 41 ),
+					'code' => 'FFP1A',
+					'at'   => 1,
+				),
+				array(
+					'id'   => 'no-time',
+					'code' => 'FFP1A',
+				),
+				'not a reading',
+			)
+		);
+		$this->assertSame(
+			array(
+				array(
+					'id'   => 'ok_1',
+					'code' => 'FFP1ABC',
+					'at'   => 1800000000,
+				),
+			),
+			$queue
+		);
+		$this->assertCount( AudienceTerminalReading::SYNC_BATCH, AudienceTerminalRestController::sanitize_queue( array_fill( 0, 150, array( 'id' => 'a', 'code' => 'FFP1A', 'at' => 1 ) ) ) );
+	}
+
 	// ---- Helpers ----------------------------------------------------------
 
 	/**
@@ -201,7 +319,27 @@ class AudienceTerminalReadingTest extends TestCase {
 	 * @return array{status: string, code: string, message: string, name: string}
 	 */
 	private function read( string $text ): array {
-		$terminal = array(
+		return AudienceTerminalReading::read( $this->terminal(), $text, self::NOW );
+	}
+
+	/**
+	 * Read a code the terminal queued at a moment.
+	 *
+	 * @param string $text Code text.
+	 * @param int    $at   When the terminal read it.
+	 * @return array{status: string, code: string, message: string, name: string}
+	 */
+	private function queued( string $text, int $at ): array {
+		return AudienceTerminalReading::read_queued( $this->terminal(), $text, $at, self::NOW );
+	}
+
+	/**
+	 * The test's terminal, paired an hour ago for {@see self::BOOKING}.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function terminal(): array {
+		return array(
 			'id'           => 4,
 			'token_hash'   => str_repeat( 'a', 64 ),
 			'device_hash'  => str_repeat( 'b', 64 ),
@@ -214,7 +352,6 @@ class AudienceTerminalReadingTest extends TestCase {
 			'revoked_at'   => null,
 			'revoked_by'   => null,
 		);
-		return AudienceTerminalReading::read( $terminal, $text, self::NOW );
 	}
 
 	/**
@@ -267,14 +404,17 @@ class AudienceTerminalReadingTest extends TestCase {
 				$this->prefix = 'wp_';
 			}
 
-			/** @var list<string> */
+			/** @var array<string, int> Revoked key ids and when. */
 			public array $revoked = array();
 
 			/** @var array<int, list<int>> */
 			public array $members = array();
 
-			/** @var array<string, mixed>|null */
+			/** @var array<string, mixed>|null The day's latest window. */
 			public ?array $window = null;
+
+			/** @var list<array<string, mixed>> Every window of the day, oldest first. */
+			public array $windows = array();
 
 			/** @var list<array<string, mixed>> */
 			public array $attendance = array();
@@ -300,10 +440,30 @@ class AudienceTerminalReadingTest extends TestCase {
 			public function get_col( $handle = null, $x = 0 ) {
 				list( $query, $args ) = $this->prepared[ $handle ];
 				if ( false !== strpos( $query, 'SELECT key_id FROM %i WHERE revoked_at IS NOT NULL' ) ) {
-					return $this->revoked;
+					return array_keys( array_filter( $this->revoked, static fn( int $at ): bool => $at >= (int) $args[1] && $at <= (int) $args[2] ) );
 				}
 				if ( false !== strpos( $query, 'SELECT user_id FROM %i WHERE booking_id = %d' ) ) {
 					return array_map( 'strval', $this->members[ (int) $args[1] ] ?? array() );
+				}
+				throw new \LogicException( 'Unknown query: ' . $query );
+			}
+
+			/**
+			 * @param string $handle Statement.
+			 * @param int    $x      Unused.
+			 * @param int    $y      Unused.
+			 * @return string|null
+			 */
+			public function get_var( $handle = null, $x = 0, $y = 0 ) {
+				list( $query, $args ) = $this->prepared[ $handle ];
+				// The activity log asks whether the custom-field table exists;
+				// it does not here, so no field is treated as sensitive.
+				if ( 0 === strpos( $query, 'SHOW TABLES LIKE' ) ) {
+					return null;
+				}
+				if ( 0 === strpos( $query, 'SELECT COUNT(*) FROM %i WHERE booking_id = %d AND window_date = %s AND opened_at <= %d' ) ) {
+					$windows = null === $this->window ? $this->windows : array_merge( $this->windows, array( $this->window ) );
+					return (string) count( array_filter( $windows, static fn( array $w ): bool => (int) $w['opened_at'] <= (int) $args[3] ) );
 				}
 				throw new \LogicException( 'Unknown query: ' . $query );
 			}
@@ -328,7 +488,11 @@ class AudienceTerminalReadingTest extends TestCase {
 			 * @return list<mixed>
 			 */
 			public function get_results( $handle = null, $output = OBJECT ) {
-				list( $query ) = $this->prepared[ $handle ];
+				list( $query, $args ) = $this->prepared[ $handle ];
+				if ( false !== strpos( $query, 'window_date = %s AND opened_at <= %d ORDER BY id DESC' ) ) {
+					$windows = null === $this->window ? $this->windows : array_merge( $this->windows, array( $this->window ) );
+					return array_reverse( array_values( array_filter( $windows, static fn( array $w ): bool => (int) $w['opened_at'] <= (int) $args[3] ) ) );
+				}
 				if ( false !== strpos( $query, 'INNER JOIN %i ba ON a.id = ba.audience_id' ) ) {
 					return array();
 				}

@@ -36207,8 +36207,39 @@ msgstr "O terminal abre a página inicial do site com ?ffc_terminal=1 acrescenta
 msgid "Once paired, the terminal waits for presence codes. A keyboard-wedge reader (USB or Bluetooth) types each code into the focused field and presses Enter. The site checks the code with the phone's signature, the site's signature and the revocation list, then checks that the code is for one of the terminal's events, that the event runs today, that its check-in window is open and that the person is on the booking or carries the site's ticket for it. Attendance is recorded with the Terminal method. The window's geofence does not apply, since the terminal stands at the entrance."
 msgstr "Depois de pareado, o terminal aguarda códigos de presença. Um leitor que funciona como teclado (USB ou Bluetooth) digita cada código no campo em foco e pressiona Enter. O site confere o código pela assinatura do celular, pela assinatura do site e pela lista de revogações, e depois confere se o código é de um dos eventos do terminal, se o evento acontece hoje, se a janela de check-in está aberta e se a pessoa está na reserva ou traz o ingresso do site para ela. A presença é registrada com o método Terminal. A cerca geográfica da janela não se aplica, porque o terminal fica na entrada."
 
-msgid "The result shows for five seconds and is announced to screen readers: attendance recorded with the person's short name, such as Maria S., or a refusal that says what to do, such as an old code, another event's code, a window not yet open or already closed, someone not enrolled, or attendance already recorded at a given time. A refusal names nobody, and the terminal shows no list. This version needs a connection to the site; readings queued offline arrive in a coming update."
-msgstr "O resultado aparece por cinco segundos e é anunciado aos leitores de tela: presença registrada, com o nome curto da pessoa, como Maria S., ou uma recusa que diz o que fazer, como um código antigo, o código de outro evento, uma janela que ainda não abriu ou que já fechou, alguém não inscrito, ou presença já registrada em certo horário. Uma recusa não mostra nome nenhum, e o terminal não mostra lista. Esta versão precisa de conexão com o site; as leituras guardadas offline chegam em uma próxima atualização."
 
 msgid "Holding an operator QR code to the reader opens the operator menu, with the name of the operator who unlocked it. The menu ends the terminal, after a confirmation on the screen, in that operator's name, and locks again after two minutes without use. The operator must still hold ffc_checkin_audiences."
 msgstr "Aproximar um QR code de operador do leitor abre o menu do operador, com o nome de quem desbloqueou. O menu encerra o terminal, depois de uma confirmação na tela, em nome desse operador, e volta a travar depois de dois minutos sem uso. O operador ainda precisa ter ffc_checkin_audiences."
+
+msgid "Saved. It is sent to the site when the connection returns."
+msgstr "Salvo. Será enviado ao site quando a conexão voltar."
+
+msgid "Already saved on this terminal."
+msgstr "Já salvo neste terminal."
+
+msgid "Readings waiting to be sent: %d"
+msgstr "Leituras aguardando envio: %d"
+
+msgid "Readings sent: %d"
+msgstr "Leituras enviadas: %d"
+
+msgid "This is not a valid presence code. Show the code on the phone again."
+msgstr "Este não é um código de presença válido. Mostre o código no celular de novo."
+
+msgid "This terminal cannot keep more readings offline. Connect it to the internet to send them."
+msgstr "Este terminal não consegue guardar mais leituras offline. Conecte-o à internet para enviá-las."
+
+msgid "This reading was taken at a time this terminal cannot vouch for, and was not recorded."
+msgstr "Esta leitura foi feita em um horário que este terminal não pode garantir, e não foi registrada."
+
+msgid "Terminal Readings Refused on Sync"
+msgstr "Leituras do terminal recusadas no envio"
+
+msgid "Send queue now"
+msgstr "Enviar fila agora"
+
+msgid "The result shows for five seconds and is announced to screen readers: attendance recorded with the person's short name, such as Maria S., or a refusal that says what to do, such as an old code, another event's code, a window not yet open or already closed, someone not enrolled, or attendance already recorded at a given time. A refusal names nobody, and the terminal shows no list."
+msgstr "O resultado aparece por cinco segundos e é anunciado aos leitores de tela: presença registrada, com o nome curto da pessoa, como Maria S., ou uma recusa que diz o que fazer, como um código antigo, o código de outro evento, uma janela que ainda não abriu ou que já fechou, alguém não inscrito, ou presença já registrada em certo horário. Uma recusa não mostra nome nenhum, e o terminal não mostra lista."
+
+msgid "Without a connection, the terminal checks each code itself, with the site's keys it received when paired and a revocation list it refreshes every ten minutes, and keeps the reading with the moment it was read. A person is kept once per event and day. The queue is sent every 30 seconds, when the connection returns, from the operator menu (Send queue now, which also shows how many are waiting) and before the terminal is ended. The site then checks every reading again as of its own moment: a reading taken before the phone was replaced, inside a check-in window that was open then, is recorded with that time; one taken after a revocation, or outside every window, is refused and the refusal is written to the activity log. Sending the same queue twice records nothing twice. A queue that was never sent is lost when the pairing ends, so connect the terminal before its last event finishes."
+msgstr "Sem conexão, o terminal confere cada código ele mesmo, com as chaves do site que recebeu ao ser pareado e uma lista de revogações que atualiza a cada dez minutos, e guarda a leitura com o momento em que foi feita. Cada pessoa é guardada uma vez por evento e dia. A fila é enviada a cada 30 segundos, quando a conexão volta, pelo menu do operador (Enviar fila agora, que também mostra quantas aguardam) e antes de o terminal ser encerrado. O site então confere cada leitura de novo no momento em que foi feita: uma leitura feita antes de o celular ser trocado, dentro de uma janela de check-in que estava aberta naquele momento, é registrada com esse horário; uma feita depois de uma revogação, ou fora de toda janela, é recusada e a recusa vai para o registro de atividades. Enviar a mesma fila duas vezes não registra nada em dobro. Uma fila que nunca foi enviada se perde quando o pareamento termina, então conecte o terminal antes de o último evento acabar."

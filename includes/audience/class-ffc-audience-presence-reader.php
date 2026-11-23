@@ -172,6 +172,29 @@ class AudiencePresenceReader {
 	}
 
 	/**
+	 * The key ids revoked within a span: at or after `$since` and at or
+	 * before `$until` (#2745). A reading a terminal took offline is checked
+	 * against the keys revoked by the moment it was read, so a phone
+	 * replaced later does not undo an attendance taken before.
+	 *
+	 * @param int $since Unix time.
+	 * @param int $until Unix time.
+	 * @return list<string>
+	 */
+	public static function revoked_key_ids_between( int $since, int $until ): array {
+		$wpdb = self::db();
+		$ids  = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT key_id FROM %i WHERE revoked_at IS NOT NULL AND revoked_at >= %d AND revoked_at <= %d ORDER BY revoked_at ASC',
+				self::devices_table(),
+				$since,
+				$until
+			)
+		);
+		return array_map( 'strval', $ids );
+	}
+
+	/**
 	 * A request in a given state, if any.
 	 *
 	 * @param int    $user_id   User.

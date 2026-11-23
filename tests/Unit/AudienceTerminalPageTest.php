@@ -117,12 +117,14 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/role="alert"[^>]*data-ffc-terminal-part="result-refused"/', $html, 'a refusal is announced at once' );
 		$this->assertSame( array( 'style:ffc-terminal-kiosk', 'script:ffc-dark-mode', 'script:ffc-terminal-kiosk' ), $printed );
 		$this->assertSame( array( 'ffc-common' ), $enqueued['style:ffc-terminal-kiosk'][1] ?? null );
-		$this->assertSame( array(), $enqueued['ffc-terminal-kiosk'][1] ?? null, 'the kiosk script stands alone' );
+		$this->assertSame( array( 'ffc-presence-verifier' ), $enqueued['ffc-terminal-kiosk'][1] ?? null, 'the kiosk checks codes offline with the verifier' );
+		$this->assertStringContainsString( 'assets/js/ffc-presence-verifier', $enqueued['ffc-presence-verifier'][0] ?? '' );
 		$this->assertSame( 'ffcTerminal', $localized['ffc-terminal-kiosk'][0] );
 		$config = $localized['ffc-terminal-kiosk'][1];
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/terminal/', $config['rest'] );
+		$this->assertSame( 'https://example.com/wp-json/ffc/v1/presence/', $config['presence'] );
 		$this->assertArrayNotHasKey( 'nonce', $config, 'a terminal has no account to carry a nonce for' );
-		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired', 'operator', 'ended' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'offline' ), array_keys( $config['strings'] ) );
 	}
 
 	public function test_the_dark_theme_is_on_the_root_from_the_first_paint(): void {
