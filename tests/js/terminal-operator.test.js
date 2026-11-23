@@ -96,7 +96,8 @@ function env(routes) {
 			const [status, body] = typeof answer === 'function' ? answer(options) : answer;
 			return Promise.resolve({ ok: status < 300, status, json: () => Promise.resolve(body) });
 		},
-		setInterval: () => 1,
+		intervals: [],
+		setInterval(fn) { this.intervals.push(fn); return this.intervals.length; },
 		clearInterval: () => {},
 		setTimeout: (fn, ms) => { timeouts.push([fn, ms]); return timeouts.length; },
 		clearTimeout: () => {},
@@ -279,5 +280,68 @@ describe('Operator QR', () => {
 		await O().start(el, CONFIG, env({ 'POST operator-code': [500, { message: 'could not sign' }] })).ready;
 		expect(part(el, 'qr').innerHTML).toBe('');
 		expect(part(el, 'error').textContent).toBe('could not sign');
+	});
+});
+
+describe('failures and the page boot', () => {
+	it('says why the event list or the terminal list could not load', async () => {
+		let el = screen('pair');
+		await O().start(el, CONFIG, env({ 'GET bookings': [500, { message: 'database down' }] })).ready;
+		expect(part(el, 'error').textContent).toBe('database down');
+
+		el = screen('terminals');
+		await O().start(el, CONFIG, env({ 'GET terminals': [403, {}] })).ready;
+		expect(part(el, 'error').textContent).toBe('failed');
+	});
+
+	it('treats an unreachable site and an unreadable answer alike', async () => {
+		let el = screen('pair');
+		const offline = env({});
+		await O().start(el, CONFIG, offline).ready;
+		expect(part(el, 'error').textContent).toBe('failed');
+
+		el = screen('qr');
+		const garbled = env({});
+		garbled.fetch = () => Promise.resolve({ ok: false, status: 502, json: () => Promise.reject(new Error('not json')) });
+		await O().start(el, CONFIG, garbled).ready;
+		expect(part(el, 'error').textContent).toBe('failed');
+	});
+
+	it('says when a pairing code expires', async () => {
+		const el = screen('pair');
+		const e = env({
+			'GET bookings': [200, { bookings: [{ id: 11, description: 'Workshop', when: 'today', terminals: 0, full: false }] }],
+			'POST pairings': [201, { code: 'P-AB12-CD34-EF56', expires_at: NOW + 300 }],
+		});
+		await O().start(el, CONFIG, e).ready;
+		part(el, 'events').querySelector('input').checked = true;
+		part(el, 'form').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		await settle();
+		expect(part(el, 'countdown').textContent).toBe('expires 5:00');
+
+		e.clock.now = (NOW + 301) * 1000;
+		e.intervals[e.intervals.length - 1]();
+		expect(part(el, 'countdown').textContent).toBe('expired');
+
+		part(el, 'again').click();
+		await settle();
+		expect(part(el, 'result').hidden).toBe(true);
+	});
+
+	it('boots every screen on the page from the localized config', async () => {
+		const el = screen('qr');
+		const realFetch = window.fetch;
+		window.fetch = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ code: 'FFO1BOOT', expires_at: Math.floor(Date.now() / 1000) + 120 }) });
+		window.FFCPresence = { qrSvg: (text) => ({ svg: '<svg data-text="' + text + '"></svg>' }) };
+		window.ffcTerminalOperator = CONFIG;
+		try {
+			loadScript('assets/js/ffc-terminal-operator.js');
+			await settle();
+			expect(part(el, 'qr').querySelector('svg').getAttribute('data-text')).toBe('FFO1BOOT');
+		} finally {
+			window.fetch = realFetch;
+			delete window.ffcTerminalOperator;
+			delete window.FFCPresence;
+		}
 	});
 });
