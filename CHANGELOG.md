@@ -19,6 +19,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Verification refuses a code whose prefix names no document**, before any lookup and with the answer a wrong code gets, on the page, without JavaScript and in the REST `verify` route. Only C, R and A are looked up, so a `P-` terminal pairing code, which is a credential, never reaches the verification lookups (#2739).
 
+### Fixed
+
+- **Recruitment import jobs keep their dates on upgrade** (#2763). The 6.45.0 timestamp conversion read an `id` column the import-jobs table does not have, logged an error on every request and dropped the dates, so the stale-job cleanup deleted the jobs. It now reads `job_id`, and a conversion that cannot read keeps the old column.
+
 ## [6.45.0] (2026-11-22) — `05300f6`
 
 ### Added

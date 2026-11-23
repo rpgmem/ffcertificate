@@ -67,7 +67,7 @@ class RecruitmentActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '4';
+	public const SCHEMA_REVISION = '5';
 
 	/**
 	 * Option holding the revision last applied. Listed in `uninstall.php`.
@@ -296,7 +296,8 @@ class RecruitmentActivator {
 			}
 			foreach ( $columns as $column => $spec ) {
 				list( $nullable, $indexes ) = $spec;
-				self::migrate_datetime_column_to_unix( $table, $column, $nullable, array_keys( $indexes ), $indexes );
+				// The import-jobs table is keyed by job_id (#2763).
+				self::migrate_datetime_column_to_unix( $table, $column, $nullable, array_keys( $indexes ), $indexes, 'import_jobs' === $suffix ? 'job_id' : 'id' );
 				$type = strtolower( (string) self::column_type( $table, $column ) );
 				if ( 0 !== strpos( $type, 'bigint' ) ) {
 					$done = false;
