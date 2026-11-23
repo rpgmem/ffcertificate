@@ -36572,6 +36572,39 @@ msgstr "O navegador não manteve a tela ligada, por exemplo na economia de bater
 msgid "While the terminal is paired and has an event now or next, it asks the browser to keep the screen on, and asks again whenever the page comes back to the front; once no event is left, or the terminal ends, the screen dims as usual. A browser that cannot keep the screen on, or refuses to (for instance in battery saver), leaves the terminal working as before, and the operator menu says so: set the device's screen timeout instead. Keeping the screen on does not stop someone from leaving the page: to hold the tablet on the terminal, use the device's own kiosk mode, Screen pinning on Android or Guided Access on iPad."
 msgstr "Enquanto o terminal está pareado e tem um evento agora ou a seguir, ele pede ao navegador para manter a tela ligada, e pede de novo sempre que a página volta para a frente; quando não resta evento, ou o terminal é encerrado, a tela apaga como de costume. Um navegador que não consegue manter a tela ligada, ou se recusa (por exemplo na economia de bateria), deixa o terminal funcionando como antes, e o menu do operador avisa: ajuste então o tempo de desligamento da tela do aparelho. Manter a tela ligada não impede alguém de sair da página: para prender o tablet no terminal, use o modo quiosque do próprio aparelho, a Fixação de tela no Android ou o Acesso Guiado no iPad."
 
+msgid "Device check"
+msgstr "Verificação do aparelho"
+
+msgid "What this browser offers the terminal. Note it, or take a picture of it, when trying a new tablet."
+msgstr "O que este navegador oferece ao terminal. Anote, ou tire uma foto, ao testar um tablet novo."
+
+msgid "Secure page (HTTPS)"
+msgstr "Página segura (HTTPS)"
+
+msgid "Camera reading"
+msgstr "Leitura pela câmera"
+
+msgid "Screen kept on"
+msgstr "Tela mantida ligada"
+
+msgid "Supported and allowed"
+msgstr "Compatível e permitida"
+
+msgid "Supported, but off in Scheduling → Settings → Check-in"
+msgstr "Compatível, mas desligada em Agendamento → Configurações → Check-in"
+
+msgid "Needs HTTPS"
+msgstr "Exige HTTPS"
+
+msgid "Not supported by this browser"
+msgstr "Não compatível com este navegador"
+
+msgid "Supported, not active now"
+msgstr "Compatível, inativa agora"
+
+msgid "The operator menu ends with a Device check: whether the page is served over HTTPS, whether this browser can read codes with the camera and the site allows it, whether it can keep the screen on, and the browser's own name. Note it, or take a picture of it, when trying a new tablet, so a device that cannot do one of them is found before the event."
+msgstr "O menu do operador termina com uma Verificação do aparelho: se a página é servida por HTTPS, se este navegador consegue ler códigos com a câmera e o site permite, se consegue manter a tela ligada, e o nome do próprio navegador. Anote, ou tire uma foto, ao testar um tablet novo, para que um aparelho que não consiga fazer uma dessas coisas seja descoberto antes do evento."
+
 msgid "Present: %1$d of %2$d days"
 msgstr "Presente: %1$d de %2$d dias"
 

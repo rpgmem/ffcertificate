@@ -167,5 +167,10 @@ use FreeFormCertificate\Core\Notice;
 			);
 			?>
 		</div>
+		<section class="ffc-terminal-check" aria-labelledby="ffc-terminal-check-title">
+			<h3 id="ffc-terminal-check-title" class="ffc-icon-monitor"><?php esc_html_e( 'Device check', 'ffcertificate' ); ?></h3>
+			<p class="description"><?php esc_html_e( 'What this browser offers the terminal. Note it, or take a picture of it, when trying a new tablet.', 'ffcertificate' ); ?></p>
+			<dl data-ffc-terminal-part="device-check"></dl>
+		</section>
 	</section>
 </main>

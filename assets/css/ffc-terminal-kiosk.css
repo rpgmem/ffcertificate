@@ -178,3 +178,25 @@
 .ffc-terminal-actions[hidden] {
 	display: none;
 }
+
+/* The operator menu's device check (#2747). */
+.ffc-terminal-check {
+	margin-top: var(--ffc-spacing-xl);
+	text-align: left;
+}
+
+.ffc-terminal-check dl {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+	margin: 0;
+}
+
+.ffc-terminal-check dt {
+	font-weight: 600;
+}
+
+.ffc-terminal-check dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}

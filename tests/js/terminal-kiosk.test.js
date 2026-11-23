@@ -47,6 +47,11 @@ const CONFIG = {
 		noEvents: 'no more events',
 		wakeUnsupported: 'cannot keep the screen on',
 		wakeRefused: 'screen on refused',
+		check: {
+			secureLabel: 'HTTPS', cameraLabel: 'Camera', wakeLabel: 'Screen', browserLabel: 'Browser',
+			yes: 'yes', no: 'no', cameraOn: 'camera on', cameraOff: 'camera off', cameraInsecure: 'camera needs https',
+			cameraUnsupported: 'camera unsupported', wakeActive: 'screen active', wakeAvailable: 'screen available', wakeUnsupported: 'screen unsupported',
+		},
 		offline: {
 			invalid: 'not a valid code',
 			ffc_presence_code_revoked: 'phone replaced',
@@ -90,6 +95,7 @@ function markup() {
 				<p data-ffc-terminal-part="operator"></p>
 				<p data-ffc-terminal-part="queue"></p>
 				<p data-ffc-terminal-part="wake-note" hidden></p>
+				<dl data-ffc-terminal-part="device-check"></dl>
 				<div data-ffc-terminal-part="menu-ask">
 					<button type="button" data-ffc-terminal-part="menu-sync">Send</button>
 					<button type="button" data-ffc-terminal-part="menu-close">Close</button>
@@ -1044,6 +1050,50 @@ describe('screen wake lock', () => {
 		await settle();
 
 		expect(lock.requests).toBe(0);
+	});
+});
+
+describe('device check', () => {
+	const paired = { ffcTerminal: JSON.stringify({ token: TOKEN, bookings: [11], expires_at: NOW + 86400, expires_label: 'later', schedule: [] }) };
+	const rows = (el) => Array.from(el.querySelectorAll('[data-ffc-terminal-part="device-check"] dd')).map((dd) => dd.textContent);
+
+	it('reports what this browser offers, from the capabilities themselves', async () => {
+		const el = markup();
+		const detector = function () {};
+		detector.getSupportedFormats = () => Promise.resolve(['qr_code']);
+		const controls = T().start(el, { ...CONFIG, camera: true }, env({
+			storage: memoryStorage(paired),
+			secure: true,
+			BarcodeDetector: detector,
+			mediaDevices: { getUserMedia: () => Promise.reject(new Error('not now')) },
+			wakeLock: { request: () => Promise.resolve({ release: () => Promise.resolve() }) },
+			userAgent: 'TabletBrowser/1.0',
+		}));
+		await controls.deviceCheck();
+
+		expect(rows(el)).toEqual(['yes', 'camera on', 'screen available', 'TabletBrowser/1.0']);
+	});
+
+	it('says why the camera and the screen lock are missing', async () => {
+		const el = markup();
+		const controls = T().start(el, CONFIG, env({ storage: memoryStorage(paired), secure: false, userAgent: 'Old/1.0' }));
+		await controls.deviceCheck();
+
+		expect(rows(el)).toEqual(['no', 'camera needs https', 'screen unsupported', 'Old/1.0']);
+
+		const plain = markup();
+		const second = T().start(plain, CONFIG, env({ storage: memoryStorage(paired), secure: true }));
+		await second.deviceCheck();
+		expect(rows(plain)[1]).toBe('camera unsupported');
+	});
+
+	it('names the switch when the browser can read but the site does not allow it', async () => {
+		const el = markup();
+		const detector = function () {};
+		const controls = T().start(el, CONFIG, env({ storage: memoryStorage(paired), secure: true, BarcodeDetector: detector, mediaDevices: { getUserMedia: () => null } }));
+		await controls.deviceCheck();
+
+		expect(rows(el)[1]).toBe('camera off');
 	});
 });
 
