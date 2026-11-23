@@ -4,7 +4,7 @@
  *
  * The markup only: `assets/js/ffc-terminal-kiosk.js` shows one view at a
  * time. It pairs the terminal (#2744), reads presence codes online or into
- * its offline queue (#2745) and opens the operator menu on an operator code. The two result regions stay
+ * its offline queue (#2745), shows the event it checks in now or next (#2746) and opens the operator menu on an operator code. The two result regions stay
  * in the page, so a screen reader announces each result as it is written.
  *
  * @package FreeFormCertificate\Audience
@@ -53,6 +53,11 @@ use FreeFormCertificate\Core\Notice;
 	</section>
 
 	<section class="ffc-terminal-view" data-ffc-terminal-view="ready" hidden>
+		<div class="ffc-terminal-event" data-ffc-terminal-part="event" hidden>
+			<p class="ffc-terminal-event-kind" data-ffc-terminal-part="event-kind"></p>
+			<p class="ffc-terminal-event-title" data-ffc-terminal-part="event-title"></p>
+			<p class="ffc-terminal-event-when" data-ffc-terminal-part="event-when"></p>
+		</div>
 		<h2><?php esc_html_e( 'Show your presence code', 'ffcertificate' ); ?></h2>
 		<p><?php esc_html_e( 'Open Presence in the app, choose this event and hold the code to the reader.', 'ffcertificate' ); ?></p>
 		<div class="ffc-terminal-result" data-ffc-terminal-part="result">

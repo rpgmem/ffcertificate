@@ -124,7 +124,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/terminal/', $config['rest'] );
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/presence/', $config['presence'] );
 		$this->assertArrayNotHasKey( 'nonce', $config, 'a terminal has no account to carry a nonce for' );
-		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'offline' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'offline' ), array_keys( $config['strings'] ) );
 	}
 
 	public function test_the_dark_theme_is_on_the_root_from_the_first_paint(): void {

@@ -36180,3 +36180,45 @@ msgstr ""
 
 msgid "A terminal checks in one event at a time, so the events of one terminal may not have check-in windows that cross. An event's window on each of its days runs from the start of that day's hours to 30 minutes after their end, the moment an open check-in closes on its own; an all-day event takes the whole day. Windows that only touch, one closing as the next opens, may share a terminal. A choice that crosses is refused, naming the event it collides with. The events of a paired terminal can be changed later, under the same rules; an event that leaves keeps every reading already taken for it, including readings the terminal took offline before the change."
 msgstr ""
+
+msgid "Checking in now"
+msgstr ""
+
+msgid "Next event"
+msgstr ""
+
+msgid "Check-in open until %s"
+msgstr ""
+
+msgid "Check-in opens when the organiser opens it."
+msgstr ""
+
+msgid "Check-in opens at %s"
+msgstr ""
+
+msgid "No more events on this terminal."
+msgstr ""
+
+msgid "Events saved. The terminal picks them up within a minute."
+msgstr ""
+
+msgid "Fill from a place"
+msgstr ""
+
+msgid "Choose events one by one"
+msgstr ""
+
+msgid "A terminal checks in one event at a time: events whose check-in times cross cannot share it."
+msgstr ""
+
+msgid "Change events"
+msgstr ""
+
+msgid "The terminal picks the change up within a minute. An event you remove keeps the readings already taken for it."
+msgstr ""
+
+msgid "Save events"
+msgstr ""
+
+msgid "In the app, Pair terminal can fill the events from one place, soonest first, up to 10, instead of ticking them one by one. My terminals has Change events on each terminal, which the terminal picks up within a minute. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
+msgstr ""

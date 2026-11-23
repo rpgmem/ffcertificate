@@ -3,7 +3,7 @@
  * The operator's terminal screens in the app (#2744).
  *
  * The markup only: `assets/js/ffc-terminal-operator.js` fills the lists, the
- * codes and the countdowns. One template serves the three screens, and
+ * codes and the countdowns, and changes a paired terminal's events (#2746). One template serves the three screens, and
  * `$ffc_terminal_mode` says which: `pair`, `terminals` or `qr`.
  *
  * @package FreeFormCertificate\Audience
@@ -30,6 +30,13 @@ $ffc_terminal_mode = isset( $ffc_terminal_mode ) && in_array( $ffc_terminal_mode
 		<form class="ffc-terminal-operator-form" data-ffc-op-part="form" novalidate>
 			<fieldset class="ffc-terminal-operator-events">
 				<legend><?php esc_html_e( 'Events this terminal checks in', 'ffcertificate' ); ?></legend>
+				<p class="ffc-terminal-operator-place" data-ffc-op-part="by-place" hidden>
+					<label for="ffc-terminal-operator-place"><?php esc_html_e( 'Fill from a place', 'ffcertificate' ); ?></label>
+					<select id="ffc-terminal-operator-place" data-ffc-op-part="place">
+						<option value=""><?php esc_html_e( 'Choose events one by one', 'ffcertificate' ); ?></option>
+					</select>
+				</p>
+				<p class="description"><?php esc_html_e( 'A terminal checks in one event at a time: events whose check-in times cross cannot share it.', 'ffcertificate' ); ?></p>
 				<div data-ffc-op-part="events"></div>
 				<p class="description" data-ffc-op-part="events-empty" hidden><?php esc_html_e( 'No event in the next 7 days can take a terminal.', 'ffcertificate' ); ?></p>
 			</fieldset>
@@ -78,6 +85,14 @@ $ffc_terminal_mode = isset( $ffc_terminal_mode ) && in_array( $ffc_terminal_mode
 					<?php
 					Button::render(
 						array(
+							'label'    => __( 'Change events', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'edit',
+							'attrs'    => array( 'data-ffc-op-item' => 'edit' ),
+						)
+					);
+					Button::render(
+						array(
 							'label'    => __( 'End terminal', 'ffcertificate' ),
 							'category' => 'danger',
 							'icon'     => 'cross',
@@ -86,6 +101,29 @@ $ffc_terminal_mode = isset( $ffc_terminal_mode ) && in_array( $ffc_terminal_mode
 					);
 					?>
 				</div>
+				<fieldset class="ffc-terminal-operator-editor" data-ffc-op-item="editor" hidden>
+					<legend><?php esc_html_e( 'Events this terminal checks in', 'ffcertificate' ); ?></legend>
+					<div data-ffc-op-item="choices"></div>
+					<p class="description"><?php esc_html_e( 'The terminal picks the change up within a minute. An event you remove keeps the readings already taken for it.', 'ffcertificate' ); ?></p>
+					<?php
+					Button::render(
+						array(
+							'label'    => __( 'Cancel', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'cross',
+							'attrs'    => array( 'data-ffc-op-item' => 'cancel' ),
+						)
+					);
+					Button::render(
+						array(
+							'label'    => __( 'Save events', 'ffcertificate' ),
+							'category' => 'primary',
+							'icon'     => 'save',
+							'attrs'    => array( 'data-ffc-op-item' => 'save' ),
+						)
+					);
+					?>
+				</fieldset>
 				<div class="ffc-terminal-operator-actions" data-ffc-op-item="confirm" hidden>
 					<p><?php esc_html_e( 'End this terminal? It stops checking people in at once.', 'ffcertificate' ); ?></p>
 					<?php

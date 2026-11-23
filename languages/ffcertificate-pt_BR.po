@@ -36258,3 +36258,45 @@ msgstr "Eventos do terminal alterados"
 
 msgid "A terminal checks in one event at a time, so the events of one terminal may not have check-in windows that cross. An event's window on each of its days runs from the start of that day's hours to 30 minutes after their end, the moment an open check-in closes on its own; an all-day event takes the whole day. Windows that only touch, one closing as the next opens, may share a terminal. A choice that crosses is refused, naming the event it collides with. The events of a paired terminal can be changed later, under the same rules; an event that leaves keeps every reading already taken for it, including readings the terminal took offline before the change."
 msgstr "Um terminal faz o check-in de um evento por vez, então os eventos de um mesmo terminal não podem ter janelas de check-in que se cruzam. A janela de um evento em cada um dos seus dias vai do início do horário daquele dia até 30 minutos depois do fim, o momento em que um check-in aberto se fecha sozinho; um evento de dia inteiro ocupa o dia todo. Janelas que apenas se tocam, uma fechando quando a outra abre, podem dividir um terminal. Uma escolha que se cruza é recusada, com o nome do evento com que colide. Os eventos de um terminal pareado podem ser alterados depois, com as mesmas regras; um evento que sai mantém todas as leituras já feitas para ele, inclusive as que o terminal fez offline antes da alteração."
+
+msgid "Checking in now"
+msgstr "Check-in em andamento"
+
+msgid "Next event"
+msgstr "Próximo evento"
+
+msgid "Check-in open until %s"
+msgstr "Check-in aberto até %s"
+
+msgid "Check-in opens when the organiser opens it."
+msgstr "O check-in abre quando o organizador abrir."
+
+msgid "Check-in opens at %s"
+msgstr "O check-in abre em %s"
+
+msgid "No more events on this terminal."
+msgstr "Não há mais eventos neste terminal."
+
+msgid "Events saved. The terminal picks them up within a minute."
+msgstr "Eventos salvos. O terminal os recebe em até um minuto."
+
+msgid "Fill from a place"
+msgstr "Preencher por local"
+
+msgid "Choose events one by one"
+msgstr "Escolher eventos um a um"
+
+msgid "A terminal checks in one event at a time: events whose check-in times cross cannot share it."
+msgstr "Um terminal faz o check-in de um evento por vez: eventos cujos horários de check-in se cruzam não podem dividi-lo."
+
+msgid "Change events"
+msgstr "Alterar eventos"
+
+msgid "The terminal picks the change up within a minute. An event you remove keeps the readings already taken for it."
+msgstr "O terminal recebe a alteração em até um minuto. Um evento que você remover mantém as leituras já feitas para ele."
+
+msgid "Save events"
+msgstr "Salvar eventos"
+
+msgid "In the app, Pair terminal can fill the events from one place, soonest first, up to 10, instead of ticking them one by one. My terminals has Change events on each terminal, which the terminal picks up within a minute. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
+msgstr "No app, Parear terminal pode preencher os eventos a partir de um local, dos mais próximos aos mais distantes, até 10, em vez de marcá-los um a um. Meus terminais tem Alterar eventos em cada terminal, que o terminal recebe em até um minuto. Durante uma janela de check-in o terminal mostra só o evento cujo check-in está fazendo, e se o organizador já abriu o check-in; entre janelas ele mostra o próximo evento e quando o check-in dele abre."
