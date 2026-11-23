@@ -125,3 +125,10 @@
 .ffc-app-certificate-chevron {
 	color: var(--ffc-text-muted);
 }
+
+/* The New badge keeps its boundary when forced colors drop its ground. */
+@media (forced-colors: active) {
+	.ffc-app-certificate-badge {
+		border: 1px solid CanvasText;
+	}
+}
