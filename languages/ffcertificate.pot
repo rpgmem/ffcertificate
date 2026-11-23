@@ -36129,8 +36129,39 @@ msgstr ""
 msgid "Once paired, the terminal waits for presence codes. A keyboard-wedge reader (USB or Bluetooth) types each code into the focused field and presses Enter. The site checks the code with the phone's signature, the site's signature and the revocation list, then checks that the code is for one of the terminal's events, that the event runs today, that its check-in window is open and that the person is on the booking or carries the site's ticket for it. Attendance is recorded with the Terminal method. The window's geofence does not apply, since the terminal stands at the entrance."
 msgstr ""
 
-msgid "The result shows for five seconds and is announced to screen readers: attendance recorded with the person's short name, such as Maria S., or a refusal that says what to do, such as an old code, another event's code, a window not yet open or already closed, someone not enrolled, or attendance already recorded at a given time. A refusal names nobody, and the terminal shows no list. This version needs a connection to the site; readings queued offline arrive in a coming update."
-msgstr ""
 
 msgid "Holding an operator QR code to the reader opens the operator menu, with the name of the operator who unlocked it. The menu ends the terminal, after a confirmation on the screen, in that operator's name, and locks again after two minutes without use. The operator must still hold ffc_checkin_audiences."
+msgstr ""
+
+msgid "Saved. It is sent to the site when the connection returns."
+msgstr ""
+
+msgid "Already saved on this terminal."
+msgstr ""
+
+msgid "Readings waiting to be sent: %d"
+msgstr ""
+
+msgid "Readings sent: %d"
+msgstr ""
+
+msgid "This is not a valid presence code. Show the code on the phone again."
+msgstr ""
+
+msgid "This terminal cannot keep more readings offline. Connect it to the internet to send them."
+msgstr ""
+
+msgid "This reading was taken at a time this terminal cannot vouch for, and was not recorded."
+msgstr ""
+
+msgid "Terminal Readings Refused on Sync"
+msgstr ""
+
+msgid "Send queue now"
+msgstr ""
+
+msgid "The result shows for five seconds and is announced to screen readers: attendance recorded with the person's short name, such as Maria S., or a refusal that says what to do, such as an old code, another event's code, a window not yet open or already closed, someone not enrolled, or attendance already recorded at a given time. A refusal names nobody, and the terminal shows no list."
+msgstr ""
+
+msgid "Without a connection, the terminal checks each code itself, with the site's keys it received when paired and a revocation list it refreshes every ten minutes, and keeps the reading with the moment it was read. A person is kept once per event and day. The queue is sent every 30 seconds, when the connection returns, from the operator menu (Send queue now, which also shows how many are waiting) and before the terminal is ended. The site then checks every reading again as of its own moment: a reading taken before the phone was replaced, inside a check-in window that was open then, is recorded with that time; one taken after a revocation, or outside every window, is refused and the refusal is written to the activity log. Sending the same queue twice records nothing twice. A queue that was never sent is lost when the pairing ends, so connect the terminal before its last event finishes."
 msgstr ""

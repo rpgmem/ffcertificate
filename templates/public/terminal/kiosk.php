@@ -3,8 +3,8 @@
  * The check-in terminal's page (#2744).
  *
  * The markup only: `assets/js/ffc-terminal-kiosk.js` shows one view at a
- * time. It pairs the terminal (#2744), reads presence codes (#2745) and
- * opens the operator menu on an operator code. The two result regions stay
+ * time. It pairs the terminal (#2744), reads presence codes online or into
+ * its offline queue (#2745) and opens the operator menu on an operator code. The two result regions stay
  * in the page, so a screen reader announces each result as it is written.
  *
  * @package FreeFormCertificate\Audience
@@ -81,9 +81,18 @@ use FreeFormCertificate\Core\Notice;
 	<section class="ffc-terminal-view" data-ffc-terminal-view="menu" hidden>
 		<h2 class="ffc-icon-unlock"><?php esc_html_e( 'Operator menu', 'ffcertificate' ); ?></h2>
 		<p data-ffc-terminal-part="operator"></p>
+		<p data-ffc-terminal-part="queue"></p>
 		<p class="description"><?php esc_html_e( 'The menu locks again after two minutes without use.', 'ffcertificate' ); ?></p>
 		<div class="ffc-terminal-actions" data-ffc-terminal-part="menu-ask">
 			<?php
+			Button::render(
+				array(
+					'label'    => __( 'Send queue now', 'ffcertificate' ),
+					'category' => 'neutral',
+					'icon'     => 'sync',
+					'attrs'    => array( 'data-ffc-terminal-part' => 'menu-sync' ),
+				)
+			);
 			Button::render(
 				array(
 					'label'    => __( 'Close menu', 'ffcertificate' ),

@@ -146,9 +146,16 @@ final class AudienceTerminalPage {
 			FFC_VERSION
 		);
 		wp_enqueue_script(
+			'ffc-presence-verifier',
+			FFC_PLUGIN_URL . "assets/js/ffc-presence-verifier{$suffix}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
 			'ffc-terminal-kiosk',
 			FFC_PLUGIN_URL . "assets/js/ffc-terminal-kiosk{$suffix}.js",
-			array(),
+			array( 'ffc-presence-verifier' ),
 			FFC_VERSION,
 			true
 		);
@@ -156,22 +163,41 @@ final class AudienceTerminalPage {
 			'ffc-terminal-kiosk',
 			'ffcTerminal',
 			array(
-				'rest'    => esc_url_raw( rest_url( AudienceTerminalRestController::NAMESPACE . '/' . AudienceTerminalRestController::REST_BASE . '/' ) ),
-				'strings' => array(
-					'storage'  => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
-					'pairing'  => __( 'Pairing…', 'ffcertificate' ),
-					'paired'   => __( 'Terminal paired.', 'ffcertificate' ),
-					'failed'   => __( 'The terminal could not reach the site. Check the connection and try again.', 'ffcertificate' ),
+				'rest'     => esc_url_raw( rest_url( AudienceTerminalRestController::NAMESPACE . '/' . AudienceTerminalRestController::REST_BASE . '/' ) ),
+				'presence' => esc_url_raw( rest_url( AudiencePresenceRestController::NAMESPACE . '/' . AudiencePresenceRestController::REST_BASE . '/' ) ),
+				'strings'  => array(
+					'storage'       => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
+					'pairing'       => __( 'Pairing…', 'ffcertificate' ),
+					'paired'        => __( 'Terminal paired.', 'ffcertificate' ),
+					'failed'        => __( 'The terminal could not reach the site. Check the connection and try again.', 'ffcertificate' ),
 					/* translators: %s: minutes and seconds left, such as 14:59 */
-					'locked'   => __( 'Too many wrong codes. Try again in %s.', 'ffcertificate' ),
+					'locked'        => __( 'Too many wrong codes. Try again in %s.', 'ffcertificate' ),
 					/* translators: %d: number of events */
-					'events'   => __( 'Events: %d', 'ffcertificate' ),
+					'events'        => __( 'Events: %d', 'ffcertificate' ),
 					/* translators: %s: date and time */
-					'until'    => __( 'Works until %s', 'ffcertificate' ),
-					'expired'  => __( 'This terminal\'s pairing has ended. Ask an operator for a new pairing code.', 'ffcertificate' ),
+					'until'         => __( 'Works until %s', 'ffcertificate' ),
+					'expired'       => __( 'This terminal\'s pairing has ended. Ask an operator for a new pairing code.', 'ffcertificate' ),
 					/* translators: %s: the operator's short name, such as Maria S. */
-					'operator' => __( 'Unlocked by %s.', 'ffcertificate' ),
-					'ended'    => __( 'Terminal ended. Pair it again with a new code from the app.', 'ffcertificate' ),
+					'operator'      => __( 'Unlocked by %s.', 'ffcertificate' ),
+					'ended'         => __( 'Terminal ended. Pair it again with a new code from the app.', 'ffcertificate' ),
+					'queued'        => __( 'Saved. It is sent to the site when the connection returns.', 'ffcertificate' ),
+					/* translators: Offline: this person's reading for this event is already waiting to be sent. */
+					'alreadyQueued' => __( 'Already saved on this terminal.', 'ffcertificate' ),
+					/* translators: %d: number of readings waiting to be sent */
+					'queue'         => __( 'Readings waiting to be sent: %d', 'ffcertificate' ),
+					/* translators: %d: number of readings sent */
+					'sent'          => __( 'Readings sent: %d', 'ffcertificate' ),
+					'offline'       => array(
+						'invalid'                          => __( 'This is not a valid presence code. Show the code on the phone again.', 'ffcertificate' ),
+						'ffc_presence_code_stale'          => __( 'This presence code is old. Show the code on the phone again.', 'ffcertificate' ),
+						'ffc_presence_code_future'         => __( 'This presence code is dated in the future. Check the phone\'s clock.', 'ffcertificate' ),
+						'ffc_presence_code_revoked'        => __( 'This phone was replaced or revoked. Activate the new one in the app.', 'ffcertificate' ),
+						'ffc_presence_attestation_expired' => __( 'This presence code has expired. Open the app while online to renew it.', 'ffcertificate' ),
+						'ffc_presence_ticket_expired'      => __( 'The event ticket in this presence code has expired.', 'ffcertificate' ),
+						'ffc_presence_ticket_mismatch'     => __( 'The event ticket in this presence code is for another person or event.', 'ffcertificate' ),
+						'ffc_terminal_other_event'         => __( 'This code is for an event this terminal does not check in. Choose this event on the phone, or use the terminal at its entrance.', 'ffcertificate' ),
+						'full'                             => __( 'This terminal cannot keep more readings offline. Connect it to the internet to send them.', 'ffcertificate' ),
+					),
 				),
 			)
 		);

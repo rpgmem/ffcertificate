@@ -107,6 +107,68 @@ class AudienceCheckinWindowReader {
 	}
 
 	/**
+	 * The window of one day of a booking that was open at a given moment, if
+	 * any: opened at or before it, and neither closed by hand nor past its
+	 * automatic close by then (#2745).
+	 *
+	 * A terminal that read a code offline sends the moment it read it, so
+	 * the question is about that moment, not about now; a day can hold more
+	 * than one window when an operator closes one and opens another.
+	 *
+	 * @param int    $booking_id Booking ID.
+	 * @param string $date       Day (Y-m-d).
+	 * @param int    $at         Unix time.
+	 * @return WindowRow|null
+	 */
+	public static function covering( int $booking_id, string $date, int $at ): ?array {
+		$wpdb = self::db();
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE booking_id = %d AND window_date = %s AND opened_at <= %d ORDER BY id DESC',
+				self::get_table_name(),
+				$booking_id,
+				$date,
+				$at
+			),
+			ARRAY_A
+		);
+
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$window = self::shape( $row );
+			$end    = null === $window['closed_at'] ? $window['closes_at'] : min( $window['closed_at'], $window['closes_at'] );
+			if ( $at < $end ) {
+				return $window;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Whether any window of one day of a booking had opened by a given
+	 * moment, so a reading outside every window can say "closed" rather than
+	 * "not open yet" (#2745).
+	 *
+	 * @param int    $booking_id Booking ID.
+	 * @param string $date       Day (Y-m-d).
+	 * @param int    $at         Unix time.
+	 * @return bool
+	 */
+	public static function opened_by( int $booking_id, string $date, int $at ): bool {
+		$wpdb = self::db();
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE booking_id = %d AND window_date = %s AND opened_at <= %d',
+				self::get_table_name(),
+				$booking_id,
+				$date,
+				$at
+			)
+		) > 0;
+	}
+
+	/**
 	 * Type one raw row.
 	 *
 	 * @param array<string, mixed> $row Raw row.

@@ -169,6 +169,23 @@ class AudienceTerminalRestController {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/' . self::REST_BASE . '/sync',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'sync' ),
+				'permission_callback' => array( $this, 'check_terminal_permission' ),
+				'args'                => array(
+					'readings' => array(
+						'type'              => 'array',
+						'required'          => true,
+						'sanitize_callback' => array( self::class, 'sanitize_queue' ),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/' . self::REST_BASE . '/unlock',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -428,6 +445,25 @@ class AudienceTerminalRestController {
 	}
 
 	/**
+	 * Send the readings the terminal queued offline.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function sync( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$readings = self::sanitize_queue( $request->get_param( 'readings' ) );
+		return new \WP_REST_Response(
+			array( 'results' => (object) AudienceTerminalReading::sync( $terminal, $readings, time() ) ),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
+	}
+
+	/**
 	 * Unlock the terminal's operator menu with an operator code.
 	 *
 	 * @param \WP_REST_Request $request Request.
@@ -498,6 +534,38 @@ class AudienceTerminalRestController {
 	 */
 	private static function not_paired(): \WP_Error {
 		return new \WP_Error( 'ffc_terminal_unpaired', __( 'This terminal is no longer paired. Ask an operator for a new pairing code.', 'ffcertificate' ), array( 'status' => 401 ) );
+	}
+
+	/**
+	 * The readings of a queue, each `{id, code, at}`: an id of the terminal's
+	 * own (letters, digits, `-` and `_`, at most 40), the code as read and
+	 * the moment it was read. Anything else is dropped, and at most
+	 * {@see AudienceTerminalReading::SYNC_BATCH} are kept.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return list<array{id: string, code: string, at: int}>
+	 */
+	public static function sanitize_queue( $value ): array {
+		$out = array();
+		foreach ( is_array( $value ) ? $value : array() as $reading ) {
+			if ( ! is_array( $reading ) || ! isset( $reading['id'], $reading['code'], $reading['at'] ) || ! is_numeric( $reading['at'] ) ) {
+				continue;
+			}
+			$id   = is_string( $reading['id'] ) ? (string) preg_replace( '/[^A-Za-z0-9_-]/', '', $reading['id'] ) : '';
+			$code = self::sanitize_reading( $reading['code'] );
+			if ( '' === $id || strlen( $id ) > 40 || '' === $code ) {
+				continue;
+			}
+			$out[] = array(
+				'id'   => $id,
+				'code' => $code,
+				'at'   => (int) $reading['at'],
+			);
+			if ( count( $out ) >= AudienceTerminalReading::SYNC_BATCH ) {
+				break;
+			}
+		}
+		return $out;
 	}
 
 	/**
