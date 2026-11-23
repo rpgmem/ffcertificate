@@ -36493,3 +36493,36 @@ msgstr ""
 
 msgid "While the terminal is paired and has an event now or next, it asks the browser to keep the screen on, and asks again whenever the page comes back to the front; once no event is left, or the terminal ends, the screen dims as usual. A browser that cannot keep the screen on, or refuses to (for instance in battery saver), leaves the terminal working as before, and the operator menu says so: set the device's screen timeout instead. Keeping the screen on does not stop someone from leaving the page: to hold the tablet on the terminal, use the device's own kiosk mode, Screen pinning on Android or Guided Access on iPad."
 msgstr ""
+
+msgid "Device check"
+msgstr ""
+
+msgid "What this browser offers the terminal. Note it, or take a picture of it, when trying a new tablet."
+msgstr ""
+
+msgid "Secure page (HTTPS)"
+msgstr ""
+
+msgid "Camera reading"
+msgstr ""
+
+msgid "Screen kept on"
+msgstr ""
+
+msgid "Supported and allowed"
+msgstr ""
+
+msgid "Supported, but off in Scheduling → Settings → Check-in"
+msgstr ""
+
+msgid "Needs HTTPS"
+msgstr ""
+
+msgid "Not supported by this browser"
+msgstr ""
+
+msgid "Supported, not active now"
+msgstr ""
+
+msgid "The operator menu ends with a Device check: whether the page is served over HTTPS, whether this browser can read codes with the camera and the site allows it, whether it can keep the screen on, and the browser's own name. Note it, or take a picture of it, when trying a new tablet, so a device that cannot do one of them is found before the event."
+msgstr ""
