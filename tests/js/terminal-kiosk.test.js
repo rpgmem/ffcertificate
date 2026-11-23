@@ -282,7 +282,7 @@ describe('pairing', () => {
 		const e = env({
 			fetch: (url, options) => {
 				const path = url.replace(CONFIG.rest, '');
-				calls.push([path, JSON.parse(options.body)]);
+				calls.push([path, options.body ? JSON.parse(options.body) : null]);
 				if ('setup/events' === path) {
 					return respond(200, { max: 10, name: 'Ana L.', bookings: events })();
 				}
