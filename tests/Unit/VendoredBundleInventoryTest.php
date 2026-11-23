@@ -72,8 +72,11 @@ final class VendoredBundleInventoryTest extends TestCase {
 	/**
 	 * Everything `libs/js/` is allowed to contain, frozen.
 	 *
-	 * Four bundles, each with its licence beside it, named for the same
-	 * version (#1952). Read the failure message before editing this list.
+	 * Five bundles, each with its licence beside it, named for the same
+	 * version (#1952). The fifth, qrcodegen, arrived with the presence QR
+	 * code (#2742), which the phone draws offline; the #1208 decision it
+	 * triggered is recorded in CLAUDE.md "Parked architecture decisions".
+	 * Read the failure message before editing this list.
 	 *
 	 * @var array<int, string>
 	 */
@@ -84,6 +87,8 @@ final class VendoredBundleInventoryTest extends TestCase {
 		'html2canvas-pro-2.6.4.min.js',
 		'jspdf-4.2.1.LICENSE.txt',
 		'jspdf-4.2.1.umd.min.js',
+		'qrcodegen-1.8.0.LICENSE.txt',
+		'qrcodegen-1.8.0.js',
 		'thumbmark-1.12.0.LICENSE.txt',
 		'thumbmark-1.12.0.umd.js',
 	);

@@ -148,7 +148,19 @@ final class AudiencePresenceAttestation {
 	 * @return array{site_key: string, user_id: int, public_key: string, key_id: string, issued: int, expires: int, name: string}|\WP_Error
 	 */
 	public static function verify( string $text, int $now ) {
-		$parsed = self::parse( SigningKeys::unb64( $text ) );
+		return self::verify_raw( SigningKeys::unb64( $text ), $now );
+	}
+
+	/**
+	 * Read and verify an attestation from its raw bytes, as the presence code
+	 * carries it (#2742).
+	 *
+	 * @param string $raw Bytes.
+	 * @param int    $now Unix time.
+	 * @return array{site_key: string, user_id: int, public_key: string, key_id: string, issued: int, expires: int, name: string}|\WP_Error
+	 */
+	public static function verify_raw( string $raw, int $now ) {
+		$parsed = self::parse( $raw );
 		if ( null === $parsed ) {
 			return new \WP_Error( 'ffc_presence_attestation_malformed', __( 'This presence code could not be read.', 'ffcertificate' ) );
 		}
