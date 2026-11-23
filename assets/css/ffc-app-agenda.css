@@ -208,3 +208,18 @@
 .ffc-app-agenda-chevron {
 	color: var(--ffc-text-muted);
 }
+
+/* Chips and the view switch keep their boundary when forced colors drop
+   their ground. */
+@media (forced-colors: active) {
+	.ffc-app-agenda-chip-accent,
+	.ffc-app-agenda-chip-info,
+	.ffc-app-agenda-chip-success,
+	.ffc-app-agenda-chip-warning {
+		border: 1px solid CanvasText;
+	}
+
+	.ffc-app-agenda-view[aria-selected="true"] {
+		border: 1px solid ButtonText;
+	}
+}
