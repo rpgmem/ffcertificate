@@ -30,6 +30,7 @@ use PHPUnit\Framework\TestCase;
  * @covers \FreeFormCertificate\Audience\AudiencePresenceCode
  * @covers \FreeFormCertificate\Audience\AudiencePresenceTicket
  * @covers \FreeFormCertificate\Audience\AudiencePresenceEvents
+ * @covers \FreeFormCertificate\Audience\AudienceQueryService::find_open_checkin_bookings
  */
 class AudiencePresenceCodeTest extends TestCase {
 
@@ -276,6 +277,42 @@ class AudiencePresenceCodeTest extends TestCase {
 		$this->assertNull( AudiencePresenceEvents::event( $ended, 7, self::NOW ) );
 		$this->assertNull( AudiencePresenceEvents::event( array( 'booking_date' => '2027-01-16' ), 7, self::NOW ) );
 		$this->assertNull( AudiencePresenceEvents::event( array( 'id' => 42 ), 7, self::NOW ) );
+	}
+
+	public function test_an_event_open_to_everyone_is_listed_for_someone_not_on_it(): void {
+		$row  = static fn( int $id ): array => array(
+			'id'               => (string) $id,
+			'booking_date'     => '2027-01-16',
+			'end_date'         => null,
+			'is_all_day'       => '1',
+			'description'      => 'Event ' . $id,
+			'schedule_name'    => '',
+			'environment_name' => 'Hall',
+		);
+		$wpdb = \Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql );
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( string $sql ) use ( $row ): array {
+				if ( false !== strpos( $sql, 'b.checkin_open = 1 AND b.checkin_terminal = 1' ) ) {
+					return array( $row( 42 ), $row( 43 ) );
+				}
+				if ( false !== strpos( $sql, 'bu.user_id = %d OR am.user_id = %d' ) ) {
+					return array( $row( 42 ) );
+				}
+				return array();
+			}
+		);
+		$backup          = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = $wpdb;
+
+		try {
+			$events = AudiencePresenceEvents::for_user( 7, self::NOW );
+		} finally {
+			$GLOBALS['wpdb'] = $backup;
+		}
+
+		$this->assertSame( array( 42, 43 ), array_column( $events, 'target_id' ), 'The open event joins the list once, beside the person\'s own.' );
 	}
 
 	// ---- Helpers ----------------------------------------------------------

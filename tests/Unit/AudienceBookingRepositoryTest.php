@@ -44,6 +44,8 @@ class AudienceBookingRepositoryTest extends TestCase {
 		Functions\when('wp_cache_set')->justReturn(true);
 		Functions\when('wp_cache_delete')->justReturn(true);
 		Functions\when('__')->returnArg();
+		// A new booking reads its check-in paths from the settings (#2748).
+		Functions\when('get_option')->justReturn(array());
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so preload the reader/writer here for correct coverage attribution.
@@ -885,7 +887,10 @@ class AudienceBookingRepositoryTest extends TestCase {
 					return $data['is_all_day'] === 0
 						&& $data['booking_type'] === 'audience'
 						&& $data['status'] === 'active'
-						&& $data['created_by'] === 1;
+						&& $data['created_by'] === 1
+						// Both check-in paths on, the settings' default (#2748).
+						&& $data['checkin_qr'] === 1
+						&& $data['checkin_terminal'] === 1;
 				}),
 				Mockery::type('array')
 			)
@@ -1025,6 +1030,16 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$result = AudienceBookingWriter::update(1, ['description' => 'Updated description']);
 
 		$this->assertTrue($result);
+	}
+
+	public function test_a_check_in_switch_writes_one_column_and_refuses_any_other(): void {
+		$this->wpdb->shouldReceive('update')
+			->once()
+			->with('wp_ffc_audience_bookings', array('checkin_terminal' => 0), array('id' => 4), array('%d'), array('%d'))
+			->andReturn(1);
+
+		$this->assertTrue(AudienceBookingWriter::set_checkin(4, 'checkin_terminal', false));
+		$this->assertFalse(AudienceBookingWriter::set_checkin(4, 'status', true), 'Only the check-in columns can be switched.');
 	}
 
 	public function test_update_returns_false_when_the_database_refuses_the_write(): void {

@@ -152,25 +152,28 @@ class AudienceBookingWriter {
 		$result = $wpdb->insert(
 			$table,
 			array(
-				'environment_id' => $data['environment_id'],
-				'booking_date'   => $data['booking_date'],
-				'start_time'     => $data['start_time'],
-				'end_time'       => $data['end_time'],
-				'is_all_day'     => $data['is_all_day'] ? 1 : 0,
-				'booking_type'   => $data['booking_type'],
-				'description'    => $data['description'],
-				'status'         => $data['status'],
-				'created_by'     => $data['created_by'],
+				'environment_id'   => $data['environment_id'],
+				'booking_date'     => $data['booking_date'],
+				'start_time'       => $data['start_time'],
+				'end_time'         => $data['end_time'],
+				'is_all_day'       => $data['is_all_day'] ? 1 : 0,
+				'booking_type'     => $data['booking_type'],
+				'description'      => $data['description'],
+				'status'           => $data['status'],
+				'created_by'       => $data['created_by'],
 				// An instant, stored as UTC seconds (#2243).
-				'created_at'     => time(),
-				'end_date'       => $is_range ? $end_date : null,
-				'time_mode'      => $is_range ? $time_mode : null,
-				'skipped_dates'  => ! empty( $plan['skipped'] ) ? wp_json_encode( $plan['skipped'] ) : null,
+				'created_at'       => time(),
+				'end_date'         => $is_range ? $end_date : null,
+				'time_mode'        => $is_range ? $time_mode : null,
+				'skipped_dates'    => ! empty( $plan['skipped'] ) ? wp_json_encode( $plan['skipped'] ) : null,
 				// A span's hours are frozen per day (#2243): editing the space's
 				// working hours later must not move a booking already made.
-				'day_times'      => $is_range ? AudienceBookingRules::encode_day_times( $plan['days'], $time_mode ) : null,
+				'day_times'        => $is_range ? AudienceBookingRules::encode_day_times( $plan['days'], $time_mode ) : null,
+				// The check-in paths a new event starts with (#2748).
+				'checkin_qr'       => AudienceCheckinSettings::default_path_qr() ? 1 : 0,
+				'checkin_terminal' => AudienceCheckinSettings::default_path_terminal() ? 1 : 0,
 			),
-			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' )
+			array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d' )
 		);
 
 		if ( ! $result ) {
@@ -490,6 +493,33 @@ class AudienceBookingWriter {
 			),
 			array( 'id' => $id ),
 			array( '%s', '%d' ),
+			array( '%d' )
+		);
+
+		static::cache_delete( "id_{$id}" );
+
+		return false !== $written;
+	}
+
+	/**
+	 * Switch one of a booking's check-in settings (#2748): who may check in,
+	 * or one of its paths.
+	 *
+	 * @param int    $id    Booking ID.
+	 * @param string $field One of {@see AudienceCheckinPolicy::FIELDS}.
+	 * @param bool   $on    New value.
+	 * @return bool Whether the row was written.
+	 */
+	public static function set_checkin( int $id, string $field, bool $on ): bool {
+		if ( ! in_array( $field, AudienceCheckinPolicy::FIELDS, true ) ) {
+			return false;
+		}
+
+		$written = self::db()->update(
+			self::get_table_name(),
+			array( $field => $on ? 1 : 0 ),
+			array( 'id' => $id ),
+			array( '%d' ),
 			array( '%d' )
 		);
 

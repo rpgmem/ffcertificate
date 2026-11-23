@@ -95,6 +95,26 @@ final class AudienceCheckinSettings {
 	}
 
 	/**
+	 * Whether a new event takes check-in by the projected QR code (#2748).
+	 * An event keeps its own switch from then on.
+	 *
+	 * @return bool
+	 */
+	public static function default_path_qr(): bool {
+		return (bool) (int) SettingsReader::get( 'checkin_path_qr', 1 );
+	}
+
+	/**
+	 * Whether a new event takes check-in by a terminal (#2748). An event
+	 * keeps its own switch from then on.
+	 *
+	 * @return bool
+	 */
+	public static function default_path_terminal(): bool {
+		return (bool) (int) SettingsReader::get( 'checkin_path_terminal', 1 );
+	}
+
+	/**
 	 * A whole number between 1 and a maximum, or its default when the stored
 	 * value is missing or not a number.
 	 *

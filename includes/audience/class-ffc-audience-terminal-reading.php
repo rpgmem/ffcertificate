@@ -166,6 +166,10 @@ final class AudienceTerminalReading {
 			return self::refused( 'ffc_terminal_not_today', __( 'This event has no check-in today.', 'ffcertificate' ) );
 		}
 
+		if ( ! AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
+			return self::refused( 'ffc_terminal_path_off', __( 'This event does not take check-in at a terminal. Speak to the organiser.', 'ffcertificate' ) );
+		}
+
 		if ( null === AudienceCheckinWindowReader::covering( $booking_id, $day, $at ) ) {
 			return ! AudienceCheckinWindowReader::opened_by( $booking_id, $day, $at )
 				? self::refused( 'ffc_terminal_window_not_open', __( 'Check-in for this event has not opened yet. Wait for the organiser to open it.', 'ffcertificate' ) )
@@ -173,7 +177,7 @@ final class AudienceTerminalReading {
 		}
 
 		$user_id = $reading['user_id'];
-		if ( ! $reading['ticket'] && ! in_array( $user_id, array_map( 'intval', AudienceBookingReader::get_all_affected_users( $booking_id ) ), true ) ) {
+		if ( ! $reading['ticket'] && ! AudienceCheckinPolicy::may_check_in( $booking, $user_id ) ) {
 			return self::refused( 'ffc_terminal_not_enrolled', __( 'This person is not enrolled in this event. Speak to the organiser.', 'ffcertificate' ) );
 		}
 

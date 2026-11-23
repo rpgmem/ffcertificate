@@ -164,6 +164,17 @@ class SettingsAjaxEndpoint {
 				'max'    => \FreeFormCertificate\Audience\AudienceCheckinSettings::AUTO_END_HOURS_MAX,
 				'cap'    => 'ffc_manage_audiences',
 			),
+			// The check-in paths a new event starts with (#2748).
+			'checkin_path_qr'               => array(
+				'option' => 'ffc_settings',
+				'type'   => 'bool',
+				'cap'    => 'ffc_manage_audiences',
+			),
+			'checkin_path_terminal'         => array(
+				'option' => 'ffc_settings',
+				'type'   => 'bool',
+				'cap'    => 'ffc_manage_audiences',
+			),
 			'admin_bypass_datetime'         => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',

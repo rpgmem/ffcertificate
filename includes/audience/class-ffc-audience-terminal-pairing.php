@@ -445,6 +445,10 @@ final class AudienceTerminalPairing {
 				/* translators: %d: number of days */
 				return new \WP_Error( 'ffc_terminal_booking', sprintf( __( 'Every event must be active and end within the next %d days.', 'ffcertificate' ), self::DAYS_AHEAD ), array( 'status' => 400 ) );
 			}
+			$booking = AudienceBookingReader::get_by_id( $booking_id );
+			if ( null !== $booking && ! AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
+				return new \WP_Error( 'ffc_terminal_path_off', __( 'One of these events does not take check-in at a terminal. Turn the terminal path on in its Check-in tab, or leave it out.', 'ffcertificate' ), array( 'status' => 400 ) );
+			}
 		}
 		return AudienceTerminalSchedule::collision_error( $bookings, $now );
 	}

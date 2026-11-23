@@ -161,7 +161,7 @@ class AudienceAdminAttendance {
 			return;
 		}
 
-		if ( self::VIEW_PROJECT === RequestInput::get_get_key( 'view' ) ) {
+		if ( self::VIEW_PROJECT === RequestInput::get_get_key( 'view' ) && AudienceCheckinPolicy::qr_allowed( $booking ) ) {
 			$this->render_projection( $booking );
 			exit;
 		}
@@ -222,6 +222,9 @@ class AudienceAdminAttendance {
 				if ( 'active' !== ( $booking->status ?? '' ) || $date !== $today ) {
 					return 'not_today';
 				}
+				if ( ! AudienceCheckinPolicy::qr_allowed( $booking ) && ! AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
+					return 'no_path';
+				}
 				$closes = AudienceCheckinWindowWriter::auto_close_at( $booking, $date );
 				if ( $closes <= $now ) {
 					return 'ended';
@@ -237,7 +240,10 @@ class AudienceAdminAttendance {
 					$now,
 					$geofence
 				);
-				return $id > 0 ? 'opened' : 'failed';
+				if ( $id <= 0 ) {
+					return 'failed';
+				}
+				return AudienceCheckinPolicy::qr_allowed( $booking ) ? 'opened' : 'opened_terminal';
 
 			case 'close':
 				$window = AudienceCheckinWindowReader::open_for( $booking_id, $date, $now );
@@ -322,7 +328,9 @@ class AudienceAdminAttendance {
 	public static function messages(): array {
 		return array(
 			'opened'              => array( __( 'Check-in is open. Project the QR code where participants can scan it.', 'ffcertificate' ), 'success' ),
+			'opened_terminal'     => array( __( 'Check-in is open. The terminals that hold this event now record readings.', 'ffcertificate' ), 'success' ),
 			'closed'              => array( __( 'Check-in is closed.', 'ffcertificate' ), 'success' ),
+			'no_path'             => array( __( 'This event takes no check-in: turn on the projected QR code or the terminal first.', 'ffcertificate' ), 'error' ),
 			'marked'              => array( __( 'Attendance marked.', 'ffcertificate' ), 'success' ),
 			'unmarked'            => array( __( 'Attendance removed.', 'ffcertificate' ), 'success' ),
 			'rule_saved'          => array( __( 'Attendance rule saved.', 'ffcertificate' ), 'success' ),
@@ -334,7 +342,7 @@ class AudienceAdminAttendance {
 			'invite_no_page'      => array( __( 'No published page embeds the post-event form. Add the form to a page, then send again.', 'ffcertificate' ), 'error' ),
 			'invite_failed'       => array( __( 'The invitation could not be sent.', 'ffcertificate' ), 'error' ),
 			'ended'               => array( __( 'Check-in can no longer be opened today: the booking has ended. Mark attendance by hand below.', 'ffcertificate' ), 'warning' ),
-			'not_today'           => array( __( 'Check-in by QR code opens only on the day itself, for an active booking.', 'ffcertificate' ), 'warning' ),
+			'not_today'           => array( __( 'Check-in opens only on the day itself, for an active booking.', 'ffcertificate' ), 'warning' ),
 			'not_open'            => array( __( 'Check-in was not open.', 'ffcertificate' ), 'warning' ),
 			'future'              => array( __( 'Attendance cannot be marked for a day that has not come yet.', 'ffcertificate' ), 'warning' ),
 			'denied'              => array( __( 'You do not have permission to do that.', 'ffcertificate' ), 'error' ),
@@ -431,7 +439,7 @@ class AudienceAdminAttendance {
 			),
 			array(
 				'key'   => self::TAB_CHECKIN,
-				'label' => __( 'Check-in by QR code', 'ffcertificate' ),
+				'label' => __( 'Check-in', 'ffcertificate' ),
 				'icon'  => 'ffc-icon-qr',
 			),
 			array(
@@ -477,7 +485,7 @@ class AudienceAdminAttendance {
 	 * @param array<string, mixed>      $roster  Roster.
 	 * @param array<string, mixed>|null $window  The window open now, if any.
 	 * @param int                       $now     Unix time.
-	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool}>, present: int, total: int, required: int, days: list<string>} $roster
+	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool, enrolled: bool}>, present: int, total: int, required: int, days: list<string>} $roster
 	 * @return void
 	 */
 	private function render_summary_card( object $booking, string $date, string $today, array $roster, ?array $window, int $now ): void {
@@ -565,7 +573,9 @@ class AudienceAdminAttendance {
 	}
 
 	/**
-	 * The check-in card: open, project, close.
+	 * The check-in card (#1947, #2748): who may check in and by which paths,
+	 * the day's window, the terminals that hold the event and the day's
+	 * attendance by path.
 	 *
 	 * @param object                    $booking Booking row.
 	 * @param string                    $date    Day shown.
@@ -575,43 +585,136 @@ class AudienceAdminAttendance {
 	 * @return void
 	 */
 	private function render_checkin_card( object $booking, string $date, string $today, ?array $window, int $now ): void {
+		$this->render_checkin_rules( $booking );
+
+		echo '<h3 class="ffc-icon-clock">' . esc_html__( 'Check-in window', 'ffcertificate' ) . '</h3>';
+		$this->render_window( $booking, $date, $today, $window, $now );
+
+		if ( AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
+			echo '<h3 class="ffc-icon-monitor">' . esc_html__( 'Terminals', 'ffcertificate' ) . '</h3>';
+			self::render_terminals( $booking, $now );
+		}
+
+		echo '<h3 class="ffc-icon-users">' . esc_html__( 'Attendance now', 'ffcertificate' ) . '</h3>';
+		self::render_attendance_by_path( $booking, $date );
+	}
+
+	/**
+	 * Who may check in, and the paths the event takes (#2748). Each control
+	 * saves on change through the record autosave, like the rule card.
+	 *
+	 * @param object $booking Booking row.
+	 * @return void
+	 */
+	private function render_checkin_rules( object $booking ): void {
+		$can_edit = Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$id       = $can_edit ? (int) ( $booking->id ?? 0 ) : 0;
+
+		AdminUI::render_segmented(
+			array(
+				'name'         => 'checkin_open',
+				'id'           => 'ffc-checkin-open',
+				'data'         => RecordAutosave::attrs( 'audience_booking', $id, 'checkin_open' ),
+				'legend'       => __( 'Who may check in', 'ffcertificate' ),
+				'value'        => AudienceCheckinPolicy::is_open( $booking ) ? '1' : '0',
+				'disabled'     => ! $can_edit,
+				'options'      => array(
+					'0' => __( 'Enrolled only', 'ffcertificate' ),
+					'1' => _x( 'Open', 'who may check in', 'ffcertificate' ),
+				),
+				'descriptions' => array(
+					'0' => __( 'Only the people on this booking can check in.', 'ffcertificate' ),
+					'1' => __( 'Anyone signed in can check in. Attendance is recorded without enrolling the person, so it counts toward no attendance rule and earns no post-event invitation.', 'ffcertificate' ),
+				),
+			)
+		);
+
+		echo '<fieldset class="ffc-checkin-paths"><legend>' . esc_html__( 'Check-in paths', 'ffcertificate' ) . '</legend>';
+		AdminUI::render_toggle(
+			array(
+				'name'        => 'checkin_qr',
+				'checked'     => AudienceCheckinPolicy::qr_allowed( $booking ),
+				'disabled'    => ! $can_edit,
+				'label'       => __( 'Projected QR code', 'ffcertificate' ),
+				'description' => __( 'Participants scan the code projected in the room with their own phone.', 'ffcertificate' ),
+				'data'        => RecordAutosave::attrs( 'audience_booking', $id, 'checkin_qr' ),
+			)
+		);
+		AdminUI::render_toggle(
+			array(
+				'name'        => 'checkin_terminal',
+				'checked'     => AudienceCheckinPolicy::terminal_allowed( $booking ),
+				'disabled'    => ! $can_edit,
+				'label'       => __( 'Terminal', 'ffcertificate' ),
+				'description' => __( 'A paired terminal at the entrance reads each participant\'s presence code. Turning it off stops terminals from taking new readings for this event.', 'ffcertificate' ),
+				'data'        => RecordAutosave::attrs( 'audience_booking', $id, 'checkin_terminal' ),
+			)
+		);
+		echo '<p class="description">' . esc_html__( 'Changes apply after the page is reloaded.', 'ffcertificate' ) . '</p>';
+		echo '</fieldset>';
+	}
+
+	/**
+	 * The day's check-in window: closed, open, or how to open it.
+	 *
+	 * @param object                    $booking Booking row.
+	 * @param string                    $date    Day shown.
+	 * @param string                    $today   Today.
+	 * @param array<string, mixed>|null $window  The window open now, if any.
+	 * @param int                       $now     Unix time.
+	 * @return void
+	 */
+	private function render_window( object $booking, string $date, string $today, ?array $window, int $now ): void {
 		$booking_id = (int) ( $booking->id ?? 0 );
+		$qr         = AudienceCheckinPolicy::qr_allowed( $booking );
 
 		if ( 'active' !== ( $booking->status ?? '' ) ) {
 			echo '<p>' . esc_html__( 'This booking is cancelled, so it takes no check-in.', 'ffcertificate' ) . '</p>';
 			return;
 		}
 
+		if ( ! $qr && ! AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
+			echo '<p>' . esc_html__( 'This event takes no check-in: both paths are off. Attendance can still be marked by hand on the Participants tab.', 'ffcertificate' ) . '</p>';
+			return;
+		}
+
 		if ( $date !== $today ) {
-			echo '<p>' . esc_html__( 'Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand on the Participants tab.', 'ffcertificate' ) . '</p>';
+			echo '<p>' . esc_html__( 'Check-in opens only on the day itself. Attendance on other days can be marked by hand on the Participants tab.', 'ffcertificate' ) . '</p>';
 			return;
 		}
 
 		if ( null !== $window ) {
-			/* translators: 1: time check-in closes on its own, 2: rotation in seconds */
-			echo '<p class="ffc-attendance-open"><span class="ffc-attendance-badge ffc-attendance-badge-open">' . esc_html__( 'Open', 'ffcertificate' ) . '</span> ' . esc_html( sprintf( __( 'Closes on its own at %1$s. The code changes every %2$d seconds.', 'ffcertificate' ), DateFormatter::format_time( $window['closes_at'] ), $window['rotation_seconds'] ) ) . '</p>';
-			if ( array() !== $window['geofence_locations'] ) {
+			echo '<p class="ffc-attendance-open"><span class="ffc-attendance-badge ffc-attendance-badge-open">' . esc_html__( 'Open', 'ffcertificate' ) . '</span> ';
+			echo $qr
+				/* translators: 1: time check-in closes on its own, 2: rotation in seconds */
+				? esc_html( sprintf( __( 'Closes on its own at %1$s. The code changes every %2$d seconds.', 'ffcertificate' ), DateFormatter::format_time( $window['closes_at'] ), $window['rotation_seconds'] ) )
+				/* translators: %s: time check-in closes on its own */
+				: esc_html( sprintf( __( 'Closes on its own at %s.', 'ffcertificate' ), DateFormatter::format_time( $window['closes_at'] ) ) );
+			echo '</p>';
+			if ( $qr && array() !== $window['geofence_locations'] ) {
 				echo '<p class="ffc-icon-map-pin">' . esc_html__( 'Participants must be inside one of the selected areas.', 'ffcertificate' ) . '</p>';
 			}
 			echo '<form method="post" class="ffc-attendance-actions">' . $this->form_fields( $booking_id, 'close', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
-			AdminUI::render_button(
-				array(
-					'label'    => __( 'Project the QR code', 'ffcertificate' ),
-					'category' => 'primary',
-					'icon'     => 'monitor',
-					'href'     => $this->url(
-						$booking_id,
-						array(
-							'view' => self::VIEW_PROJECT,
-							'date' => $date,
-						)
-					),
-					'attrs'    => array(
-						'target' => '_blank',
-						'rel'    => 'noopener',
-					),
-				)
-			);
+			if ( $qr ) {
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Project the QR code', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'monitor',
+						'href'     => $this->url(
+							$booking_id,
+							array(
+								'view' => self::VIEW_PROJECT,
+								'date' => $date,
+							)
+						),
+						'attrs'    => array(
+							'target' => '_blank',
+							'rel'    => 'noopener',
+						),
+					)
+				);
+			}
 			AdminUI::render_button(
 				array(
 					'label'    => __( 'Close check-in', 'ffcertificate' ),
@@ -632,24 +735,28 @@ class AudienceAdminAttendance {
 		}
 
 		echo '<form method="post" class="ffc-attendance-open-form">' . $this->form_fields( $booking_id, 'open', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
-		echo '<p><label for="ffc-attendance-rotation">' . esc_html__( 'The code changes every', 'ffcertificate' ) . '</label> <select id="ffc-attendance-rotation" name="rotation_seconds">';
-		foreach ( AudienceCheckinCode::ROTATIONS as $seconds ) {
-			$label = 60 === $seconds
-				? __( '1 minute', 'ffcertificate' )
-				/* translators: %d: number of minutes */
-				: sprintf( __( '%d minutes', 'ffcertificate' ), intdiv( $seconds, 60 ) );
-			echo '<option value="' . esc_attr( (string) $seconds ) . '"' . selected( 60, $seconds, false ) . '>' . esc_html( $label ) . '</option>';
-		}
-		echo '</select></p>';
-
-		$locations = \FreeFormCertificate\Security\GeofenceLocationRegistry::get_all();
-		if ( array() !== $locations ) {
-			echo '<fieldset class="ffc-attendance-geofence"><legend>' . esc_html__( 'Require the participant to be inside (optional)', 'ffcertificate' ) . '</legend>';
-			foreach ( $locations as $location ) {
-				$id = (string) ( $location['id'] ?? '' );
-				echo '<label><input type="checkbox" name="geofence_locations[]" value="' . esc_attr( $id ) . '"> ' . esc_html( (string) ( $location['name'] ?? $id ) ) . '</label>';
+		if ( $qr ) {
+			echo '<p><label for="ffc-attendance-rotation">' . esc_html__( 'The code changes every', 'ffcertificate' ) . '</label> <select id="ffc-attendance-rotation" name="rotation_seconds">';
+			foreach ( AudienceCheckinCode::ROTATIONS as $seconds ) {
+				$label = 60 === $seconds
+					? __( '1 minute', 'ffcertificate' )
+					/* translators: %d: number of minutes */
+					: sprintf( __( '%d minutes', 'ffcertificate' ), intdiv( $seconds, 60 ) );
+				echo '<option value="' . esc_attr( (string) $seconds ) . '"' . selected( 60, $seconds, false ) . '>' . esc_html( $label ) . '</option>';
 			}
-			echo '<p class="description">' . esc_html__( 'The position comes from the participant\'s browser and can be faked: an area makes checking in from elsewhere harder, it does not prove presence.', 'ffcertificate' ) . '</p></fieldset>';
+			echo '</select></p>';
+
+			$locations = \FreeFormCertificate\Security\GeofenceLocationRegistry::get_all();
+			if ( array() !== $locations ) {
+				echo '<fieldset class="ffc-attendance-geofence"><legend>' . esc_html__( 'Require the participant to be inside (optional)', 'ffcertificate' ) . '</legend>';
+				foreach ( $locations as $location ) {
+					$id = (string) ( $location['id'] ?? '' );
+					echo '<label><input type="checkbox" name="geofence_locations[]" value="' . esc_attr( $id ) . '"> ' . esc_html( (string) ( $location['name'] ?? $id ) ) . '</label>';
+				}
+				echo '<p class="description">' . esc_html__( 'The position comes from the participant\'s browser and can be faked: an area makes checking in from elsewhere harder, it does not prove presence.', 'ffcertificate' ) . '</p></fieldset>';
+			}
+		} else {
+			echo '<p class="description">' . esc_html__( 'Opening check-in lets the terminals that hold this event record readings. The projected QR code is off for this event.', 'ffcertificate' ) . '</p>';
 		}
 
 		/* translators: %s: time check-in closes on its own */
@@ -663,6 +770,88 @@ class AudienceAdminAttendance {
 			)
 		);
 		echo '</form>';
+	}
+
+	/**
+	 * The terminals that hold the event now (#2748): how many of the allowed,
+	 * each one's last contact and queue, and a warning while any of them
+	 * still holds readings it has not sent.
+	 *
+	 * @param object $booking Booking row.
+	 * @param int    $now     Unix time.
+	 * @return void
+	 */
+	public static function render_terminals( object $booking, int $now ): void {
+		$terminals = AudienceTerminalReader::active_for_booking( (int) ( $booking->id ?? 0 ), $now );
+		$limit     = AudienceTerminalPairing::limits()['booking'];
+
+		/* translators: 1: terminals holding the event, 2: terminals allowed per event */
+		echo '<p class="ffc-checkin-terminal-count">' . esc_html( sprintf( __( '%1$d of %2$d allowed', 'ffcertificate' ), count( $terminals ), $limit ) ) . '</p>';
+
+		if ( array() === $terminals ) {
+			echo '<p class="description">' . esc_html__( 'No terminal holds this event. Pair one in the app, under More → Pair terminal.', 'ffcertificate' ) . '</p>';
+			return;
+		}
+
+		$unsent = count( array_filter( $terminals, static fn( array $terminal ): bool => $terminal['queued'] > 0 ) );
+		if ( $unsent > 0 ) {
+			/* translators: %d: number of terminals */
+			echo '<div class="notice notice-warning inline"><p>' . esc_html( sprintf( _n( '%d terminal has not sent its readings yet.', '%d terminals have not sent their readings yet.', $unsent, 'ffcertificate' ), $unsent ) ) . '</p></div>';
+		}
+
+		echo '<ul class="ffc-checkin-terminals">';
+		foreach ( $terminals as $terminal ) {
+			$label = '' !== $terminal['label'] ? $terminal['label'] : sprintf( /* translators: %d: terminal id */ __( 'Terminal %d', 'ffcertificate' ), $terminal['id'] );
+			$seen  = null === $terminal['last_seen_at']
+				? __( 'Not used yet', 'ffcertificate' )
+				/* translators: %s: date and time the terminal was last seen */
+				: sprintf( __( 'Last seen %s', 'ffcertificate' ), DateFormatter::format_datetime( $terminal['last_seen_at'] ) );
+			echo '<li><strong>' . esc_html( $label ) . '</strong> · ' . esc_html( $seen );
+			if ( $terminal['queued'] > 0 ) {
+				/* translators: %d: number of readings waiting to be sent */
+				echo ' · <span class="ffc-checkin-terminal-queued">' . esc_html( sprintf( _n( '%d waiting to be sent', '%d waiting to be sent', $terminal['queued'], 'ffcertificate' ), $terminal['queued'] ) ) . '</span>';
+			}
+			echo '</li>';
+		}
+		echo '</ul>';
+	}
+
+	/**
+	 * The day's attendance by path (#2748).
+	 *
+	 * @param object $booking Booking row.
+	 * @param string $date    Day shown.
+	 * @return void
+	 */
+	public static function render_attendance_by_path( object $booking, string $date ): void {
+		$counts = self::attendance_by_path( (int) ( $booking->id ?? 0 ), $date );
+		$labels = array(
+			AudienceAttendanceWriter::METHOD_QR       => __( 'Projected QR code', 'ffcertificate' ),
+			AudienceAttendanceWriter::METHOD_TERMINAL => __( 'Terminal', 'ffcertificate' ),
+			AudienceAttendanceWriter::METHOD_MANUAL   => __( 'By hand', 'ffcertificate' ),
+		);
+
+		echo '<ul class="ffc-checkin-by-path">';
+		foreach ( $labels as $method => $label ) {
+			echo '<li>' . esc_html( $label ) . ': <strong>' . esc_html( (string) ( $counts[ $method ] ?? 0 ) ) . '</strong></li>';
+		}
+		echo '</ul>';
+	}
+
+	/**
+	 * How many people were recorded present on a day, by path.
+	 *
+	 * @param int    $booking_id Booking.
+	 * @param string $date       Day (Y-m-d).
+	 * @return array<string, int>
+	 */
+	public static function attendance_by_path( int $booking_id, string $date ): array {
+		$counts = array();
+		foreach ( AudienceAttendanceReader::for_day( $booking_id, $date ) as $line ) {
+			$method            = (string) $line['method'];
+			$counts[ $method ] = ( $counts[ $method ] ?? 0 ) + 1;
+		}
+		return $counts;
 	}
 
 	/**
@@ -710,7 +899,7 @@ class AudienceAdminAttendance {
 	 * @param string               $date    Day shown.
 	 * @param array<string, mixed> $roster  Roster, for the names and the rule.
 	 * @param int                  $now     Unix time.
-	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool}>, present: int, total: int, required: int, days: list<string>} $roster
+	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool, enrolled: bool}>, present: int, total: int, required: int, days: list<string>} $roster
 	 * @return void
 	 */
 	private function render_post_event_card( object $booking, string $date, array $roster, int $now ): void {
@@ -775,7 +964,7 @@ class AudienceAdminAttendance {
 	 * @param string               $date    Day shown.
 	 * @param array<string, mixed> $roster  Roster.
 	 * @param int                  $now     Unix time.
-	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool}>, present: int, total: int, required: int, days: list<string>} $roster
+	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool, enrolled: bool}>, present: int, total: int, required: int, days: list<string>} $roster
 	 * @return void
 	 */
 	private function render_invite_tracking( object $booking, string $date, array $roster, int $now ): void {
@@ -948,7 +1137,7 @@ class AudienceAdminAttendance {
 	 * @param string               $date    Day shown.
 	 * @param string               $today   Today.
 	 * @param array<string, mixed> $roster  Roster.
-	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool}>, present: int, total: int, required: int, days: list<string>} $roster
+	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool, enrolled: bool}>, present: int, total: int, required: int, days: list<string>} $roster
 	 * @return void
 	 */
 	private function render_participants_card( object $booking, string $date, string $today, array $roster ): void {
@@ -991,7 +1180,7 @@ class AudienceAdminAttendance {
 		foreach ( $roster['rows'] as $row ) {
 			$present = null !== $row['present_at'];
 			echo '<tr data-user-id="' . esc_attr( (string) $row['user_id'] ) . '">';
-			echo '<td>' . esc_html( $row['name'] ) . '</td>';
+			echo '<td>' . esc_html( $row['name'] ) . ( $row['enrolled'] ? '' : ' <span class="description">' . esc_html__( '(not enrolled)', 'ffcertificate' ) . '</span>' ) . '</td>';
 			echo '<td class="ffc-attendance-cell">' . self::status_html( $row['present_at'], $row['method'] ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by status_html().
 			if ( $multi ) {
 				echo '<td class="ffc-attendance-days">' . esc_html( count( $row['days'] ) . ' / ' . $roster['required'] ) . '</td>';

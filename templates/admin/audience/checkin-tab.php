@@ -2,7 +2,7 @@
 /**
  * Template: Scheduling Settings — Check-in tab (#2747, #2748).
  * In-scope: $can_edit, $terminal_camera, $site_limit, $event_limit,
- * $auto_end_hours.
+ * $auto_end_hours, $path_qr, $path_terminal.
  *
  * Each field saves on its own through the settings autosave
  * (`data-ffc-autosave-key`), so the tab has no form and no Save button.
@@ -21,6 +21,33 @@ $ffc_disabled = empty( $can_edit ) ? ' disabled' : '';
 <div class="card">
 	<h2 class="ffc-icon-qr"><?php esc_html_e( 'Check-in', 'ffcertificate' ); ?></h2>
 	<p class="description"><?php esc_html_e( 'How attendance is taken at audience calendar events: the QR code an organiser projects, and the terminals at the entrance that read each participant\'s own code.', 'ffcertificate' ); ?></p>
+</div>
+
+<div class="card">
+	<h2 class="ffc-icon-split"><?php esc_html_e( 'Check-in paths for new events', 'ffcertificate' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'The ways a new event takes check-in. Each event keeps its own switches afterwards, on its Check-in tab; changing these does not change events that already exist.', 'ffcertificate' ); ?></p>
+	<?php
+	\FreeFormCertificate\Admin\AdminUI::render_toggle(
+		array(
+			'name'        => 'checkin_path_qr',
+			'checked'     => ! empty( $path_qr ),
+			'disabled'    => empty( $can_edit ),
+			'label'       => __( 'Projected QR code', 'ffcertificate' ),
+			'description' => __( 'An organiser opens check-in and projects a code that participants scan with their own phone.', 'ffcertificate' ),
+			'data'        => array( 'ffc-autosave-key' => 'checkin_path_qr' ),
+		)
+	);
+	\FreeFormCertificate\Admin\AdminUI::render_toggle(
+		array(
+			'name'        => 'checkin_path_terminal',
+			'checked'     => ! empty( $path_terminal ),
+			'disabled'    => empty( $can_edit ),
+			'label'       => __( 'Terminal', 'ffcertificate' ),
+			'description' => __( 'A paired terminal at the entrance reads each participant\'s presence code.', 'ffcertificate' ),
+			'data'        => array( 'ffc-autosave-key' => 'checkin_path_terminal' ),
+		)
+	);
+	?>
 </div>
 
 <div class="card">

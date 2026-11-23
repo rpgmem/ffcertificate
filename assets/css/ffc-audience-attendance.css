@@ -40,6 +40,33 @@
     font-weight: 600;
 }
 
+/* The Check-in tab's paths, terminals and count by path (#2748). */
+.ffc-page-scheduling-attendance .ffc-checkin-paths {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-sm);
+    margin: var(--ffc-spacing-lg) 0;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-paths legend {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-weight: 600;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-terminals,
+.ffc-page-scheduling-attendance .ffc-checkin-by-path {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-2xs);
+    margin: 0 0 var(--ffc-spacing-lg);
+    padding: 0;
+    list-style: none;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-terminal-queued {
+    color: var(--ffc-warning-text);
+}
+
 .ffc-page-scheduling-attendance .ffc-attendance-count {
     margin: 0 0 var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-lg);

@@ -389,6 +389,9 @@ class AudienceTerminalRestController {
 		$limit  = AudienceTerminalPairing::limits()['booking'];
 		$events = array();
 		foreach ( $rows as $booking ) {
+			if ( ! AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
+				continue;
+			}
 			$id  = (int) $booking->id;
 			$end = AudienceTerminalPairing::booking_end( $id );
 			if ( null === $end || $end < $now ) {

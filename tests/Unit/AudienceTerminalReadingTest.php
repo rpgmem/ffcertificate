@@ -26,6 +26,7 @@ use PHPUnit\Framework\TestCase;
  * Codes are built the way the app builds them, signed by a device key this
  * test generates, so the reading goes through the one real verifier.
  *
+ * @covers \FreeFormCertificate\Audience\AudienceCheckinPolicy
  * @covers \FreeFormCertificate\Audience\AudienceTerminalReading
  * @covers \FreeFormCertificate\Audience\AudienceTerminalRestController::sanitize_reading
  * @covers \FreeFormCertificate\Audience\AudienceTerminalRestController::sanitize_queue
@@ -144,6 +145,25 @@ class AudienceTerminalReadingTest extends TestCase {
 
 		$this->assertSame( 'ffc_terminal_not_enrolled', $this->read( $this->code( self::BOOKING ) )['code'] );
 		$this->assertSame( AudienceTerminalReading::RECORDED, $this->read( $this->code( self::BOOKING, $ticket ) )['status'] );
+	}
+
+	public function test_an_open_event_admits_someone_who_is_not_enrolled(): void {
+		$this->db->members[ self::BOOKING ]            = array();
+		$this->bookings[ self::BOOKING ]->checkin_open = '1';
+
+		$result = $this->read( $this->code( self::BOOKING ) );
+
+		$this->assertSame( AudienceTerminalReading::RECORDED, $result['status'], $result['message'] );
+		$this->assertCount( 1, $this->db->attendance );
+	}
+
+	public function test_an_event_with_the_terminal_path_off_refuses_every_reading(): void {
+		$this->bookings[ self::BOOKING ]->checkin_terminal = '0';
+
+		$result = $this->read( $this->code( self::BOOKING ) );
+
+		$this->assertSame( 'ffc_terminal_path_off', $result['code'] );
+		$this->assertSame( array(), $this->db->attendance );
 	}
 
 	public function test_another_events_code_is_refused(): void {

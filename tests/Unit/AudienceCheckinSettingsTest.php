@@ -38,6 +38,8 @@ class AudienceCheckinSettingsTest extends TestCase {
 		$this->assertSame( 3, AudienceCheckinSettings::event_limit() );
 		$this->assertSame( 2 * HOUR_IN_SECONDS, AudienceCheckinSettings::auto_end_seconds() );
 		$this->assertFalse( AudienceCheckinSettings::camera_allowed() );
+		$this->assertTrue( AudienceCheckinSettings::default_path_qr(), 'A new event takes the projected code by default.' );
+		$this->assertTrue( AudienceCheckinSettings::default_path_terminal(), 'A new event takes terminals by default.' );
 	}
 
 	public function test_stored_values_are_read_and_clamped(): void {
@@ -51,6 +53,13 @@ class AudienceCheckinSettingsTest extends TestCase {
 		$this->assertSame( AudienceCheckinSettings::EVENT_LIMIT_MAX, AudienceCheckinSettings::event_limit(), 'above the bound' );
 		$this->assertSame( HOUR_IN_SECONDS, AudienceCheckinSettings::auto_end_seconds(), 'below the floor' );
 		$this->assertTrue( AudienceCheckinSettings::camera_allowed() );
+
+		$this->settings = array(
+			'checkin_path_qr'       => '0',
+			'checkin_path_terminal' => 0,
+		);
+		$this->assertFalse( AudienceCheckinSettings::default_path_qr() );
+		$this->assertFalse( AudienceCheckinSettings::default_path_terminal() );
 
 		$this->settings = array( 'terminal_site_limit' => 'lots' );
 		$this->assertSame( AudienceCheckinSettings::SITE_LIMIT, AudienceCheckinSettings::site_limit(), 'not a number' );
