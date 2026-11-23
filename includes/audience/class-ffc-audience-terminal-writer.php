@@ -143,6 +143,30 @@ class AudienceTerminalWriter {
 	}
 
 	/**
+	 * Replace the events of an active terminal (#2746).
+	 *
+	 * @param int             $id       Terminal id.
+	 * @param int[]           $bookings Booking ids it holds now.
+	 * @param array<int, int> $removed  When each event it no longer holds left.
+	 * @param int             $expires  Unix time.
+	 * @phpstan-param list<int> $bookings
+	 * @return bool Whether an active terminal was changed.
+	 */
+	public static function set_bookings( int $id, array $bookings, array $removed, int $expires ): bool {
+		$wpdb = self::db();
+		return self::run(
+			$wpdb->prepare(
+				'UPDATE %i SET bookings = %s, removed = %s, expires_at = %d WHERE id = %d AND revoked_at IS NULL',
+				AudienceTerminalReader::terminals_table(),
+				(string) wp_json_encode( $bookings ),
+				(string) wp_json_encode( (object) $removed ),
+				$expires,
+				$id
+			)
+		) > 0;
+	}
+
+	/**
 	 * Note that a terminal was heard from.
 	 *
 	 * @param int $id  Terminal id.

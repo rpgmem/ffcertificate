@@ -31,6 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   guards it is the code (single use, five minutes) and the lockout.
  * - `GET terminals` — the operator's terminals; an administrator sees all.
  * - `DELETE terminals/{id}` — end one.
+ * - `PUT terminals/{id}` — change the events it holds (#2746).
  * - `POST operator-code` — an operator's unlock code for a paired terminal.
  *
  * @phpstan-import-type TerminalRow from AudienceTerminalReader
@@ -127,14 +128,34 @@ class AudienceTerminalRestController {
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/terminals/(?P<id>\d+)',
 			array(
-				'methods'             => \WP_REST_Server::DELETABLE,
-				'callback'            => array( $this, 'revoke' ),
-				'permission_callback' => array( $this, 'check_manage_permission' ),
-				'args'                => array(
-					'id' => array(
-						'type'              => 'integer',
-						'required'          => true,
-						'sanitize_callback' => 'absint',
+				array(
+					'methods'             => \WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'revoke' ),
+					'permission_callback' => array( $this, 'check_manage_permission' ),
+					'args'                => array(
+						'id' => array(
+							'type'              => 'integer',
+							'required'          => true,
+							'sanitize_callback' => 'absint',
+						),
+					),
+				),
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_terminal' ),
+					'permission_callback' => array( $this, 'check_manage_permission' ),
+					'args'                => array(
+						'id'       => array(
+							'type'              => 'integer',
+							'required'          => true,
+							'sanitize_callback' => 'absint',
+						),
+						'bookings' => array(
+							'type'              => 'array',
+							'required'          => true,
+							'items'             => array( 'type' => 'integer' ),
+							'sanitize_callback' => array( self::class, 'sanitize_ids' ),
+						),
 					),
 				),
 			)
@@ -205,14 +226,21 @@ class AudienceTerminalRestController {
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/self',
 			array(
-				'methods'             => \WP_REST_Server::DELETABLE,
-				'callback'            => array( $this, 'end_self' ),
-				'permission_callback' => array( $this, 'check_terminal_permission' ),
-				'args'                => array(
-					'code' => array(
-						'type'              => 'string',
-						'required'          => true,
-						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'schedule' ),
+					'permission_callback' => array( $this, 'check_terminal_permission' ),
+				),
+				array(
+					'methods'             => \WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'end_self' ),
+					'permission_callback' => array( $this, 'check_terminal_permission' ),
+					'args'                => array(
+						'code' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+						),
 					),
 				),
 			)
@@ -348,6 +376,7 @@ class AudienceTerminalRestController {
 				'id'          => $id,
 				'description' => (string) $booking->description,
 				'place'       => (string) ( $booking->environment_name ?? '' ),
+				'place_id'    => (int) ( $booking->environment_id ?? 0 ),
 				'when'        => self::when( $booking ),
 				'terminals'   => $held,
 				'full'        => $held >= $limit,
@@ -414,6 +443,54 @@ class AudienceTerminalRestController {
 			return $result;
 		}
 		return new \WP_REST_Response( array( 'revoked' => $id ), 200 );
+	}
+
+	/**
+	 * Change the events a terminal holds.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function update_terminal( \WP_REST_Request $request ) {
+		$result = AudienceTerminalPairing::update_bookings(
+			absint( $request->get_param( 'id' ) ),
+			self::sanitize_ids( $request->get_param( 'bookings' ) ),
+			get_current_user_id(),
+			current_user_can( 'manage_options' ),
+			time()
+		);
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new \WP_REST_Response( self::present( $result ), 200, array( 'Cache-Control' => 'no-store' ) );
+	}
+
+	/**
+	 * What the calling terminal holds now, and when each event takes
+	 * readings (#2746). The terminal asks for this on its sync timer, so an
+	 * event added or removed elsewhere reaches it there.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function schedule( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$now = time();
+		return new \WP_REST_Response(
+			array(
+				'label'         => $terminal['label'],
+				'bookings'      => $terminal['bookings'],
+				'expires_at'    => $terminal['expires_at'],
+				'expires_label' => DateFormatter::format_datetime( $terminal['expires_at'] ),
+				'now'           => $now,
+				'schedule'      => AudienceTerminalSchedule::plan( $terminal, $now ),
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
 	}
 
 	/**

@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The code is checked by its one verifier ({@see AudiencePresenceCode}), with
  * the revocation list, and then against what the terminal was paired for:
  *
- * 1. the event is one of the terminal's;
+ * 1. the event is one of the terminal's, or was when the code was read;
  * 2. the event runs today and its check-in window is open;
  * 3. the person is on the booking, or carries the site's ticket for it;
  * 4. nobody recorded them today already.
@@ -156,7 +156,7 @@ final class AudienceTerminalReading {
 		}
 
 		$booking_id = $reading['target_id'];
-		if ( AudienceAttendanceTarget::TYPE !== $reading['target_type'] || ! in_array( $booking_id, $terminal['bookings'], true ) ) {
+		if ( AudienceAttendanceTarget::TYPE !== $reading['target_type'] || ! AudienceTerminalPairing::held_at( $terminal, $booking_id, $at ) ) {
 			return self::refused( 'ffc_terminal_other_event', __( 'This code is for an event this terminal does not check in. Choose this event on the phone, or use the terminal at its entrance.', 'ffcertificate' ) );
 		}
 

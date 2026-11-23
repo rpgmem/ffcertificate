@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '16';
+	public const SCHEMA_REVISION = '17';
 
 	/**
 	 * Option holding the revision last applied.
@@ -617,6 +617,7 @@ class AudienceActivator {
             device_hash char(64) NOT NULL,
             label varchar(100) NOT NULL DEFAULT '',
             bookings text NOT NULL,
+            removed text DEFAULT NULL,
             paired_by bigint(20) unsigned DEFAULT NULL,
             paired_at bigint(20) unsigned NOT NULL,
             expires_at bigint(20) unsigned NOT NULL,
@@ -1126,6 +1127,7 @@ class AudienceActivator {
 		self::create_terminal_pairings_table();
 		$healed = self::migrate_attendance_method_terminal() && $healed;
 		$healed = self::migrate_presence_admin_columns() && $healed;
+		$healed = self::migrate_terminal_removed_column() && $healed;
 		$healed = $healed
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_attendance' )
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' )
@@ -1159,6 +1161,26 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'signals_dismissed_at', 'bigint(20) unsigned DEFAULT NULL', 'attested_at' );
 
 		return self::has_columns( $table_name, array( 'attested_at', 'signals_dismissed_at' ) );
+	}
+
+	/**
+	 * When each event left a terminal's queue (#2746): a JSON map of booking
+	 * id to the moment it was removed, so a reading the terminal took
+	 * offline while the event was still in its queue is still recorded.
+	 *
+	 * @return bool Whether the column exists, or the table does not exist yet.
+	 */
+	private static function migrate_terminal_removed_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_terminals';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'removed', 'text DEFAULT NULL', 'bookings' );
+
+		return self::has_columns( $table_name, array( 'removed' ) );
 	}
 
 	/**

@@ -21,7 +21,9 @@ use PHPUnit\Framework\TestCase;
 /**
  * Terminal pairing (#2744): the one-time `P-` codes, the lockout counted on
  * the server, the token a terminal keeps, ending a terminal, the operator's
- * unlock code and who may call each route.
+ * unlock code and who may call each route; and the event queue (#2746):
+ * check-in windows that may not cross, changing the events of a terminal
+ * that is already paired, and what the terminal shows.
  *
  * @covers \FreeFormCertificate\Audience\AudienceTerminalPairing
  * @covers \FreeFormCertificate\Audience\AudienceTerminalLockout
@@ -29,6 +31,7 @@ use PHPUnit\Framework\TestCase;
  * @covers \FreeFormCertificate\Audience\AudienceTerminalWriter
  * @covers \FreeFormCertificate\Audience\AudienceOperatorCode
  * @covers \FreeFormCertificate\Audience\AudienceTerminalRestController
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalSchedule
  */
 class AudienceTerminalPairingTest extends TestCase {
 
@@ -464,6 +467,186 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertFalse( $controller->check_terminal_permission( $request ), 'an ended terminal is no longer paired' );
 	}
 
+	// ---- Event queue (#2746) ---------------------------------------------
+
+	public function test_check_in_windows_may_touch_but_not_cross(): void {
+		// Windows run from the start to the end plus the 30-minute grace.
+		$this->booking( 31, '2027-01-15', 'active', '09:00:00', '11:00:00' );
+		$this->booking( 32, '2027-01-15', 'active', '11:30:00', '13:00:00' );
+		$this->booking( 33, '2027-01-15', 'active', '11:00:00', '12:00:00' );
+
+		$this->assertIsArray( AudienceTerminalPairing::create_code( self::OPERATOR, array( 31, 32 ), '', self::NOW ), 'one closes at 11:30, the next opens at 11:30' );
+
+		$crossing = AudienceTerminalPairing::create_code( self::OPERATOR, array( 31, 33 ), '', self::NOW );
+		$this->assertInstanceOf( \WP_Error::class, $crossing );
+		$this->assertSame( 'ffc_terminal_overlap', $crossing->get_error_code(), 'the event ends at 11:00 but its check-in runs to 11:30' );
+		$this->assertStringContainsString( 'Event 33', $crossing->get_error_message() );
+		$this->assertStringContainsString( 'Event 31', $crossing->get_error_message(), 'names the event it collides with' );
+		$this->assertSame( 409, $crossing->get_error_data()['status'] );
+		$this->assertCount( 1, $this->tables->pairings );
+	}
+
+	public function test_a_window_that_already_closed_collides_with_nothing(): void {
+		$this->booking( 34, '2027-01-15', 'active', '08:00:00', '09:00:00' );
+		$this->booking( 35, '2027-01-15', 'active', '08:00:00', '09:00:00' );
+
+		$this->assertNotNull( \FreeFormCertificate\Audience\AudienceTerminalSchedule::collision( array( 34, 35 ), self::NOW ), 'both run 08:00 today' );
+		$this->assertNull( \FreeFormCertificate\Audience\AudienceTerminalSchedule::collision( array( 34, 35 ), self::NOW + 2 * HOUR_IN_SECONDS ), 'both windows closed at 09:30' );
+		$this->assertNull( \FreeFormCertificate\Audience\AudienceTerminalSchedule::collision( array( 34, 99 ), self::NOW ), 'a booking that does not exist has no window' );
+	}
+
+	public function test_an_all_day_event_takes_the_whole_day(): void {
+		$this->booking( 37, '2027-01-16', 'active', '10:00:00', '11:00:00' );
+		$this->bookings[37]->is_all_day = 1;
+		$this->booking( 38, '2027-01-16', 'active', '15:00:00', '16:00:00' );
+
+		$windows = \FreeFormCertificate\Audience\AudienceTerminalSchedule::windows( $this->bookings[37] );
+		$this->assertSame( gmmktime( 0, 0, 0, 1, 16, 2027 ), $windows[0]['opens'] );
+		$this->assertSame( gmmktime( 0, 29, 0, 1, 17, 2027 ), $windows[0]['closes'], '23:59 plus the grace' );
+		$this->assertSame( 'ffc_terminal_overlap', AudienceTerminalPairing::create_code( self::OPERATOR, array( 37, 38 ), '', self::NOW )->get_error_code() );
+	}
+
+	public function test_an_operator_changes_the_events_of_their_terminal(): void {
+		$paired = $this->paired( array( 11 ), self::DEVICE );
+		$id     = $paired['terminal_id'];
+
+		$changed = AudienceTerminalPairing::update_bookings( $id, array( 12 ), self::OPERATOR, false, self::NOW + 100 );
+		$this->assertIsArray( $changed );
+		$this->assertSame( array( 12 ), $changed['bookings'] );
+		$this->assertSame( array( 11 => self::NOW + 100 ), $changed['removed'], 'when the event left the queue' );
+		$this->assertSame( AudienceTerminalPairing::booking_end( 12 ) + AudienceTerminalPairing::AFTER_LAST, $changed['expires_at'], 'the end follows the new last event' );
+		$stored = AudienceTerminalReader::terminal( $id );
+		$this->assertSame( array( 12 ), $stored['bookings'] );
+		$this->assertSame( array( 11 => self::NOW + 100 ), $stored['removed'] );
+
+		$last = ActivityLogBuffer::contexts()[ count( ActivityLogBuffer::contexts() ) - 1 ];
+		$this->assertSame( 'terminal_events_changed', $last['action'] );
+
+		$back = AudienceTerminalPairing::update_bookings( $id, array( 11, 12 ), self::OPERATOR, false, self::NOW + 200 );
+		$this->assertSame( array(), $back['removed'], 'an event put back is held again' );
+
+		$writes = count( ActivityLogBuffer::contexts() );
+		$this->assertSame( array( 11, 12 ), AudienceTerminalPairing::update_bookings( $id, array( 12, 11 ), self::OPERATOR, false, self::NOW + 300 )['bookings'], 'the same events in another order change nothing' );
+		$this->assertCount( $writes, ActivityLogBuffer::contexts() );
+	}
+
+	public function test_a_changed_queue_is_held_to_the_rules_of_a_pairing(): void {
+		$paired = $this->paired( array( 11 ), self::DEVICE );
+		$id     = $paired['terminal_id'];
+		$this->booking( 31, '2027-01-15', 'active', '09:00:00', '11:00:00' );
+		$this->booking( 33, '2027-01-15', 'active', '11:00:00', '12:00:00' );
+
+		$this->assertSame( 'ffc_terminal_no_bookings', AudienceTerminalPairing::update_bookings( $id, array(), self::OPERATOR, false, self::NOW )->get_error_code() );
+		$this->assertSame( 'ffc_terminal_too_many', AudienceTerminalPairing::update_bookings( $id, range( 1, 11 ), self::OPERATOR, false, self::NOW )->get_error_code() );
+		$this->assertSame( 'ffc_terminal_booking', AudienceTerminalPairing::update_bookings( $id, array( 99 ), self::OPERATOR, false, self::NOW )->get_error_code() );
+		$this->assertSame( 'ffc_terminal_overlap', AudienceTerminalPairing::update_bookings( $id, array( 31, 33 ), self::OPERATOR, false, self::NOW )->get_error_code() );
+		$this->assertSame( 'ffc_terminal_missing', AudienceTerminalPairing::update_bookings( $id, array( 12 ), 99, false, self::NOW )->get_error_code(), 'another operator\'s terminal' );
+		$this->assertIsArray( AudienceTerminalPairing::update_bookings( $id, array( 12 ), 99, true, self::NOW ), 'an administrator changes any' );
+		$this->assertSame( 'ffc_terminal_missing', AudienceTerminalPairing::update_bookings( 404, array( 12 ), self::OPERATOR, true, self::NOW )->get_error_code() );
+
+		AudienceTerminalPairing::revoke( $id, self::OPERATOR, false, self::NOW + 10 );
+		$this->assertSame( 'ffc_terminal_missing', AudienceTerminalPairing::update_bookings( $id, array( 11 ), self::OPERATOR, false, self::NOW + 20 )->get_error_code(), 'an ended terminal' );
+	}
+
+	public function test_an_added_event_must_have_room_and_a_held_one_keeps_its_place(): void {
+		$first = $this->paired( array( 11 ), 'device-for-eleven-0' );
+		$this->paired( array( 11 ), 'device-for-eleven-1' );
+		$this->paired( array( 11 ), 'device-for-eleven-2' );
+		$other = $this->paired( array( 12 ), 'device-for-twelve-0' );
+
+		$this->assertSame( 'ffc_terminal_booking_limit', AudienceTerminalPairing::update_bookings( $other['terminal_id'], array( 11, 12 ), self::OPERATOR, false, self::NOW + 5 )->get_error_code(), 'three terminals already hold 11' );
+		$this->assertIsArray( AudienceTerminalPairing::update_bookings( $first['terminal_id'], array( 11, 12 ), self::OPERATOR, false, self::NOW + 5 ), 'a terminal that holds 11 keeps it while adding another' );
+	}
+
+	public function test_a_terminal_held_an_event_until_the_moment_it_left(): void {
+		$paired = $this->paired( array( 11, 12 ), self::DEVICE );
+		AudienceTerminalPairing::update_bookings( $paired['terminal_id'], array( 12 ), self::OPERATOR, false, self::NOW + 600 );
+		$terminal = AudienceTerminalReader::terminal( $paired['terminal_id'] );
+
+		$this->assertTrue( AudienceTerminalPairing::held_at( $terminal, 11, self::NOW + 599 ), 'read offline before the change: still recorded' );
+		$this->assertFalse( AudienceTerminalPairing::held_at( $terminal, 11, self::NOW + 600 ) );
+		$this->assertTrue( AudienceTerminalPairing::held_at( $terminal, 12, self::NOW + 600 ) );
+		$this->assertFalse( AudienceTerminalPairing::held_at( $terminal, 13, self::NOW ) );
+		$this->assertSame( array( 11 => 5 ), AudienceTerminalReader::removals( '{"11":5,"x":3,"12":0,"-1":4}' ) );
+		$this->assertSame( array(), AudienceTerminalReader::removals( 'not json' ) );
+	}
+
+	public function test_the_schedule_lists_open_windows_soonest_first_and_says_which_are_open(): void {
+		$this->booking( 31, '2027-01-15', 'active', '09:00:00', '11:00:00' );
+		$this->booking( 32, '2027-01-15', 'active', '07:00:00', '08:00:00' );
+		$this->booking( 39, '2027-01-15', 'cancelled', '13:00:00', '14:00:00' );
+		$this->bookings[32]->environment_name = 'Hall';
+		$terminal = AudienceTerminalReader::terminal( $this->paired( array( 31, 32, 12 ), self::DEVICE )['terminal_id'] );
+		$terminal['bookings'][] = 39;
+		$this->tables->windows[] = array(
+			'id'                 => 1,
+			'booking_id'         => 32,
+			'window_date'        => '2027-01-15',
+			'rotation_seconds'   => 30,
+			'opened_at'          => self::NOW - 1800,
+			'opened_by'          => 5,
+			'closes_at'          => self::NOW + 1800,
+			'closed_at'          => self::NOW + 900,
+			'closed_by'          => null,
+			'geofence_locations' => '',
+		);
+
+		$plan = \FreeFormCertificate\Audience\AudienceTerminalSchedule::plan( $terminal, self::NOW + 60 );
+
+		$this->assertSame( array( 32, 31, 12 ), array_column( $plan, 'booking_id' ), 'soonest first; a cancelled event is left out' );
+		$this->assertTrue( $plan[0]['open'] );
+		$this->assertSame( self::NOW + 900, $plan[0]['closes'], 'an open window closes when the operator said, not at its plan' );
+		$this->assertSame( 'Hall', $plan[0]['place'] );
+		$this->assertSame( 'Event 32', $plan[0]['title'] );
+		$this->assertFalse( $plan[1]['open'] );
+		$this->assertSame( gmmktime( 9, 0, 0, 1, 15, 2027 ), $plan[1]['opens'] );
+		$this->assertNotSame( '', $plan[1]['opens_label'] );
+		$this->assertNotSame( '', $plan[1]['closes_label'] );
+
+		$later = \FreeFormCertificate\Audience\AudienceTerminalSchedule::plan( $terminal, gmmktime( 12, 0, 0, 1, 15, 2027 ) );
+		$this->assertSame( array( 12 ), array_column( $later, 'booking_id' ), 'a window past its close leaves the schedule' );
+	}
+
+	public function test_the_routes_change_a_terminal_and_hand_it_its_schedule(): void {
+		// The routes read the real clock, so the events are near it.
+		$this->booking( 41, gmdate( 'Y-m-d', time() + DAY_IN_SECONDS ) );
+		$this->booking( 42, gmdate( 'Y-m-d', time() + 2 * DAY_IN_SECONDS ) );
+		$paired  = $this->paired( array( 11 ), self::DEVICE );
+		$token   = $paired['token'];
+		$params  = array(
+			'id'       => $paired['terminal_id'],
+			'bookings' => array( '42', 41 ),
+		);
+		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturnUsing( static function () use ( &$token ) {
+			return $token;
+		} );
+		$request->shouldReceive( 'get_param' )->andReturnUsing( static function ( $name ) use ( &$params ) {
+			return $params[ $name ] ?? null;
+		} );
+		Functions\when( 'get_current_user_id' )->justReturn( self::OPERATOR );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		$controller = new AudienceTerminalRestController();
+
+		$response = $controller->update_terminal( $request );
+		$this->assertInstanceOf( \WP_REST_Response::class, $response, is_wp_error( $response ) ? $response->get_error_code() : '' );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array( 42, 41 ), $response->get_data()['bookings'] );
+		$this->assertArrayNotHasKey( 'token_hash', $response->get_data() );
+
+		$schedule = $controller->schedule( $request )->get_data();
+		$this->assertSame( array( 42, 41 ), $schedule['bookings'], 'the terminal reads the change on its next request' );
+		$this->assertSame( array( 41, 42 ), array_column( $schedule['schedule'], 'booking_id' ) );
+		$this->assertNotSame( '', $schedule['expires_label'] );
+
+		$params['bookings'] = array();
+		$this->assertSame( 'ffc_terminal_no_bookings', $controller->update_terminal( $request )->get_error_code() );
+
+		$token = str_repeat( 'c', 64 );
+		$this->assertSame( 'ffc_terminal_unpaired', $controller->schedule( $request )->get_error_code() );
+	}
+
 	// ---- Helpers ----------------------------------------------------------
 
 	/**
@@ -473,12 +656,14 @@ class AudienceTerminalPairingTest extends TestCase {
 	 * @param string $day    Day.
 	 * @param string $status Status.
 	 */
-	private function booking( int $id, string $day, string $status = 'active' ): void {
+	private function booking( int $id, string $day, string $status = 'active', string $start = '', string $end = '17:00:00' ): void {
 		$this->bookings[ $id ] = (object) array(
 			'id'           => $id,
+			'description'  => 'Event ' . $id,
 			'booking_date' => $day,
 			'end_date'     => null,
-			'end_time'     => '17:00:00',
+			'start_time'   => $start,
+			'end_time'     => $end,
 			'status'       => $status,
 		);
 	}

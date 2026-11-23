@@ -328,6 +328,7 @@ final class ActivityLogItems {
 		'terminal_pairing_locked'                 => 'sched_attendance',
 		'terminal_revoked'                        => 'sched_attendance',
 		'terminal_readings_refused'               => 'sched_attendance',
+		'terminal_events_changed'                 => 'sched_attendance',
 
 		'settings_changed'                        => 'system_settings',
 		'scheduled_task_failed'                   => 'system_tasks',
