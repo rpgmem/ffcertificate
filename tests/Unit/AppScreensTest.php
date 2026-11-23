@@ -160,7 +160,51 @@ class AppScreensTest extends TestCase {
 		}
 		$this->assertSame( 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-bookings', $registry->added['operator-attendance']['url'] );
 		$this->assertArrayNotHasKey( 'render', $registry->added['operator-attendance'] );
-		$this->assertSame( array( AudienceAppScreens::class, 'render_coming_soon' ), $registry->added['presence']['render'] );
+		$this->assertSame( array( AudienceAppScreens::class, 'render_presence' ), $registry->added['presence']['render'] );
+		$this->assertSame( array( AudienceAppScreens::class, 'render_coming_soon' ), $registry->added['operator-pair']['render'] );
+	}
+
+	public function test_the_presence_screen_draws_its_markup_and_hands_the_script_what_it_needs(): void {
+		$styles    = array();
+		$scripts   = array();
+		$localized = array();
+		Functions\when( 'wp_enqueue_style' )->alias( static function ( $handle, $src = '' ) use ( &$styles ) {
+			$styles[ $handle ] = $src;
+		} );
+		Functions\when( 'wp_enqueue_script' )->alias( static function ( $handle, $src = '', $deps = array() ) use ( &$scripts ) {
+			$scripts[ $handle ] = array( $src, $deps );
+		} );
+		Functions\when( 'wp_localize_script' )->alias( static function ( $handle, $name, $data ) use ( &$localized ) {
+			$localized[ $handle ] = array( $name, $data );
+			return true;
+		} );
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'rest_url' )->alias( static fn( $path ) => 'https://example.com/wp-json/' . $path );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+
+		$html = AudienceAppScreens::render_presence();
+
+		foreach ( array( 'unsupported', 'activate', 'code' ) as $view ) {
+			$this->assertStringContainsString( 'data-ffc-presence-view="' . $view . '"', $html, $view );
+		}
+		$this->assertStringContainsString( 'data-ffc-presence-part="activate"', $html );
+		$this->assertStringContainsString( 'id="ffc-presence-event"', $html );
+		$this->assertArrayHasKey( 'ffc-presence-app', $styles );
+		$this->assertStringContainsString( 'libs/js/qrcodegen-' . FFC_QRCODEGEN_VERSION . '.js', $scripts['ffc-qrcodegen'][0] );
+		$this->assertSame( array( 'ffc-qrcodegen' ), $scripts['ffc-presence-app'][1] );
+		$this->assertSame( 'ffcPresence', $localized['ffc-presence-app'][0] );
+		$config = $localized['ffc-presence-app'][1];
+		$this->assertSame( 'https://example.com/wp-json/ffc/v1/presence/', $config['rest'] );
+		$this->assertSame( 7, $config['userId'] );
+		$this->assertSame( array( 'storage', 'activating', 'activated', 'failed', 'next', 'expired', 'qrLabel' ), array_keys( $config['strings'] ) );
+		$this->assertStringContainsString( '%d', $config['strings']['next'] );
 	}
 
 	public function test_a_screen_not_built_yet_says_so(): void {

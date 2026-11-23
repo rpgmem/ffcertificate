@@ -86,13 +86,14 @@ final class AudiencePresenceTicket {
 	public static function verify( string $raw, int $now ) {
 		$length = strlen( $raw );
 		$kid    = $length > 1 ? ord( $raw[1] ) : 0;
-		if ( $length !== 2 + $kid + 13 + 64 || self::VERSION !== ord( $raw[0] ) || $kid < 1 || $kid > 16 ) {
+		if ( 2 + $kid + 13 + 64 !== $length || self::VERSION !== ord( $raw[0] ) || $kid < 1 || $kid > 16 ) {
 			return new \WP_Error( 'ffc_presence_ticket_malformed', __( 'The event ticket in this presence code could not be read.', 'ffcertificate' ) );
 		}
 		$site_key = (string) substr( $raw, 2, $kid );
 		$body     = (string) substr( $raw, 0, $length - 64 );
 		$fields   = unpack( 'Ctype/Ntarget/Nuser/Nexpires', (string) substr( $raw, 2 + $kid, 13 ) );
-		if ( ! is_array( $fields ) || ! isset( AudiencePresenceCode::TARGETS[ $fields['type'] ] ) ) {
+		$type     = is_array( $fields ) && is_int( $fields['type'] ?? null ) ? $fields['type'] : 0;
+		if ( ! is_array( $fields ) || ! isset( AudiencePresenceCode::TARGETS[ $type ] ) ) {
 			return new \WP_Error( 'ffc_presence_ticket_malformed', __( 'The event ticket in this presence code could not be read.', 'ffcertificate' ) );
 		}
 		if ( ! AudiencePresenceKeys::verify( self::DOMAIN . $body, (string) substr( $raw, -64 ), $site_key, $now ) ) {
@@ -102,7 +103,7 @@ final class AudiencePresenceTicket {
 			return new \WP_Error( 'ffc_presence_ticket_expired', __( 'The event ticket in this presence code has expired.', 'ffcertificate' ) );
 		}
 		return array(
-			'target_type' => AudiencePresenceCode::TARGETS[ $fields['type'] ],
+			'target_type' => AudiencePresenceCode::TARGETS[ $type ],
 			'target_id'   => (int) $fields['target'],
 			'user_id'     => (int) $fields['user'],
 			'expires'     => (int) $fields['expires'],

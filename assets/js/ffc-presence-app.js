@@ -333,7 +333,6 @@
 
     App.prototype.start = function () {
         var self = this;
-        var strings = self.config.strings;
         if (!root.crypto || !root.crypto.subtle || !self.store) {
             self.show('unsupported');
             return Promise.resolve();
@@ -352,6 +351,19 @@
                 self.draw();
             });
         }
+        return self.load();
+    };
+
+    /**
+     * Read the kept state and show the view it calls for. Runs at start and
+     * again after an activation; the listeners are bound once, in start().
+     *
+     * @return {Promise}
+     */
+    App.prototype.load = function () {
+        var self = this;
+        var strings = self.config.strings;
+        self.stop();
         return self.store.get('device').then(function (saved) {
             self.state = saved && saved.userId === self.config.userId ? saved : {};
             if (!self.state.attestation) {
@@ -409,7 +421,7 @@
             return self.save();
         }).then(function () {
             self.say(strings.activated);
-            return self.start();
+            return self.load();
         }).catch(function (error) {
             if (button) {
                 button.disabled = false;
@@ -442,6 +454,7 @@
         }).then(function (answer) {
             self.state.events = answer.events || [];
             self.listEvents();
+            self.draw();
             return self.save();
         }).catch(function (error) {
             if (error && (error.code === 'ffc_presence_revoked' || error.code === 'ffc_presence_unknown_key')) {

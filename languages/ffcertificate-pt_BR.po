@@ -35684,3 +35684,86 @@ msgstr "Duas contas cujos celulares informam os mesmos sinais de aparelho geram 
 
 msgid "A refusal an administrator can lift leaves a request for them. Every activation, revocation and refusal is in the activity log, with the device and key identifiers. These rules apply to presence codes only: logging in, certificates and bookings work on any device."
 msgstr "Uma recusa que um administrador pode desfazer deixa um pedido para ele. Toda ativação, revogação e recusa fica no registro de atividades, com os identificadores do aparelho e da chave. Essas regras valem só para códigos de presença: entrar, certificados e reservas funcionam em qualquer aparelho."
+
+msgid "Presence code"
+msgstr "Código de presença"
+
+msgid "Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 30 seconds, offline if need be, for as long as the activation lasts. The code carries the site's statement about the phone, the event, the moment and a signature made by the phone's key, so a photo or screenshot of it stops working within a minute and a code from another phone does not pass."
+msgstr "Com o celular ativo, a tela Presença do app mostra um QR code do evento escolhido, uma contagem regressiva e o que fazer. Um código novo é gerado a cada 30 segundos, mesmo sem internet, enquanto a ativação valer. O código leva a declaração do site sobre o celular, o evento, o momento e uma assinatura feita pela chave do celular, então uma foto ou captura de tela dele para de funcionar em até um minuto, e um código de outro celular não passa."
+
+msgid "The screen lists the participant's bookings over the next 7 days. While online, the app also fetches a ticket signed by the site for each of them, which proves the participant is on that booking even when the terminal cannot reach the site."
+msgstr "A tela lista as reservas do participante nos próximos 7 dias. Com internet, o app também busca um ingresso assinado pelo site para cada uma delas, que prova que o participante está naquela reserva mesmo quando o terminal não alcança o site."
+
+msgid "A terminal accepts a code up to one rotation old, with 60 seconds of tolerance either way for a phone whose clock is off."
+msgstr "O terminal aceita um código de até uma rotação atrás, com 60 segundos de tolerância para mais ou para menos para um celular com o relógio errado."
+
+msgid "The short name is the only personal data in the code; a CPF, an RF or an e-mail never is."
+msgstr "O nome curto é o único dado pessoal no código; CPF, RF ou e-mail nunca estão nele."
+
+msgid "Activate this phone"
+msgstr "Ativar este celular"
+
+msgid "Activate this phone once, while online, to show your presence code at an event terminal. It then works without internet."
+msgstr "Ative este celular uma vez, com internet, para mostrar o seu código de presença no terminal do evento. Depois ele funciona sem internet."
+
+msgid "One phone per account: activating another one later stops this one, and you receive an e-mail."
+msgstr "Um celular por conta: ativar outro depois faz este parar, e você recebe um e-mail."
+
+msgid "Activating this phone…"
+msgstr "Ativando este celular…"
+
+msgid "Hold the code up to the terminal's reader, about 20 cm away, with the screen bright. A photo or screenshot of the code stops working within a minute."
+msgstr "Aproxime o código do leitor do terminal, a uns 20 cm, com a tela clara. Uma foto ou captura de tela do código para de funcionar em até um minuto."
+
+#. translators: %d: seconds until the presence code changes
+#, php-format
+msgid "New code in %d s"
+msgstr "Novo código em %d s"
+
+msgid "The event ticket in this presence code could not be read."
+msgstr "Não foi possível ler o ingresso do evento neste código de presença."
+
+msgid "The event ticket in this presence code has expired."
+msgstr "O ingresso do evento neste código de presença expirou."
+
+msgid "The event ticket in this presence code is for another person or event."
+msgstr "O ingresso do evento neste código de presença é de outra pessoa ou de outro evento."
+
+msgid "The event ticket in this presence code was not issued by this site."
+msgstr "O ingresso do evento neste código de presença não foi emitido por este site."
+
+msgid "The presence code needs JavaScript. Turn it on in the browser and open this screen again."
+msgstr "O código de presença precisa de JavaScript. Ative-o no navegador e abra esta tela de novo."
+
+msgid "This browser cannot keep a presence key. Open the app installed on your phone, or update the browser."
+msgstr "Este navegador não consegue guardar uma chave de presença. Abra o app instalado no celular ou atualize o navegador."
+
+msgid "This is not a presence code."
+msgstr "Este não é um código de presença."
+
+msgid "This phone could not be activated. Check the connection and try again."
+msgstr "Não foi possível ativar este celular. Confira a conexão e tente de novo."
+
+msgid "This phone is active. Show the code below at the event terminal."
+msgstr "Este celular está ativo. Mostre o código abaixo no terminal do evento."
+
+msgid "This phone was replaced or revoked. Activate the new one in the app."
+msgstr "Este celular foi substituído ou revogado. Ative o novo no app."
+
+msgid "This phone's activation has expired. Open this screen while online to renew it."
+msgstr "A ativação deste celular expirou. Abra esta tela com internet para renová-la."
+
+msgid "This presence code is dated in the future. Check the phone's clock."
+msgstr "Este código de presença tem data no futuro. Confira o relógio do celular."
+
+msgid "This presence code is old. Show the code on the phone again."
+msgstr "Este código de presença é antigo. Mostre o código do celular de novo."
+
+msgid "This presence code was not made by the phone it names."
+msgstr "Este código de presença não foi gerado pelo celular que ele indica."
+
+msgid "You have no event in the next 7 days. Open this screen while online to update the list."
+msgstr "Você não tem evento nos próximos 7 dias. Abra esta tela com internet para atualizar a lista."
+
+msgid "Your presence code. Hold it up to the terminal's reader."
+msgstr "O seu código de presença. Aproxime-o do leitor do terminal."

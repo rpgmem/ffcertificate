@@ -90,6 +90,7 @@ class TypographyTokensTest extends TestCase {
 		// `&times;` close, now the button family's icon-only variant (#1879).
 		'ffc-admin-settings.css'           => 1,
 		'ffc-calendar-frontend.css'        => 1,
+		'ffc-presence-app.css'             => 0,
 		'ffc-reregistration-admin.css'     => 0,
 		'ffc-admin.css'                    => 0,
 		'ffc-frontend.css'                 => 0,
