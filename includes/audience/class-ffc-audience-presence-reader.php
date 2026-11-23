@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for presence devices and the requests the rules leave.
  *
- * @phpstan-type DeviceRow array{id: int, user_id: int, device_id: string, key_id: string, public_key: string, signals_hash: string|null, is_change: bool, activated_at: int, revoked_at: int|null, revoked_reason: string|null, revoked_by: int|null, released_at: int|null, released_by: int|null, attested_at: int|null, signals_dismissed_at: int|null}
+ * @phpstan-type DeviceRow array{id: int, user_id: int, device_id: string, key_id: string, public_key: string, signals_hash: string|null, is_change: bool, activated_at: int, revoked_at: int|null, revoked_reason: string|null, revoked_by: int|null, released_at: int|null, released_by: int|null, attested_at: int|null, signals_dismissed_at: int|null, platform: string, browser: string}
  * @phpstan-type RequestRow array{id: int, user_id: int, device_id: string, reason: string, status: string, created_at: int, decided_at: int|null, decided_by: int|null}
  * @phpstan-type SignalGroup array{signals_hash: string, user_ids: list<int>, devices: list<DeviceRow>}
  *
@@ -399,6 +399,8 @@ class AudiencePresenceReader {
 			'released_by'          => $nullable_int( 'released_by' ),
 			'attested_at'          => $nullable_int( 'attested_at' ),
 			'signals_dismissed_at' => $nullable_int( 'signals_dismissed_at' ),
+			'platform'             => (string) $nullable_str( 'platform' ),
+			'browser'              => (string) $nullable_str( 'browser' ),
 		);
 	}
 }

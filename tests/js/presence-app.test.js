@@ -34,6 +34,11 @@ const STRINGS = {
 	qrLabel: 'qr label',
 	dismiss: 'dismiss',
 	fillForm: 'fill form',
+	current: 'Now: %1$s since %2$s.',
+	otherPhone: 'another phone',
+	changes: '%1$d of %2$d / %3$d',
+	dayOne: '1 day',
+	days: '%d days',
 };
 
 function markup() {
@@ -46,11 +51,13 @@ function markup() {
 			</div>
 			<div data-ffc-presence-part="code-view" data-ffc-presence-view="code" hidden>
 				<ul data-ffc-presence-part="pending" hidden></ul>
-				<select data-ffc-presence-part="event"></select>
+				<h2 data-ffc-presence-part="title"></h2>
+				<p data-ffc-presence-part="when"></p>
+				<div data-ffc-presence-part="picker" hidden><select data-ffc-presence-part="event"></select></div>
 				<p data-ffc-presence-part="attendance" hidden></p>
 				<p data-ffc-presence-part="empty" hidden></p>
-				<div data-ffc-presence-part="qr"></div>
-				<p data-ffc-presence-part="name"></p>
+				<div data-ffc-presence-part="card"><div data-ffc-presence-part="qr"></div></div>
+				<progress data-ffc-presence-part="progress"></progress>
 				<p data-ffc-presence-part="countdown"></p>
 			</div>
 		</div>`;
@@ -311,7 +318,8 @@ describe('presence app screen', () => {
 		expect(el.querySelector('[data-ffc-presence-view="code"]').hidden).toBe(false);
 		expect(el.querySelector('[data-ffc-presence-part="qr"] svg')).not.toBeNull();
 		expect(el.querySelector('[data-ffc-presence-part="qr"]').getAttribute('aria-label')).toBe('qr label');
-		expect(el.querySelector('[data-ffc-presence-part="name"]').textContent).toBe('Maria S.');
+		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent).toMatch(/ · Maria S\.$/);
+		expect(el.querySelector('[data-ffc-presence-part="picker"]').hidden).toBe(false, 'two events: the picker shows');
 		expect(el.querySelectorAll('option').length).toBe(2);
 		app.stop();
 	});
@@ -397,7 +405,9 @@ describe('presence app screen', () => {
 		await settle();
 		const holder = el.querySelector('[data-ffc-presence-part="qr"]');
 		expect(app.drawn).toBe('42@' + (NOW - (NOW % 30)));
-		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent).toBe('next ' + (30 - (NOW % 30)));
+		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent.split(' · ')[0]).toBe('next ' + (30 - (NOW % 30)));
+		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('value')).toBe(String(30 - (NOW % 30)), 'the bar drains with the rotation');
+		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('max')).toBe('30');
 
 		const first = holder.innerHTML;
 		expect(await app.draw()).toBeNull();
@@ -411,6 +421,7 @@ describe('presence app screen', () => {
 		select.dispatchEvent(new Event('change'));
 		await settle();
 		expect(app.state.chosen).toBe('43');
+		expect(el.querySelector('[data-ffc-presence-part="title"]').textContent).toBe(app.current().title || '', 'the heading follows the chosen event');
 		expect(app.drawn.startsWith('43@')).toBe(true);
 		app.stop();
 	});
@@ -426,6 +437,9 @@ describe('presence app screen', () => {
 		app.listEvents();
 		expect(el.querySelector('[data-ffc-presence-part="empty"]').hidden).toBe(false);
 		expect(el.querySelector('[data-ffc-presence-part="event"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-presence-part="picker"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-presence-part="card"]').hidden).toBe(true, 'no event, no code card');
+		expect(el.querySelector('[data-ffc-presence-part="title"]').hidden).toBe(true);
 		app.drawn = '';
 		expect(await app.draw()).toBeNull();
 		expect(el.querySelector('[data-ffc-presence-part="qr"]').textContent).toBe('');
@@ -460,7 +474,51 @@ describe('presence app screen', () => {
 		const [app] = boot(memoryStore(), fetch);
 		await settle();
 		await app.enrol();
-		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(fetch.mock.calls.filter(([url]) => url === rest('enrol'))).toHaveLength(1);
+	});
+
+	it('names the phone it replaces, the change budget and the offline days', async () => {
+		const el = markup();
+		el.querySelector('[data-ffc-presence-view="activate"]').insertAdjacentHTML('beforeend', `
+			<p data-ffc-presence-part="current" hidden></p>
+			<dl data-ffc-presence-part="facts" hidden><dd data-ffc-presence-part="changes"></dd><dd data-ffc-presence-part="offline"></dd></dl>`);
+		const fetch = vi.fn(() => reply(200, {
+			current: { device_id: 'device-other', label: 'Android · Chrome', since: '02/11' },
+			changes: 1, max_changes: 3, window_days: 30, offline_days: 7,
+		}));
+		boot(memoryStore(), fetch);
+		await settle();
+		expect(fetch.mock.calls[0][0]).toBe(rest('device'));
+		const current = el.querySelector('[data-ffc-presence-part="current"]');
+		expect(current.hidden).toBe(false);
+		expect(current.querySelector('strong').textContent).toBe('Android · Chrome');
+		expect(current.textContent).toBe('Now: Android · Chrome since 02/11.');
+		expect(el.querySelector('[data-ffc-presence-part="changes"]').textContent).toBe('1 of 3 / 30');
+		expect(el.querySelector('[data-ffc-presence-part="offline"]').textContent).toBe('7 days');
+		expect(el.querySelector('[data-ffc-presence-part="facts"]').hidden).toBe(false);
+	});
+
+	it('leaves the facts out offline and the current phone out when it is this one', async () => {
+		const el = markup();
+		el.querySelector('[data-ffc-presence-view="activate"]').insertAdjacentHTML('beforeend', `
+			<p data-ffc-presence-part="current" hidden></p>
+			<dl data-ffc-presence-part="facts" hidden><dd data-ffc-presence-part="changes"></dd><dd data-ffc-presence-part="offline"></dd></dl>`);
+		const fetch = vi.fn(() => Promise.reject(new Error('offline')));
+		boot(memoryStore(), fetch);
+		await settle();
+		expect(el.querySelector('[data-ffc-presence-part="facts"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-presence-view="activate"]').hidden).toBe(false);
+
+		const { state } = await deviceState({ userId: USER, attestation: '' });
+		state.deviceId = 'device-mine';
+		fetch.mockImplementation(() => reply(200, {
+			current: { device_id: 'device-mine', label: '', since: '02/11' },
+			changes: 0, max_changes: 3, window_days: 30, offline_days: 1,
+		}));
+		boot(memoryStore(state), fetch);
+		await settle();
+		const parts = el.querySelectorAll('[data-ffc-presence-part="current"]');
+		expect(parts[parts.length - 1].hidden).toBe(true);
 	});
 });
 

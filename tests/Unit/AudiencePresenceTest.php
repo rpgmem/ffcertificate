@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Audience\AudiencePresenceAgent;
 use FreeFormCertificate\Audience\AudiencePresenceAttestation;
 use FreeFormCertificate\Audience\AudiencePresenceEnrolment;
 use FreeFormCertificate\Audience\AudiencePresenceKeys;
@@ -30,6 +31,7 @@ use PHPUnit\Framework\TestCase;
  * @covers \FreeFormCertificate\Core\EcdsaP256
  * @covers \FreeFormCertificate\Audience\AudiencePresenceKeys
  * @covers \FreeFormCertificate\Audience\AudiencePresenceAttestation
+ * @covers \FreeFormCertificate\Audience\AudiencePresenceAgent
  * @covers \FreeFormCertificate\Audience\AudiencePresenceEnrolment
  * @covers \FreeFormCertificate\Audience\AudiencePresenceReader
  * @covers \FreeFormCertificate\Audience\AudiencePresenceWriter
@@ -422,6 +424,41 @@ class AudiencePresenceTest extends TestCase {
 
 	// ---- Who may call -----------------------------------------------------
 
+	public function test_a_user_agent_is_read_as_two_families_only(): void {
+		$cases = array(
+			'Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36' => array( 'Android', 'Chrome' ),
+			'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1' => array( 'iOS', 'Safari' ),
+			'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/26.0 Chrome/122.0 Mobile Safari/537.36' => array( 'Android', 'Samsung Internet' ),
+			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36 Edg/129.0' => array( 'Windows', 'Edge' ),
+			'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/132.0 Mobile/15E148 Safari/605.1.15' => array( 'iOS', 'Firefox' ),
+			'curl/8.5' => array( '', '' ),
+		);
+		foreach ( $cases as $agent => $expected ) {
+			$this->assertSame( array( 'platform' => $expected[0], 'browser' => $expected[1] ), AudiencePresenceAgent::describe( $agent ), $agent );
+		}
+		$this->assertSame( 'Android · Chrome', AudiencePresenceAgent::label( 'Android', 'Chrome' ) );
+		$this->assertSame( 'iOS', AudiencePresenceAgent::label( 'iOS', '' ) );
+		$this->assertSame( '', AudiencePresenceAgent::label( '', '' ) );
+	}
+
+	public function test_the_status_names_the_active_device_and_the_change_budget(): void {
+		$empty = AudiencePresenceEnrolment::status( 7, self::NOW );
+		$this->assertNull( $empty['current'] );
+		$this->assertSame( 0, $empty['changes'] );
+
+		$android = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36';
+		$this->enrol( 7, 'device-aaaaaaaaaaaa', EcdsaP256::generate() );
+		$this->enrol( 7, 'device-bbbbbbbbbbbb', EcdsaP256::generate(), self::NOW + 60, null, '', $android );
+
+		$status = AudiencePresenceEnrolment::status( 7, self::NOW + 120 );
+		$this->assertSame( 'device-bbbbbbbbbbbb', $status['current']['device_id'] );
+		$this->assertSame( 'Android · Chrome', $status['current']['label'] );
+		$this->assertSame( 1, $status['changes'] );
+		$this->assertSame( 3, $status['max_changes'] );
+		$this->assertSame( 30, $status['window_days'] );
+		$this->assertSame( 7, $status['offline_days'] );
+	}
+
 	public function test_the_app_routes_need_a_login_the_rest_nonce_and_the_participant_capability(): void {
 		$controller = new AudiencePresenceRestController();
 		$nonce      = null;
@@ -472,9 +509,9 @@ class AudiencePresenceTest extends TestCase {
 	 * @param string                                    $signals Device signals.
 	 * @return array<string, mixed>|\WP_Error
 	 */
-	private function enrol( int $user, string $device, array $key, int $signed = self::NOW, ?int $now = null, string $signals = '' ) {
+	private function enrol( int $user, string $device, array $key, int $signed = self::NOW, ?int $now = null, string $signals = '', string $agent = '' ) {
 		$proof = $this->proof( AudiencePresenceEnrolment::ENROL_DOMAIN . $user . '|' . $device . '|' . $signed, $key );
-		return AudiencePresenceEnrolment::enrol( $user, $device, SigningKeys::b64( $key['public'] ), $signed, $proof, $signals, $now ?? $signed );
+		return AudiencePresenceEnrolment::enrol( $user, $device, SigningKeys::b64( $key['public'] ), $signed, $proof, $signals, $now ?? $signed, $agent );
 	}
 
 	/**

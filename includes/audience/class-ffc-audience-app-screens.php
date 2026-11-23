@@ -203,6 +203,14 @@ final class AudienceAppScreens {
 					'qrLabel'    => __( 'Your presence code. Hold it up to the terminal\'s reader.', 'ffcertificate' ),
 					'dismiss'    => __( 'Dismiss', 'ffcertificate' ),
 					'fillForm'   => __( 'Fill in the form', 'ffcertificate' ),
+					/* translators: %1$s: the phone's platform and browser, e.g. "Android · Chrome"; %2$s: the date it was activated */
+					'current'    => __( 'Current phone: %1$s, active since %2$s. It stops making the code as soon as you activate this one.', 'ffcertificate' ),
+					'otherPhone' => __( 'another phone', 'ffcertificate' ),
+					/* translators: %1$d: changes used; %2$d: changes allowed; %3$d: days in the window */
+					'changes'    => __( '%1$d of %2$d in the last %3$d days', 'ffcertificate' ),
+					'dayOne'     => __( '1 day', 'ffcertificate' ),
+					/* translators: %d: days the code works without internet */
+					'days'       => __( '%d days', 'ffcertificate' ),
 				),
 			)
 		);

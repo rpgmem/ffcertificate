@@ -120,6 +120,8 @@ final class DashboardAppScreens {
 				'place'    => 'nav',
 				'position' => 2,
 				'tabs'     => array( 'certificates' ),
+				// The app draws its own screen over the same route (#2781).
+				'render'   => array( CertificatesAppScreen::class, 'render' ),
 			),
 			'messages'       => array(
 				'label'    => __( 'Messages', 'ffcertificate' ),
