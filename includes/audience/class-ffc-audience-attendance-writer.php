@@ -31,35 +31,42 @@ class AudienceAttendanceWriter {
 	 *
 	 * @var string
 	 */
-	public const RECORDED = 'recorded';
+	public const RECORDED = \FreeFormCertificate\Core\Attendance::RECORDED;
 
 	/**
 	 * Already recorded for that day; nothing was written.
 	 *
 	 * @var string
 	 */
-	public const ALREADY = 'already';
+	public const ALREADY = \FreeFormCertificate\Core\Attendance::ALREADY;
 
 	/**
 	 * The write failed.
 	 *
 	 * @var string
 	 */
-	public const FAILED = 'failed';
+	public const FAILED = \FreeFormCertificate\Core\Attendance::FAILED;
 
 	/**
 	 * Check-in by the participant's own scan.
 	 *
 	 * @var string
 	 */
-	public const METHOD_QR = 'qr';
+	public const METHOD_QR = \FreeFormCertificate\Core\Attendance::METHOD_QR;
 
 	/**
 	 * Marked by an operator.
 	 *
 	 * @var string
 	 */
-	public const METHOD_MANUAL = 'manual';
+	public const METHOD_MANUAL = \FreeFormCertificate\Core\Attendance::METHOD_MANUAL;
+
+	/**
+	 * Read by a self-service terminal (#2740).
+	 *
+	 * @var string
+	 */
+	public const METHOD_TERMINAL = \FreeFormCertificate\Core\Attendance::METHOD_TERMINAL;
 
 	/**
 	 * Record a person present on one day of a booking.
@@ -71,20 +78,21 @@ class AudienceAttendanceWriter {
 	 * @param int      $booking_id Booking ID.
 	 * @param int      $user_id    User ID.
 	 * @param string   $date       Day (Y-m-d).
-	 * @param string   $method     {@see self::METHOD_QR} or {@see self::METHOD_MANUAL}.
+	 * @param string   $method     {@see self::METHOD_QR}, {@see self::METHOD_MANUAL} or {@see self::METHOD_TERMINAL}.
 	 * @param int|null $marked_by  Operator who marked it, for a manual mark.
 	 * @param int      $now        Unix time of the check-in.
 	 * @return string One of the result constants.
 	 */
 	public static function record( int $booking_id, int $user_id, string $date, string $method, ?int $marked_by, int $now ): string {
-		if ( $booking_id <= 0 || $user_id <= 0 || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+		// An unknown method is refused rather than stored as a QR check-in,
+		// which is what it used to fall back to before a third method existed.
+		if ( $booking_id <= 0 || $user_id <= 0 || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || ! \FreeFormCertificate\Core\Attendance::is_method( $method ) ) {
 			return self::FAILED;
 		}
 
 		global $wpdb;
 
-		$table  = AudienceAttendanceReader::get_table_name();
-		$method = self::METHOD_MANUAL === $method ? self::METHOD_MANUAL : self::METHOD_QR;
+		$table = AudienceAttendanceReader::get_table_name();
 
 		$inserted = null === $marked_by
 			? $wpdb->query(
@@ -119,7 +127,7 @@ class AudienceAttendanceWriter {
 		}
 
 		// The actor is whoever marked it: the operator by hand, the person
-		// themself by QR (#2340).
+		// themself by QR or at a terminal (#2340).
 		\FreeFormCertificate\Core\ActivityLog::log(
 			'attendance_recorded',
 			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,

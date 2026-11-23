@@ -35480,3 +35480,12 @@ msgstr ""
 #: includes/settings/views/documentation/feature-self-scheduling.php:108
 msgid "The receipt PDF is built in the visitor's browser. Right after booking, the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr ""
+
+msgid "terminal"
+msgstr ""
+
+msgid "Self-service terminal"
+msgstr ""
+
+msgid "Each attendance line says how it was recorded: QR, when the participant scanned the projected code; by hand, when an organiser marked it; terminal, when a self-service terminal at the entrance read the participant's own code. Whatever the way, a person counts once per booking and day: a second reading on the same day changes nothing. A terminal reading keeps the time it was taken, not the time the terminal sent it, and counts on that day."
+msgstr ""

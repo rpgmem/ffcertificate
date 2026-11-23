@@ -106,7 +106,7 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 		);
 	}
 
-	public function test_a_manual_mark_records_the_operator_and_an_unknown_method_reads_as_qr(): void {
+	public function test_a_manual_mark_records_the_operator_and_a_terminal_reading_its_method(): void {
 		$seen = array();
 		$this->wpdb->shouldReceive( 'prepare' )->twice()->andReturnUsing(
 			static function ( $sql, ...$args ) use ( &$seen ) {
@@ -117,11 +117,22 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'query' )->twice()->andReturn( 1 );
 
 		AudienceAttendanceWriter::record( 123, 42, '2027-01-15', 'manual', 9, self::NOW );
-		AudienceAttendanceWriter::record( 123, 42, '2027-01-16', 'whatever', null, self::NOW );
+		AudienceAttendanceWriter::record( 123, 42, '2027-01-16', 'terminal', null, self::NOW );
 
 		$this->assertStringContainsString( 'marked_by', $seen[0][0] );
 		$this->assertSame( array( 'wp_ffc_audience_attendance', 123, 42, '2027-01-15', self::NOW, 'manual', 9 ), $seen[0][1] );
-		$this->assertSame( 'qr', $seen[1][1][5] );
+		$this->assertSame( 'terminal', $seen[1][1][5] );
+	}
+
+	/**
+	 * Before a third method existed an unknown one was stored as a QR
+	 * check-in; now it writes nothing (#2740).
+	 */
+	public function test_an_unknown_method_is_refused_without_touching_the_database(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->never();
+		$this->wpdb->shouldReceive( 'query' )->never();
+
+		$this->assertSame( AudienceAttendanceWriter::FAILED, AudienceAttendanceWriter::record( 123, 42, '2027-01-16', 'whatever', null, self::NOW ) );
 	}
 
 	public function test_record_refuses_bad_input_without_touching_the_database(): void {

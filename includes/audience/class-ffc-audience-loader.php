@@ -67,6 +67,14 @@ class AudienceLoader {
 	 * @return void
 	 */
 	public function init(): void {
+		// The booking is an attendance target (#2740). Registered on every
+		// request, front end and REST included, because a terminal syncs
+		// outside wp-admin; the factory builds nothing until a reading arrives.
+		\FreeFormCertificate\Core\AttendanceTargetRegistry::register(
+			AudienceAttendanceTarget::TYPE,
+			static fn(): AudienceAttendanceTarget => new AudienceAttendanceTarget()
+		);
+
 		// Register hooks.
 		$this->register_hooks();
 

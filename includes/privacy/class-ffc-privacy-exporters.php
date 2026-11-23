@@ -841,7 +841,7 @@ class PrivacyExporters {
 					),
 					array(
 						'name'  => __( 'Method', 'ffcertificate' ),
-						'value' => 'manual' === $row['method'] ? __( 'Marked by staff', 'ffcertificate' ) : __( 'QR check-in', 'ffcertificate' ),
+						'value' => \FreeFormCertificate\Core\Attendance::label( (string) $row['method'] ),
 					),
 				),
 			);
