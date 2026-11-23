@@ -35558,3 +35558,12 @@ msgstr "O comprovante é o link mágico do agendamento na página de verificaç�
 #: includes/settings/views/documentation/feature-self-scheduling.php:108
 msgid "The receipt PDF is built in the visitor's browser. Right after booking, the same browser check a certificate form runs comes first: an app's own browser (Instagram, WhatsApp and others), where saving the file often fails, is asked to open the page in the phone's browser, with \"Continue anyway\", which then downloads it; a browser missing what the PDF needs is stopped. Booking itself never waits on this. Settings → Certificates → Browser check turns it off, and each stop is written to the Activity Log as a pre-flight block naming the appointment."
 msgstr "O PDF do comprovante é gerado no navegador do visitante. Logo após o agendamento, antes vem a mesma verificação de navegador que um formulário de certificado executa: o navegador próprio de um aplicativo (Instagram, WhatsApp e outros), onde salvar o arquivo costuma falhar, recebe o pedido de abrir a página no navegador do celular, com \"Continuar mesmo assim\", que então faz o download; um navegador sem o que o PDF precisa é barrado. O agendamento em si nunca espera por isso. Configurações → Certificados → Verificação do navegador a desliga, e cada bloqueio é gravado no registro de atividades como um bloqueio de pré-verificação, indicando o agendamento."
+
+msgid "terminal"
+msgstr "terminal"
+
+msgid "Self-service terminal"
+msgstr "Terminal de autoatendimento"
+
+msgid "Each attendance line says how it was recorded: QR, when the participant scanned the projected code; by hand, when an organiser marked it; terminal, when a self-service terminal at the entrance read the participant's own code. Whatever the way, a person counts once per booking and day: a second reading on the same day changes nothing. A terminal reading keeps the time it was taken, not the time the terminal sent it, and counts on that day."
+msgstr "Cada linha de presença diz como foi registrada: QR, quando o participante leu o código projetado; manual, quando um organizador a marcou; terminal, quando um terminal de autoatendimento na entrada leu o código do próprio participante. Seja qual for o caminho, uma pessoa conta uma vez por agendamento e dia: uma segunda leitura no mesmo dia não muda nada. Uma leitura do terminal guarda a hora em que foi feita, não a hora em que o terminal a enviou, e conta naquele dia."

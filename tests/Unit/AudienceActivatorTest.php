@@ -355,12 +355,21 @@ class AudienceActivatorTest extends TestCase {
 				if ( preg_match( "/SHOW INDEX FROM .* Key_name = '([^']+)'/", (string) $query, $m ) ) {
 					return in_array( $m[1], $indexes, true ) ? array( (object) array( 'Key_name' => $m[1] ) ) : array();
 				}
+				// The attendance method starts with the two values it had
+				// before #2740, and gains `terminal` once the MODIFY ran.
+				if ( preg_match( "/SHOW COLUMNS FROM .* LIKE 'method'/", (string) $query ) ) {
+					$values = in_array( 'method', $added, true ) ? "'qr','manual','terminal'" : "'qr','manual'";
+					return array( (object) array( 'Field' => 'method', 'Type' => 'enum(' . $values . ')' ) );
+				}
 				return preg_match( "/SHOW COLUMNS FROM .* LIKE '([^']+)'/", (string) $query, $m ) && in_array( stripslashes( $m[1] ), $added, true ) ? array( (object) array( 'Field' => $m[1] ) ) : array();
 			}
 		);
 		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
 			static function ( $query ) use ( &$queries, &$added, &$indexes ) {
 				$queries[] = $query;
+				if ( false !== strpos( (string) $query, 'MODIFY method' ) ) {
+					$added[] = 'method';
+				}
 				if ( preg_match( "/ADD COLUMN '([^']+)'/", (string) $query, $m ) ) {
 					$added[] = $m[1];
 				}
@@ -383,6 +392,8 @@ class AudienceActivatorTest extends TestCase {
 		$this->assertMatchesRegularExpression( "/ADD COLUMN 'allow_multi_day' tinyint\\(1\\) DEFAULT 1/", $alters );
 		$this->assertMatchesRegularExpression( "/ADD COLUMN 'allow_time_selection' tinyint\\(1\\) DEFAULT 1/", $alters );
 		$this->assertSame( AudienceActivator::SCHEMA_REVISION, $options[ AudienceActivator::SCHEMA_REVISION_OPTION ] );
+		// The attendance method learns the terminal reading (#2740).
+		$this->assertStringContainsString( "MODIFY method enum('qr','manual','terminal')", $alters );
 		$this->assertStringNotContainsString( 'allow_self_join', $alters, 'the FFC_VERSION chain stayed gated' );
 		// The bookings lock and invitation scan read their new indexes (#2243),
 		// added before the ones they replace are dropped.
@@ -478,6 +489,9 @@ class AudienceActivatorTest extends TestCase {
 				}
 				if ( preg_match( "/SHOW COLUMNS FROM '([^']+)' LIKE '([^']+)'/", (string) $query, $m ) ) {
 					$name = stripslashes( $m[2] );
+					if ( 'wp_ffc_audience_attendance' === $m[1] && 'method' === $name ) {
+						return array( (object) array( 'Field' => 'method', 'Type' => "enum('qr','manual','terminal')" ) );
+					}
 					if ( 'wp_ffc_audience_bookings' !== $m[1] ) {
 						return in_array( $m[1] . '.' . $name, $added, true ) ? array( (object) array( 'Field' => $name ) ) : array();
 					}

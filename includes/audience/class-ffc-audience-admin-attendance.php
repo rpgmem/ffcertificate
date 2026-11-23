@@ -1039,7 +1039,7 @@ class AudienceAdminAttendance {
 			return '<span class="ffc-attendance-absent">—</span>';
 		}
 
-		$how = AudienceAttendanceWriter::METHOD_MANUAL === $method ? __( 'by hand', 'ffcertificate' ) : __( 'QR', 'ffcertificate' );
+		$how = \FreeFormCertificate\Core\Attendance::short_label( (string) $method );
 
 		return '<span class="ffc-attendance-badge ffc-attendance-badge-open">' . esc_html( DateFormatter::format_time( $present_at ) ) . '</span> <span class="ffc-attendance-method">' . esc_html( $how ) . '</span>';
 	}
@@ -1175,9 +1175,10 @@ class AudienceAdminAttendance {
 				'date'       => $date,
 				'projection' => $projection,
 				'strings'    => array(
-					'byHand' => __( 'by hand', 'ffcertificate' ),
-					'qr'     => __( 'QR', 'ffcertificate' ),
-					'closed' => __( 'Check-in is closed.', 'ffcertificate' ),
+					'byHand'   => \FreeFormCertificate\Core\Attendance::short_label( \FreeFormCertificate\Core\Attendance::METHOD_MANUAL ),
+					'qr'       => \FreeFormCertificate\Core\Attendance::short_label( \FreeFormCertificate\Core\Attendance::METHOD_QR ),
+					'terminal' => \FreeFormCertificate\Core\Attendance::short_label( \FreeFormCertificate\Core\Attendance::METHOD_TERMINAL ),
+					'closed'   => __( 'Check-in is closed.', 'ffcertificate' ),
 				),
 			)
 		);

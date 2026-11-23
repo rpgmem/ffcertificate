@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '12';
+	public const SCHEMA_REVISION = '13';
 
 	/**
 	 * Option holding the revision last applied.
@@ -416,7 +416,7 @@ class AudienceActivator {
             user_id bigint(20) unsigned DEFAULT NULL,
             attendance_date date NOT NULL,
             checked_at bigint(20) unsigned NOT NULL,
-            method enum('qr','manual') NOT NULL DEFAULT 'qr',
+            method enum('qr','manual','terminal') NOT NULL DEFAULT 'qr',
             marked_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_booking_user_date (booking_id,user_id,attendance_date),
@@ -950,6 +950,7 @@ class AudienceActivator {
 		self::create_attendance_table();
 		self::create_checkin_windows_table();
 		self::create_form_invites_table();
+		$healed = self::migrate_attendance_method_terminal() && $healed;
 		$healed = $healed
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_attendance' )
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' )
@@ -958,6 +959,49 @@ class AudienceActivator {
 		if ( $healed ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		}
+	}
+
+	/**
+	 * Let the attendance method say `terminal` (#2740).
+	 *
+	 * The table's `CREATE` already carries the value, so a table created on
+	 * this revision needs nothing; one created earlier has the two-value enum
+	 * and would refuse a terminal reading. `MODIFY` keeps every stored value,
+	 * since it only adds one.
+	 *
+	 * @return bool Whether the column accepts `terminal`, or the table does not exist yet.
+	 */
+	private static function migrate_attendance_method_terminal(): bool {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_audience_attendance';
+
+		if ( ! self::table_exists( $table ) ) {
+			return true;
+		}
+
+		$type = self::attendance_method_type( $table );
+		if ( false === strpos( $type, "'terminal'" ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema heal of the plugin's own table, gated on the module's schema revision; dbDelta cannot widen an enum.
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i MODIFY method enum('qr','manual','terminal') NOT NULL DEFAULT 'qr'", $table ) );
+			$type = self::attendance_method_type( $table );
+		}
+
+		return false !== strpos( $type, "'terminal'" );
+	}
+
+	/**
+	 * The attendance method column's declared type, as the server reports it.
+	 *
+	 * @param string $table Table name.
+	 * @return string
+	 */
+	private static function attendance_method_type( string $table ): string {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the plugin's own table's definition once, inside the revision-gated heal.
+		$columns = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'method' ) );
+		$column  = is_array( $columns ) ? ( $columns[0] ?? null ) : null;
+
+		return is_object( $column ) && isset( $column->Type ) ? (string) $column->Type : '';
 	}
 
 	/**

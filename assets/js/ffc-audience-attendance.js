@@ -56,7 +56,8 @@
 				badge.textContent = row.time;
 				var how = document.createElement('span');
 				how.className = 'ffc-attendance-method';
-				how.textContent = 'manual' === row.method ? (config.strings || {}).byHand : (config.strings || {}).qr;
+				var strings = config.strings || {};
+				how.textContent = 'manual' === row.method ? strings.byHand : ('terminal' === row.method ? strings.terminal : strings.qr);
 				cell.appendChild(badge);
 				cell.appendChild(document.createTextNode(' '));
 				cell.appendChild(how);
