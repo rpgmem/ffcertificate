@@ -770,6 +770,7 @@ class Loader {
 			$this->ensure_ip_pii_caps_granted();
 			$this->ensure_forms_api_submit_cap_granted();
 			$this->ensure_presence_cap_granted();
+			$this->ensure_terminals_cap_granted();
 			$this->ensure_activity_log_export_cap_granted();
 			$this->ensure_url_shortener_export_cap_granted();
 			$this->ensure_date_messages_send_cap_granted();
@@ -951,6 +952,24 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_forms_api_submit_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_manage_audiences_terminals` (#2744)
+	 * onto every user and role already holding `ffc_manage_audiences`.
+	 *
+	 * @since 6.50.0
+	 * @return void
+	 */
+	private function ensure_terminals_cap_granted(): void {
+		$flag = 'ffc_terminals_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_terminals_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}

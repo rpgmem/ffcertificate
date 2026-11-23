@@ -290,6 +290,11 @@ class CapabilityManager {
 		// `migrate_presence_cap_grant()` seeds it onto every current
 		// `ffc_manage_audiences` holder, so a per-user grant reaches it too.
 		'ffc_manage_audiences_presence',
+		// Check-in terminals (#2744): pair a terminal, list and end the
+		// terminals. A paired terminal records attendance with nobody from
+		// staff beside it, which is more than running a check-in in person,
+		// so it is not on the Operator tier.
+		'ffc_manage_audiences_terminals',
 
 		// Granular "export" tier (GAP G). Each `ffc_export_<domain>` cap gates
 		// the bulk CSV data-extraction path of its domain *strictly* — the
@@ -865,7 +870,7 @@ class CapabilityManager {
 
 		$audiences_viewer   = array( 'ffc_view_audiences' );
 		$audiences_operator = array_merge( $audiences_viewer, array( 'ffc_import_audiences', 'ffc_checkin_audiences' ) );
-		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences', 'ffc_view_audiences_pii', 'ffc_manage_audiences_presence' ) );
+		$audiences_manager  = array_merge( $audiences_operator, array( 'ffc_manage_audiences', 'ffc_export_audiences', 'ffc_delete_audiences', 'ffc_view_audiences_pii', 'ffc_manage_audiences_presence', 'ffc_manage_audiences_terminals' ) );
 
 		$rereg_viewer   = array( 'ffc_view_reregistration' );
 		$rereg_operator = array_merge( $rereg_viewer, array( 'ffc_export_reregistration' ) );

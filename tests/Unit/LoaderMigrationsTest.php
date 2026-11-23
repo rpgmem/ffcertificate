@@ -215,6 +215,7 @@ class LoaderMigrationsTest extends TestCase {
 			'ip pii'               => array( 'ensure_ip_pii_caps_granted', 'ffc_ip_pii_caps_v1', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', true ),
 			'forms api submit'     => array( 'ensure_forms_api_submit_cap_granted', 'ffc_forms_api_submit_cap_v1', 'ffc_view_forms_api', 'ffc_submit_forms_api', true ),
 			'presence devices'     => array( 'ensure_presence_cap_granted', 'ffc_presence_cap_v1', 'ffc_manage_audiences', 'ffc_manage_audiences_presence', true ),
+			'check-in terminals'   => array( 'ensure_terminals_cap_granted', 'ffc_terminals_cap_v1', 'ffc_manage_audiences', 'ffc_manage_audiences_terminals', true ),
 		);
 	}
 

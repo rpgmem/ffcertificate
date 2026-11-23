@@ -214,6 +214,8 @@ class AudienceLoader {
 		}
 		// Presence devices of the app (#2741).
 		( new AudiencePresenceRestController() )->register_routes();
+		// Check-in terminals (#2744).
+		( new AudienceTerminalRestController() )->register_routes();
 	}
 
 	/**

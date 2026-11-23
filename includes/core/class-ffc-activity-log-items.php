@@ -322,6 +322,11 @@ final class ActivityLogItems {
 		'presence_request_approved'               => 'sched_attendance',
 		'presence_request_refused'                => 'sched_attendance',
 		'presence_signals_dismissed'              => 'sched_attendance',
+		'terminal_pairing_created'                => 'sched_attendance',
+		'terminal_paired'                         => 'sched_attendance',
+		'terminal_pairing_refused'                => 'sched_attendance',
+		'terminal_pairing_locked'                 => 'sched_attendance',
+		'terminal_revoked'                        => 'sched_attendance',
 
 		'settings_changed'                        => 'system_settings',
 		'scheduled_task_failed'                   => 'system_tasks',
