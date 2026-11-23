@@ -733,6 +733,60 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 'ffc_terminal_unpaired', $controller->update_self( $request )->get_error_code() );
 	}
 
+	public function test_an_operator_sets_a_terminal_up_on_the_terminal_without_a_pairing_code_shown(): void {
+		$this->booking( 41, gmdate( 'Y-m-d', time() + DAY_IN_SECONDS ) );
+		$params  = array();
+		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->andReturn( '' );
+		$request->shouldReceive( 'get_param' )->andReturnUsing( static function ( $name ) use ( &$params ) {
+			return $params[ $name ] ?? null;
+		} );
+		$caps = array( 'ffc_checkin_audiences' );
+		Functions\when( 'user_can' )->alias( static function ( $user, $cap ) use ( &$caps ) {
+			return in_array( $cap, $caps, true );
+		} );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'display_name' => 'Ana Lima' ) );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		$this->tables->booking_list = array(
+			(object) array( 'id' => 41, 'description' => 'Workshop', 'environment_name' => 'Hall', 'booking_date' => gmdate( 'Y-m-d', time() + DAY_IN_SECONDS ), 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00' ),
+		);
+		$controller = new AudienceTerminalRestController();
+
+		$params = array(
+			'code'     => AudienceOperatorCode::issue( 9, time() )['code'],
+			'device'   => self::DEVICE,
+			'bookings' => array( 41 ),
+			'label'    => 'Entrance',
+		);
+		$this->assertSame( 'ffc_operator_queue_not_allowed', $controller->setup_events( $request )->get_error_code(), 'checking people in is not enough to set a terminal up' );
+		$this->assertSame( 403, $controller->setup( $request )->get_error_data()['status'] );
+		$this->assertSame( array(), $this->tables->terminals );
+
+		$caps[] = AudienceTerminalPairing::CAP;
+		$offered = $controller->setup_events( $request )->get_data();
+		$this->assertSame( array( 41 ), array_column( $offered['bookings'], 'id' ) );
+		$this->assertArrayHasKey( 'name', $offered, 'the screen says who is setting it up' );
+
+		$response = $controller->setup( $request );
+		$this->assertInstanceOf( \WP_REST_Response::class, $response, is_wp_error( $response ) ? $response->get_error_code() : '' );
+		$this->assertSame( 201, $response->get_status() );
+		$data = $response->get_data();
+		$this->assertSame( 64, strlen( $data['token'] ) );
+		$this->assertSame( array( 41 ), $data['bookings'] );
+		$this->assertSame( 'Entrance', $data['label'] );
+		$this->assertArrayHasKey( 'keys', $data );
+		$this->assertArrayNotHasKey( 'code', $data, 'the pairing code never leaves the server' );
+		$this->assertSame( 9, $this->tables->terminals[ $data['terminal_id'] ]['paired_by'], 'the terminal is attributed to the operator who set it up' );
+
+		$params['bookings'] = array();
+		$this->assertSame( 'ffc_terminal_no_bookings', $controller->setup( $request )->get_error_code() );
+
+		$params['code'] = 'FFO1NOTACODE';
+		$this->assertSame( 403, $controller->setup_events( $request )->get_error_data()['status'] );
+	}
+
 	// ---- Terminals screen (#2748) --------------------------------------
 
 	public function test_a_terminal_reports_its_queue_and_counts_what_it_recorded(): void {

@@ -68,6 +68,7 @@ const CONFIG = {
 		connQueue: 'online, %d to send',
 		connOffline: 'offline, %d kept',
 		connCamera: 'camera',
+		setup: { operator: 'by %s', count: '%1$d of %2$d chosen', full: 'full' },
 		queueEdit: { now: 'Now', remove: 'Remove', confirmRemove: 'Tap again', add: 'Add', full: 'Full', saved: 'Updated.', summary: '%1$d of %2$d events', max: 10 },
 		titles: { ffc_terminal_other_event: 'Other event', ffc_presence_code_revoked: 'Phone replaced' },
 		wakeUnsupported: 'cannot keep the screen on',
@@ -110,6 +111,19 @@ function markup() {
 				<div data-ffc-terminal-camera-slot="pairing"></div>
 				<div data-ffc-terminal-camera-art></div>
 				<form data-ffc-terminal-part="form"><input data-ffc-terminal-part="code"><button type="submit">Pair</button></form>
+			</section>
+			<section data-ffc-terminal-view="setup" hidden>
+				<p data-ffc-terminal-part="setup-operator"></p>
+				<form data-ffc-terminal-part="setup-form">
+					<select data-ffc-terminal-part="setup-place"><option value="">One by one</option></select>
+					<p data-ffc-terminal-part="setup-count"></p>
+					<ul data-ffc-terminal-part="setup-list"></ul>
+					<p data-ffc-terminal-part="setup-none" hidden></p>
+					<input data-ffc-terminal-part="setup-label">
+					<p data-ffc-terminal-part="setup-error" hidden></p>
+					<button type="submit" data-ffc-terminal-part="setup-submit">Pair</button>
+					<button type="button" data-ffc-terminal-part="setup-cancel">Cancel</button>
+				</form>
 			</section>
 			<section data-ffc-terminal-view="locked" hidden><p data-ffc-terminal-part="countdown"></p></section>
 			<section data-ffc-terminal-view="ready" hidden>
@@ -255,6 +269,81 @@ describe('pairing', () => {
 		T().start(el, CONFIG, env());
 		expect(visible(el)).toEqual(['pairing']);
 		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="code"]'));
+	});
+
+	it('is set up on the terminal with an operator code: events chosen here, no pairing code shown', async () => {
+		const calls = [];
+		const events = [
+			{ id: 11, description: 'Workshop', place: 'Hall', place_id: 3, when: 'Mon' },
+			{ id: 12, description: 'Seminar', place: 'Hall', place_id: 3, when: 'Tue' },
+			{ id: 13, description: 'Board', place: 'Room 2', place_id: 4, when: 'Wed' },
+			{ id: 14, description: 'Packed', place: 'Hall', place_id: 3, full: true },
+		];
+		const e = env({
+			fetch: (url, options) => {
+				const path = url.replace(CONFIG.rest, '');
+				calls.push([path, JSON.parse(options.body)]);
+				if ('setup/events' === path) {
+					return respond(200, { max: 10, name: 'Ana L.', bookings: events })();
+				}
+				return respond(201, { token: TOKEN, terminal_id: 7, label: 'Entrance', bookings: [11, 12], expires_at: NOW + 3600, expires_label: 'tonight', keys: {} })();
+			},
+		});
+		T().start(el, CONFIG, e);
+		// A wedge reader types the operator code into the pairing field.
+		el.querySelector('[data-ffc-terminal-part="code"]').value = 'FFO1ABC$%';
+		el.querySelector('[data-ffc-terminal-part="form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		await settle();
+		expect(calls[0]).toEqual(['setup/events', { code: 'FFO1ABC$%' }]);
+		expect(visible(el)).toEqual(['setup']);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-operator"]').textContent).toBe('by Ana L.');
+		const place = el.querySelector('[data-ffc-terminal-part="setup-place"]');
+		expect(Array.from(place.options).map((o) => o.textContent)).toEqual(['One by one', 'Hall', 'Room 2']);
+
+		place.value = '3';
+		place.dispatchEvent(new window.Event('change'));
+		const checked = Array.from(el.querySelectorAll('[data-ffc-terminal-part="setup-list"] input')).filter((b) => b.checked).map((b) => b.value);
+		expect(checked).toEqual(['11', '12'], 'one place fills the queue, a full event left out');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-count"]').textContent).toBe('2 of 10 chosen');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-list"] input[value="14"]').disabled).toBe(true);
+
+		el.querySelector('[data-ffc-terminal-part="setup-label"]').value = 'Entrance';
+		el.querySelector('[data-ffc-terminal-part="setup-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		await settle();
+		expect(calls[1][0]).toBe('setup');
+		expect(calls[1][1].bookings).toEqual([11, 12]);
+		expect(calls[1][1].label).toBe('Entrance');
+		expect(calls[1][1].code).toBe('FFO1ABC$%');
+		expect(calls[1][1].device).toMatch(/^[A-Za-z0-9_-]{16,64}$/);
+		expect(calls.some((c) => 'pair' === c[0])).toBe(false);
+		expect(JSON.parse(e.storage.getItem('ffcTerminal')).token).toBe(TOKEN);
+		expect(visible(el)).not.toContain('setup');
+	});
+
+	it('says why the site refused the setup and keeps the choices', async () => {
+		const e = env({
+			fetch: (url) => (url.endsWith('setup/events')
+				? respond(200, { max: 10, name: 'Ana L.', bookings: [{ id: 11, description: 'Workshop' }] })()
+				: respond(409, { code: 'ffc_terminal_overlap', message: 'Crosses Workshop.' })()),
+		});
+		const controls = T().start(el, CONFIG, e);
+		await controls.startSetup('FFO1ABC');
+		el.querySelector('[data-ffc-terminal-part="setup-list"] input').checked = true;
+		await controls.finishSetup();
+		expect(visible(el)).toEqual(['setup']);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-error"]').textContent).toBe('Crosses Workshop.');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-list"] input').checked).toBe(true);
+
+		el.querySelector('[data-ffc-terminal-part="setup-cancel"]').click();
+		expect(visible(el)).toEqual(['pairing']);
+	});
+
+	it('stays on the pairing screen when the operator may not set terminals up', async () => {
+		const e = env({ fetch: () => respond(403, { code: 'ffc_operator_queue_not_allowed', message: 'Not allowed.' })() });
+		const controls = T().start(el, CONFIG, e);
+		await controls.startSetup('FFO1ABC');
+		expect(visible(el)).toEqual(['pairing']);
+		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('Not allowed.');
 	});
 
 	it('sends the code with its own id and keeps the token the site returns', async () => {
