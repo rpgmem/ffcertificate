@@ -35836,8 +35836,6 @@ msgstr ""
 msgid "An operator QR code, signed by the site and valid for two minutes, unlocks a paired terminal's menu. Anyone who runs check-ins can show one; it pairs nothing."
 msgstr ""
 
-msgid "At most 10 terminals may be active on the site and 3 on one event at a time; the ffc_terminal_limits filter changes both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
-msgstr ""
 
 msgid "Check-in terminals"
 msgstr ""
@@ -36260,4 +36258,49 @@ msgid "A terminal can also read codes with its own camera when Scheduling → Se
 msgstr ""
 
 msgid "How attendance is taken at audience calendar events: the QR code an organiser projects, and the terminals at the entrance that read each participant's own code."
+msgstr ""
+
+msgid "At most 10 terminals may be active on the site and 3 on one event at a time, unless Scheduling → Settings → Check-in says otherwise; the ffc_terminal_limits filter can still change both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
+msgstr ""
+
+msgid "Scheduling → Settings → Check-in holds the terminal settings, each saved as soon as it is changed, for whoever holds ffc_manage_audiences: how many terminals may be active on the site (1 to 100, default 10) and on one event (1 to 20, default 3), how many hours a terminal outlives the last of its events (1 to 24, default 2; it applies to terminals paired or changed afterwards), and the camera. The tab also states the rules that always apply to pairing and presence devices."
+msgstr ""
+
+msgid "Terminals on the site"
+msgstr ""
+
+msgid "How many terminals may be active at once, from 1 to %1$d (default %2$d). Pairing one more is refused until a terminal is ended."
+msgstr ""
+
+msgid "Terminals per event"
+msgstr ""
+
+msgid "How many terminals may check in one event at once, from 1 to %1$d (default %2$d)."
+msgstr ""
+
+msgid "Ends on its own after"
+msgstr ""
+
+msgid "A terminal stops this many hours after the last of its events ends, from 1 to %1$d (default %2$d). It applies to terminals paired or changed from now on."
+msgstr ""
+
+msgid "Camera"
+msgstr ""
+
+msgid "Rules that always apply"
+msgstr ""
+
+msgid "These are fixed, to keep pairing and presence codes hard to abuse."
+msgstr ""
+
+msgid "Pairing: a code lives five minutes and pairs one terminal once. Three wrong codes in a row lock that terminal for 15 minutes, and each further one for 30; one network address may send at most 20 wrong codes an hour."
+msgstr ""
+
+msgid "A terminal holds at most 10 events, each ending within the next 7 days, and no two whose check-in windows cross."
+msgstr ""
+
+msgid "Presence devices: one active phone per person; a phone stays reserved to its account for 30 days; at most 3 phone changes per person in 30 days. More needs an administrator, under Scheduling → Presence devices."
+msgstr ""
+
+msgid "A presence code changes every 30 seconds and carries only the person's short name, never a CPF or RF."
 msgstr ""

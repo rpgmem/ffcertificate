@@ -495,6 +495,10 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/name="terminal_camera"[^>]*checked/', $html );
 		$this->assertStringContainsString( 'data-ffc-autosave-key="terminal_camera"', $html );
 		$this->assertStringNotContainsString( '<form', $html, 'every field saves on its own' );
+		foreach ( array( 'terminal_site_limit' => '10', 'terminal_event_limit' => '3', 'terminal_auto_end_hours' => '2' ) as $key => $value ) {
+			$this->assertMatchesRegularExpression( '/name="' . $key . '"[^>]*required[^>]*value="' . $value . '"[^>]*data-ffc-autosave-key="' . $key . '"/s', $html, $key );
+		}
+		$this->assertStringContainsString( 'Rules that always apply', $html );
 	}
 
 	public function test_render_page_import_tab_delegates_to_the_import_page(): void {

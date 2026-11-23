@@ -45,7 +45,7 @@ final class AudienceTerminalPage {
 	 * @return bool
 	 */
 	public static function camera_allowed(): bool {
-		return (bool) (int) SettingsReader::get( 'terminal_camera', 0 );
+		return AudienceCheckinSettings::camera_allowed();
 	}
 
 	/**

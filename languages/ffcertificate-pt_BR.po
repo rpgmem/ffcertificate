@@ -35914,8 +35914,6 @@ msgstr "Um terminal é um tablet ou computador na entrada que lê os códigos de
 msgid "An operator QR code, signed by the site and valid for two minutes, unlocks a paired terminal's menu. Anyone who runs check-ins can show one; it pairs nothing."
 msgstr "Um QR code de operador, assinado pelo site e válido por dois minutos, desbloqueia o menu de um terminal pareado. Quem conduz check-ins pode mostrar um; ele não pareia nada."
 
-msgid "At most 10 terminals may be active on the site and 3 on one event at a time; the ffc_terminal_limits filter changes both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
-msgstr "No máximo 10 terminais podem estar ativos no site e 3 em um mesmo evento ao mesmo tempo; o filtro ffc_terminal_limits muda os dois. Um site ou evento cheio recusa antes de gastar o código, então encerrar um terminal permite usar o mesmo código."
 
 msgid "Check-in terminals"
 msgstr "Terminais de check-in"
@@ -36339,3 +36337,48 @@ msgstr "Um terminal também pode ler códigos com a própria câmera quando Agen
 
 msgid "How attendance is taken at audience calendar events: the QR code an organiser projects, and the terminals at the entrance that read each participant's own code."
 msgstr "Como a presença é registrada nos eventos dos calendários de público-alvo: o código QR que o organizador projeta e os terminais na entrada que leem o código de cada participante."
+
+msgid "At most 10 terminals may be active on the site and 3 on one event at a time, unless Scheduling → Settings → Check-in says otherwise; the ffc_terminal_limits filter can still change both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
+msgstr "No máximo 10 terminais podem estar ativos no site e 3 em um mesmo evento ao mesmo tempo, salvo o que Agendamento → Configurações → Check-in definir; o filtro ffc_terminal_limits ainda pode mudar os dois. Um site ou evento cheio recusa antes de o código ser gasto, então encerrar um terminal faz o mesmo código funcionar."
+
+msgid "Scheduling → Settings → Check-in holds the terminal settings, each saved as soon as it is changed, for whoever holds ffc_manage_audiences: how many terminals may be active on the site (1 to 100, default 10) and on one event (1 to 20, default 3), how many hours a terminal outlives the last of its events (1 to 24, default 2; it applies to terminals paired or changed afterwards), and the camera. The tab also states the rules that always apply to pairing and presence devices."
+msgstr "Agendamento → Configurações → Check-in reúne as configurações dos terminais, cada uma salva assim que é alterada, para quem tem ffc_manage_audiences: quantos terminais podem estar ativos no site (1 a 100, padrão 10) e em um evento (1 a 20, padrão 3), quantas horas um terminal dura depois do último de seus eventos (1 a 24, padrão 2; vale para terminais pareados ou alterados depois) e a câmera. A aba também informa as regras que sempre valem para o pareamento e os aparelhos de presença."
+
+msgid "Terminals on the site"
+msgstr "Terminais no site"
+
+msgid "How many terminals may be active at once, from 1 to %1$d (default %2$d). Pairing one more is refused until a terminal is ended."
+msgstr "Quantos terminais podem estar ativos ao mesmo tempo, de 1 a %1$d (padrão %2$d). Parear mais um é recusado até um terminal ser encerrado."
+
+msgid "Terminals per event"
+msgstr "Terminais por evento"
+
+msgid "How many terminals may check in one event at once, from 1 to %1$d (default %2$d)."
+msgstr "Quantos terminais podem fazer o check-in de um mesmo evento ao mesmo tempo, de 1 a %1$d (padrão %2$d)."
+
+msgid "Ends on its own after"
+msgstr "Encerra sozinho depois de"
+
+msgid "A terminal stops this many hours after the last of its events ends, from 1 to %1$d (default %2$d). It applies to terminals paired or changed from now on."
+msgstr "Um terminal para essa quantidade de horas depois do fim do último de seus eventos, de 1 a %1$d (padrão %2$d). Vale para terminais pareados ou alterados a partir de agora."
+
+msgid "Camera"
+msgstr "Câmera"
+
+msgid "Rules that always apply"
+msgstr "Regras que sempre valem"
+
+msgid "These are fixed, to keep pairing and presence codes hard to abuse."
+msgstr "Estas são fixas, para dificultar o abuso do pareamento e dos códigos de presença."
+
+msgid "Pairing: a code lives five minutes and pairs one terminal once. Three wrong codes in a row lock that terminal for 15 minutes, and each further one for 30; one network address may send at most 20 wrong codes an hour."
+msgstr "Pareamento: um código dura cinco minutos e pareia um terminal uma vez. Três códigos errados seguidos bloqueiam aquele terminal por 15 minutos, e cada um a mais por 30; um endereço de rede pode enviar no máximo 20 códigos errados por hora."
+
+msgid "A terminal holds at most 10 events, each ending within the next 7 days, and no two whose check-in windows cross."
+msgstr "Um terminal comporta no máximo 10 eventos, cada um terminando nos próximos 7 dias, e nenhum par cujas janelas de check-in se cruzem."
+
+msgid "Presence devices: one active phone per person; a phone stays reserved to its account for 30 days; at most 3 phone changes per person in 30 days. More needs an administrator, under Scheduling → Presence devices."
+msgstr "Aparelhos de presença: um celular ativo por pessoa; um celular fica reservado à sua conta por 30 dias; no máximo 3 trocas de celular por pessoa em 30 dias. Além disso, só com um administrador, em Agendamento → Aparelhos de presença."
+
+msgid "A presence code changes every 30 seconds and carries only the person's short name, never a CPF or RF."
+msgstr "Um código de presença muda a cada 30 segundos e leva só o nome curto da pessoa, nunca CPF ou RF."

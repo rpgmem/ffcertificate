@@ -179,7 +179,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/^[a-f0-9]{64}$/', $result['token'] );
 		$this->assertSame( array( 11, 12 ), $result['bookings'] );
 		$this->assertSame( 'Entrance', $result['label'] );
-		$this->assertSame( AudienceTerminalPairing::booking_end( 12 ) + AudienceTerminalPairing::AFTER_LAST, $result['expires_at'], 'two hours after the last booking ends' );
+		$this->assertSame( AudienceTerminalPairing::booking_end( 12 ) + \FreeFormCertificate\Audience\AudienceCheckinSettings::auto_end_seconds(), $result['expires_at'], 'two hours after the last booking ends' );
 
 		$terminal = AudienceTerminalReader::terminal( $result['terminal_id'] );
 		$this->assertSame( hash( 'sha256', $result['token'] ), $terminal['token_hash'] );
@@ -514,7 +514,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertIsArray( $changed );
 		$this->assertSame( array( 12 ), $changed['bookings'] );
 		$this->assertSame( array( 11 => self::NOW + 100 ), $changed['removed'], 'when the event left the queue' );
-		$this->assertSame( AudienceTerminalPairing::booking_end( 12 ) + AudienceTerminalPairing::AFTER_LAST, $changed['expires_at'], 'the end follows the new last event' );
+		$this->assertSame( AudienceTerminalPairing::booking_end( 12 ) + \FreeFormCertificate\Audience\AudienceCheckinSettings::auto_end_seconds(), $changed['expires_at'], 'the end follows the new last event' );
 		$stored = AudienceTerminalReader::terminal( $id );
 		$this->assertSame( array( 12 ), $stored['bookings'] );
 		$this->assertSame( array( 11 => self::NOW + 100 ), $stored['removed'] );
