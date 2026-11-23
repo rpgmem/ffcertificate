@@ -36096,11 +36096,7 @@ msgstr "Pareamento pausado"
 msgid "Wrong codes are counted on the site. Ask the operator for a new code, and type it carefully once the wait is over."
 msgstr "Os códigos errados são contados no site. Peça um novo código ao operador e digite-o com cuidado quando a espera terminar."
 
-msgid "Terminal paired"
-msgstr "Terminal pareado"
 
-msgid "Reading presence codes arrives in a coming update. An operator can end this terminal in the app, under More → My terminals."
-msgstr "A leitura dos códigos de presença chega em uma próxima atualização. Um operador pode encerrar este terminal no app, em Mais → Meus terminais."
 
 msgid "This screen needs JavaScript. Turn it on in the browser and open it again."
 msgstr "Esta tela precisa de JavaScript. Ative-o no navegador e abra a tela de novo."
@@ -36141,8 +36137,78 @@ msgstr "Manter"
 msgid "Hold this code to a terminal's reader to unlock its operator menu. It changes every two minutes and works only for you."
 msgstr "Aproxime este código do leitor de um terminal para desbloquear o menu de operador. Ele muda a cada dois minutos e só funciona para você."
 
-msgid "The terminal opens the site's home page with ?ffc_terminal=1 added to the address, outside the theme and with no login, and waits for pairing. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires. Reading presence codes on the terminal arrives in a coming update."
-msgstr "O terminal abre a página inicial do site com ?ffc_terminal=1 acrescentado ao endereço, fora do tema e sem login, e aguarda o pareamento. No app, o operador gera o código em Mais → Parear terminal, marcando os eventos e dando um nome ao terminal; Mais → Meus terminais lista os terminais ativos com a última leitura de cada um e até quando funciona, e encerra um depois de uma confirmação na tela; Mais → QR do operador mostra o código de desbloqueio do operador, renovado antes de expirar. A leitura dos códigos de presença no terminal chega em uma próxima atualização."
 
 msgid "%1$s, %2$s–%3$s"
 msgstr "%1$s, %2$s–%3$s"
+
+msgid "Unlocked by %s."
+msgstr "Desbloqueado por %s."
+
+msgid "Terminal ended. Pair it again with a new code from the app."
+msgstr "Terminal encerrado. Pareie de novo com um novo código do app."
+
+msgid "This code is for an event this terminal does not check in. Choose this event on the phone, or use the terminal at its entrance."
+msgstr "Este código é de um evento em que este terminal não faz check-in. Escolha este evento no celular, ou use o terminal da entrada dele."
+
+msgid "This event has no check-in today."
+msgstr "Este evento não tem check-in hoje."
+
+msgid "Check-in for this event has not opened yet. Wait for the organiser to open it."
+msgstr "O check-in deste evento ainda não abriu. Aguarde a organização abrir."
+
+msgid "Check-in for this event has closed. Speak to the organiser."
+msgstr "O check-in deste evento já fechou. Fale com a organização."
+
+msgid "This person is not enrolled in this event. Speak to the organiser."
+msgstr "Esta pessoa não está inscrita neste evento. Fale com a organização."
+
+msgid "Attendance already recorded at %s."
+msgstr "Presença já registrada às %s."
+
+msgid "The attendance could not be saved. Show the code again."
+msgstr "Não foi possível salvar a presença. Mostre o código de novo."
+
+msgid "Attendance already recorded."
+msgstr "Presença já registrada."
+
+msgid "Attendance recorded."
+msgstr "Presença registrada."
+
+msgid "This operator may no longer run check-ins."
+msgstr "Este operador não pode mais conduzir check-ins."
+
+msgid "This terminal is no longer paired. Ask an operator for a new pairing code."
+msgstr "Este terminal não está mais pareado. Peça um novo código de pareamento a um operador."
+
+msgid "Show your presence code"
+msgstr "Mostre seu código de presença"
+
+msgid "Open Presence in the app, choose this event and hold the code to the reader."
+msgstr "Abra Presença no app, escolha este evento e aproxime o código do leitor."
+
+msgid "Code read"
+msgstr "Código lido"
+
+msgid "Operator menu"
+msgstr "Menu do operador"
+
+msgid "The menu locks again after two minutes without use."
+msgstr "O menu volta a travar depois de dois minutos sem uso."
+
+msgid "Close menu"
+msgstr "Fechar menu"
+
+msgid "End this terminal? It stops checking people in at once, and pairing it again needs a new code."
+msgstr "Encerrar este terminal? Ele para de fazer check-in na hora, e pareá-lo de novo exige um novo código."
+
+msgid "The terminal opens the site's home page with ?ffc_terminal=1 added to the address, outside the theme and with no login, and waits for pairing. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires."
+msgstr "O terminal abre a página inicial do site com ?ffc_terminal=1 acrescentado ao endereço, fora do tema e sem login, e aguarda o pareamento. No app, o operador gera o código em Mais → Parear terminal, marcando os eventos e dando um nome ao terminal; Mais → Meus terminais lista os terminais ativos com a última leitura de cada um e até quando funciona, e encerra um depois de uma confirmação na tela; Mais → QR do operador mostra o código de desbloqueio do operador, renovado antes de expirar."
+
+msgid "Once paired, the terminal waits for presence codes. A keyboard-wedge reader (USB or Bluetooth) types each code into the focused field and presses Enter. The site checks the code with the phone's signature, the site's signature and the revocation list, then checks that the code is for one of the terminal's events, that the event runs today, that its check-in window is open and that the person is on the booking or carries the site's ticket for it. Attendance is recorded with the Terminal method. The window's geofence does not apply, since the terminal stands at the entrance."
+msgstr "Depois de pareado, o terminal aguarda códigos de presença. Um leitor que funciona como teclado (USB ou Bluetooth) digita cada código no campo em foco e pressiona Enter. O site confere o código pela assinatura do celular, pela assinatura do site e pela lista de revogações, e depois confere se o código é de um dos eventos do terminal, se o evento acontece hoje, se a janela de check-in está aberta e se a pessoa está na reserva ou traz o ingresso do site para ela. A presença é registrada com o método Terminal. A cerca geográfica da janela não se aplica, porque o terminal fica na entrada."
+
+msgid "The result shows for five seconds and is announced to screen readers: attendance recorded with the person's short name, such as Maria S., or a refusal that says what to do, such as an old code, another event's code, a window not yet open or already closed, someone not enrolled, or attendance already recorded at a given time. A refusal names nobody, and the terminal shows no list. This version needs a connection to the site; readings queued offline arrive in a coming update."
+msgstr "O resultado aparece por cinco segundos e é anunciado aos leitores de tela: presença registrada, com o nome curto da pessoa, como Maria S., ou uma recusa que diz o que fazer, como um código antigo, o código de outro evento, uma janela que ainda não abriu ou que já fechou, alguém não inscrito, ou presença já registrada em certo horário. Uma recusa não mostra nome nenhum, e o terminal não mostra lista. Esta versão precisa de conexão com o site; as leituras guardadas offline chegam em uma próxima atualização."
+
+msgid "Holding an operator QR code to the reader opens the operator menu, with the name of the operator who unlocked it. The menu ends the terminal, after a confirmation on the screen, in that operator's name, and locks again after two minutes without use. The operator must still hold ffc_checkin_audiences."
+msgstr "Aproximar um QR code de operador do leitor abre o menu do operador, com o nome de quem desbloqueou. O menu encerra o terminal, depois de uma confirmação na tela, em nome desse operador, e volta a travar depois de dois minutos sem uso. O operador ainda precisa ter ffc_checkin_audiences."

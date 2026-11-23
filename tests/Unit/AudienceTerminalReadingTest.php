@@ -1,0 +1,368 @@
+<?php
+declare(strict_types=1);
+
+namespace FreeFormCertificate\Tests\Unit;
+
+use Brain\Monkey;
+use Brain\Monkey\Functions;
+use FreeFormCertificate\Audience\AudiencePresenceAttestation;
+use FreeFormCertificate\Audience\AudiencePresenceCode;
+use FreeFormCertificate\Audience\AudiencePresenceTicket;
+use FreeFormCertificate\Audience\AudienceAttendanceTarget;
+use FreeFormCertificate\Audience\AudienceTerminalReading;
+use FreeFormCertificate\Audience\AudienceTerminalRestController;
+use FreeFormCertificate\Core\Base45;
+use FreeFormCertificate\Core\EcdsaP256;
+use FreeFormCertificate\Core\SigningKeys;
+use FreeFormCertificate\Tests\Support\FakeCredentials;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * A terminal reading a presence code (#2745): what is recorded, what is
+ * refused and with which reason, and that a refusal names nobody.
+ *
+ * Codes are built the way the app builds them, signed by a device key this
+ * test generates, so the reading goes through the one real verifier.
+ *
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalReading
+ * @covers \FreeFormCertificate\Audience\AudienceTerminalRestController::sanitize_reading
+ */
+class AudienceTerminalReadingTest extends TestCase {
+
+	use MockeryPHPUnitIntegration;
+
+	/** 2027-01-15 08:00:00 UTC, a Friday. */
+	private const NOW = 1800000000;
+
+	private const TODAY = '2027-01-15';
+
+	private const BOOKING = 11;
+
+	private const USER = 7;
+
+	/** @var array<string, mixed> */
+	private array $options = array();
+
+	/** @var array{public: string, secret: string} */
+	private array $device;
+
+	/** @var object */
+	private $db;
+
+	/** @var mixed */
+	private $wpdb_backup;
+
+	private bool $had_wpdb = false;
+
+	/** @var array<int, object> */
+	private array $bookings = array();
+
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+		$this->options = array(
+			'ffc_settings' => array(
+				'date_format' => 'Y-m-d',
+				'time_format' => 'H:i',
+			),
+		);
+
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
+		Functions\when( 'date_i18n' )->alias( static fn( string $format, $ts = null ) => gmdate( $format, (int) ( $ts ?? time() ) ) );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => array_key_exists( $key, $this->options ) ? $this->options[ $key ] : $default
+		);
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) {
+				$this->options[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'wp_cache_get' )->alias(
+			fn( $key ) => 1 === preg_match( '/^id_(\d+)$/', (string) $key, $m ) && isset( $this->bookings[ (int) $m[1] ] ) ? $this->bookings[ (int) $m[1] ] : false
+		);
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+
+		$this->device = (array) EcdsaP256::generate();
+		$this->db     = $this->fake_db();
+
+		$this->had_wpdb = array_key_exists( 'wpdb', $GLOBALS );
+		if ( $this->had_wpdb ) {
+			$this->wpdb_backup = $GLOBALS['wpdb'];
+		}
+		$GLOBALS['wpdb'] = $this->db;
+
+		$this->bookings[ self::BOOKING ] = (object) array(
+			'id'           => self::BOOKING,
+			'booking_date' => self::TODAY,
+			'end_date'     => null,
+			'start_time'   => '09:00:00',
+			'end_time'     => '17:00:00',
+			'status'       => 'active',
+		);
+		$this->db->members[ self::BOOKING ] = array( self::USER );
+		$this->db->window                   = $this->window( self::NOW - 600, self::NOW + 3600 );
+	}
+
+	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		Monkey\tearDown();
+		parent::tearDown();
+	}
+
+	public function test_a_member_is_recorded_once_with_the_terminal_method(): void {
+		$result = $this->read( $this->code( self::BOOKING ) );
+
+		$this->assertSame( AudienceTerminalReading::RECORDED, $result['status'], $result['message'] );
+		$this->assertSame( 'Maria S.', $result['name'] );
+		$this->assertCount( 1, $this->db->attendance );
+		$this->assertSame( 'terminal', $this->db->attendance[0]['method'] );
+		$this->assertSame( self::TODAY, $this->db->attendance[0]['attendance_date'] );
+
+		$again = $this->read( $this->code( self::BOOKING ) );
+		$this->assertSame( AudienceTerminalReading::ALREADY, $again['status'] );
+		$this->assertSame( 'Attendance already recorded at 08:00.', $again['message'] );
+		$this->assertCount( 1, $this->db->attendance, 'a second reading records nothing' );
+	}
+
+	public function test_a_ticket_admits_someone_the_booking_list_does_not_name(): void {
+		$this->db->members[ self::BOOKING ] = array();
+		$ticket                             = (string) AudiencePresenceTicket::issue( self::USER, AudienceAttendanceTarget::TYPE, self::BOOKING, self::NOW + 86400 );
+
+		$this->assertSame( 'ffc_terminal_not_enrolled', $this->read( $this->code( self::BOOKING ) )['code'] );
+		$this->assertSame( AudienceTerminalReading::RECORDED, $this->read( $this->code( self::BOOKING, $ticket ) )['status'] );
+	}
+
+	public function test_another_events_code_is_refused(): void {
+		$result = $this->read( $this->code( 99 ) );
+
+		$this->assertSame( 'ffc_terminal_other_event', $result['code'] );
+		$this->assertSame( array(), $this->db->attendance );
+	}
+
+	public function test_a_window_not_yet_opened_and_one_already_closed_are_told_apart(): void {
+		$this->db->window = null;
+		$this->assertSame( 'ffc_terminal_window_not_open', $this->read( $this->code( self::BOOKING ) )['code'] );
+
+		$this->db->window = $this->window( self::NOW - 7200, self::NOW - 60 );
+		$this->assertSame( 'ffc_terminal_window_closed', $this->read( $this->code( self::BOOKING ) )['code'] );
+		$this->assertSame( array(), $this->db->attendance );
+	}
+
+	public function test_an_event_with_no_check_in_today_is_refused(): void {
+		$this->bookings[ self::BOOKING ]->booking_date = '2027-01-16';
+		$this->assertSame( 'ffc_terminal_not_today', $this->read( $this->code( self::BOOKING ) )['code'] );
+
+		$this->bookings[ self::BOOKING ]->booking_date = self::TODAY;
+		$this->bookings[ self::BOOKING ]->status       = 'cancelled';
+		$this->assertSame( 'ffc_terminal_not_today', $this->read( $this->code( self::BOOKING ) )['code'] );
+	}
+
+	public function test_a_revoked_phone_an_old_code_and_noise_are_refused_by_the_verifier(): void {
+		$code = $this->code( self::BOOKING );
+		$key  = AudiencePresenceAttestation::key_id( $this->device['public'] );
+
+		$this->db->revoked = array( $key );
+		$this->assertSame( 'ffc_presence_code_revoked', $this->read( $code )['code'] );
+
+		$this->db->revoked = array();
+		$this->assertSame( 'ffc_presence_code_stale', $this->read( $this->code( self::BOOKING, '', self::NOW - 200 ) )['code'] );
+		$this->assertSame( 'ffc_presence_code_malformed', $this->read( 'HELLO' )['code'] );
+	}
+
+	public function test_a_refusal_names_nobody(): void {
+		foreach ( array( $this->code( 99 ), 'HELLO' ) as $text ) {
+			$result = $this->read( $text );
+			$this->assertSame( AudienceTerminalReading::REFUSED, $result['status'] );
+			$this->assertSame( '', $result['name'] );
+			$this->assertStringNotContainsString( 'Maria', $result['message'] );
+		}
+	}
+
+	public function test_the_route_keeps_only_the_qr_alphanumeric_set(): void {
+		$this->assertSame( 'FFO1AB CD$%*+-./:', AudienceTerminalRestController::sanitize_reading( "  ffo1ab cd\$%*+-./:<>\"'_\n" ) );
+		$this->assertSame( '', AudienceTerminalRestController::sanitize_reading( array( 'FFP1' ) ) );
+	}
+
+	// ---- Helpers ----------------------------------------------------------
+
+	/**
+	 * Read a code at the test's terminal, paired for {@see self::BOOKING}.
+	 *
+	 * @param string $text Code text.
+	 * @return array{status: string, code: string, message: string, name: string}
+	 */
+	private function read( string $text ): array {
+		$terminal = array(
+			'id'           => 4,
+			'token_hash'   => str_repeat( 'a', 64 ),
+			'device_hash'  => str_repeat( 'b', 64 ),
+			'label'        => '',
+			'bookings'     => array( self::BOOKING ),
+			'paired_by'    => 5,
+			'paired_at'    => self::NOW - 3600,
+			'expires_at'   => self::NOW + 36000,
+			'last_seen_at' => null,
+			'revoked_at'   => null,
+			'revoked_by'   => null,
+		);
+		return AudienceTerminalReading::read( $terminal, $text, self::NOW );
+	}
+
+	/**
+	 * A presence code for user 7, built the way the app builds it.
+	 *
+	 * @param int    $target_id Booking.
+	 * @param string $ticket    Raw ticket, or '' for none.
+	 * @param int    $read_at   Reading time.
+	 */
+	private function code( int $target_id, string $ticket = '', int $read_at = self::NOW ): string {
+		$issued      = AudiencePresenceAttestation::issue( self::USER, 'Maria S.', $this->device['public'], $read_at - 60 );
+		$attestation = SigningKeys::unb64( (string) $issued['attestation'] );
+		$body        = chr( AudiencePresenceCode::VERSION )
+			. pack( 'n', strlen( $attestation ) ) . $attestation
+			. chr( 1 ) . pack( 'NN', $target_id, $read_at )
+			. chr( strlen( $ticket ) ) . $ticket;
+		$signature   = (string) EcdsaP256::sign( AudiencePresenceCode::DOMAIN . $body, $this->device['secret'] );
+		return AudiencePresenceCode::PREFIX . Base45::encode( $body . $signature );
+	}
+
+	/**
+	 * A check-in window row for today.
+	 *
+	 * @param int $opened_at Opened at.
+	 * @param int $closes_at Closes at.
+	 * @return array<string, mixed>
+	 */
+	private function window( int $opened_at, int $closes_at ): array {
+		return array(
+			'id'                 => 3,
+			'booking_id'         => self::BOOKING,
+			'window_date'        => self::TODAY,
+			'rotation_seconds'   => 30,
+			'opened_at'          => $opened_at,
+			'opened_by'          => 5,
+			'closes_at'          => $closes_at,
+			'closed_at'          => null,
+			'closed_by'          => null,
+			'geofence_locations' => '',
+		);
+	}
+
+	/**
+	 * A `$wpdb` double answering the queries a reading makes.
+	 */
+	private function fake_db(): object {
+		return new class() extends \wpdb {
+			/** Skips the parent's connection. */
+			public function __construct() {
+				$this->prefix = 'wp_';
+			}
+
+			/** @var list<string> */
+			public array $revoked = array();
+
+			/** @var array<int, list<int>> */
+			public array $members = array();
+
+			/** @var array<string, mixed>|null */
+			public ?array $window = null;
+
+			/** @var list<array<string, mixed>> */
+			public array $attendance = array();
+
+			/** @var array<string, array{0: string, 1: list<mixed>}> */
+			private array $prepared = array();
+
+			/**
+			 * @param string $query   Query.
+			 * @param mixed  ...$args Arguments.
+			 */
+			public function prepare( $query, ...$args ) {
+				$handle                    = 'prepared#' . count( $this->prepared );
+				$this->prepared[ $handle ] = array( (string) $query, $args );
+				return $handle;
+			}
+
+			/**
+			 * @param string $handle Statement.
+			 * @param int    $x      Unused.
+			 * @return list<string>
+			 */
+			public function get_col( $handle = null, $x = 0 ) {
+				list( $query, $args ) = $this->prepared[ $handle ];
+				if ( false !== strpos( $query, 'SELECT key_id FROM %i WHERE revoked_at IS NOT NULL' ) ) {
+					return $this->revoked;
+				}
+				if ( false !== strpos( $query, 'SELECT user_id FROM %i WHERE booking_id = %d' ) ) {
+					return array_map( 'strval', $this->members[ (int) $args[1] ] ?? array() );
+				}
+				throw new \LogicException( 'Unknown query: ' . $query );
+			}
+
+			/**
+			 * @param string $handle Statement.
+			 * @param string $output Unused.
+			 * @param int    $y      Unused.
+			 * @return array<string, mixed>|null
+			 */
+			public function get_row( $handle = null, $output = OBJECT, $y = 0 ) {
+				list( $query ) = $this->prepared[ $handle ];
+				if ( false !== strpos( $query, 'WHERE booking_id = %d AND window_date = %s ORDER BY id DESC LIMIT 1' ) ) {
+					return $this->window;
+				}
+				throw new \LogicException( 'Unknown query: ' . $query );
+			}
+
+			/**
+			 * @param string $handle Statement.
+			 * @param string $output Unused.
+			 * @return list<mixed>
+			 */
+			public function get_results( $handle = null, $output = OBJECT ) {
+				list( $query ) = $this->prepared[ $handle ];
+				if ( false !== strpos( $query, 'INNER JOIN %i ba ON a.id = ba.audience_id' ) ) {
+					return array();
+				}
+				if ( false !== strpos( $query, 'SELECT id, booking_id, user_id, attendance_date, checked_at' ) ) {
+					return $this->attendance;
+				}
+				throw new \LogicException( 'Unknown query: ' . $query );
+			}
+
+			/**
+			 * @param string $handle Statement.
+			 * @return int|false
+			 */
+			public function query( $handle ) {
+				list( $query, $args ) = $this->prepared[ $handle ];
+				if ( 0 === strpos( $query, 'INSERT IGNORE INTO %i (booking_id, user_id, attendance_date, checked_at, method)' ) ) {
+					foreach ( $this->attendance as $row ) {
+						if ( $row['user_id'] === $args[2] && $row['attendance_date'] === $args[3] ) {
+							return 0;
+						}
+					}
+					$this->attendance[] = array(
+						'id'              => count( $this->attendance ) + 1,
+						'booking_id'      => $args[1],
+						'user_id'         => $args[2],
+						'attendance_date' => $args[3],
+						'checked_at'      => $args[4],
+						'method'          => $args[5],
+						'marked_by'       => null,
+					);
+					return 1;
+				}
+				throw new \LogicException( 'Unknown query: ' . $query );
+			}
+		};
+	}
+}

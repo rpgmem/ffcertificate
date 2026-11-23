@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * It starts on "Waiting for pairing": the operator holds the pairing QR code
  * to the terminal's reader, or types the code. The terminal keeps the token
- * it receives in this browser. Reading presence codes arrives with #2745.
+ * it receives in this browser, and then reads presence codes (#2745).
  *
  * The page builds its own document but loads its sheets and scripts through
  * their registered handles, so the asset guards see them like any other.
@@ -158,17 +158,20 @@ final class AudienceTerminalPage {
 			array(
 				'rest'    => esc_url_raw( rest_url( AudienceTerminalRestController::NAMESPACE . '/' . AudienceTerminalRestController::REST_BASE . '/' ) ),
 				'strings' => array(
-					'storage' => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
-					'pairing' => __( 'Pairing…', 'ffcertificate' ),
-					'paired'  => __( 'Terminal paired.', 'ffcertificate' ),
-					'failed'  => __( 'The terminal could not reach the site. Check the connection and try again.', 'ffcertificate' ),
+					'storage'  => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
+					'pairing'  => __( 'Pairing…', 'ffcertificate' ),
+					'paired'   => __( 'Terminal paired.', 'ffcertificate' ),
+					'failed'   => __( 'The terminal could not reach the site. Check the connection and try again.', 'ffcertificate' ),
 					/* translators: %s: minutes and seconds left, such as 14:59 */
-					'locked'  => __( 'Too many wrong codes. Try again in %s.', 'ffcertificate' ),
+					'locked'   => __( 'Too many wrong codes. Try again in %s.', 'ffcertificate' ),
 					/* translators: %d: number of events */
-					'events'  => __( 'Events: %d', 'ffcertificate' ),
+					'events'   => __( 'Events: %d', 'ffcertificate' ),
 					/* translators: %s: date and time */
-					'until'   => __( 'Works until %s', 'ffcertificate' ),
-					'expired' => __( 'This terminal\'s pairing has ended. Ask an operator for a new pairing code.', 'ffcertificate' ),
+					'until'    => __( 'Works until %s', 'ffcertificate' ),
+					'expired'  => __( 'This terminal\'s pairing has ended. Ask an operator for a new pairing code.', 'ffcertificate' ),
+					/* translators: %s: the operator's short name, such as Maria S. */
+					'operator' => __( 'Unlocked by %s.', 'ffcertificate' ),
+					'ended'    => __( 'Terminal ended. Pair it again with a new code from the app.', 'ffcertificate' ),
 				),
 			)
 		);

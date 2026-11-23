@@ -36018,11 +36018,7 @@ msgstr ""
 msgid "Wrong codes are counted on the site. Ask the operator for a new code, and type it carefully once the wait is over."
 msgstr ""
 
-msgid "Terminal paired"
-msgstr ""
 
-msgid "Reading presence codes arrives in a coming update. An operator can end this terminal in the app, under More → My terminals."
-msgstr ""
 
 msgid "This screen needs JavaScript. Turn it on in the browser and open it again."
 msgstr ""
@@ -36063,8 +36059,78 @@ msgstr ""
 msgid "Hold this code to a terminal's reader to unlock its operator menu. It changes every two minutes and works only for you."
 msgstr ""
 
-msgid "The terminal opens the site's home page with ?ffc_terminal=1 added to the address, outside the theme and with no login, and waits for pairing. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires. Reading presence codes on the terminal arrives in a coming update."
-msgstr ""
 
 msgid "%1$s, %2$s–%3$s"
+msgstr ""
+
+msgid "Unlocked by %s."
+msgstr ""
+
+msgid "Terminal ended. Pair it again with a new code from the app."
+msgstr ""
+
+msgid "This code is for an event this terminal does not check in. Choose this event on the phone, or use the terminal at its entrance."
+msgstr ""
+
+msgid "This event has no check-in today."
+msgstr ""
+
+msgid "Check-in for this event has not opened yet. Wait for the organiser to open it."
+msgstr ""
+
+msgid "Check-in for this event has closed. Speak to the organiser."
+msgstr ""
+
+msgid "This person is not enrolled in this event. Speak to the organiser."
+msgstr ""
+
+msgid "Attendance already recorded at %s."
+msgstr ""
+
+msgid "The attendance could not be saved. Show the code again."
+msgstr ""
+
+msgid "Attendance already recorded."
+msgstr ""
+
+msgid "Attendance recorded."
+msgstr ""
+
+msgid "This operator may no longer run check-ins."
+msgstr ""
+
+msgid "This terminal is no longer paired. Ask an operator for a new pairing code."
+msgstr ""
+
+msgid "Show your presence code"
+msgstr ""
+
+msgid "Open Presence in the app, choose this event and hold the code to the reader."
+msgstr ""
+
+msgid "Code read"
+msgstr ""
+
+msgid "Operator menu"
+msgstr ""
+
+msgid "The menu locks again after two minutes without use."
+msgstr ""
+
+msgid "Close menu"
+msgstr ""
+
+msgid "End this terminal? It stops checking people in at once, and pairing it again needs a new code."
+msgstr ""
+
+msgid "The terminal opens the site's home page with ?ffc_terminal=1 added to the address, outside the theme and with no login, and waits for pairing. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires."
+msgstr ""
+
+msgid "Once paired, the terminal waits for presence codes. A keyboard-wedge reader (USB or Bluetooth) types each code into the focused field and presses Enter. The site checks the code with the phone's signature, the site's signature and the revocation list, then checks that the code is for one of the terminal's events, that the event runs today, that its check-in window is open and that the person is on the booking or carries the site's ticket for it. Attendance is recorded with the Terminal method. The window's geofence does not apply, since the terminal stands at the entrance."
+msgstr ""
+
+msgid "The result shows for five seconds and is announced to screen readers: attendance recorded with the person's short name, such as Maria S., or a refusal that says what to do, such as an old code, another event's code, a window not yet open or already closed, someone not enrolled, or attendance already recorded at a given time. A refusal names nobody, and the terminal shows no list. This version needs a connection to the site; readings queued offline arrive in a coming update."
+msgstr ""
+
+msgid "Holding an operator QR code to the reader opens the operator menu, with the name of the operator who unlocked it. The menu ends the terminal, after a confirmation on the screen, in that operator's name, and locks again after two minutes without use. The operator must still hold ffc_checkin_audiences."
 msgstr ""

@@ -108,10 +108,13 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="en-US"><head>', $html );
 		$this->assertStringContainsString( '<body class="ffc-shortcode ffc-terminal-page">', $html );
 		$this->assertStringContainsString( 'data-ffc-terminal', $html );
-		foreach ( array( 'pairing', 'locked', 'paired' ) as $view ) {
+		foreach ( array( 'pairing', 'locked', 'ready', 'menu' ) as $view ) {
 			$this->assertStringContainsString( 'data-ffc-terminal-view="' . $view . '"', $html, $view );
 		}
 		$this->assertStringContainsString( 'id="ffc-terminal-code"', $html );
+		$this->assertStringContainsString( 'id="ffc-terminal-reading"', $html );
+		$this->assertMatchesRegularExpression( '/role="status"[^>]*data-ffc-terminal-part="result-ok"/', $html, 'a recorded result is announced politely' );
+		$this->assertMatchesRegularExpression( '/role="alert"[^>]*data-ffc-terminal-part="result-refused"/', $html, 'a refusal is announced at once' );
 		$this->assertSame( array( 'style:ffc-terminal-kiosk', 'script:ffc-dark-mode', 'script:ffc-terminal-kiosk' ), $printed );
 		$this->assertSame( array( 'ffc-common' ), $enqueued['style:ffc-terminal-kiosk'][1] ?? null );
 		$this->assertSame( array(), $enqueued['ffc-terminal-kiosk'][1] ?? null, 'the kiosk script stands alone' );
@@ -119,7 +122,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$config = $localized['ffc-terminal-kiosk'][1];
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/terminal/', $config['rest'] );
 		$this->assertArrayNotHasKey( 'nonce', $config, 'a terminal has no account to carry a nonce for' );
-		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'locked', 'events', 'until', 'expired', 'operator', 'ended' ), array_keys( $config['strings'] ) );
 	}
 
 	public function test_the_dark_theme_is_on_the_root_from_the_first_paint(): void {
