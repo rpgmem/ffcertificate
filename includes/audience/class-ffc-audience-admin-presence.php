@@ -351,7 +351,7 @@ class AudienceAdminPresence {
 		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '</div>';
 
-		echo '<div class="ffc-dashboard"><div class="ffc-dashboard__sections">';
+		echo '<div class="ffc-dashboard"><div class="ffc-presence-main">';
 		$this->render_list( $active, $now );
 		echo '</div><aside class="ffc-dashboard__side">';
 		$this->render_attention( $requests, $groups, $now );
@@ -377,7 +377,7 @@ class AudienceAdminPresence {
 			return;
 		}
 
-		echo '<table class="widefat striped ffc-presence-table"><thead><tr>';
+		echo '<div class="ffc-presence-scroll"><table class="widefat striped ffc-presence-table"><thead><tr>';
 		foreach ( array(
 			__( 'Participant', 'ffcertificate' ),
 			__( 'Device', 'ffcertificate' ),
@@ -397,7 +397,7 @@ class AudienceAdminPresence {
 			echo '<td>' . esc_html( DateFormatter::format_datetime( $device['activated_at'] ) ) . '</td>';
 			echo '<td>' . esc_html( self::offline_until( $device, $now ) ) . '</td>';
 			echo '<td>' . esc_html( (string) AudiencePresenceReader::changes_since( $device['user_id'], $now - self::CHANGE_DAYS * DAY_IN_SECONDS ) ) . '</td>';
-			echo '<td class="ffc-presence-actions">';
+			echo '<td><div class="ffc-presence-actions">';
 			AdminUI::render_button(
 				array(
 					'label'    => __( 'History', 'ffcertificate' ),
@@ -414,9 +414,9 @@ class AudienceAdminPresence {
 				'cross',
 				__( 'Deactivate this device? Its presence codes stop working, and the participant has to activate a phone again in the app.', 'ffcertificate' )
 			);
-			echo '</td></tr>';
+			echo '</div></td></tr>';
 		}
-		echo '</tbody></table>';
+		echo '</tbody></table></div>';
 
 		$pages = (int) ceil( $total / self::PER_PAGE );
 		if ( $pages > 1 ) {
@@ -532,11 +532,12 @@ class AudienceAdminPresence {
 			echo '<p>' . esc_html__( 'This participant has never activated a phone.', 'ffcertificate' ) . '</p></div>';
 			return;
 		}
+		$changes = AudiencePresenceReader::changes_since( $user_id, $now - self::CHANGE_DAYS * DAY_IN_SECONDS );
 		echo '<p>' . esc_html(
 			sprintf(
 				/* translators: 1: number of changes, 2: number of days */
-				__( '%1$d device changes in the last %2$d days.', 'ffcertificate' ),
-				AudiencePresenceReader::changes_since( $user_id, $now - self::CHANGE_DAYS * DAY_IN_SECONDS ),
+				_n( '%1$d device change in the last %2$d days.', '%1$d device changes in the last %2$d days.', $changes, 'ffcertificate' ),
+				$changes,
 				self::CHANGE_DAYS
 			)
 		) . '</p>';
@@ -559,7 +560,7 @@ class AudienceAdminPresence {
 			echo '<td>' . esc_html( DateFormatter::format_datetime( $device['activated_at'] ) ) . '</td>';
 			echo '<td>' . esc_html( self::status_label( $device ) ) . '</td>';
 			echo '<td>' . esc_html( $active ? self::offline_until( $device, $now ) : '—' ) . '</td>';
-			echo '<td class="ffc-presence-actions">';
+			echo '<td><div class="ffc-presence-actions">';
 			if ( $active ) {
 				$this->action_form(
 					'deactivate',
@@ -571,7 +572,7 @@ class AudienceAdminPresence {
 					$user_id
 				);
 			}
-			echo '</td></tr>';
+			echo '</div></td></tr>';
 		}
 		echo '</tbody></table></div>';
 	}

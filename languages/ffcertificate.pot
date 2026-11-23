@@ -35689,3 +35689,142 @@ msgstr ""
 
 msgid "Your presence code. Hold it up to the terminal's reader."
 msgstr ""
+
+msgid "%1$d device change in the last %2$d days."
+msgid_plural "%1$d device changes in the last %2$d days."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%1$s already changed devices %2$d times in %3$d days and asks for one more (%4$s)."
+msgstr ""
+
+msgid "%1$s tried to activate a phone reserved to another account (%2$s)."
+msgstr ""
+
+msgid "Activated"
+msgstr ""
+
+msgid "Active devices"
+msgstr ""
+
+msgid "Active since"
+msgstr ""
+
+msgid "Alert dismissed. It comes back if another phone reports the same signals."
+msgstr ""
+
+msgid "Back to presence devices"
+msgstr ""
+
+msgid "Changes in %d days"
+msgstr ""
+
+msgid "Deactivate"
+msgstr ""
+
+msgid "Deactivate this device? Its presence codes stop working, and the participant has to activate a phone again in the app."
+msgstr ""
+
+msgid "Deactivated by an administrator on %s"
+msgstr ""
+
+msgid "Device"
+msgstr ""
+
+msgid "Device deactivated. Its codes stop working at each terminal's next sync, and the app asks to activate it again."
+msgstr ""
+
+msgid "Device history: %s"
+msgstr ""
+
+msgid "Expired; renews when the app goes online"
+msgstr ""
+
+msgid "History of %s"
+msgstr ""
+
+msgid "Identical school phones look the same, so this is a reason to look, not proof of sharing."
+msgstr ""
+
+msgid "Manage presence devices"
+msgstr ""
+
+msgid "No participant has activated a phone yet. A device appears here once someone activates it on the app's Presence screen."
+msgstr ""
+
+msgid "Nothing changed: someone already answered this, or the device is no longer active."
+msgstr ""
+
+msgid "Nothing needs a look."
+msgstr ""
+
+msgid "One more device change allowed. The participant can now activate the phone in the app."
+msgstr ""
+
+msgid "Phone released. The participant can now activate it in the app."
+msgstr ""
+
+msgid "Presence Device Change Allowed"
+msgstr ""
+
+msgid "Presence Device Released"
+msgstr ""
+
+msgid "Presence Device Request Refused"
+msgstr ""
+
+msgid "Presence Device Signals Dismissed"
+msgstr ""
+
+msgid "Refuse"
+msgstr ""
+
+msgid "Release"
+msgstr ""
+
+msgid "Release a phone reserved to another account, allow one more device change, dismiss a shared-signals alert and deactivate a participant's presence device."
+msgstr ""
+
+msgid "Release one change"
+msgstr ""
+
+msgid "Release this phone from the other account? That account can no longer show codes from it."
+msgstr ""
+
+msgid "Replaced by another phone on %s"
+msgstr ""
+
+msgid "Request refused. The participant keeps the device they had."
+msgstr ""
+
+msgid "Requests"
+msgstr ""
+
+msgid "Scheduling → Presence devices lists the active phones with when each was activated and until when it works offline, and a History per participant with every phone they used and why each one stopped. Deactivate stops a phone at once: its codes are refused from each terminal's next sync and the app asks to activate a phone again. Needs attention holds the requests to answer: Release frees a reserved phone from the other account, Release one change lets one more activation through beyond the limit, and Refuse keeps things as they are. A shared-signals alert can be dismissed, and comes back when another phone reports the same signals. Every answer is in the activity log. The screen needs ffc_manage_audiences_presence."
+msgstr ""
+
+msgid "Signal alerts"
+msgstr ""
+
+msgid "The change could not be saved. Try again."
+msgstr ""
+
+msgid "This page has expired. Reload it and try again."
+msgstr ""
+
+msgid "This participant has never activated a phone."
+msgstr ""
+
+msgid "Works offline until"
+msgstr ""
+
+msgid "You do not have permission to manage presence devices."
+msgstr ""
+
+msgid "open Presence devices: deactivate a participant's phone, release a reserved one, allow one more device change and dismiss shared-signals alerts. Held by the Manager tier and above; existing holders of ffc_manage_audiences received it on update."
+msgstr ""
+
+msgid "%1$d account reports the same device signals: %2$s."
+msgid_plural "%1$d accounts report the same device signals: %2$s."
+msgstr[0] ""
+msgstr[1] ""
