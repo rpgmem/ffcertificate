@@ -67,7 +67,7 @@ class RecruitmentActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '4';
+	public const SCHEMA_REVISION = '5';
 
 	/**
 	 * Option holding the revision last applied. Listed in `uninstall.php`.

@@ -11,7 +11,7 @@ return array(
 	'includes/audience/class-ffc-audience-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Audience\\AudienceActivator',
 		'revision'    => '14',
-		'fingerprint' => 'e38dbed3a530626bf461d7d07a206dcb9d90463d',
+		'fingerprint' => '5df2326c6d7f4489bbfcb4b9d0986cf37568efcd',
 	),
 	'includes/class-ffc-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Activator',
@@ -30,7 +30,7 @@ return array(
 	),
 	'includes/recruitment/class-ffc-recruitment-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Recruitment\\RecruitmentActivator',
-		'revision'    => '4',
+		'revision'    => '5',
 		'fingerprint' => 'a237831b8cd7b2aa52e3559ab6e0da49e18bc89d',
 	),
 	'includes/reregistration/class-ffc-reregistration-activator.php' => array(
