@@ -100,7 +100,7 @@
         for (var i = 0; i < bytes.length; i++) {
             bin += String.fromCharCode(bytes[i]);
         }
-        return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        return btoa(bin).replace(/\+/g, '-').split('/').join('_').replace(/=+$/, '');
     }
 
     function u32(bytes, offset) {
