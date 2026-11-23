@@ -30,6 +30,70 @@
 	gap: var(--ffc-spacing-md);
 }
 
+/* Activate presence on this phone (#2781): an icon tile, the phone that
+   holds the code now, the change budget and the offline span. */
+.ffc-presence-activate-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 56px;
+	height: 56px;
+	border-radius: var(--ffc-radius-lg);
+	background: var(--ffc-info-bg);
+	color: var(--ffc-info-text);
+}
+
+.ffc-presence-activate-title {
+	margin: 0;
+	font-size: var(--ffc-font-size-2xl);
+	line-height: 1.2;
+	text-wrap: balance;
+}
+
+.ffc-presence-activate-lead,
+.ffc-presence-activate-note {
+	color: var(--ffc-text-muted);
+}
+
+.ffc-presence-current {
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+	border: 1px solid var(--ffc-warning-border);
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-warning-bg);
+	color: var(--ffc-warning-text);
+}
+
+.ffc-presence-facts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	gap: var(--ffc-spacing-sm);
+	margin: 0;
+}
+
+.ffc-presence-fact {
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-bg-card);
+}
+
+.ffc-presence-fact dt {
+	color: var(--ffc-text-muted);
+	font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-presence-fact dd {
+	margin: 0;
+	font-size: var(--ffc-font-size-lg);
+	font-weight: 600;
+}
+
+.ffc-presence-actions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+}
+
 .ffc-presence-label {
 	font-size: var(--ffc-font-size-sm);
 	font-weight: 600;
