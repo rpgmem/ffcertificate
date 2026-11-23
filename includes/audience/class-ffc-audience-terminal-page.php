@@ -21,8 +21,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * `/?ffc_terminal=1`: a page of its own, outside the site's theme and the
- * app, because a terminal never signs in with anyone's account.
+ * `/terminal/`: a page of its own, outside the site's theme and the app,
+ * because a terminal never signs in with anyone's account. It has its own
+ * web app manifest (`/terminal/manifest.webmanifest`, scope `/terminal/`,
+ * full screen, landscape), so a tablet can install it as an app that needs
+ * no login: the pairing QR code is what binds it. `/?ffc_terminal=1` keeps
+ * working, and is the address on a site without pretty permalinks.
+ *
+ * Neither address registers a rewrite rule: the request path is read on
+ * `parse_request`, the way the short URLs are (#2693), so nothing is stored
+ * and no flush is needed. Every response is kept out of search engines
+ * (`X-Robots-Tag: noindex`) and out of caches (#2780).
  *
  * It starts on "Waiting for pairing": the operator holds the pairing QR code
  * to the terminal's reader, or types the code. The terminal keeps the token
@@ -39,6 +48,33 @@ final class AudienceTerminalPage {
 	public const QUERY_VAR = 'ffc_terminal';
 
 	/**
+	 * The path, under the home URL, the terminal answers on.
+	 */
+	public const PATH = 'terminal';
+
+	/**
+	 * The manifest's file name under {@see self::PATH}.
+	 */
+	public const MANIFEST = 'manifest.webmanifest';
+
+	/**
+	 * The query value that asks for the manifest on a site without pretty
+	 * permalinks.
+	 */
+	private const MANIFEST_QUERY = 'manifest';
+
+	/**
+	 * The terminal's ground, which is the dark palette's `--ffc-bg`: the
+	 * manifest takes a literal colour, and the page is always dark.
+	 */
+	private const BACKGROUND = '#1d2327';
+
+	/**
+	 * What every response tells search engines.
+	 */
+	private const ROBOTS = 'noindex, nofollow, noarchive';
+
+	/**
 	 * Whether a terminal may read codes with its own camera. Off unless an
 	 * administrator turned it on: the wedge reader is the recommended mode.
 	 *
@@ -51,7 +87,9 @@ final class AudienceTerminalPage {
 	/**
 	 * Hook the page in.
 	 *
-	 * The page renders on `template_redirect` at priority 1, ahead of the
+	 * `/terminal/` is answered on `parse_request` at priority 1, before any
+	 * query runs, so a missing rewrite rule cannot turn it into a 404. The
+	 * query form renders on `template_redirect` at priority 1, ahead of the
 	 * canonical redirect at 10, so `/?ffc_terminal=1` is never rewritten
 	 * before it is answered.
 	 *
@@ -59,6 +97,7 @@ final class AudienceTerminalPage {
 	 */
 	public static function init(): void {
 		add_filter( 'query_vars', array( self::class, 'query_vars' ) );
+		add_action( 'parse_request', array( self::class, 'maybe_route' ), 1 );
 		add_action( 'template_redirect', array( self::class, 'maybe_render' ), 1 );
 	}
 
@@ -76,45 +115,185 @@ final class AudienceTerminalPage {
 	}
 
 	/**
-	 * The page's address.
+	 * Whether the site serves pretty permalinks, which is what routes
+	 * `/terminal/` to WordPress at all.
+	 *
+	 * @return bool
+	 */
+	private static function pretty(): bool {
+		$structure = get_option( 'permalink_structure', '' );
+		return is_string( $structure ) && '' !== $structure;
+	}
+
+	/**
+	 * The page's address: `/terminal/`, or the query form on a site without
+	 * pretty permalinks.
 	 *
 	 * @return string
 	 */
 	public static function url(): string {
-		return add_query_arg( self::QUERY_VAR, '1', home_url( '/' ) );
+		return self::pretty() ? home_url( '/' . self::PATH . '/' ) : add_query_arg( self::QUERY_VAR, '1', home_url( '/' ) );
 	}
 
 	/**
-	 * Render the page when it was asked for.
+	 * The manifest's address.
+	 *
+	 * @return string
+	 */
+	public static function manifest_url(): string {
+		return self::pretty() ? home_url( '/' . self::PATH . '/' . self::MANIFEST ) : add_query_arg( self::QUERY_VAR, self::MANIFEST_QUERY, home_url( '/' ) );
+	}
+
+	/**
+	 * What a request path asks for: `page`, `manifest` or '' (#2780).
+	 *
+	 * Only the home path followed by `terminal`, with or without a trailing
+	 * slash, or by `terminal/manifest.webmanifest`, matches; `/docs/terminal`
+	 * and `/terminal/anything` do not.
+	 *
+	 * @param string $path      Request path, as sent.
+	 * @param string $home_path The home URL's path ('/' at the root, '/site/' in a sub-directory).
+	 * @return string
+	 */
+	public static function route_from_path( string $path, string $home_path ): string {
+		$path = trim( $path, '/' );
+		$home = trim( $home_path, '/' );
+		$base = ( '' === $home ? '' : $home . '/' ) . self::PATH;
+		if ( $base === $path ) {
+			return 'page';
+		}
+		if ( $base . '/' . self::MANIFEST === $path ) {
+			return 'manifest';
+		}
+		return '';
+	}
+
+	/**
+	 * Answer `/terminal/` and its manifest before WordPress queries anything.
+	 *
+	 * @return void
+	 */
+	public static function maybe_route(): void {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server-set REQUEST_URI, parsed by wp_parse_url() and compared with two fixed paths.
+		$raw   = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		$path  = wp_parse_url( is_string( $raw ) ? $raw : '', PHP_URL_PATH );
+		$home  = wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+		$route = self::route_from_path( is_string( $path ) ? $path : '', is_string( $home ) ? $home : '' );
+		if ( '' !== $route ) {
+			self::serve( $route );
+		}
+	}
+
+	/**
+	 * Render the page, or the manifest, when the query form asked for it.
 	 *
 	 * @return void
 	 */
 	public static function maybe_render(): void {
-		if ( '' === (string) get_query_var( self::QUERY_VAR ) ) {
+		$value = get_query_var( self::QUERY_VAR );
+		$value = is_scalar( $value ) ? (string) $value : '';
+		if ( '' === $value ) {
 			return;
 		}
+		self::serve( self::MANIFEST_QUERY === $value ? 'manifest' : 'page' );
+	}
+
+	/**
+	 * Send the page or the manifest and stop, while the module is on.
+	 *
+	 * @param string $route `page` or `manifest`.
+	 * @return void
+	 */
+	private static function serve( string $route ): void {
 		if ( ! SettingsReader::module_enabled( 'audiences' ) ) {
 			return;
 		}
-		self::send_headers();
+		if ( 'manifest' === $route ) {
+			self::send_headers( 'application/manifest+json' );
+			echo wp_json_encode( self::manifest(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a JSON document served as application/manifest+json, encoded by wp_json_encode().
+			exit;
+		}
+		self::send_headers( 'text/html; charset=utf-8' );
 		echo self::document(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- document() escapes every value it prints.
 		exit;
 	}
 
 	/**
-	 * No cache may keep the page: it hands a terminal its credential.
+	 * The headers every terminal response carries: no cache may keep it (the
+	 * page hands a terminal its credential), and no search engine may list
+	 * it (#2780).
 	 *
+	 * The address is deliberately not barred in robots.txt: a crawler that
+	 * may not fetch the page never reads its noindex.
+	 *
+	 * @param string $content_type The response's content type.
 	 * @return void
 	 */
-	private static function send_headers(): void {
+	private static function send_headers( string $content_type ): void {
 		if ( headers_sent() ) {
 			return;
 		}
 		nocache_headers();
 		status_header( 200 );
-		header( 'Content-Type: text/html; charset=utf-8' );
-		header( 'X-Robots-Tag: noindex, nofollow' );
-		header( 'Referrer-Policy: no-referrer' );
+		foreach ( self::headers( $content_type ) as $name => $value ) {
+			header( $name . ': ' . $value );
+		}
+	}
+
+	/**
+	 * The headers {@see self::send_headers()} sends after WordPress's own
+	 * no-cache set.
+	 *
+	 * @param string $content_type The response's content type.
+	 * @return array<string, string>
+	 */
+	public static function headers( string $content_type ): array {
+		return array(
+			'Content-Type'    => $content_type,
+			'Cache-Control'   => 'no-store, no-cache, must-revalidate, max-age=0, private',
+			'X-Robots-Tag'    => self::ROBOTS,
+			'Referrer-Policy' => 'no-referrer',
+		);
+	}
+
+	/**
+	 * The terminal's web app manifest: full screen, landscape, scoped to the
+	 * terminal so it never claims the site or the app.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function manifest(): array {
+		$start = (string) wp_parse_url( self::url(), PHP_URL_PATH );
+		$query = (string) wp_parse_url( self::url(), PHP_URL_QUERY );
+		$scope = self::pretty() ? $start : (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+		$name  = __( 'Check-in terminal', 'ffcertificate' );
+		$site  = (string) get_bloginfo( 'name' );
+
+		$manifest = array(
+			'name'             => '' === $site ? $name : $name . ' — ' . $site,
+			'short_name'       => __( 'Terminal', 'ffcertificate' ),
+			'id'               => $start . ( '' === $query ? '' : '?' . $query ),
+			'start_url'        => $start . ( '' === $query ? '' : '?' . $query ),
+			'scope'            => '' === $scope ? '/' : $scope,
+			'display'          => 'fullscreen',
+			'display_override' => array( 'fullscreen', 'standalone' ),
+			'orientation'      => 'landscape',
+			'background_color' => self::BACKGROUND,
+			'theme_color'      => self::BACKGROUND,
+			'lang'             => (string) get_bloginfo( 'language' ),
+			'icons'            => array(),
+		);
+		foreach ( array( 192, 512 ) as $size ) {
+			$icon = (string) get_site_icon_url( $size );
+			if ( '' !== $icon ) {
+				$manifest['icons'][] = array(
+					'src'   => $icon,
+					'sizes' => $size . 'x' . $size,
+					'type'  => 'image/png',
+				);
+			}
+		}
+		return $manifest;
 	}
 
 	/**
@@ -128,7 +307,9 @@ final class AudienceTerminalPage {
 		ob_start();
 		echo '<!DOCTYPE html><html ' . get_language_attributes() . self::root_class() . '><head>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_language_attributes() returns a safe attribute string; root_class() returns one of two literals.
 		echo '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
-		echo '<meta name="robots" content="noindex,nofollow">';
+		echo '<meta name="robots" content="noindex,nofollow,noarchive">';
+		echo '<meta name="theme-color" content="' . esc_attr( self::BACKGROUND ) . '">';
+		echo '<link rel="manifest" href="' . esc_url( self::manifest_url() ) . '">';
 		echo '<title>' . esc_html__( 'Check-in terminal', 'ffcertificate' ) . ' — ' . esc_html( get_bloginfo( 'name' ) ) . '</title>';
 		wp_print_styles( array( 'ffc-terminal-kiosk' ) );
 		echo '</head><body class="ffc-shortcode ffc-terminal-page">';

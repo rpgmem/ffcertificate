@@ -40,6 +40,7 @@ class AudienceTerminalPageTest extends TestCase {
 		Functions\when( 'get_option' )->alias( fn ( $key, $default = false ) => 'ffc_settings' === $key ? $this->settings : $default );
 		Functions\when( 'get_query_var' )->alias( fn () => $this->query_var );
 		Functions\when( 'get_site_icon_url' )->justReturn( '' );
+		Functions\when( 'wp_parse_url' )->alias( static fn ( $url, $component = -1 ) => parse_url( $url, $component ) );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 	}
@@ -49,8 +50,9 @@ class AudienceTerminalPageTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_the_page_registers_its_query_variable_ahead_of_the_canonical_redirect(): void {
+	public function test_the_page_registers_its_path_and_its_query_variable_ahead_of_the_canonical_redirect(): void {
 		Functions\expect( 'add_filter' )->once()->with( 'query_vars', array( AudienceTerminalPage::class, 'query_vars' ) );
+		Functions\expect( 'add_action' )->once()->with( 'parse_request', array( AudienceTerminalPage::class, 'maybe_route' ), 1 );
 		Functions\expect( 'add_action' )->once()->with( 'template_redirect', array( AudienceTerminalPage::class, 'maybe_render' ), 1 );
 
 		AudienceTerminalPage::init();
@@ -59,11 +61,78 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( 'not-an-array', AudienceTerminalPage::query_vars( 'not-an-array' ) );
 	}
 
-	public function test_the_address_is_the_home_page_with_the_query_variable(): void {
+	public function test_the_address_is_the_query_form_without_pretty_permalinks(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		Functions\when( 'add_query_arg' )->alias( static fn ( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
 
 		$this->assertSame( 'https://example.com/?ffc_terminal=1', AudienceTerminalPage::url() );
+		$this->assertSame( 'https://example.com/?ffc_terminal=manifest', AudienceTerminalPage::manifest_url() );
+	}
+
+	public function test_the_address_is_its_own_path_with_pretty_permalinks(): void {
+		$this->pretty();
+
+		$this->assertSame( 'https://example.com/site/terminal/', AudienceTerminalPage::url() );
+		$this->assertSame( 'https://example.com/site/terminal/manifest.webmanifest', AudienceTerminalPage::manifest_url() );
+	}
+
+	public function test_only_the_terminal_path_and_its_manifest_are_claimed(): void {
+		$this->assertSame( 'page', AudienceTerminalPage::route_from_path( '/terminal/', '/' ) );
+		$this->assertSame( 'page', AudienceTerminalPage::route_from_path( '/terminal', '/' ) );
+		$this->assertSame( 'manifest', AudienceTerminalPage::route_from_path( '/terminal/manifest.webmanifest', '/' ) );
+		$this->assertSame( 'page', AudienceTerminalPage::route_from_path( '/site/terminal/', '/site/' ), 'a site in a sub-directory' );
+		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/terminal/', '/site/' ), 'outside the home path' );
+		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/docs/terminal/', '/' ), 'a page that merely ends in terminal' );
+		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/terminal/anything', '/' ) );
+		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/terminals/', '/' ) );
+		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/', '/' ) );
+	}
+
+	public function test_every_response_is_kept_out_of_search_engines_and_caches(): void {
+		foreach ( array( 'text/html; charset=utf-8', 'application/manifest+json' ) as $type ) {
+			$headers = AudienceTerminalPage::headers( $type );
+			$this->assertSame( $type, $headers['Content-Type'] );
+			$this->assertSame( 'noindex, nofollow, noarchive', $headers['X-Robots-Tag'], $type );
+			$this->assertStringContainsString( 'no-store', $headers['Cache-Control'], $type );
+			$this->assertSame( 'no-referrer', $headers['Referrer-Policy'] );
+		}
+	}
+
+	public function test_the_manifest_installs_a_full_screen_app_scoped_to_the_terminal(): void {
+		$this->pretty();
+		Functions\when( 'get_bloginfo' )->alias( static fn ( $show = '' ) => 'language' === $show ? 'pt-BR' : 'Example' );
+		Functions\when( 'get_site_icon_url' )->alias( static fn ( $size ) => 'https://example.com/icon-' . $size . '.png' );
+
+		$manifest = AudienceTerminalPage::manifest();
+
+		$this->assertSame( '/site/terminal/', $manifest['start_url'] );
+		$this->assertSame( '/site/terminal/', $manifest['scope'], 'never the site or the app' );
+		$this->assertSame( 'fullscreen', $manifest['display'] );
+		$this->assertSame( 'landscape', $manifest['orientation'] );
+		$this->assertSame( 'pt-BR', $manifest['lang'] );
+		$this->assertSame( 'Check-in terminal — Example', $manifest['name'] );
+		$this->assertSame( array( '192x192', '512x512' ), array_column( $manifest['icons'], 'sizes' ) );
+	}
+
+	public function test_without_pretty_permalinks_the_manifest_starts_on_the_query_form(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'add_query_arg' )->alias( static fn ( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
+		Functions\when( 'get_bloginfo' )->justReturn( '' );
+
+		$manifest = AudienceTerminalPage::manifest();
+
+		$this->assertSame( '/?ffc_terminal=1', $manifest['start_url'] );
+		$this->assertSame( '/', $manifest['scope'] );
+		$this->assertSame( 'Check-in terminal', $manifest['name'] );
+		$this->assertSame( array(), $manifest['icons'], 'no site icon, no icon entry' );
+	}
+
+	/**
+	 * Pretty permalinks, with the site in a sub-directory.
+	 */
+	private function pretty(): void {
+		Functions\when( 'get_option' )->alias( fn ( $key, $default = false ) => 'permalink_structure' === $key ? '/%postname%/' : ( 'ffc_settings' === $key ? $this->settings : $default ) );
+		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.com/site' . ( '' === $path ? '/' : $path ) );
 	}
 
 	public function test_the_page_answers_only_when_asked_and_while_the_module_is_on(): void {
@@ -102,6 +171,9 @@ class AudienceTerminalPageTest extends TestCase {
 			$printed[] = 'script:' . implode( ',', $handles );
 		} );
 		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'add_query_arg' )->alias( static fn ( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
 		Functions\when( 'rest_url' )->alias( static fn ( $path ) => 'https://example.com/wp-json/' . $path );
 
 		$html = AudienceTerminalPage::document();
@@ -109,6 +181,8 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="en-US" class="ffc-dark-mode"><head>', $html, 'a terminal is always dark, whatever the site\'s setting (#2780)' );
 		$this->assertStringContainsString( '<body class="ffc-shortcode ffc-terminal-page">', $html );
 		$this->assertStringContainsString( 'data-ffc-terminal', $html );
+		$this->assertStringContainsString( '<meta name="robots" content="noindex,nofollow,noarchive">', $html );
+		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/?ffc_terminal=manifest">', $html );
 		foreach ( array( 'pairing', 'locked', 'ready', 'between', 'result', 'unlock', 'menu' ) as $view ) {
 			$this->assertStringContainsString( 'data-ffc-terminal-view="' . $view . '"', $html, $view );
 		}
@@ -152,6 +226,9 @@ class AudienceTerminalPageTest extends TestCase {
 		Functions\when( 'wp_print_styles' )->justReturn( null );
 		Functions\when( 'wp_print_scripts' )->justReturn( null );
 		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'add_query_arg' )->returnArg( 3 );
 		Functions\when( 'rest_url' )->returnArg();
 
 		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="en-US" class="ffc-dark-mode">', AudienceTerminalPage::document() );
