@@ -3,9 +3,9 @@
  * AudienceAppScreens
  *
  * The attendance screens inside the installable app (#2750): the
- * participant's Presence screen and the operator's section. They are
- * registered now, so the app's navigation is settled before the screens
- * behind them land; until each one does, it says so (#2738 phases C and D).
+ * participant's Presence screen (#2742) and the operator's section: pair a
+ * check-in terminal, list and end the operator's terminals, and show the
+ * operator's unlock code (#2744).
  *
  * Registration goes through Site PWA's `site_pwa_register_screens` action;
  * without that plugin the action never fires and nothing here runs.
@@ -19,7 +19,6 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\AssetHelper;
-use FreeFormCertificate\Core\Notice;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -46,6 +45,16 @@ final class AudienceAppScreens {
 	 * What an operator needs to run a check-in.
 	 */
 	public const OPERATOR_CAPABILITY = 'ffc_checkin_audiences';
+
+	/**
+	 * The method that draws each screen without a URL of its own.
+	 */
+	private const RENDERERS = array(
+		'presence'           => 'render_presence',
+		'operator-pair'      => 'render_operator_pair',
+		'operator-terminals' => 'render_operator_terminals',
+		'operator-qr'        => 'render_operator_qr',
+	);
 
 	/**
 	 * Hook the registration action.
@@ -82,10 +91,8 @@ final class AudienceAppScreens {
 			);
 			if ( isset( $screen['url'] ) ) {
 				$args['url'] = $screen['url'];
-			} elseif ( 'presence' === $id ) {
-				$args['render'] = array( self::class, 'render_presence' );
 			} else {
-				$args['render'] = array( self::class, 'render_coming_soon' );
+				$args['render'] = array( self::class, self::RENDERERS[ $id ] );
 			}
 			$screens->add( $id, $args );
 		}
@@ -95,8 +102,10 @@ final class AudienceAppScreens {
 	 * The attendance screens, by id.
 	 *
 	 * Manual attendance already exists, on the booking's Attendance screen in
-	 * wp-admin, so it links there; Presence draws its own screen, and the
-	 * others draw a "coming soon" notice until their issue lands.
+	 * wp-admin, so it links there; the others draw their own screen.
+	 * Pairing and listing terminals take the terminal capability; the
+	 * operator's unlock code takes the check-in one, because it is what a
+	 * check-in operator shows a terminal.
 	 *
 	 * @return array<string, ScreenDef>
 	 */
@@ -114,14 +123,14 @@ final class AudienceAppScreens {
 				'icon'       => 'link',
 				'place'      => 'more',
 				'position'   => 40,
-				'capability' => self::OPERATOR_CAPABILITY,
+				'capability' => AudienceTerminalPairing::CAP,
 			),
 			'operator-terminals'  => array(
 				'label'      => __( 'My terminals', 'ffcertificate' ),
 				'icon'       => 'grid',
 				'place'      => 'more',
 				'position'   => 41,
-				'capability' => self::OPERATOR_CAPABILITY,
+				'capability' => AudienceTerminalPairing::CAP,
 			),
 			'operator-qr'         => array(
 				'label'      => __( 'Operator QR', 'ffcertificate' ),
@@ -202,23 +211,115 @@ final class AudienceAppScreens {
 	}
 
 	/**
-	 * What a screen says until it lands.
+	 * The Pair terminal screen.
 	 *
 	 * @return string
 	 */
-	public static function render_coming_soon(): string {
+	public static function render_operator_pair(): string {
+		return self::render_operator( 'pair' );
+	}
+
+	/**
+	 * The My terminals screen.
+	 *
+	 * @return string
+	 */
+	public static function render_operator_terminals(): string {
+		return self::render_operator( 'terminals' );
+	}
+
+	/**
+	 * The Operator QR screen.
+	 *
+	 * @return string
+	 */
+	public static function render_operator_qr(): string {
+		return self::render_operator( 'qr' );
+	}
+
+	/**
+	 * One of the operator's terminal screens: the markup from
+	 * `templates/public/terminal/operator.php`, the presence screen's encoder
+	 * for the QR codes, and the script.
+	 *
+	 * @param string $ffc_terminal_mode `pair`, `terminals` or `qr`; the template reads it.
+	 * @return string
+	 */
+	private static function render_operator( string $ffc_terminal_mode ): string {
 		AssetHelper::enqueue_common_style();
 		AssetHelper::enqueue_dark_mode();
 
-		return '<div class="ffc-shortcode">' . Notice::render(
-			'info',
-			'clock',
-			__( 'This screen arrives in a coming update.', 'ffcertificate' ),
-			'',
+		$suffix = AssetHelper::asset_suffix();
+		wp_enqueue_style(
+			'ffc-terminal-operator',
+			FFC_PLUGIN_URL . "assets/css/ffc-terminal-operator{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+		wp_enqueue_script(
+			'ffc-qrcodegen',
+			FFC_PLUGIN_URL . 'libs/js/qrcodegen-' . FFC_QRCODEGEN_VERSION . '.js',
+			array(),
+			FFC_QRCODEGEN_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-presence-app',
+			FFC_PLUGIN_URL . "assets/js/ffc-presence-app{$suffix}.js",
+			array( 'ffc-qrcodegen' ),
+			FFC_VERSION,
+			true
+		);
+		wp_enqueue_script(
+			'ffc-terminal-operator',
+			FFC_PLUGIN_URL . "assets/js/ffc-terminal-operator{$suffix}.js",
+			array( 'ffc-presence-app' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-terminal-operator',
+			'ffcTerminalOperator',
 			array(
-				'role' => 'note',
-				'hook' => 'app-coming-soon',
+				'rest'        => esc_url_raw( rest_url( AudienceTerminalRestController::NAMESPACE . '/' . AudienceTerminalRestController::REST_BASE . '/' ) ),
+				'nonce'       => wp_create_nonce( 'wp_rest' ),
+				'maxBookings' => AudienceTerminalPairing::MAX_BOOKINGS,
+				'strings'     => array(
+					'loading'         => __( 'Loading…', 'ffcertificate' ),
+					'failed'          => __( 'The site could not be reached. Check the connection and try again.', 'ffcertificate' ),
+					'pickEvent'       => __( 'Tick at least one event.', 'ffcertificate' ),
+					/* translators: %d: the most events one terminal may serve */
+					'tooMany'         => __( 'A terminal serves at most %d events.', 'ffcertificate' ),
+					'generating'      => __( 'Generating the code…', 'ffcertificate' ),
+					'full'            => __( 'Terminal limit reached', 'ffcertificate' ),
+					/* translators: %d: number of terminals already paired for the event */
+					'held'            => __( 'Terminals: %d', 'ffcertificate' ),
+					/* translators: %s: minutes and seconds left, such as 4:59 */
+					'codeExpires'     => __( 'The code expires in %s.', 'ffcertificate' ),
+					'expiredCode'     => __( 'This code has expired.', 'ffcertificate' ),
+					'qrLabel'         => __( 'QR code to hold to the terminal\'s reader.', 'ffcertificate' ),
+					/* translators: %d: terminal number */
+					'unnamed'         => __( 'Terminal %d', 'ffcertificate' ),
+					/* translators: %d: number of events */
+					'events'          => __( 'Events: %d', 'ffcertificate' ),
+					/* translators: %s: date and time */
+					'seen'            => __( 'Last read: %s', 'ffcertificate' ),
+					'neverSeen'       => __( 'Not used yet.', 'ffcertificate' ),
+					/* translators: %s: date and time */
+					'until'           => __( 'Works until %s', 'ffcertificate' ),
+					'ended'           => __( 'Terminal ended.', 'ffcertificate' ),
+					/* translators: 1: active terminals listed, 2: the site's limit, 3: the limit per event */
+					'summary'         => __( 'Your active terminals: %1$d. The site allows %2$d at a time, and %3$d per event.', 'ffcertificate' ),
+					/* translators: 1: active terminals listed, 2: the site's limit, 3: the limit per event */
+					'summaryAll'      => __( 'Active terminals on the site: %1$d. The site allows %2$d at a time, and %3$d per event.', 'ffcertificate' ),
+					/* translators: %s: minutes and seconds left, such as 1:59 */
+					'operatorExpires' => __( 'A new code appears before this one expires in %s.', 'ffcertificate' ),
+				),
 			)
-		) . '</div>';
+		);
+
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/terminal/operator.php';
+		return (string) ob_get_clean();
 	}
 }

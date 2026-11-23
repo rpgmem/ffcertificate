@@ -80,6 +80,8 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-calendar-editor.css'       => 0,
 		'ffc-calendar-frontend.css'     => 0,
 		'ffc-presence-app.css'          => 0,
+		'ffc-terminal-kiosk.css'        => 0,
+		'ffc-terminal-operator.css'     => 0,
 		'ffc-certificates-dashboard.css' => 0,
 		'ffc-custom-fields-admin.css'   => 0,
 		'ffc-email-model.css'           => 0,

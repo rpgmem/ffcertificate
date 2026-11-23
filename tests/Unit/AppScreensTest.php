@@ -154,14 +154,22 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( array( 'presence', 'operator-pair', 'operator-terminals', 'operator-qr', 'operator-attendance' ), array_keys( $registry->added ) );
 		$this->assertSame( 'ffc_view_own_audience_bookings', $registry->added['presence']['capability'] );
 		$this->assertSame( 'nav', $registry->added['presence']['place'] );
-		foreach ( array( 'operator-pair', 'operator-terminals', 'operator-qr', 'operator-attendance' ) as $id ) {
-			$this->assertSame( 'ffc_checkin_audiences', $registry->added[ $id ]['capability'], $id );
+		$caps = array(
+			'operator-pair'       => 'ffc_manage_audiences_terminals',
+			'operator-terminals'  => 'ffc_manage_audiences_terminals',
+			'operator-qr'         => 'ffc_checkin_audiences',
+			'operator-attendance' => 'ffc_checkin_audiences',
+		);
+		foreach ( $caps as $id => $cap ) {
+			$this->assertSame( $cap, $registry->added[ $id ]['capability'], $id );
 			$this->assertSame( 'more', $registry->added[ $id ]['place'], $id );
 		}
 		$this->assertSame( 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-bookings', $registry->added['operator-attendance']['url'] );
 		$this->assertArrayNotHasKey( 'render', $registry->added['operator-attendance'] );
 		$this->assertSame( array( AudienceAppScreens::class, 'render_presence' ), $registry->added['presence']['render'] );
-		$this->assertSame( array( AudienceAppScreens::class, 'render_coming_soon' ), $registry->added['operator-pair']['render'] );
+		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_pair' ), $registry->added['operator-pair']['render'] );
+		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_terminals' ), $registry->added['operator-terminals']['render'] );
+		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_qr' ), $registry->added['operator-qr']['render'] );
 	}
 
 	public function test_the_presence_screen_draws_its_markup_and_hands_the_script_what_it_needs(): void {
@@ -207,15 +215,78 @@ class AppScreensTest extends TestCase {
 		$this->assertStringContainsString( '%d', $config['strings']['next'] );
 	}
 
-	public function test_a_screen_not_built_yet_says_so(): void {
-		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+	/**
+	 * Stub what an operator screen enqueues and render it.
+	 *
+	 * @param string $method Renderer.
+	 * @return array{0: string, 1: array<string, array{0: string, 1: array<int, string>}>, 2: array<string, array{0: string, 1: array<string, mixed>}>, 3: array<string, string>}
+	 */
+	private function render_operator( string $method ): array {
+		$styles    = array();
+		$scripts   = array();
+		$localized = array();
+		Functions\when( 'wp_enqueue_style' )->alias( static function ( $handle, $src = '' ) use ( &$styles ) {
+			$styles[ $handle ] = $src;
+		} );
+		Functions\when( 'wp_enqueue_script' )->alias( static function ( $handle, $src = '', $deps = array() ) use ( &$scripts ) {
+			$scripts[ $handle ] = array( $src, $deps );
+		} );
+		Functions\when( 'wp_localize_script' )->alias( static function ( $handle, $name, $data ) use ( &$localized ) {
+			$localized[ $handle ] = array( $name, $data );
+			return true;
+		} );
 		Functions\when( 'wp_style_is' )->justReturn( false );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		Functions\when( 'esc_attr_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'rest_url' )->alias( static fn( $path ) => 'https://example.com/wp-json/' . $path );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 
-		$html = AudienceAppScreens::render_coming_soon();
+		$html = AudienceAppScreens::$method();
+		return array( $html, $scripts, $localized, $styles );
+	}
 
-		$this->assertStringContainsString( 'data-ffc-notice="app-coming-soon"', $html );
-		$this->assertStringContainsString( 'This screen arrives in a coming update.', $html );
+	public function test_the_pair_screen_draws_the_event_list_the_label_and_the_code(): void {
+		list( $html, $scripts, $localized, $styles ) = $this->render_operator( 'render_operator_pair' );
+
+		$this->assertStringContainsString( 'data-ffc-terminal-operator="pair"', $html );
+		foreach ( array( 'form', 'events', 'events-empty', 'label', 'generate', 'result', 'qr', 'code', 'countdown', 'again' ) as $part ) {
+			$this->assertStringContainsString( 'data-ffc-op-part="' . $part . '"', $html, $part );
+		}
+		$this->assertStringNotContainsString( 'data-ffc-op-part="list"', $html );
+		$this->assertArrayHasKey( 'ffc-terminal-operator', $styles );
+		$this->assertSame( array( 'ffc-presence-app' ), $scripts['ffc-terminal-operator'][1] );
+		$this->assertSame( array( 'ffc-qrcodegen' ), $scripts['ffc-presence-app'][1] );
+		$this->assertSame( 'ffcTerminalOperator', $localized['ffc-terminal-operator'][0] );
+		$config = $localized['ffc-terminal-operator'][1];
+		$this->assertSame( 'https://example.com/wp-json/ffc/v1/terminal/', $config['rest'] );
+		$this->assertSame( 'nonce', $config['nonce'] );
+		$this->assertSame( 10, $config['maxBookings'] );
+	}
+
+	public function test_the_terminal_list_ends_a_terminal_behind_an_inline_confirmation(): void {
+		list( $html ) = $this->render_operator( 'render_operator_terminals' );
+
+		$this->assertStringContainsString( 'data-ffc-terminal-operator="terminals"', $html );
+		$this->assertStringContainsString( '<template data-ffc-op-part="row">', $html );
+		foreach ( array( 'end', 'keep', 'confirm-end' ) as $item ) {
+			$this->assertStringContainsString( 'data-ffc-op-item="' . $item . '"', $html, $item );
+		}
+		$this->assertMatchesRegularExpression( '/data-ffc-op-item="confirm" hidden/', $html );
+		$this->assertStringNotContainsString( 'confirm(', $html );
+	}
+
+	public function test_the_operator_qr_screen_draws_only_the_code(): void {
+		list( $html ) = $this->render_operator( 'render_operator_qr' );
+
+		$this->assertStringContainsString( 'data-ffc-terminal-operator="qr"', $html );
+		$this->assertStringContainsString( 'data-ffc-op-part="qr"', $html );
+		$this->assertStringNotContainsString( 'data-ffc-op-part="form"', $html );
 	}
 }

@@ -35505,8 +35505,6 @@ msgstr ""
 msgid "Manual attendance"
 msgstr ""
 
-msgid "This screen arrives in a coming update."
-msgstr ""
 
 msgid "There is nothing here for your account yet."
 msgstr ""
@@ -35923,3 +35921,150 @@ msgid "Too many wrong codes. Try again in %d minute."
 msgid_plural "Too many wrong codes. Try again in %d minutes."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Check-in terminal"
+msgstr ""
+
+msgid "This browser cannot keep the terminal's pairing. Allow this site to store data, or use another browser."
+msgstr ""
+
+msgid "Pairing…"
+msgstr ""
+
+msgid "Terminal paired."
+msgstr ""
+
+msgid "The terminal could not reach the site. Check the connection and try again."
+msgstr ""
+
+msgid "Too many wrong codes. Try again in %s."
+msgstr ""
+
+msgid "Events: %d"
+msgstr ""
+
+msgid "Works until %s"
+msgstr ""
+
+msgid "This terminal's pairing has ended. Ask an operator for a new pairing code."
+msgstr ""
+
+msgid "The site could not be reached. Check the connection and try again."
+msgstr ""
+
+msgid "Tick at least one event."
+msgstr ""
+
+msgid "A terminal serves at most %d events."
+msgstr ""
+
+msgid "Generating the code…"
+msgstr ""
+
+msgid "Terminal limit reached"
+msgstr ""
+
+msgid "Terminals: %d"
+msgstr ""
+
+msgid "The code expires in %s."
+msgstr ""
+
+msgid "This code has expired."
+msgstr ""
+
+msgid "QR code to hold to the terminal's reader."
+msgstr ""
+
+msgid "Terminal %d"
+msgstr ""
+
+msgid "Last read: %s"
+msgstr ""
+
+msgid "Not used yet."
+msgstr ""
+
+msgid "Terminal ended."
+msgstr ""
+
+msgid "Your active terminals: %1$d. The site allows %2$d at a time, and %3$d per event."
+msgstr ""
+
+msgid "Active terminals on the site: %1$d. The site allows %2$d at a time, and %3$d per event."
+msgstr ""
+
+msgid "A new code appears before this one expires in %s."
+msgstr ""
+
+msgid "The check-in terminal needs JavaScript. Turn it on in the browser and open this page again."
+msgstr ""
+
+msgid "Waiting for pairing"
+msgstr ""
+
+msgid "An operator generates a pairing code in the app, under More → Pair terminal. Hold its QR code to this terminal's reader, or type the code below."
+msgstr ""
+
+msgid "Pairing code"
+msgstr ""
+
+msgid "Pair"
+msgstr ""
+
+msgid "Pairing paused"
+msgstr ""
+
+msgid "Wrong codes are counted on the site. Ask the operator for a new code, and type it carefully once the wait is over."
+msgstr ""
+
+msgid "Terminal paired"
+msgstr ""
+
+msgid "Reading presence codes arrives in a coming update. An operator can end this terminal in the app, under More → My terminals."
+msgstr ""
+
+msgid "This screen needs JavaScript. Turn it on in the browser and open it again."
+msgstr ""
+
+msgid "Events this terminal checks in"
+msgstr ""
+
+msgid "No event in the next 7 days can take a terminal."
+msgstr ""
+
+msgid "Name for this terminal (optional)"
+msgstr ""
+
+msgid "Entrance A"
+msgstr ""
+
+msgid "Generate pairing code"
+msgstr ""
+
+msgid "Open the terminal page on the device and hold this code to its reader, or type it there. The code works once."
+msgstr ""
+
+msgid "Generate another code"
+msgstr ""
+
+msgid "No terminal is paired. Pair one under Pair terminal."
+msgstr ""
+
+msgid "End terminal"
+msgstr ""
+
+msgid "End this terminal? It stops checking people in at once."
+msgstr ""
+
+msgid "Keep"
+msgstr ""
+
+msgid "Hold this code to a terminal's reader to unlock its operator menu. It changes every two minutes and works only for you."
+msgstr ""
+
+msgid "The terminal opens the site's home page with ?ffc_terminal=1 added to the address, outside the theme and with no login, and waits for pairing. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires. Reading presence codes on the terminal arrives in a coming update."
+msgstr ""
+
+msgid "%1$s, %2$s–%3$s"
+msgstr ""

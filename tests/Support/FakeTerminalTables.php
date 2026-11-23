@@ -36,6 +36,13 @@ final class FakeTerminalTables extends \wpdb {
 	public array $pairings = array();
 
 	/**
+	 * What the booking list query answers (the rows `AudienceBookingReader::get_all()` reads).
+	 *
+	 * @var list<object>
+	 */
+	public array $booking_list = array();
+
+	/**
 	 * Prepared statements by handle.
 	 *
 	 * @var array<string, array{0: string, 1: list<mixed>}>
@@ -103,6 +110,9 @@ final class FakeTerminalTables extends \wpdb {
 			);
 			usort( $rows, static fn( array $a, array $b ): int => array( $b['paired_at'], $b['id'] ) <=> array( $a['paired_at'], $a['id'] ) );
 			return array_values( $rows );
+		}
+		if ( false !== strpos( $query, 'INNER JOIN %i e ON b.environment_id = e.id' ) ) {
+			return $this->booking_list;
 		}
 		throw new \LogicException( 'Unknown query: ' . $query );
 	}

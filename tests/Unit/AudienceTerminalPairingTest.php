@@ -74,6 +74,8 @@ class AudienceTerminalPairingTest extends TestCase {
 		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
+		Functions\when( 'date_i18n' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
 		Functions\when( 'apply_filters' )->alias( static fn( $hook, $value ) => $value );
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) => array_key_exists( $key, $this->options ) ? $this->options[ $key ] : $default
@@ -388,6 +390,40 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( array( 3, 7 ), AudienceTerminalRestController::sanitize_ids( array( '3', 7, 'x', -1, 3 ) ) );
 		$this->assertSame( 'P-AB12-CD34script', AudienceTerminalRestController::sanitize_code( 'P-AB12-CD34<script>' ) );
 		$this->assertSame( '', AudienceTerminalRestController::sanitize_code( array( 'P' ) ) );
+	}
+
+	public function test_the_event_list_offers_bookings_still_running_with_their_terminal_count(): void {
+		$now = time();
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		$soon = gmdate( 'Y-m-d', $now + DAY_IN_SECONDS );
+		$past = gmdate( 'Y-m-d', $now - 3 * DAY_IN_SECONDS );
+		$this->booking( 21, $soon );
+		$this->booking( 22, $past );
+		$this->bookings[21]->start_time = '09:00:00';
+		$this->tables->booking_list     = array(
+			(object) array( 'id' => 21, 'description' => 'Workshop', 'environment_name' => 'Room 1', 'booking_date' => $soon, 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00' ),
+			(object) array( 'id' => 22, 'description' => 'Gone', 'environment_name' => 'Room 2', 'booking_date' => $past, 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00' ),
+		);
+
+		$data = ( new AudienceTerminalRestController() )->list_bookings()->get_data();
+
+		$this->assertSame( AudienceTerminalPairing::MAX_BOOKINGS, $data['max'] );
+		$this->assertSame( array( 21 ), array_column( $data['bookings'], 'id' ), 'a booking that already ended is not offered' );
+		$this->assertSame( 'Workshop', $data['bookings'][0]['description'] );
+		$this->assertSame( 'Room 1', $data['bookings'][0]['place'] );
+		$this->assertSame( 0, $data['bookings'][0]['terminals'] );
+		$this->assertFalse( $data['bookings'][0]['full'] );
+		$this->assertNotSame( '', $data['bookings'][0]['when'] );
+	}
+
+	public function test_the_list_carries_its_dates_formatted_by_the_site(): void {
+		$paired   = $this->paired( array( 11 ), self::DEVICE );
+		$terminal = AudienceTerminalReader::terminal( $paired['terminal_id'] );
+		$shown    = AudienceTerminalRestController::present( $terminal );
+
+		$this->assertNotSame( '', $shown['paired_label'] );
+		$this->assertNotSame( '', $shown['expires_label'] );
+		$this->assertSame( '', $shown['last_seen_label'], 'a terminal not used yet has no last read' );
 	}
 
 	// ---- Helpers ----------------------------------------------------------
