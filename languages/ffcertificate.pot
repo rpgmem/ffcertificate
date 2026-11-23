@@ -36761,3 +36761,39 @@ msgstr ""
 
 msgid "Terminal name (optional)"
 msgstr ""
+
+msgid "Loading your calendar…"
+msgstr ""
+
+msgid "Your calendar could not be loaded. Check the connection and try again."
+msgstr ""
+
+msgid "Nothing booked ahead."
+msgstr ""
+
+msgid "Already held (%d)"
+msgstr ""
+
+msgid "Enrolled"
+msgstr ""
+
+msgid "Presence QR"
+msgstr ""
+
+msgid "Fill in the form · until %s"
+msgstr ""
+
+msgid "New booking"
+msgstr ""
+
+msgid "No calendar is open for booking here. Book from the calendar's page on the site."
+msgstr ""
+
+msgid "My bookings"
+msgstr ""
+
+msgid "Book"
+msgstr ""
+
+msgid "Calendar in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book, or New booking, lists the personal calendars that a published page lets the person book. It reads the same lists as the dashboard."
+msgstr ""

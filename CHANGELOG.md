@@ -30,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The terminal camera reads on every screen that takes a code** (#2786): pairing, presence and the operator unlock. A read flashes the screen and shows the captured frame the right way round; a frame a front camera hands over mirrored is read again flipped back.
 - **The terminal's operator menu changes its events** (#2780). Two columns: actions on one side, the terminal's events on the other with the one checking in now marked; an operator who may pair terminals removes or adds events there, under the app's rules, logged in their name.
 - **A terminal can be set up on the terminal itself** (#2780). On Waiting for pairing, an operator who may pair terminals shows their operator QR code, ticks the events (or fills them from one place) and the terminal pairs at once; no pairing code is shown.
+- **The app's Calendar screen follows the approved screen** (#2781): *My bookings* / *Book*, the month, day cards with today highlighted, status and attendance chips, the presence code, post-event form and receipt inline, the past folded, a dashed *New booking*. It reads the dashboard's two routes; outside the app nothing changes.
 
 ### Security
 
