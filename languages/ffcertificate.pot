@@ -36803,3 +36803,45 @@ msgstr ""
 
 msgid "The Activate screen names the phone that holds the code now by its system and browser (\"Android · Chrome\") and the day it was activated, how many of the 3 device changes allowed in 30 days were used, and how long the code works without internet. Only those two families are kept from the browser's identification, never the identification itself."
 msgstr ""
+
+msgid "Loading your certificates…"
+msgstr ""
+
+msgid "Your certificates could not be loaded. Check the connection and try again."
+msgstr ""
+
+msgid "You have no certificate yet."
+msgstr ""
+
+msgid "No certificate matches the search."
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "Issued on %s"
+msgstr ""
+
+msgid "Code %s"
+msgstr ""
+
+msgid "Open PDF"
+msgstr ""
+
+msgid "Share"
+msgstr ""
+
+msgid "Link copied."
+msgstr ""
+
+msgid "This phone cannot share the link. Open the PDF and share it from there."
+msgstr ""
+
+msgid "Downloading is not available for this account."
+msgstr ""
+
+msgid "Search by course or code"
+msgstr ""
+
+msgid "Certificates in the app is its own screen rather than the dashboard table: a search by course or code, the newest certificate as a card (marked New for its first 7 days) with Open PDF and Share, and the others as rows that open their PDF. It reads the same list as the dashboard, so downloading follows the same permissions."
+msgstr ""

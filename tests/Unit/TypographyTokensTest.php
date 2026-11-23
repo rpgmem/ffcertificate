@@ -91,6 +91,7 @@ class TypographyTokensTest extends TestCase {
 		'ffc-admin-settings.css'           => 1,
 		'ffc-calendar-frontend.css'        => 1,
 		'ffc-presence-app.css'             => 0,
+		'ffc-app-certificates.css'         => 0,
 		'ffc-terminal-kiosk.css'           => 0,
 		'ffc-terminal-operator.css'        => 0,
 		'ffc-reregistration-admin.css'     => 0,
