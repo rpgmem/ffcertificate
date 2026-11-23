@@ -34,6 +34,11 @@ const STRINGS = {
 	qrLabel: 'qr label',
 	dismiss: 'dismiss',
 	fillForm: 'fill form',
+	current: 'Now: %1$s since %2$s.',
+	otherPhone: 'another phone',
+	changes: '%1$d of %2$d / %3$d',
+	dayOne: '1 day',
+	days: '%d days',
 };
 
 function markup() {
@@ -469,7 +474,51 @@ describe('presence app screen', () => {
 		const [app] = boot(memoryStore(), fetch);
 		await settle();
 		await app.enrol();
-		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(fetch.mock.calls.filter(([url]) => url === rest('enrol'))).toHaveLength(1);
+	});
+
+	it('names the phone it replaces, the change budget and the offline days', async () => {
+		const el = markup();
+		el.querySelector('[data-ffc-presence-view="activate"]').insertAdjacentHTML('beforeend', `
+			<p data-ffc-presence-part="current" hidden></p>
+			<dl data-ffc-presence-part="facts" hidden><dd data-ffc-presence-part="changes"></dd><dd data-ffc-presence-part="offline"></dd></dl>`);
+		const fetch = vi.fn(() => reply(200, {
+			current: { device_id: 'device-other', label: 'Android · Chrome', since: '02/11' },
+			changes: 1, max_changes: 3, window_days: 30, offline_days: 7,
+		}));
+		boot(memoryStore(), fetch);
+		await settle();
+		expect(fetch.mock.calls[0][0]).toBe(rest('device'));
+		const current = el.querySelector('[data-ffc-presence-part="current"]');
+		expect(current.hidden).toBe(false);
+		expect(current.querySelector('strong').textContent).toBe('Android · Chrome');
+		expect(current.textContent).toBe('Now: Android · Chrome since 02/11.');
+		expect(el.querySelector('[data-ffc-presence-part="changes"]').textContent).toBe('1 of 3 / 30');
+		expect(el.querySelector('[data-ffc-presence-part="offline"]').textContent).toBe('7 days');
+		expect(el.querySelector('[data-ffc-presence-part="facts"]').hidden).toBe(false);
+	});
+
+	it('leaves the facts out offline and the current phone out when it is this one', async () => {
+		const el = markup();
+		el.querySelector('[data-ffc-presence-view="activate"]').insertAdjacentHTML('beforeend', `
+			<p data-ffc-presence-part="current" hidden></p>
+			<dl data-ffc-presence-part="facts" hidden><dd data-ffc-presence-part="changes"></dd><dd data-ffc-presence-part="offline"></dd></dl>`);
+		const fetch = vi.fn(() => Promise.reject(new Error('offline')));
+		boot(memoryStore(), fetch);
+		await settle();
+		expect(el.querySelector('[data-ffc-presence-part="facts"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-presence-view="activate"]').hidden).toBe(false);
+
+		const { state } = await deviceState({ userId: USER, attestation: '' });
+		state.deviceId = 'device-mine';
+		fetch.mockImplementation(() => reply(200, {
+			current: { device_id: 'device-mine', label: '', since: '02/11' },
+			changes: 0, max_changes: 3, window_days: 30, offline_days: 1,
+		}));
+		boot(memoryStore(state), fetch);
+		await settle();
+		const parts = el.querySelectorAll('[data-ffc-presence-part="current"]');
+		expect(parts[parts.length - 1].hidden).toBe(true);
 	});
 });
 

@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use FreeFormCertificate\Core\Button;
+use FreeFormCertificate\Core\Icons;
 use FreeFormCertificate\Core\Notice;
 ?>
 <div class="ffc-shortcode ffc-presence" data-ffc-presence>
@@ -27,18 +28,42 @@ use FreeFormCertificate\Core\Notice;
 	</div>
 
 	<div class="ffc-presence-activate" data-ffc-presence-part="activate-view" data-ffc-presence-view="activate" hidden>
-		<p><?php esc_html_e( 'Activate this phone once, while online, to show your presence code at an event terminal. It then works without internet.', 'ffcertificate' ); ?></p>
-		<p><?php esc_html_e( 'One phone per account: activating another one later stops this one, and you receive an e-mail.', 'ffcertificate' ); ?></p>
-		<?php
-		Button::render(
-			array(
-				'label'    => __( 'Activate this phone', 'ffcertificate' ),
-				'category' => 'primary',
-				'icon'     => 'checkmark',
-				'attrs'    => array( 'data-ffc-presence-part' => 'activate' ),
-			)
-		);
-		?>
+		<span class="ffc-presence-activate-icon" aria-hidden="true"><?php echo Icons::svg( 'qr', 28 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() returns a closed-vocabulary drawing. ?></span>
+		<h2 class="ffc-presence-activate-title"><?php esc_html_e( 'Activate presence on this phone', 'ffcertificate' ); ?></h2>
+		<p class="ffc-presence-activate-lead"><?php esc_html_e( 'The presence code works on one phone at a time, even without internet.', 'ffcertificate' ); ?></p>
+		<p class="ffc-presence-current" data-ffc-presence-part="current" hidden></p>
+		<dl class="ffc-presence-facts" data-ffc-presence-part="facts" hidden>
+			<div class="ffc-presence-fact">
+				<dt><?php esc_html_e( 'Phone changes', 'ffcertificate' ); ?></dt>
+				<dd data-ffc-presence-part="changes"></dd>
+			</div>
+			<div class="ffc-presence-fact">
+				<dt><?php esc_html_e( 'Works without internet for', 'ffcertificate' ); ?></dt>
+				<dd data-ffc-presence-part="offline"></dd>
+			</div>
+		</dl>
+		<p class="ffc-presence-activate-note"><?php esc_html_e( 'You receive an e-mail about the change. This phone stays reserved for your account for 30 days.', 'ffcertificate' ); ?></p>
+		<div class="ffc-presence-actions">
+			<?php
+			Button::render(
+				array(
+					'label'    => __( 'Activate on this phone', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'checkmark',
+					'attrs'    => array( 'data-ffc-presence-part' => 'activate' ),
+				)
+			);
+			Button::render(
+				array(
+					'label'    => __( 'Not now', 'ffcertificate' ),
+					'category' => 'neutral',
+					'icon'     => 'chevron-left',
+					'href'     => home_url( '/' ),
+					'attrs'    => array( 'data-ffc-presence-part' => 'later' ),
+				)
+			);
+			?>
+		</div>
 	</div>
 
 	<div class="ffc-presence-code" data-ffc-presence-part="code-view" data-ffc-presence-view="code" hidden>

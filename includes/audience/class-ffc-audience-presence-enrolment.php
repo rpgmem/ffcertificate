@@ -106,9 +106,10 @@ final class AudiencePresenceEnrolment {
 	 * @param string $proof     Base64url signature, by the device key, of the enrolment statement.
 	 * @param string $signals   Device signals, or '' when the app sent none.
 	 * @param int    $now       Unix time.
+	 * @param string $agent     The app's User-Agent; only its platform and browser families are kept (#2781).
 	 * @return array{attestation: string, key_id: string, expires: int, name: string}|\WP_Error
 	 */
-	public static function enrol( int $user_id, string $device_id, string $point, int $timestamp, string $proof, string $signals, int $now ) {
+	public static function enrol( int $user_id, string $device_id, string $point, int $timestamp, string $proof, string $signals, int $now, string $agent = '' ) {
 		$user = get_userdata( $user_id );
 		if ( ! $user instanceof \WP_User ) {
 			return self::error( 'ffc_presence_no_user', __( 'Log in to activate this device.', 'ffcertificate' ), 401 );
@@ -158,7 +159,8 @@ final class AudiencePresenceEnrolment {
 
 		$signals      = substr( $signals, 0, 1024 );
 		$signals_hash = '' === $signals ? null : Encryption::keyed_hash( $signals, 'presence_signals' );
-		$row_id       = AudiencePresenceWriter::activate( $user_id, $device_id, $key_id, $point, $signals_hash, $is_change, $now );
+		$family       = AudiencePresenceAgent::describe( $agent );
+		$row_id       = AudiencePresenceWriter::activate( $user_id, $device_id, $key_id, $point, $signals_hash, $is_change, $now, $family['platform'], $family['browser'] );
 		if ( $row_id <= 0 ) {
 			return self::error( 'ffc_presence_not_saved', __( 'The device could not be activated. Try again.', 'ffcertificate' ), 500 );
 		}
@@ -246,6 +248,37 @@ final class AudiencePresenceEnrolment {
 			AudiencePresenceWriter::attested( $device['id'], $now );
 		}
 		return $attestation;
+	}
+
+	/**
+	 * What the app's Activate presence screen shows (#2781): the phone active
+	 * on the account now (its platform and browser families and since when),
+	 * the device changes used in the change window, and how long a phone
+	 * works offline.
+	 *
+	 * @param int $user_id User.
+	 * @param int $now     Unix time.
+	 * @return array{current: array{device_id: string, label: string, since: string}|null, changes: int, max_changes: int, window_days: int, offline_days: int}
+	 */
+	public static function status( int $user_id, int $now ): array {
+		$current = null;
+		foreach ( AudiencePresenceReader::for_user( $user_id ) as $device ) {
+			if ( null === $device['revoked_at'] ) {
+				$current = array(
+					'device_id' => $device['device_id'],
+					'label'     => AudiencePresenceAgent::label( $device['platform'], $device['browser'] ),
+					'since'     => DateFormatter::format_date( (string) wp_date( 'Y-m-d', $device['activated_at'] ) ),
+				);
+				break;
+			}
+		}
+		return array(
+			'current'      => $current,
+			'changes'      => AudiencePresenceReader::changes_since( $user_id, $now - self::CHANGE_WINDOW ),
+			'max_changes'  => self::MAX_CHANGES,
+			'window_days'  => (int) ( self::CHANGE_WINDOW / DAY_IN_SECONDS ),
+			'offline_days' => (int) ( AudiencePresenceAttestation::TTL / DAY_IN_SECONDS ),
+		);
 	}
 
 	/**

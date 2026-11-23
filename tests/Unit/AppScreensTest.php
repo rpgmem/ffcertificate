@@ -200,12 +200,18 @@ class AppScreensTest extends TestCase {
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'esc_url' )->returnArg();
+
 		$html = AudienceAppScreens::render_presence();
 
 		foreach ( array( 'unsupported', 'activate', 'code' ) as $view ) {
 			$this->assertStringContainsString( 'data-ffc-presence-view="' . $view . '"', $html, $view );
 		}
 		$this->assertStringContainsString( 'data-ffc-presence-part="activate"', $html );
+		foreach ( array( 'current', 'facts', 'changes', 'offline', 'later' ) as $part ) {
+			$this->assertStringContainsString( 'data-ffc-presence-part="' . $part . '"', $html, $part );
+		}
 		$this->assertStringContainsString( 'id="ffc-presence-event"', $html );
 		$this->assertArrayHasKey( 'ffc-presence-app', $styles );
 		$this->assertStringContainsString( 'libs/js/qrcodegen-' . FFC_QRCODEGEN_VERSION . '.js', $scripts['ffc-qrcodegen'][0] );
@@ -214,7 +220,7 @@ class AppScreensTest extends TestCase {
 		$config = $localized['ffc-presence-app'][1];
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/presence/', $config['rest'] );
 		$this->assertSame( 7, $config['userId'] );
-		$this->assertSame( array( 'storage', 'activating', 'activated', 'failed', 'next', 'expired', 'qrLabel', 'dismiss', 'fillForm' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'storage', 'activating', 'activated', 'failed', 'next', 'expired', 'qrLabel', 'dismiss', 'fillForm', 'current', 'otherPhone', 'changes', 'dayOne', 'days' ), array_keys( $config['strings'] ) );
 		$this->assertStringContainsString( '%d', $config['strings']['next'] );
 	}
 

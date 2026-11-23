@@ -54,6 +54,22 @@
      * @param {Uint8Array} bytes Bytes.
      * @return {string}
      */
+    /**
+     * Fill a translated string's %s / %d / %1$s placeholders in order or
+     * by position.
+     *
+     * @param {string} text Template.
+     * @return {string}
+     */
+    function format(text) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        var next = 0;
+        return String(text).replace(/%(?:(\d+)\$)?[sd]/g, function (match, position) {
+            var value = position ? args[Number(position) - 1] : args[next++];
+            return undefined === value ? '' : String(value);
+        });
+    }
+
     function toB64url(bytes) {
         var binary = '';
         for (var i = 0; i < bytes.length; i++) {
@@ -369,7 +385,7 @@
             self.state = saved && saved.userId === self.config.userId ? saved : {};
             if (!self.state.attestation) {
                 self.show('activate');
-                return null;
+                return self.deviceStatus();
             }
             self.show('code');
             self.listEvents();
@@ -380,6 +396,46 @@
         }).catch(function () {
             self.say(strings.storage);
             self.show('unsupported');
+        });
+    };
+
+    /**
+     * Fill the Activate view with the phone that holds the code now, the
+     * change budget and the offline span. Offline, the view stays without
+     * them: activating needs the site anyway.
+     *
+     * @return {Promise}
+     */
+    App.prototype.deviceStatus = function () {
+        var self = this;
+        var strings = self.config.strings;
+        return Promise.resolve().then(function () {
+            return self.request('GET', 'device');
+        }).then(function (answer) {
+            var current = self.part('current');
+            var device = answer && answer.current;
+            if (current) {
+                current.textContent = '';
+                current.hidden = !device || device.device_id === self.state.deviceId;
+                if (!current.hidden) {
+                    var parts = format(strings.current, '\u0000', device.since).split('\u0000');
+                    var name = document.createElement('strong');
+                    name.textContent = device.label || strings.otherPhone;
+                    current.appendChild(document.createTextNode(parts[0]));
+                    current.appendChild(name);
+                    current.appendChild(document.createTextNode(parts[1] || ''));
+                }
+            }
+            var changes = self.part('changes');
+            var offline = self.part('offline');
+            var facts = self.part('facts');
+            if (changes && offline && facts) {
+                changes.textContent = format(strings.changes, answer.changes, answer.max_changes, answer.window_days);
+                offline.textContent = format(1 === answer.offline_days ? strings.dayOne : strings.days, answer.offline_days);
+                facts.hidden = false;
+            }
+        }).catch(function () {
+            return null;
         });
     };
 
