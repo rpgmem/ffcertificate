@@ -347,9 +347,14 @@ final class AudienceQueryService {
 			$where_args
 		);
 
+		/**
+		 * Rows as `$wpdb` hands them back, the shape find_user_bookings() reads.
+		 *
+		 * @var list<UserBookingRow>|null $rows
+		 */
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
 
-		return is_array( $rows ) ? array_values( array_filter( $rows, 'is_array' ) ) : array();
+		return is_array( $rows ) ? $rows : array();
 	}
 
 	/**
