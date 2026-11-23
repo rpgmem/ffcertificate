@@ -66,7 +66,8 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 	</form>
 
 	<section class="ffc-terminal-view" data-ffc-terminal-view="pairing" hidden>
-		<div class="ffc-terminal-art" aria-hidden="true"><?php echo Icons::svg( 'qr', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
+		<div class="ffc-terminal-camera-slot" data-ffc-terminal-camera-slot="pairing"></div>
+		<div class="ffc-terminal-art" data-ffc-terminal-camera-art aria-hidden="true"><?php echo Icons::svg( 'qr', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
 		<h2><?php esc_html_e( 'Waiting for pairing', 'ffcertificate' ); ?></h2>
 		<p class="ffc-terminal-lead"><?php esc_html_e( 'Operator: in the app, open More → Pair terminal and hold the pairing QR code to this terminal\'s reader.', 'ffcertificate' ); ?></p>
 		<form class="ffc-terminal-pair" data-ffc-terminal-part="form" novalidate>
@@ -101,10 +102,14 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 
 	<section class="ffc-terminal-view" data-ffc-terminal-view="ready" hidden>
 		<div class="ffc-terminal-ready">
-			<div class="ffc-terminal-viewfinder" data-ffc-terminal-part="viewfinder" hidden>
-				<video data-ffc-terminal-part="camera-video" playsinline muted aria-label="<?php esc_attr_e( 'Front camera view, with the reading frame', 'ffcertificate' ); ?>"></video>
-				<span class="ffc-terminal-frame" aria-hidden="true"></span>
-				<span class="ffc-terminal-scanline" aria-hidden="true"></span>
+			<div class="ffc-terminal-camera-slot" data-ffc-terminal-camera-slot="ready">
+				<div class="ffc-terminal-viewfinder" data-ffc-terminal-part="viewfinder" hidden>
+					<video data-ffc-terminal-part="camera-video" playsinline muted aria-label="<?php esc_attr_e( 'Front camera view, with the reading frame', 'ffcertificate' ); ?>"></video>
+					<canvas class="ffc-terminal-still" data-ffc-terminal-part="camera-still" aria-hidden="true" hidden></canvas>
+					<span class="ffc-terminal-frame" aria-hidden="true"></span>
+					<span class="ffc-terminal-scanline" aria-hidden="true"></span>
+					<span class="ffc-terminal-flash" aria-hidden="true"></span>
+				</div>
 			</div>
 			<div class="ffc-terminal-art" data-ffc-terminal-part="art" aria-hidden="true"><?php echo Icons::svg( 'phone', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
 			<div class="ffc-terminal-ready-text">
@@ -168,7 +173,8 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 	</section>
 
 	<section class="ffc-terminal-view" data-ffc-terminal-view="unlock" hidden>
-		<div class="ffc-terminal-art" aria-hidden="true"><?php echo Icons::svg( 'lock', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
+		<div class="ffc-terminal-camera-slot" data-ffc-terminal-camera-slot="unlock"></div>
+		<div class="ffc-terminal-art" data-ffc-terminal-camera-art aria-hidden="true"><?php echo Icons::svg( 'lock', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
 		<h2><?php esc_html_e( 'Operator area', 'ffcertificate' ); ?></h2>
 		<p class="ffc-terminal-lead"><?php esc_html_e( 'Hold the operator QR code to the reader (app → More → Operator QR). Only someone who may check people in at these events unlocks the terminal.', 'ffcertificate' ); ?></p>
 		<p class="ffc-terminal-note" data-ffc-terminal-part="unlock-wait"></p>

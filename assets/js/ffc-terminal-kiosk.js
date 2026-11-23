@@ -45,6 +45,12 @@
     var QUEUE_MAX = 2000;
     var CAMERA_SCAN_MS = 250;
     var CAMERA_REPEAT_MS = 5000;
+    // How long the captured frame stays on screen, with the flash, before
+    // the code is handled (#2786): long enough to be seen as a capture.
+    var CAPTURE_MS = 450;
+    // The screens whose code the camera reads, each with its own place for
+    // the viewfinder (#2786).
+    var CAMERA_SCREENS = ['pairing', 'ready', 'unlock'];
 
     /**
      * A storage that may refuse: a private window or blocked site data.
@@ -266,6 +272,10 @@
                 var input = part('code');
                 input.value = '';
                 input.focus();
+            }
+            if (cameraReady) {
+                placeCamera();
+                autoCamera();
             }
             tickClock();
         }
@@ -1052,7 +1062,7 @@
         // in a secure context, and where the site allows it. The decision is
         // made from what the browser offers, never from its name.
 
-        var camera = { stream: null, detector: null, timer: null, last: '', lastAt: 0, tried: false };
+        var camera = { stream: null, detector: null, timer: null, last: '', lastAt: 0, tried: false, flip: null };
         var cameraStrings = strings.camera || {};
 
         function cameraNote(text) {
@@ -1074,10 +1084,31 @@
             });
         }
 
+        // The viewfinder is one element that moves to the screen in front
+        // (#2786), so the stream keeps playing and the pairing, presence and
+        // unlock screens all read with it.
+        function placeCamera() {
+            var slot = el.querySelector('[data-ffc-terminal-camera-slot="' + screen + '"]');
+            var viewfinder = part('viewfinder');
+            if (slot && viewfinder.parentNode !== slot) {
+                slot.appendChild(viewfinder);
+                var video = part('camera-video');
+                if (camera && camera.stream && video.play) {
+                    Promise.resolve(video.play()).catch(function () { return null; });
+                }
+            }
+            var arts = el.querySelectorAll('[data-ffc-terminal-camera-art]');
+            var on = !!(camera && camera.stream);
+            for (var i = 0; i < arts.length; i++) {
+                arts[i].hidden = on;
+            }
+        }
+
         function cameraLayout(on) {
             part('viewfinder').hidden = !on;
             part('art').hidden = on;
             part('camera-tips').hidden = !on;
+            placeCamera();
             part('ready-title').textContent = on ? strings.cameraTitle : strings.readyTitle;
             part('ready-lead').textContent = on ? strings.cameraLead : strings.readyLead;
             el.querySelector('.ffc-terminal-ready').classList.toggle('has-camera', on);
@@ -1101,21 +1132,88 @@
             cameraNote(cameraStrings.ready);
         }
 
+        // The current frame drawn on a canvas, flipped left to right or
+        // not; null where the browser has no 2D canvas.
+        function frame(canvas, flipped) {
+            var video = part('camera-video');
+            var width = video.videoWidth || 0;
+            var height = video.videoHeight || 0;
+            var context = width && height && canvas.getContext ? canvas.getContext('2d') : null;
+            if (!context) {
+                return null;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            context.setTransform(flipped ? -1 : 1, 0, 0, 1, flipped ? width : 0, 0);
+            context.drawImage(video, 0, 0, width, height);
+            context.setTransform(1, 0, 0, 1, 0, 0);
+            return canvas;
+        }
+
+        // Some front cameras hand over frames already mirrored, which no QR
+        // reader reads (#2786): a frame that yields nothing is read again
+        // flipped back.
+        function detectFrame() {
+            return Promise.resolve(camera.detector.detect(part('camera-video'))).then(function (codes) {
+                if (codes && codes.length) {
+                    return codes;
+                }
+                camera.flip = camera.flip || el.ownerDocument.createElement('canvas');
+                var flipped = frame(camera.flip, true);
+                return flipped ? camera.detector.detect(flipped) : codes;
+            });
+        }
+
+        // A code read: the screen flashes and shows the frame it came from,
+        // the right way round, then the code is handled (#2786).
+        function capture() {
+            var still = part('camera-still');
+            var shown = frame(still, false);
+            still.hidden = !shown;
+            var viewfinder = part('viewfinder');
+            viewfinder.classList.remove('is-captured');
+            // Read the layout so the flash restarts on a second capture.
+            void viewfinder.offsetWidth;
+            viewfinder.classList.add('is-captured');
+            return new Promise(function (resolve) {
+                env.setTimeout(function () {
+                    viewfinder.classList.remove('is-captured');
+                    still.hidden = true;
+                    resolve();
+                }, CAPTURE_MS);
+            });
+        }
+
+        // What a code read by the camera does on the screen in front: pair on
+        // the pairing screen, nothing while pairing is paused, read or unlock
+        // everywhere else.
+        function handle(raw) {
+            if ('locked' === screen) {
+                return null;
+            }
+            if ('pairing' === screen) {
+                var code = cleanCode(raw);
+                return code ? pair(code) : null;
+            }
+            return take(raw);
+        }
+
         function scan() {
             camera.timer = null;
             if (!camera.stream || !camera.detector) {
                 return Promise.resolve(null);
             }
-            return Promise.resolve(camera.detector.detect(part('camera-video'))).then(function (codes) {
+            return detectFrame().then(function (codes) {
                 var raw = codes && codes.length ? String(codes[0].rawValue || '') : '';
                 var at = env.now();
-                var taken = null;
-                if (raw && (raw !== camera.last || at - camera.lastAt >= CAMERA_REPEAT_MS)) {
+                if (raw && 'locked' !== screen && (raw !== camera.last || at - camera.lastAt >= CAMERA_REPEAT_MS)) {
                     camera.last = raw;
                     camera.lastAt = at;
-                    taken = take(raw);
+                    return capture().then(function () {
+                        return handle(raw);
+                    });
                 }
-                return taken;
+                return null;
             }, function () {
                 return null;
             }).then(function (taken) {
@@ -1157,7 +1255,7 @@
                 return Promise.resolve(false);
             }
             return cameraReady.then(function (support) {
-                if ('ok' !== support || camera.stream || camera.tried || 'ready' !== screen) {
+                if ('ok' !== support || camera.stream || camera.tried || CAMERA_SCREENS.indexOf(screen) < 0) {
                     return false;
                 }
                 camera.tried = true;

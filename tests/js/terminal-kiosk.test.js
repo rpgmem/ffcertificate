@@ -106,12 +106,14 @@ function markup() {
 			<p data-ffc-terminal-part="error" hidden></p>
 			<form data-ffc-terminal-part="reading-form"><input data-ffc-terminal-part="reading"><button type="submit">Check in</button></form>
 			<section data-ffc-terminal-view="pairing" hidden>
+				<div data-ffc-terminal-camera-slot="pairing"></div>
+				<div data-ffc-terminal-camera-art></div>
 				<form data-ffc-terminal-part="form"><input data-ffc-terminal-part="code"><button type="submit">Pair</button></form>
 			</section>
 			<section data-ffc-terminal-view="locked" hidden><p data-ffc-terminal-part="countdown"></p></section>
 			<section data-ffc-terminal-view="ready" hidden>
 				<div class="ffc-terminal-ready">
-					<div data-ffc-terminal-part="viewfinder" hidden><video data-ffc-terminal-part="camera-video"></video></div>
+					<div data-ffc-terminal-camera-slot="ready"><div data-ffc-terminal-part="viewfinder" hidden><video data-ffc-terminal-part="camera-video"></video><canvas data-ffc-terminal-part="camera-still" hidden></canvas></div></div>
 					<div data-ffc-terminal-part="art"></div>
 					<h2 data-ffc-terminal-part="ready-title"></h2>
 					<p data-ffc-terminal-part="ready-lead"></p>
@@ -135,6 +137,8 @@ function markup() {
 				<div data-ffc-terminal-part="result-next"><span><span data-ffc-terminal-part="result-bar"></span></span><p data-ffc-terminal-part="result-wait"></p></div>
 			</section>
 			<section data-ffc-terminal-view="unlock" hidden>
+				<div data-ffc-terminal-camera-slot="unlock"></div>
+				<div data-ffc-terminal-camera-art></div>
 				<p data-ffc-terminal-part="unlock-wait"></p>
 				<button type="button" data-ffc-terminal-part="unlock-cancel">Cancel</button>
 			</section>
@@ -901,6 +905,19 @@ describe('camera', () => {
 	const node = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]');
 	beforeEach(() => { window.HTMLMediaElement.prototype.play = () => Promise.resolve(); });
 
+	// A frame that holds a code flashes for CAPTURE_MS before the code is
+	// handled (#2786): scan, let the flash start, then end it.
+	async function scanned(e, controls) {
+		const pending = controls.camera.scan();
+		await settle();
+		const flash = e.timeouts.filter((t) => 450 === t[1]).pop();
+		if (flash && !flash.fired) {
+			flash.fired = true;
+			flash[0]();
+		}
+		return pending;
+	}
+
 	function detectorClass(formats, frames) {
 		return class {
 			static getSupportedFormats() { return formats; }
@@ -978,8 +995,16 @@ describe('camera', () => {
 
 		await controls.camera.scan();
 		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(0);
-		await controls.camera.scan();
+		const pending = controls.camera.scan();
 		await settle();
+		// The capture flashes before the code is sent (#2786).
+		expect(node('viewfinder').classList.contains('is-captured')).toBe(true);
+		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(0);
+		e.timeouts.filter((t) => 450 === t[1]).pop()[0]();
+		await pending;
+		await settle();
+		expect(node('viewfinder').classList.contains('is-captured')).toBe(false);
+		expect(node('camera-still').hidden).toBe(true);
 		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(1);
 		expect(okLine(el)).toBe('Maria S. — certificate later');
 
@@ -987,7 +1012,7 @@ describe('camera', () => {
 		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(1);
 		e.clock.now += 6000;
 		frames.push([{ rawValue: 'FFP1ABC' }]);
-		await controls.camera.scan();
+		await scanned(e, controls);
 		await settle();
 		expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(2);
 
@@ -1008,12 +1033,82 @@ describe('camera', () => {
 		);
 		await controls.camera.ready;
 		await controls.camera.start();
-		await controls.camera.scan();
+		await scanned(e, controls);
 		await settle();
 		expect(calls.some((c) => c[1] === 'unlock')).toBe(true);
 		const before = e.timeouts.length;
 		expect(await controls.camera.scan()).toBe(null);
 		expect(e.timeouts.length).toBeGreaterThan(before);
+	});
+
+	it('reads a frame the camera hands over mirrored by flipping it back', async () => {
+		const seen = [];
+		const Detector = class {
+			static getSupportedFormats() { return Promise.resolve(['qr_code']); }
+			detect(source) {
+				seen.push(source.tagName);
+				return Promise.resolve('CANVAS' === source.tagName ? [{ rawValue: 'FFP1ABC' }] : []);
+			}
+		};
+		const drawn = [];
+		const context = { setTransform: (...m) => drawn.push(m), drawImage: () => drawn.push('draw') };
+		const getContext = window.HTMLCanvasElement.prototype.getContext;
+		window.HTMLCanvasElement.prototype.getContext = () => context;
+		try {
+			const { e, calls, controls } = paired(
+				{ BarcodeDetector: Detector, mediaDevices: { getUserMedia: () => Promise.resolve(stream()) } },
+				{ 'POST readings': [200, { status: 'recorded', message: 'Recorded.', name: 'Maria S.' }] }
+			);
+			await controls.camera.ready;
+			await settle();
+			const video = node('camera-video');
+			Object.defineProperty(video, 'videoWidth', { value: 640 });
+			Object.defineProperty(video, 'videoHeight', { value: 480 });
+			await scanned(e, controls);
+			await settle();
+			expect(seen).toEqual(['VIDEO', 'CANVAS']);
+			expect(drawn[0]).toEqual([-1, 0, 0, 1, 640, 0]);
+			expect(drawn).toContainEqual([1, 0, 0, 1, 0, 0]);
+			expect(calls.filter((c) => c[1] === 'readings')).toHaveLength(1);
+		} finally {
+			window.HTMLCanvasElement.prototype.getContext = getContext;
+		}
+	});
+
+	it('pairs from the camera on the pairing screen and reads the operator code on the unlock screen', async () => {
+		el = markup();
+		const frames = [[{ rawValue: 'p-ab12-cd34-ef56' }]];
+		const calls = [];
+		const e = env({
+			secure: true,
+			online: () => true,
+			BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), frames),
+			mediaDevices: { getUserMedia: () => Promise.resolve(stream()) },
+			fetch: (url, options) => {
+				calls.push([options.method, url.replace(CONFIG.rest, ''), options.body]);
+				return Promise.reject(new Error('offline'));
+			},
+		});
+		const controls = T().start(el, config(), e);
+		await controls.camera.ready;
+		await settle();
+		expect(controls.screen()).toBe('pairing');
+		expect(node('viewfinder').parentNode.getAttribute('data-ffc-terminal-camera-slot')).toBe('pairing');
+		expect(el.querySelector('[data-ffc-terminal-view="pairing"] [data-ffc-terminal-camera-art]').hidden).toBe(true);
+		await scanned(e, controls);
+		await settle();
+		expect(calls[0][1]).toBe('pair');
+		expect(JSON.parse(calls[0][2]).code).toBe('P-AB12-CD34-EF56');
+	});
+
+	it('moves the viewfinder to the unlock screen', async () => {
+		const { e, controls } = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.resolve(stream()) } });
+		await controls.camera.ready;
+		await settle();
+		controls.askUnlock();
+		expect(node('viewfinder').parentNode.getAttribute('data-ffc-terminal-camera-slot')).toBe('unlock');
+		expect(el.querySelector('[data-ffc-terminal-view="unlock"] [data-ffc-terminal-camera-art]').hidden).toBe(true);
+		expect(e.timeouts.length).toBeGreaterThan(0);
 	});
 
 	it('says when the camera is refused or cannot start', async () => {
