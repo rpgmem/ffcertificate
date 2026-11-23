@@ -135,6 +135,13 @@ class SettingsAjaxEndpoint {
 		);
 
 		$allowlist = array(
+			// Scheduling → Settings → Check-in (#2747): whoever manages the
+			// audience calendars decides whether terminals may use a camera.
+			'terminal_camera'               => array(
+				'option' => 'ffc_settings',
+				'type'   => 'bool',
+				'cap'    => 'ffc_manage_audiences',
+			),
 			'admin_bypass_datetime'         => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',

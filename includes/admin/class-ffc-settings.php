@@ -428,6 +428,9 @@ class Settings {
 			// install sees.
 			'activity_log_min_level'            => 'debug',
 			'audience_csv_create_users_default' => 1,
+			// Scheduling → Settings → Check-in: a terminal may read codes with
+			// its own camera (#2747). Off: the wedge reader is recommended.
+			'terminal_camera'                   => 0,
 			'csv_download_page_url'             => '',
 			'dangerzone_reset_counter_default'  => 1,
 			'dark_mode'                         => 'off',

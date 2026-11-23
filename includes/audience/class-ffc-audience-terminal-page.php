@@ -39,18 +39,13 @@ final class AudienceTerminalPage {
 	public const QUERY_VAR = 'ffc_terminal';
 
 	/**
-	 * The option that lets a terminal read codes with its own camera (#2747).
-	 */
-	public const CAMERA_OPTION = 'ffc_aud_terminal_camera';
-
-	/**
 	 * Whether a terminal may read codes with its own camera. Off unless an
 	 * administrator turned it on: the wedge reader is the recommended mode.
 	 *
 	 * @return bool
 	 */
 	public static function camera_allowed(): bool {
-		return '1' === (string) get_option( self::CAMERA_OPTION, '0' );
+		return (bool) (int) SettingsReader::get( 'terminal_camera', 0 );
 	}
 
 	/**

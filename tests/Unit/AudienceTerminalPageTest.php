@@ -132,17 +132,12 @@ class AudienceTerminalPageTest extends TestCase {
 	}
 
 	public function test_the_camera_follows_its_option(): void {
-		$value = '1';
-		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default = false ) use ( &$value ) {
-				return AudienceTerminalPage::CAMERA_OPTION === $key ? $value : $default;
-			}
-		);
+		$this->settings = array( 'terminal_camera' => 1 );
 		$this->assertTrue( AudienceTerminalPage::camera_allowed() );
-		$value = '0';
+		$this->settings = array( 'terminal_camera' => '0' );
 		$this->assertFalse( AudienceTerminalPage::camera_allowed() );
-		$value = 'yes';
-		$this->assertFalse( AudienceTerminalPage::camera_allowed(), 'only the value the settings form writes turns it on' );
+		$this->settings = array();
+		$this->assertFalse( AudienceTerminalPage::camera_allowed(), 'off until an administrator turns it on' );
 	}
 
 	public function test_the_dark_theme_is_on_the_root_from_the_first_paint(): void {

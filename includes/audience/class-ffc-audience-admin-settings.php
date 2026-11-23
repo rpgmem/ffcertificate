@@ -136,6 +136,10 @@ class AudienceAdminSettings {
 				'label' => __( 'Import & Export', 'ffcertificate' ),
 				'icon'  => 'ffc-icon-upload',
 			),
+			'checkin'         => array(
+				'label' => __( 'Check-in', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-qr',
+			),
 		);
 
 		/**
@@ -203,6 +207,9 @@ class AudienceAdminSettings {
 							break;
 						case 'import':
 							$this->import->render_content();
+							break;
+						case 'checkin':
+							$this->render_checkin_tab();
 							break;
 						case 'general':
 							$this->render_general_tab();
@@ -286,9 +293,21 @@ class AudienceAdminSettings {
 		$max_self_join_groups     = AudienceSelfJoinLimit::get();
 		$self_join_note           = get_option( 'ffc_aud_self_join_note', '' );
 		$max_range_days           = AudienceBookingRules::max_range_days();
-		$terminal_camera          = AudienceTerminalPage::camera_allowed();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/audience-tab.php';
+	}
+
+	/**
+	 * Render the Check-in tab (#2747): how attendance is taken, the terminals
+	 * included. Each field saves on its own through the settings autosave.
+	 *
+	 * @return void
+	 */
+	private function render_checkin_tab(): void {
+		$can_edit        = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		$terminal_camera = AudienceTerminalPage::camera_allowed();
+
+		include FFC_PLUGIN_DIR . 'templates/admin/audience/checkin-tab.php';
 	}
 
 	/**
@@ -391,10 +410,6 @@ class AudienceAdminSettings {
 			if ( '' !== $max_range && is_numeric( $max_range ) ) {
 				update_option( AudienceBookingRules::MAX_RANGE_OPTION, AudienceBookingRules::clamp_max_range( $max_range ) );
 			}
-
-			// A terminal may read codes with its own camera (#2747). Off
-			// unless ticked: the wedge reader is the recommended mode.
-			update_option( AudienceTerminalPage::CAMERA_OPTION, isset( $_POST[ AudienceTerminalPage::CAMERA_OPTION ] ) ? '1' : '0' );
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Audience visibility settings saved.', 'ffcertificate' ), 'success' );
 		}
