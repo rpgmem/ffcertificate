@@ -171,6 +171,14 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( array(), $this->tables->pairings );
 	}
 
+	public function test_an_event_with_the_terminal_path_off_cannot_be_held(): void {
+		$this->booking( 16, '2027-01-15' );
+		$this->bookings[16]->checkin_terminal = '0';
+
+		$this->assertSame( 'ffc_terminal_path_off', AudienceTerminalPairing::create_code( self::OPERATOR, array( 16 ), '', self::NOW )->get_error_code() );
+		$this->assertSame( array(), $this->tables->pairings );
+	}
+
 	// ---- Pairing ----------------------------------------------------------
 
 	public function test_a_code_pairs_once_and_the_terminal_keeps_a_token_the_site_only_hashes(): void {
@@ -409,12 +417,13 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->tables->booking_list     = array(
 			(object) array( 'id' => 21, 'description' => 'Workshop', 'environment_name' => 'Room 1', 'booking_date' => $soon, 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00' ),
 			(object) array( 'id' => 22, 'description' => 'Gone', 'environment_name' => 'Room 2', 'booking_date' => $past, 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00' ),
+			(object) array( 'id' => 23, 'description' => 'No terminals', 'environment_name' => 'Room 3', 'booking_date' => $soon, 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00', 'checkin_terminal' => '0' ),
 		);
 
 		$data = ( new AudienceTerminalRestController() )->list_bookings()->get_data();
 
 		$this->assertSame( AudienceTerminalPairing::MAX_BOOKINGS, $data['max'] );
-		$this->assertSame( array( 21 ), array_column( $data['bookings'], 'id' ), 'a booking that already ended is not offered' );
+		$this->assertSame( array( 21 ), array_column( $data['bookings'], 'id' ), 'a booking that already ended, or takes no terminal, is not offered' );
 		$this->assertSame( 'Workshop', $data['bookings'][0]['description'] );
 		$this->assertSame( 'Room 1', $data['bookings'][0]['place'] );
 		$this->assertSame( 0, $data['bookings'][0]['terminals'] );

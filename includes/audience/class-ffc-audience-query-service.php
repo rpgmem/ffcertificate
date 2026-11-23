@@ -318,6 +318,46 @@ final class AudienceQueryService {
 	}
 
 	/**
+	 * The bookings anyone signed in may check in at by a terminal (#2748):
+	 * open to everyone, with the terminal path on. Same row shape and
+	 * `filter` semantics as {@see self::find_user_bookings()}, without the
+	 * audiences, which the app does not show.
+	 *
+	 * @param array<string, mixed> $filter Optional filter (same shape as find_user_bookings).
+	 * @return list<array<string, mixed>>
+	 */
+	public static function find_open_checkin_bookings( array $filter = array() ): array {
+		[ $where_extra, $where_args ] = self::booking_filter_clauses( $filter );
+
+		global $wpdb;
+		$sql = 'SELECT b.*, e.name as environment_name, s.name as schedule_name
+			FROM %i b
+			LEFT JOIN %i e ON b.environment_id = e.id
+			LEFT JOIN %i s ON e.schedule_id = s.id
+			WHERE b.checkin_open = 1 AND b.checkin_terminal = 1'
+			. $where_extra
+			. ' ORDER BY b.booking_date ASC, b.start_time ASC';
+
+		$args = array_merge(
+			array(
+				$wpdb->prefix . 'ffc_audience_bookings',
+				$wpdb->prefix . 'ffc_audience_environments',
+				$wpdb->prefix . 'ffc_audience_schedules',
+			),
+			$where_args
+		);
+
+		/**
+		 * Rows as `$wpdb` hands them back, the shape find_user_bookings() reads.
+		 *
+		 * @var list<UserBookingRow>|null $rows
+		 */
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Companion to {@see self::find_user_bookings()} — same JOIN shape,
 	 * same `filter` semantics, but returns `COUNT(DISTINCT b.id)` and
 	 * skips the audience batch-load. Issue #343 group B.

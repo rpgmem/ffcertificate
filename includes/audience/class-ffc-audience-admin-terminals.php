@@ -215,6 +215,7 @@ class AudienceAdminTerminals {
 			'ffc_terminal_overlap'       => __( 'Two of these events have check-in windows that cross. A terminal checks in one event at a time: put them on different terminals.', 'ffcertificate' ),
 			'ffc_terminal_booking_limit' => __( 'One of these events already has as many terminals as it may. End one before adding it here.', 'ffcertificate' ),
 			'ffc_terminal_missing'       => __( 'There is no such terminal.', 'ffcertificate' ),
+			'ffc_terminal_path_off'      => __( 'One of these events does not take check-in at a terminal. Turn the terminal path on in its Check-in tab, or leave it out.', 'ffcertificate' ),
 		);
 	}
 

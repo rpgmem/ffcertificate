@@ -111,7 +111,7 @@ class AudienceAttendanceAjax {
 			'closes_label' => null === $window ? '' : DateFormatter::format_time( $window['closes_at'] ),
 		);
 
-		if ( $with_qr && null !== $window ) {
+		if ( $with_qr && null !== $window && AudienceCheckinPolicy::qr_allowed( $booking ) ) {
 			$state['qr']                = \FreeFormCertificate\Generators\QrSvgRenderer::render(
 				AudienceCheckinCode::url( $window, $now ),
 				\FreeFormCertificate\Generators\QrDesign::plain(),

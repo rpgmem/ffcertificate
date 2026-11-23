@@ -22,10 +22,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The participants are the booking's affected users (its custom users and
  * the members of its audiences, sub-audiences included) as they are now;
- * a line recorded for someone who has since left the booking still counts
- * for them, and they are listed so the line is not hidden.
+ * a line recorded for someone who is not on it — who has since left, or who
+ * checked in at an event open to everyone (#2748) — is listed so the line is
+ * not hidden, marked as not enrolled. Such a person meets no attendance rule,
+ * the same answer the post-event form gives them.
  *
- * @phpstan-type RosterRow array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool}
+ * @phpstan-type RosterRow array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool, enrolled: bool}
  * @phpstan-type Roster array{rows: list<RosterRow>, present: int, total: int, required: int, days: list<string>}
  *
  * @since 6.42.0
@@ -52,8 +54,8 @@ final class AudienceAttendanceRoster {
 			}
 		}
 
-		$ids = array_map( 'intval', AudienceBookingReader::get_all_affected_users( $booking_id ) );
-		$ids = array_values( array_unique( array_merge( $ids, array_keys( $by_user ) ) ) );
+		$enrolled = array_map( 'intval', AudienceBookingReader::get_all_affected_users( $booking_id ) );
+		$ids      = array_values( array_unique( array_merge( $enrolled, array_keys( $by_user ) ) ) );
 
 		$names = self::names( $ids );
 
@@ -62,13 +64,15 @@ final class AudienceAttendanceRoster {
 		foreach ( $ids as $user_id ) {
 			$line   = $today[ $user_id ] ?? null;
 			$mine   = array_values( array_intersect( $by_user[ $user_id ] ?? array(), $days ) );
+			$on     = in_array( $user_id, $enrolled, true );
 			$rows[] = array(
 				'user_id'    => $user_id,
 				'name'       => $names[ $user_id ] ?? '#' . $user_id,
 				'present_at' => null === $line ? null : $line['checked_at'],
 				'method'     => null === $line ? null : $line['method'],
 				'days'       => $mine,
-				'met'        => AudienceAttendanceRule::satisfied_by( $booking, $mine ),
+				'met'        => $on && AudienceAttendanceRule::satisfied_by( $booking, $mine ),
+				'enrolled'   => $on,
 			);
 			if ( null !== $line ) {
 				++$present;

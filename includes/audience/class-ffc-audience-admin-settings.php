@@ -309,6 +309,8 @@ class AudienceAdminSettings {
 		$site_limit      = AudienceCheckinSettings::site_limit();
 		$event_limit     = AudienceCheckinSettings::event_limit();
 		$auto_end_hours  = intdiv( AudienceCheckinSettings::auto_end_seconds(), HOUR_IN_SECONDS );
+		$path_qr         = AudienceCheckinSettings::default_path_qr();
+		$path_terminal   = AudienceCheckinSettings::default_path_terminal();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/checkin-tab.php';
 	}

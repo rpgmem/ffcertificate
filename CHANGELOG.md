@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The check-in terminal can read with its camera** (#2747). Scheduling → Settings → Check-in → Allow the device camera (off by default, saved on flip) offers a framed viewfinder where the browser has `BarcodeDetector` and the page is HTTPS; elsewhere the option says why it is unavailable. The wedge reader stays recommended.
 - **Terminal limits and auto-end are settings** (#2748). Scheduling → Settings → Check-in sets the terminals per site (default 10) and per event (default 3) and the hours a terminal outlives its last event (default 2), saved on change and read through `SettingsReader`; the `ffc_terminal_limits` filter still applies. The tab states the fixed pairing and device rules.
 - **Scheduling → Terminals lists the check-in terminals** (#2748): online and offline counts, today's readings and the readings waiting to be sent, and per terminal its events, current event, operator, last contact, readings and state, with Edit events and End. A terminal now reports its unsent queue on every request.
+- **An event's Check-in tab sets who may check in and by which paths** (#2748): Enrolled only or Open (attendance without enrolment counts toward no rule), the projected QR code and the terminal each on or off and enforced everywhere, the terminals holding the event with "N of M allowed" and an unsent-readings warning, and the day's attendance by path. New events take their paths from Scheduling → Settings → Check-in.
 
 ### Security
 

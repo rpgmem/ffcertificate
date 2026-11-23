@@ -27718,9 +27718,6 @@ msgstr "Presença removida."
 msgid "Attendance rule saved."
 msgstr "Regra de presença salva."
 
-#: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Check-in by QR code opens only on the day itself, for an active booking."
-msgstr "O check-in por QR code só abre no próprio dia, para uma reserva ativa."
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Check-in was not open."
@@ -27746,9 +27743,6 @@ msgstr "Presença"
 msgid "Back to bookings"
 msgstr "Voltar às reservas"
 
-#: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Check-in by QR code"
-msgstr "Check-in por QR code"
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "This booking is cancelled, so it takes no check-in."
@@ -27888,9 +27882,6 @@ msgstr "Presente"
 msgid "Attendance and QR check-in"
 msgstr "Presença e check-in por QR"
 
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "A participant scans the code with the phone camera, logs in if asked and confirms. Only people on the booking (its custom users and the members of its audiences) can check in, once per day. A code shown on the screen is valid for its rotation and the one before; a link copied from it expires within minutes. The location of an area check-in comes from the participant's browser and can be faked: it makes checking in from elsewhere harder, it does not prove presence."
-msgstr "O participante lê o código com a câmera do celular, faz login se for pedido e confirma. Só pessoas da reserva (seus usuários personalizados e os membros de seus públicos) podem fazer check-in, uma vez por dia. Um código exibido na tela vale durante sua rotação e a anterior; um link copiado dele expira em poucos minutos. A localização de um check-in com área vem do navegador do participante e pode ser falsificada: dificulta o check-in de outro lugar, mas não comprova a presença."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "The participants list shows who is present on the day selected and refreshes on its own. Mark present and Remove record or delete an attendance by hand on today or an earlier day, noting who marked it. The attendance rule decides who counts as attended for a booking over several days: Any day, or a minimum share of the booked days (skipped days do not count). Export CSV lists each participant's name, a column per day, the days present and whether the rule was met, and, when a post-event form applies, when they were invited and whether they answered; it carries no e-mail or document number."
@@ -31570,9 +31561,6 @@ msgstr "Exclusão permanente"
 msgid "Sensitive data"
 msgstr "Dados sensíveis"
 
-#: includes/audience/class-ffc-audience-admin-attendance.php:595
-msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand on the Participants tab."
-msgstr "O check-in por QR code só abre no próprio dia. A presença em outros dias pode ser marcada manualmente na aba Participantes."
 
 #: includes/audience/class-ffc-audience-admin-attendance.php:639
 #, php-format
@@ -31596,9 +31584,6 @@ msgstr "Ainda não aberto"
 msgid "Opens only on the day itself"
 msgstr "Abre só no próprio dia"
 
-#: includes/settings/views/documentation/scheduling-audiences.php:88
-msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen, in four tabs: Participants, which opens first, Check-in by QR code, Attendance rule and Post-event form. Beside them a summary shows the day, how many are present, the check-in, the rule and the form. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
-msgstr "O link Presença na linha de uma reserva em Reservas de Público-alvo abre a tela de presença, em quatro abas: Participantes, que abre primeiro, Check-in por QR code, Regra de presença e Formulário pós-evento. Ao lado delas, um resumo mostra o dia, quantos estão presentes, o check-in, a regra e o formulário. No próprio dia, até 30 minutos após o fim da reserva, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
 
 #: includes/settings/views/documentation/scheduling-audiences.php:97
 msgid "The Post-event form tab on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This tab and the Attendance rule tab save each change as it is made, and the sentences describing them, in the tabs and in the summary, follow; reload the page to see the invitations."
@@ -36341,8 +36326,6 @@ msgstr "Como a presença é registrada nos eventos dos calendários de público-
 msgid "At most 10 terminals may be active on the site and 3 on one event at a time, unless Scheduling → Settings → Check-in says otherwise; the ffc_terminal_limits filter can still change both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
 msgstr "No máximo 10 terminais podem estar ativos no site e 3 em um mesmo evento ao mesmo tempo, salvo o que Agendamento → Configurações → Check-in definir; o filtro ffc_terminal_limits ainda pode mudar os dois. Um site ou evento cheio recusa antes de o código ser gasto, então encerrar um terminal faz o mesmo código funcionar."
 
-msgid "Scheduling → Settings → Check-in holds the terminal settings, each saved as soon as it is changed, for whoever holds ffc_manage_audiences: how many terminals may be active on the site (1 to 100, default 10) and on one event (1 to 20, default 3), how many hours a terminal outlives the last of its events (1 to 24, default 2; it applies to terminals paired or changed afterwards), and the camera. The tab also states the rules that always apply to pairing and presence devices."
-msgstr "Agendamento → Configurações → Check-in reúne as configurações dos terminais, cada uma salva assim que é alterada, para quem tem ffc_manage_audiences: quantos terminais podem estar ativos no site (1 a 100, padrão 10) e em um evento (1 a 20, padrão 3), quantas horas um terminal dura depois do último de seus eventos (1 a 24, padrão 2; vale para terminais pareados ou alterados depois) e a câmera. A aba também informa as regras que sempre valem para o pareamento e os aparelhos de presença."
 
 msgid "Terminals on the site"
 msgstr "Terminais no site"
@@ -36465,3 +36448,117 @@ msgid "%d waiting to be sent"
 msgid_plural "%d waiting to be sent"
 msgstr[0] "0 aguardando envio"
 msgstr[1] "0 aguardando envio"
+
+msgid "%1$d of %2$d allowed"
+msgstr "%1$d de %2$d permitidos"
+
+msgid "(not enrolled)"
+msgstr "(sem inscrição)"
+
+msgid "Attendance now"
+msgstr "Presença agora"
+
+msgid "By hand"
+msgstr "Manualmente"
+
+msgid "Changes apply after the page is reloaded."
+msgstr "As mudanças valem depois que a página é recarregada."
+
+msgid "Check-in is open. The terminals that hold this event now record readings."
+msgstr "O check-in está aberto. Os terminais com este evento passam a registrar leituras."
+
+msgid "Check-in opens only on the day itself, for an active booking."
+msgstr "O check-in só abre no próprio dia, para uma reserva ativa."
+
+msgid "Check-in opens only on the day itself. Attendance on other days can be marked by hand on the Participants tab."
+msgstr "O check-in só abre no próprio dia. A presença em outros dias pode ser marcada manualmente na aba Participantes."
+
+msgid "Check-in paths for new events"
+msgstr "Caminhos de check-in dos novos eventos"
+
+msgid "Check-in paths"
+msgstr "Caminhos de check-in"
+
+msgid "Check-in window"
+msgstr "Janela de check-in"
+
+msgid "Closes on its own at %s."
+msgstr "Encerra sozinho às %s."
+
+msgid "Enrolled only"
+msgstr "Somente inscritos"
+
+msgid "Last seen %s"
+msgstr "Último contato %s"
+
+msgid "No terminal holds this event. Pair one in the app, under More → Pair terminal."
+msgstr "Nenhum terminal tem este evento. Pareie um no app, em Mais → Parear terminal."
+
+msgid "One of these events does not take check-in at a terminal. Turn the terminal path on in its Check-in tab, or leave it out."
+msgstr "Um destes eventos não aceita check-in por terminal. Ligue o caminho do terminal na aba Check-in dele, ou deixe-o de fora."
+
+msgid "Only the people on this booking can check in."
+msgstr "Só as pessoas desta reserva podem fazer check-in."
+
+msgid "Opening check-in lets the terminals that hold this event record readings. The projected QR code is off for this event."
+msgstr "Abrir o check-in permite que os terminais com este evento registrem leituras. O QR code projetado está desligado para este evento."
+
+msgid "Participants scan the code projected in the room with their own phone."
+msgstr "Os participantes leem com o próprio celular o código projetado na sala."
+
+msgid "Projected QR code"
+msgstr "QR code projetado"
+
+msgid "Terminal"
+msgstr "Terminal"
+
+msgid "The ways a new event takes check-in. Each event keeps its own switches afterwards, on its Check-in tab; changing these does not change events that already exist."
+msgstr "As formas de check-in com que um novo evento começa. Cada evento mantém suas próprias chaves depois, na aba Check-in dele; mudar estas não muda os eventos que já existem."
+
+msgid "This event does not take check-in at a terminal. Speak to the organiser."
+msgstr "Este evento não aceita check-in por terminal. Fale com o organizador."
+
+msgid "This event takes no check-in: both paths are off. Attendance can still be marked by hand on the Participants tab."
+msgstr "Este evento não aceita check-in: os dois caminhos estão desligados. A presença ainda pode ser marcada manualmente na aba Participantes."
+
+msgid "This event takes no check-in: turn on the projected QR code or the terminal first."
+msgstr "Este evento não aceita check-in: ligue primeiro o QR code projetado ou o terminal."
+
+msgid "Who may check in"
+msgstr "Quem pode fazer check-in"
+
+msgid "An organiser opens check-in and projects a code that participants scan with their own phone."
+msgstr "Um organizador abre o check-in e projeta um código que os participantes leem com o próprio celular."
+
+msgid "Anyone signed in can check in. Attendance is recorded without enrolling the person, so it counts toward no attendance rule and earns no post-event invitation."
+msgstr "Qualquer pessoa com login pode fazer check-in. A presença é registrada sem inscrever a pessoa, então não conta para nenhuma regra de presença e não dá direito a convite pós-evento."
+
+msgid "A participant scans the code with the phone camera, logs in if asked and confirms. Unless the event is open to everyone, only people on the booking (its custom users and the members of its audiences) can check in, once per day. A code shown on the screen is valid for its rotation and the one before; a link copied from it expires within minutes. The location of an area check-in comes from the participant's browser and can be faked: it makes checking in from elsewhere harder, it does not prove presence."
+msgstr "O participante lê o código com a câmera do celular, faz login se for pedido e confirma. A menos que o evento esteja aberto a todos, só pessoas da reserva (seus usuários personalizados e os membros de seus públicos) podem fazer check-in, uma vez por dia. Um código exibido na tela vale durante sua rotação e a anterior; um link copiado dele expira em poucos minutos. A localização de um check-in com área vem do navegador do participante e pode ser falsificada: dificulta o check-in de outro lugar, mas não comprova a presença."
+
+msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen, in four tabs: Participants, which opens first, Check-in, Attendance rule and Post-event form. Beside them a summary shows the day, how many are present, the check-in, the rule and the form. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
+msgstr "O link Presença na linha de uma reserva em Reservas de Público-alvo abre a tela de presença, em quatro abas: Participantes, que abre primeiro, Check-in, Regra de presença e Formulário pós-evento. Ao lado delas, um resumo mostra o dia, quantos estão presentes, o check-in, a regra e o formulário. No próprio dia, até 30 minutos após o fim da reserva, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
+
+msgid "Scheduling → Settings → Check-in holds the terminal settings, each saved as soon as it is changed, for whoever holds ffc_manage_audiences: how many terminals may be active on the site (1 to 100, default 10) and on one event (1 to 20, default 3), how many hours a terminal outlives the last of its events (1 to 24, default 2; it applies to terminals paired or changed afterwards), the check-in paths a new event starts with, and the camera. The tab also states the rules that always apply to pairing and presence devices."
+msgstr "Agendamento → Configurações → Check-in reúne as configurações dos terminais, cada uma salva assim que é alterada, para quem tem ffc_manage_audiences: quantos terminais podem estar ativos no site (1 a 100, padrão 10) e em um evento (1 a 20, padrão 3), quantas horas um terminal dura depois do último de seus eventos (1 a 24, padrão 2; vale para terminais pareados ou alterados depois), os caminhos de check-in com que um novo evento começa e a câmera. A aba também informa as regras que sempre valem para o pareamento e os aparelhos de presença."
+
+msgid "The Check-in tab starts with who may check in and the paths the event takes, each saved as soon as it is changed by whoever holds ffc_manage_audiences. Who may check in is Enrolled only, the default, or Open: anyone signed in can check in, and the attendance is recorded without enrolling the person, so it is listed as not enrolled, counts toward no attendance rule and earns no post-event invitation. An open event that takes terminals is also listed in the app of every person signed in, so they can show a code for it. The paths are the projected QR code and the terminal; a new event takes the paths set under Scheduling → Settings → Check-in, and an event that already existed has both on. A path that is off refuses its readings: the projected code cannot be shown or scanned, and a terminal cannot hold the event or record a reading for it. With only the terminal on, Open check-in still opens the window the terminals need; with both off, the event takes no check-in and attendance is marked by hand."
+msgstr "A aba Check-in começa com quem pode fazer check-in e os caminhos que o evento aceita, cada um salvo assim que é alterado por quem tem ffc_manage_audiences. Quem pode fazer check-in é Somente inscritos, o padrão, ou Aberto: qualquer pessoa com login pode fazer check-in, e a presença é registrada sem inscrever a pessoa, então aparece como sem inscrição, não conta para nenhuma regra de presença e não dá direito a convite pós-evento. Um evento aberto que aceita terminais também aparece no app de toda pessoa com login, para que ela possa mostrar um código para ele. Os caminhos são o QR code projetado e o terminal; um novo evento recebe os caminhos definidos em Agendamento → Configurações → Check-in, e um evento que já existia tem os dois ligados. Um caminho desligado recusa suas leituras: o código projetado não pode ser exibido nem lido, e um terminal não pode ter o evento nem registrar leitura para ele. Com só o terminal ligado, Abrir check-in ainda abre a janela de que os terminais precisam; com os dois desligados, o evento não aceita check-in e a presença é marcada manualmente."
+
+msgid "Below the window, the tab lists the terminals that hold the event, with how many of those allowed per event are in use, when each was last seen and how many readings it holds unsent; while any of them holds readings, a warning says how many terminals have not sent them yet. Attendance now counts the day's attendance by path: projected QR code, terminal and by hand."
+msgstr "Abaixo da janela, a aba lista os terminais que têm o evento, com quantos dos permitidos por evento estão em uso, quando cada um teve o último contato e quantas leituras ainda guarda sem enviar; enquanto algum deles guarda leituras, um aviso diz quantos terminais ainda não as enviaram. Presença agora conta a presença do dia por caminho: QR code projetado, terminal e manualmente."
+
+msgid "A paired terminal at the entrance reads each participant's presence code. Turning it off stops terminals from taking new readings for this event."
+msgstr "Um terminal pareado na entrada lê o código de presença de cada participante. Desligá-lo impede que os terminais façam novas leituras para este evento."
+
+msgid "A paired terminal at the entrance reads each participant's presence code."
+msgstr "Um terminal pareado na entrada lê o código de presença de cada participante."
+
+msgctxt "who may check in"
+msgid "Open"
+msgstr "Aberto"
+
+msgid "%d terminal has not sent its readings yet."
+msgid_plural "%d terminals have not sent their readings yet."
+msgstr[0] "%d terminal ainda não enviou suas leituras."
+msgstr[1] "%d terminais ainda não enviaram suas leituras."

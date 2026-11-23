@@ -45,18 +45,27 @@ final class AudiencePresenceEvents {
 	public static function for_user( int $user_id, int $now ): array {
 		$today    = wp_date( 'Y-m-d', $now );
 		$horizon  = wp_date( 'Y-m-d', $now + self::DAYS_AHEAD * DAY_IN_SECONDS );
-		$bookings = AudienceQueryService::find_user_bookings(
-			$user_id,
-			array(
-				'start_date'     => (string) $today,
-				'end_date'       => (string) $horizon,
-				'exclude_status' => 'cancelled',
-			)
+		$filter   = array(
+			'start_date'     => (string) $today,
+			'end_date'       => (string) $horizon,
+			'exclude_status' => 'cancelled',
 		);
+		$bookings = AudienceQueryService::find_user_bookings( $user_id, $filter );
+		// An event open to everyone (#2748) is listed for anyone signed in,
+		// so a person who is not enrolled can still pick it at a terminal.
+		foreach ( AudienceQueryService::find_open_checkin_bookings( $filter ) as $open ) {
+			$bookings[] = $open;
+		}
 
 		$events = array();
+		$seen   = array();
 		foreach ( $bookings as $booking ) {
-			$event = self::event( $booking, $user_id, $now );
+			$id = (int) ( $booking['id'] ?? 0 );
+			if ( isset( $seen[ $id ] ) ) {
+				continue;
+			}
+			$seen[ $id ] = true;
+			$event       = self::event( $booking, $user_id, $now );
 			if ( null !== $event ) {
 				$events[] = $event;
 			}

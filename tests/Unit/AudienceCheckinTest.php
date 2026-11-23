@@ -25,6 +25,7 @@ use PHPUnit\Framework\TestCase;
  * query it ran, plus the geofence locations option.
  *
  * @covers \FreeFormCertificate\Audience\AudienceCheckin
+ * @covers \FreeFormCertificate\Audience\AudienceCheckinPolicy
  */
 class AudienceCheckinTest extends TestCase {
 
@@ -387,6 +388,25 @@ class AudienceCheckinTest extends TestCase {
 		$result = AudienceCheckin::context( $this->receipt(), self::USER, self::T0 + 30 );
 
 		$this->assertSame( AudienceCheckin::ERROR_UNAVAILABLE, $result->get_error_code() );
+	}
+
+	public function test_an_event_with_the_projected_code_off_takes_no_scan(): void {
+		$this->window_is_open( $this->window() );
+		$this->booking_row = $this->booking( array( 'checkin_qr' => '0' ) );
+
+		$result = AudienceCheckin::context( $this->receipt(), self::USER, self::T0 + 30 );
+
+		$this->assertSame( AudienceCheckin::ERROR_UNAVAILABLE, $result->get_error_code() );
+	}
+
+	public function test_an_open_event_takes_someone_who_is_not_on_the_booking(): void {
+		$this->window_is_open( $this->window() );
+		$this->booking_row = $this->booking( array( 'checkin_open' => '1' ) );
+
+		$result = AudienceCheckin::context( $this->receipt(), 99, self::T0 + 30 );
+
+		$this->assertIsArray( $result );
+		$this->assertNull( $result['present_at'] );
 	}
 
 	public function test_someone_not_on_the_booking_is_refused(): void {

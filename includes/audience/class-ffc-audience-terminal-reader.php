@@ -152,13 +152,24 @@ class AudienceTerminalReader {
 	 * @return int
 	 */
 	public static function count_active_for_booking( int $booking_id, int $now ): int {
-		$count = 0;
-		foreach ( self::active_terminals( $now ) as $terminal ) {
-			if ( in_array( $booking_id, $terminal['bookings'], true ) ) {
-				++$count;
-			}
-		}
-		return $count;
+		return count( self::active_for_booking( $booking_id, $now ) );
+	}
+
+	/**
+	 * The active terminals that hold a booking (#2748), as the event's
+	 * Check-in tab lists them.
+	 *
+	 * @param int $booking_id Booking.
+	 * @param int $now        Unix time.
+	 * @return list<TerminalRow>
+	 */
+	public static function active_for_booking( int $booking_id, int $now ): array {
+		return array_values(
+			array_filter(
+				self::active_terminals( $now ),
+				static fn( array $terminal ): bool => in_array( $booking_id, $terminal['bookings'], true )
+			)
+		);
 	}
 
 	/**

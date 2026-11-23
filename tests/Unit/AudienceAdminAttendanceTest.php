@@ -7,6 +7,7 @@ use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAdminAttendance;
+use FreeFormCertificate\Audience\AudienceAttendanceRoster;
 use FreeFormCertificate\Audience\AudienceAttendanceAjax;
 use FreeFormCertificate\Audience\AudienceAttendanceExportSource;
 use FreeFormCertificate\Audience\AudienceFormInviteScanner;
@@ -63,6 +64,13 @@ class AudienceAdminAttendanceTest extends TestCase {
 	/** @var list<array<string, string>> Stored invitation rows. */
 	private array $invited = array();
 
+	/**
+	 * Terminal rows the double hands back (#2748).
+	 *
+	 * @var list<array<string, mixed>>
+	 */
+	private array $terminals = array();
+
 	/** @var list<array<string, string>> Stored submissions answering the form. */
 	private array $answers = array();
 
@@ -112,6 +120,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->attendance   = array();
 		$this->windows      = array();
 		$this->invited      = array();
+		$this->terminals    = array();
 		$this->answers      = array();
 		$this->locations    = array();
 		$this->pages        = array( '' );
@@ -126,6 +135,8 @@ class AudienceAdminAttendanceTest extends TestCase {
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
+		Functions\when( '_x' )->returnArg();
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -291,6 +302,9 @@ class AudienceAdminAttendanceTest extends TestCase {
 				}
 				if ( preg_match( '/^SELECT id, booking_id, user_id, attendance_date, checked_at, method, marked_by FROM wp_ffc_audience_attendance WHERE booking_id = 5 AND attendance_date = (\S+) ORDER BY/', $q, $m ) ) {
 					return array_values( array_filter( $this->attendance, static fn( $l ) => $l['attendance_date'] === $m[1] ) );
+				}
+				if ( 0 === strpos( $q, 'SELECT * FROM wp_ffc_audience_terminals WHERE revoked_at IS NULL' ) ) {
+					return $this->terminals;
 				}
 				if ( 'SELECT user_id, sent_at, send_count FROM wp_ffc_audience_form_invites WHERE booking_id = 5' === $q ) {
 					return $this->invited;
@@ -1009,4 +1023,154 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$booking->status = 'cancelled';
 		$this->assertSame( 'None: the booking is cancelled', AudienceAdminAttendance::checkin_state( $booking, '2020-03-02', '2020-03-02', null, 0 ) );
 	}
+
+	/**
+	 * One active terminal row as the table stores it (#2748).
+	 *
+	 * @param array<string, mixed> $override Columns to change.
+	 * @return array<string, mixed>
+	 */
+	private function terminal_row( array $override = array() ): array {
+		return array_merge(
+			array(
+				'id'           => '21',
+				'token_hash'   => 'h',
+				'device_hash'  => 'd',
+				'label'        => 'Entrance A',
+				'bookings'     => '[5]',
+				'removed'      => '',
+				'paired_by'    => '3',
+				'paired_at'    => (string) ( self::NOW - 600 ),
+				'expires_at'   => (string) ( self::NOW + 3600 ),
+				'last_seen_at' => (string) ( self::NOW - 30 ),
+				'queued'       => '0',
+				'readings'     => '4',
+				'revoked_at'   => null,
+				'revoked_by'   => null,
+			),
+			$override
+		);
+	}
+
+	/**
+	 * Render the Check-in tab.
+	 *
+	 * @return string
+	 */
+	private function checkin_tab(): string {
+		$_GET = array(
+			'booking_id' => '5',
+			'tab'        => AudienceAdminAttendance::TAB_CHECKIN,
+		);
+		ob_start();
+		$this->page()->render_page();
+		return (string) ob_get_clean();
+	}
+
+	public function test_the_check_in_tab_holds_who_the_paths_the_terminals_and_the_count_by_path(): void {
+		$this->caps       = array( 'ffc_checkin_audiences', 'ffc_manage_audiences' );
+		$this->attendance = array(
+			array( 'user_id' => 7, 'attendance_date' => self::TODAY, 'checked_at' => self::NOW, 'method' => 'qr' ),
+			array( 'user_id' => 8, 'attendance_date' => self::TODAY, 'checked_at' => self::NOW, 'method' => 'terminal' ),
+		);
+		$this->terminals  = array( $this->terminal_row(), $this->terminal_row( array( 'id' => '22', 'label' => 'Entrance B', 'queued' => '3' ) ) );
+
+		$html = $this->checkin_tab();
+
+		$this->assertMatchesRegularExpression( '/<input\b[^>]*name="checkin_open"[^>]*value="0"[^>]*checked/', $html, 'Enrolled only is the default.' );
+		foreach ( array( 'checkin_open', 'checkin_qr', 'checkin_terminal' ) as $name ) {
+			$this->assertMatchesRegularExpression( '/<input\b[^>]*name="' . $name . '"[^>]*data-ffc-autosave-record="audience_booking:5"/', $html, $name . ' saves on change.' );
+		}
+		$this->assertStringContainsString( '2 of 3 allowed', $html );
+		$this->assertStringContainsString( 'Entrance A', $html );
+		$this->assertStringContainsString( '3 waiting to be sent', $html );
+		$this->assertStringContainsString( '1 terminal has not sent its readings yet.', $html );
+		$this->assertMatchesRegularExpression( '/Projected QR code: <strong>1<\/strong>/', $html );
+		$this->assertMatchesRegularExpression( '/Terminal: <strong>1<\/strong>/', $html );
+		$this->assertMatchesRegularExpression( '/By hand: <strong>0<\/strong>/', $html );
+		$this->assertStringContainsString( 'name="rotation_seconds"', $html, 'The projected QR code takes its rotation when it opens.' );
+	}
+
+	public function test_without_the_projected_code_the_window_opens_for_terminals_only(): void {
+		$this->booking_row = $this->booking( array( 'checkin_qr' => '0' ) );
+
+		$html = $this->checkin_tab();
+
+		$this->assertStringNotContainsString( 'name="rotation_seconds"', $html );
+		$this->assertStringContainsString( 'The projected QR code is off for this event.', $html );
+		$this->assertContains( 'Open check-in', self::button_labels( $html ) );
+		$this->assertSame( 'opened_terminal', $this->page()->perform( 'open', $this->booking_row, self::TODAY, self::NOW ) );
+		$this->assertCount( 1, $this->writes_to( 'wp_ffc_audience_checkin_windows' ), 'The window opens for the terminals.' );
+	}
+
+	public function test_with_both_paths_off_nothing_opens(): void {
+		$this->booking_row = $this->booking(
+			array(
+				'checkin_qr'       => '0',
+				'checkin_terminal' => '0',
+			)
+		);
+
+		$html = $this->checkin_tab();
+
+		$this->assertStringContainsString( 'This event takes no check-in: both paths are off.', $html );
+		$this->assertStringNotContainsString( 'value="open"', $html );
+		$this->assertStringNotContainsString( 'allowed</p>', $html, 'No terminal section while the terminal path is off.' );
+		$this->assertSame( 'no_path', $this->page()->perform( 'open', $this->booking_row, self::TODAY, self::NOW ) );
+		$this->assertSame( array(), $this->writes, 'No window is opened.' );
+		$this->assertSame( 'error', AudienceAdminAttendance::messages()['no_path'][1] );
+	}
+
+	public function test_the_poll_carries_no_code_while_the_projected_path_is_off(): void {
+		$this->windows = array(
+			array(
+				'id'                 => '9',
+				'booking_id'         => '5',
+				'window_date'        => self::TODAY,
+				'rotation_seconds'   => '60',
+				'opened_at'          => (string) ( self::NOW - 60 ),
+				'closes_at'          => (string) ( self::NOW + 600 ),
+				'closed_at'          => null,
+				'opened_by'          => '3',
+				'closed_by'          => null,
+				'geofence_locations' => '',
+			),
+		);
+
+		$state = AudienceAttendanceAjax::state( $this->booking( array( 'checkin_qr' => '0' ) ), self::TODAY, true, self::NOW );
+
+		$this->assertTrue( $state['open'], 'The window is open for the terminals.' );
+		$this->assertArrayNotHasKey( 'qr', $state );
+	}
+
+	public function test_someone_present_but_not_enrolled_is_listed_and_meets_no_rule(): void {
+		$this->attendance = array(
+			array( 'user_id' => 9, 'attendance_date' => self::TODAY, 'checked_at' => self::NOW, 'method' => 'terminal' ),
+		);
+
+		$roster = AudienceAttendanceRoster::for_day( $this->booking(), self::TODAY );
+		$guest  = array_values( array_filter( $roster['rows'], static fn( $r ) => 9 === $r['user_id'] ) )[0];
+		$ana    = array_values( array_filter( $roster['rows'], static fn( $r ) => 7 === $r['user_id'] ) )[0];
+
+		$this->assertFalse( $guest['enrolled'] );
+		$this->assertFalse( $guest['met'], 'Attendance without enrolment meets no rule.' );
+		$this->assertTrue( $ana['enrolled'] );
+
+		$_GET = array( 'booking_id' => '5' );
+		ob_start();
+		$this->page()->render_page();
+		$html = (string) ob_get_clean();
+		$this->assertMatchesRegularExpression( '/<tr data-user-id="9"><td>#9 <span class="description">\(not enrolled\)<\/span>/', $html );
+	}
+
+	public function test_attendance_by_path_counts_each_line_once(): void {
+		$this->attendance = array(
+			array( 'user_id' => 7, 'attendance_date' => self::TODAY, 'checked_at' => self::NOW, 'method' => 'manual' ),
+			array( 'user_id' => 8, 'attendance_date' => self::TODAY, 'checked_at' => self::NOW, 'method' => 'manual' ),
+			array( 'user_id' => 9, 'attendance_date' => '2027-03-03', 'checked_at' => self::NOW, 'method' => 'qr' ),
+		);
+
+		$this->assertSame( array( 'manual' => 2 ), AudienceAdminAttendance::attendance_by_path( 5, self::TODAY ) );
+	}
 }
+

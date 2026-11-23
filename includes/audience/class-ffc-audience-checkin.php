@@ -116,7 +116,12 @@ class AudienceCheckin {
 			return self::error( self::ERROR_UNAVAILABLE );
 		}
 
-		if ( $user_id <= 0 || ! in_array( $user_id, array_map( 'intval', AudienceBookingReader::get_all_affected_users( $claim['booking_id'] ) ), true ) ) {
+		// The projected code is a path an event can switch off (#2748).
+		if ( ! AudienceCheckinPolicy::qr_allowed( $booking ) ) {
+			return self::error( self::ERROR_UNAVAILABLE );
+		}
+
+		if ( ! AudienceCheckinPolicy::may_check_in( $booking, $user_id ) ) {
 			return self::error( self::ERROR_NOT_ON_BOOKING );
 		}
 

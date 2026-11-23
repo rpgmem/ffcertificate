@@ -436,6 +436,10 @@ class Settings {
 			'terminal_site_limit'               => 10,
 			'terminal_event_limit'              => 3,
 			'terminal_auto_end_hours'           => 2,
+			// The check-in paths a new event starts with; each event keeps
+			// its own switches afterwards.
+			'checkin_path_qr'                   => 1,
+			'checkin_path_terminal'             => 1,
 			'csv_download_page_url'             => '',
 			'dangerzone_reset_counter_default'  => 1,
 			'dark_mode'                         => 'off',
