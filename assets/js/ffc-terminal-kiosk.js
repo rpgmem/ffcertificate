@@ -623,6 +623,46 @@
             }
         }
 
+        // Device check (#2747) ------------------------------------------------
+        //
+        // What this browser offers the terminal, shown in the operator menu so
+        // a new tablet can be tried and reported without developer tools. It
+        // reads the capabilities themselves, never infers them from the
+        // browser's name; the name is shown only so the report says which
+        // browser it was.
+
+        function deviceCheck() {
+            var list = part('device-check');
+            if (!list) {
+                return Promise.resolve(null);
+            }
+            var check = strings.check || {};
+            return cameraSupport().then(function (support) {
+                var camera = 'ok' === support
+                    ? (config.camera ? check.cameraOn : check.cameraOff)
+                    : ('insecure' === support ? check.cameraInsecure : check.cameraUnsupported);
+                var wake = !env.wakeLock || !env.wakeLock.request
+                    ? check.wakeUnsupported
+                    : (awake.sentinel ? check.wakeActive : check.wakeAvailable);
+                var rows = [
+                    [check.secureLabel, env.secure ? check.yes : check.no],
+                    [check.cameraLabel, camera],
+                    [check.wakeLabel, wake],
+                    [check.browserLabel, env.userAgent || '']
+                ];
+                list.textContent = '';
+                rows.forEach(function (row) {
+                    var dt = el.ownerDocument.createElement('dt');
+                    var dd = el.ownerDocument.createElement('dd');
+                    dt.textContent = row[0] || '';
+                    dd.textContent = row[1] || '';
+                    list.appendChild(dt);
+                    list.appendChild(dd);
+                });
+                return rows;
+            });
+        }
+
         function unlock(code) {
             return terminalRequest('POST', 'unlock', { code: code }).then(function (result) {
                 if (!result) {
@@ -637,6 +677,7 @@
                 menuCode = code;
                 part('operator').textContent = String(strings.operator || '%s').replace('%s', result.body.name || '');
                 updateQueue();
+                deviceCheck();
                 show('menu');
                 part('menu-close').focus();
                 armMenu();
@@ -950,7 +991,7 @@
             }
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 
     root.FFCTerminal = {
@@ -986,6 +1027,7 @@
                 mediaDevices: root.navigator.mediaDevices,
                 onOnline: function (fn) { root.addEventListener('online', fn); },
                 wakeLock: root.navigator.wakeLock,
+                userAgent: root.navigator.userAgent,
                 visible: function () { return 'visible' === root.document.visibilityState; },
                 onVisible: function (fn) {
                     root.document.addEventListener('visibilitychange', function () {
