@@ -36304,3 +36304,86 @@ msgstr ""
 
 msgid "A presence code changes every 30 seconds and carries only the person's short name, never a CPF or RF."
 msgstr ""
+
+msgid "Back to terminals"
+msgstr ""
+
+msgid "Current event"
+msgstr ""
+
+msgid "Edit events"
+msgstr ""
+
+msgid "Ended automatically"
+msgstr ""
+
+msgid "Ended by hand"
+msgstr ""
+
+msgid "Events of %s"
+msgstr ""
+
+msgid "Every active terminal on the site, and those that ended in the last %d days. Pair a terminal in the app, under More → Pair terminal."
+msgstr ""
+
+msgid "The active terminals you paired, and those that ended in the last %d days. Pair a terminal in the app, under More → Pair terminal."
+msgstr ""
+
+msgid "Last seen"
+msgstr ""
+
+msgid "No terminal is paired."
+msgstr ""
+
+msgid "None now"
+msgstr ""
+
+msgid "Not used yet"
+msgstr ""
+
+msgid "Nothing changed: this terminal had already ended."
+msgstr ""
+
+msgid "One of these events already has as many terminals as it may. End one before adding it here."
+msgstr ""
+
+msgid "Online"
+msgstr ""
+
+msgid "Paired by"
+msgstr ""
+
+msgid "Readings"
+msgstr ""
+
+msgid "Readings today"
+msgstr ""
+
+msgid "Readings waiting to be sent"
+msgstr ""
+
+msgid "Scheduling → Terminals lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings waiting to be sent. Each row shows the terminal's events, the event it checks in now, who paired it, when it was last seen, its readings and how many it holds unsent, and its state: Online, Offline, Ended automatically or Ended by hand. Edit events changes its events under the same rules as the app, and End stops it after a confirmation on the screen."
+msgstr ""
+
+msgid "Terminal ended. It stops checking people in at once."
+msgstr ""
+
+msgid "Terminals"
+msgstr ""
+
+msgid "The events could not be saved. Try again."
+msgstr ""
+
+msgid "Two of these events have check-in windows that cross. A terminal checks in one event at a time: put them on different terminals."
+msgstr ""
+
+msgid "Up to %1$d events, each ending within the next %2$d days, and no two whose check-in windows cross. The terminal picks the change up within a minute. An event you remove keeps the readings already taken for it."
+msgstr ""
+
+msgid "You do not have permission to manage check-in terminals."
+msgstr ""
+
+msgid "%d waiting to be sent"
+msgid_plural "%d waiting to be sent"
+msgstr[0] ""
+msgstr[1] ""

@@ -36382,3 +36382,86 @@ msgstr "Aparelhos de presença: um celular ativo por pessoa; um celular fica res
 
 msgid "A presence code changes every 30 seconds and carries only the person's short name, never a CPF or RF."
 msgstr "Um código de presença muda a cada 30 segundos e leva só o nome curto da pessoa, nunca CPF ou RF."
+
+msgid "Back to terminals"
+msgstr "Voltar aos terminais"
+
+msgid "Current event"
+msgstr "Evento atual"
+
+msgid "Edit events"
+msgstr "Editar eventos"
+
+msgid "Ended automatically"
+msgstr "Encerrado automaticamente"
+
+msgid "Ended by hand"
+msgstr "Encerrado manualmente"
+
+msgid "Events of %s"
+msgstr "Eventos de %s"
+
+msgid "Every active terminal on the site, and those that ended in the last %d days. Pair a terminal in the app, under More → Pair terminal."
+msgstr "Todos os terminais ativos do site, e os que terminaram nos últimos %d dias. Pareie um terminal no app, em Mais → Parear terminal."
+
+msgid "The active terminals you paired, and those that ended in the last %d days. Pair a terminal in the app, under More → Pair terminal."
+msgstr "Os terminais ativos que você pareou, e os que terminaram nos últimos %d dias. Pareie um terminal no app, em Mais → Parear terminal."
+
+msgid "Last seen"
+msgstr "Último contato"
+
+msgid "No terminal is paired."
+msgstr "Nenhum terminal está pareado."
+
+msgid "None now"
+msgstr "Nenhum agora"
+
+msgid "Not used yet"
+msgstr "Ainda não usado"
+
+msgid "Nothing changed: this terminal had already ended."
+msgstr "Nada mudou: este terminal já havia terminado."
+
+msgid "One of these events already has as many terminals as it may. End one before adding it here."
+msgstr "Um destes eventos já tem tantos terminais quanto pode. Encerre um antes de adicioná-lo aqui."
+
+msgid "Online"
+msgstr "Online"
+
+msgid "Paired by"
+msgstr "Pareado por"
+
+msgid "Readings"
+msgstr "Leituras"
+
+msgid "Readings today"
+msgstr "Leituras hoje"
+
+msgid "Readings waiting to be sent"
+msgstr "Leituras aguardando envio"
+
+msgid "Scheduling → Terminals lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings waiting to be sent. Each row shows the terminal's events, the event it checks in now, who paired it, when it was last seen, its readings and how many it holds unsent, and its state: Online, Offline, Ended automatically or Ended by hand. Edit events changes its events under the same rules as the app, and End stops it after a confirmation on the screen."
+msgstr "Agendamento → Terminais lista os terminais ativos, e os que terminaram nos últimos 7 dias, para quem tem ffc_manage_audiences_terminals: um operador vê os terminais que pareou, um administrador vê todos. Os cartões contam os terminais online (vistos nos últimos dois minutos) e offline, as leituras de terminais de hoje e as leituras aguardando envio. Cada linha mostra os eventos do terminal, o evento em que faz check-in agora, quem o pareou, quando teve o último contato, suas leituras e quantas ainda guarda sem enviar, e seu estado: Online, Offline, Encerrado automaticamente ou Encerrado manualmente. Editar eventos muda seus eventos sob as mesmas regras do app, e Encerrar o interrompe após uma confirmação na tela."
+
+msgid "Terminal ended. It stops checking people in at once."
+msgstr "Terminal encerrado. Ele deixa de fazer check-in na hora."
+
+msgid "Terminals"
+msgstr "Terminais"
+
+msgid "The events could not be saved. Try again."
+msgstr "Não foi possível salvar os eventos. Tente novamente."
+
+msgid "Two of these events have check-in windows that cross. A terminal checks in one event at a time: put them on different terminals."
+msgstr "Dois destes eventos têm janelas de check-in que se cruzam. Um terminal faz check-in de um evento por vez: coloque-os em terminais diferentes."
+
+msgid "Up to %1$d events, each ending within the next %2$d days, and no two whose check-in windows cross. The terminal picks the change up within a minute. An event you remove keeps the readings already taken for it."
+msgstr "Até %1$d eventos, cada um terminando nos próximos %2$d dias, e nenhum par com janelas de check-in que se cruzam. O terminal recebe a mudança em até um minuto. Um evento removido mantém as leituras já feitas para ele."
+
+msgid "You do not have permission to manage check-in terminals."
+msgstr "Você não tem permissão para gerenciar terminais de check-in."
+
+msgid "%d waiting to be sent"
+msgid_plural "%d waiting to be sent"
+msgstr[0] "0 aguardando envio"
+msgstr[1] "0 aguardando envio"

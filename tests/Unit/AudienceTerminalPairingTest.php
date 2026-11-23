@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Audience\AudienceAdminTerminals;
 use FreeFormCertificate\Audience\AudienceOperatorCode;
 use FreeFormCertificate\Audience\AudienceTerminalLockout;
 use FreeFormCertificate\Audience\AudienceTerminalPairing;
@@ -32,6 +33,7 @@ use PHPUnit\Framework\TestCase;
  * @covers \FreeFormCertificate\Audience\AudienceOperatorCode
  * @covers \FreeFormCertificate\Audience\AudienceTerminalRestController
  * @covers \FreeFormCertificate\Audience\AudienceTerminalSchedule
+ * @covers \FreeFormCertificate\Audience\AudienceAdminTerminals
  */
 class AudienceTerminalPairingTest extends TestCase {
 
@@ -373,6 +375,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$paired  = $this->paired( array( 11 ), self::DEVICE );
 		$token   = $paired['token'];
 		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal-Queue' )->andReturn( '' );
 		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturnUsing( static function () use ( &$token ) {
 			return $token;
 		} );
@@ -434,6 +437,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$token   = $paired['token'];
 		$params  = array();
 		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal-Queue' )->andReturn( '' );
 		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturnUsing( static function () use ( &$token ) {
 			return $token;
 		} );
@@ -618,6 +622,7 @@ class AudienceTerminalPairingTest extends TestCase {
 			'bookings' => array( '42', 41 ),
 		);
 		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal-Queue' )->andReturn( '' );
 		$request->shouldReceive( 'get_header' )->with( 'X-FFC-Terminal' )->andReturnUsing( static function () use ( &$token ) {
 			return $token;
 		} );
@@ -645,6 +650,129 @@ class AudienceTerminalPairingTest extends TestCase {
 
 		$token = str_repeat( 'c', 64 );
 		$this->assertSame( 'ffc_terminal_unpaired', $controller->schedule( $request )->get_error_code() );
+	}
+
+	// ---- Terminals screen (#2748) --------------------------------------
+
+	public function test_a_terminal_reports_its_queue_and_counts_what_it_recorded(): void {
+		$paired = $this->paired( array( 11 ), self::DEVICE );
+		$id     = $paired['terminal_id'];
+
+		AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 100, 4 );
+		$this->assertSame( 4, $this->tables->terminals[ $id ]['queued'] );
+		$this->assertSame( self::NOW + 100, $this->tables->terminals[ $id ]['last_seen_at'] );
+
+		AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 110, 4 );
+		$this->assertSame( self::NOW + 100, $this->tables->terminals[ $id ]['last_seen_at'], 'nothing changed within the minute: no write' );
+		AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 120, 0 );
+		$this->assertSame( 0, $this->tables->terminals[ $id ]['queued'], 'a changed count is written at once' );
+		AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 200 );
+		$this->assertSame( 0, $this->tables->terminals[ $id ]['queued'], 'a request that does not say keeps the count' );
+
+		$this->assertTrue( AudienceTerminalWriter::count_reading( $id ) );
+		$this->assertSame( 1, AudienceTerminalReader::terminal( $id )['readings'] );
+	}
+
+	public function test_the_screen_names_each_state_and_shows_an_operator_their_own(): void {
+		$mine   = $this->paired( array( 11 ), self::DEVICE );
+		$theirs = AudienceTerminalPairing::pair( AudienceTerminalPairing::create_code( 8, array( 12 ), '', self::NOW )['code'], 'second-device-0002', self::ADDRESS, self::NOW + 2 );
+		$ended  = $this->paired( array( 11 ), 'third-device-0003' );
+		AudienceTerminalPairing::revoke( $ended['terminal_id'], self::OPERATOR, false, self::NOW + 3 );
+
+		$terminal = AudienceTerminalReader::terminal( $mine['terminal_id'] );
+		$this->assertSame( AudienceAdminTerminals::STATE_OFFLINE, AudienceAdminTerminals::state( $terminal, self::NOW ), 'never heard from' );
+		$terminal['last_seen_at'] = self::NOW - 60;
+		$this->assertSame( AudienceAdminTerminals::STATE_ONLINE, AudienceAdminTerminals::state( $terminal, self::NOW ) );
+		$this->assertSame( AudienceAdminTerminals::STATE_OFFLINE, AudienceAdminTerminals::state( $terminal, self::NOW + AudienceAdminTerminals::ONLINE_SECONDS ) );
+		$this->assertSame( AudienceAdminTerminals::STATE_EXPIRED, AudienceAdminTerminals::state( $terminal, $terminal['expires_at'] ) );
+		$this->assertSame( AudienceAdminTerminals::STATE_REVOKED, AudienceAdminTerminals::state( AudienceTerminalReader::terminal( $ended['terminal_id'] ), self::NOW ) );
+		foreach ( array( 'online', 'offline', 'expired', 'revoked' ) as $state ) {
+			$this->assertNotSame( $state, AudienceAdminTerminals::state_label( $state ) );
+		}
+
+		$recent = AudienceTerminalReader::recent_terminals( self::NOW - DAY_IN_SECONDS );
+		$this->assertCount( 3, $recent, 'the ended one stays on the list' );
+		$this->assertSame( array( $ended['terminal_id'], $mine['terminal_id'] ), array_column( AudienceAdminTerminals::visible( $recent, self::OPERATOR ), 'id' ) );
+		$this->assertCount( 3, AudienceAdminTerminals::visible( $recent, null ), 'an administrator sees all' );
+		$this->assertCount( 2, AudienceTerminalReader::recent_terminals( self::NOW + 10 ), 'one that ended before the moment is gone' );
+		unset( $theirs );
+	}
+
+	public function test_the_screen_changes_the_events_of_a_terminal_and_ends_one(): void {
+		$paired = $this->paired( array( 11 ), self::DEVICE );
+		$screen = new AudienceAdminTerminals( 'ffc-scheduling' );
+
+		$this->assertSame(
+			array(
+				'code'  => 'events_saved',
+				'error' => '',
+			),
+			$screen->run( 'events', $paired['terminal_id'], array( 12 ), self::OPERATOR, false, self::NOW + 10 )
+		);
+		$this->assertSame( array( 12 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['bookings'] );
+		$this->assertSame(
+			array(
+				'code'  => 'events_failed',
+				'error' => 'ffc_terminal_no_bookings',
+			),
+			$screen->run( 'events', $paired['terminal_id'], array(), self::OPERATOR, false, self::NOW + 20 )
+		);
+		$this->assertSame( 'events_failed', $screen->run( 'events', $paired['terminal_id'], array( 11 ), 99, false, self::NOW + 20 )['code'], 'another operator\'s terminal' );
+
+		$this->assertSame( 'ended', $screen->run( 'end', $paired['terminal_id'], array(), self::OPERATOR, false, self::NOW + 30 )['code'] );
+		$this->assertSame( 'stale', $screen->run( 'end', $paired['terminal_id'], array(), self::OPERATOR, false, self::NOW + 40 )['code'] );
+		$this->assertSame( 'unknown', $screen->run( 'nope', $paired['terminal_id'], array(), self::OPERATOR, false, self::NOW )['code'] );
+	}
+
+	public function test_the_screen_draws_the_cards_the_list_and_the_editor(): void {
+		$paired = $this->paired( array( 11 ), self::DEVICE );
+		$this->tables->terminals[ $paired['terminal_id'] ]['label']        = 'Entrance A';
+		$this->tables->terminals[ $paired['terminal_id'] ]['last_seen_at'] = time() - 30;
+		$this->tables->terminals[ $paired['terminal_id'] ]['queued']       = 3;
+		$this->tables->terminals[ $paired['terminal_id'] ]['readings']     = 12;
+		$this->tables->terminals[ $paired['terminal_id'] ]['expires_at']   = time() + HOUR_IN_SECONDS;
+		$this->tables->attendance = array(
+			array( 'attendance_date' => gmdate( 'Y-m-d' ), 'method' => 'terminal' ),
+			array( 'attendance_date' => gmdate( 'Y-m-d' ), 'method' => 'qr' ),
+		);
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( self::OPERATOR );
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'get_settings_errors' )->justReturn( array() );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'display_name' => 'Ana Lima' ) );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'checked' )->alias( static fn( $a, $b = true, $echo = true ) => $a === $b ? ' checked="checked"' : '' );
+		Functions\when( 'disabled' )->alias( static fn( $a, $b = true, $echo = true ) => $a === $b ? ' disabled="disabled"' : '' );
+		$screen = new AudienceAdminTerminals( 'ffc-scheduling' );
+
+		ob_start();
+		$screen->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-page-scheduling-terminals', $html );
+		$this->assertStringContainsString( 'Entrance A', $html );
+		$this->assertStringContainsString( 'Account #' . self::OPERATOR, $html, 'who paired it' );
+		$this->assertStringContainsString( 'ffc-terminal-state-online', $html );
+		$this->assertStringContainsString( '3 waiting to be sent', $html );
+		$this->assertStringContainsString( '>12<', $html );
+		$this->assertStringContainsString( 'data-confirm=', $html, 'End asks first' );
+		$this->assertStringContainsString( 'edit=' . $paired['terminal_id'], $html );
+
+		$_GET['edit'] = (string) $paired['terminal_id'];
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		ob_start();
+		$screen->render_page();
+		$editor = (string) ob_get_clean();
+		unset( $_GET['edit'] );
+		$this->assertStringContainsString( 'name="op" value="events"', $editor );
+		$this->assertStringContainsString( 'Save events', $editor );
+		$this->assertStringNotContainsString( 'ffc-terminals-table', $editor, 'the editor replaces the list' );
 	}
 
 	// ---- Helpers ----------------------------------------------------------

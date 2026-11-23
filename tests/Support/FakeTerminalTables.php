@@ -109,6 +109,14 @@ final class FakeTerminalTables extends \wpdb {
 	 */
 	public function get_results( $handle = null, $output = OBJECT ) {
 		list( $query, $args ) = $this->statement( $handle );
+		if ( false !== strpos( $query, 'WHERE ( revoked_at IS NULL AND expires_at >= %d ) OR revoked_at >= %d' ) ) {
+			$rows = array_filter(
+				$this->terminals,
+				static fn( array $r ): bool => ( null === $r['revoked_at'] && (int) $r['expires_at'] >= (int) $args[1] ) || ( null !== $r['revoked_at'] && (int) $r['revoked_at'] >= (int) $args[2] )
+			);
+			usort( $rows, static fn( array $a, array $b ): int => array( $b['paired_at'], $b['id'] ) <=> array( $a['paired_at'], $a['id'] ) );
+			return array_values( $rows );
+		}
 		if ( false !== strpos( $query, 'WHERE revoked_at IS NULL AND expires_at > %d' ) ) {
 			$by   = false !== strpos( $query, 'AND paired_by = %d' ) ? (int) $args[2] : null;
 			$rows = array_filter(
@@ -129,6 +137,28 @@ final class FakeTerminalTables extends \wpdb {
 			return array_reverse( array_values( $rows ) );
 		}
 		throw new \LogicException( 'Unknown query: ' . $query );
+	}
+
+	/**
+	 * Attendance rows, for the Terminals screen's count of today's readings.
+	 *
+	 * @var list<array{attendance_date: string, method: string}>
+	 */
+	public array $attendance = array();
+
+	/**
+	 * @param string $handle Prepared statement.
+	 * @return string|null
+	 */
+	public function get_var( $handle = null, $x = 0, $y = 0 ) {
+		list( $query, $args ) = $this->statement( $handle );
+		if ( false !== strpos( $query, 'SELECT COUNT(*) FROM %i WHERE attendance_date = %s AND method = %s' ) ) {
+			$rows = array_filter( $this->attendance, static fn( array $r ): bool => $r['attendance_date'] === $args[1] && $r['method'] === $args[2] );
+			return (string) count( $rows );
+		}
+		// Anything else (the activity log asking whether a table exists)
+		// finds nothing, as the double did before it answered counts.
+		return null;
 	}
 
 	/**
@@ -167,6 +197,8 @@ final class FakeTerminalTables extends \wpdb {
 					'id'           => $id,
 					'removed'      => null,
 					'last_seen_at' => null,
+					'queued'       => 0,
+					'readings'     => 0,
 					'revoked_at'   => null,
 					'revoked_by'   => null,
 				),
@@ -214,8 +246,16 @@ final class FakeTerminalTables extends \wpdb {
 			$this->terminals[ (int) $args[4] ]['expires_at'] = (int) $args[3];
 			return 1;
 		}
-		if ( 0 === strpos( $query, 'UPDATE %i SET last_seen_at = %d WHERE id = %d' ) ) {
-			$this->terminals[ (int) $args[2] ]['last_seen_at'] = (int) $args[1];
+		if ( 0 === strpos( $query, 'UPDATE %i SET last_seen_at = %d, queued = %d WHERE id = %d' ) ) {
+			$this->terminals[ (int) $args[3] ]['last_seen_at'] = (int) $args[1];
+			$this->terminals[ (int) $args[3] ]['queued']       = (int) $args[2];
+			return 1;
+		}
+		if ( 0 === strpos( $query, 'UPDATE %i SET readings = readings + 1 WHERE id = %d' ) ) {
+			if ( ! isset( $this->terminals[ (int) $args[1] ] ) ) {
+				return 0;
+			}
+			++$this->terminals[ (int) $args[1] ]['readings'];
 			return 1;
 		}
 		if ( 0 === strpos( $query, 'DELETE FROM %i WHERE expires_at < %d' ) ) {

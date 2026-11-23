@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '17';
+	public const SCHEMA_REVISION = '18';
 
 	/**
 	 * Option holding the revision last applied.
@@ -622,6 +622,8 @@ class AudienceActivator {
             paired_at bigint(20) unsigned NOT NULL,
             expires_at bigint(20) unsigned NOT NULL,
             last_seen_at bigint(20) unsigned DEFAULT NULL,
+            queued int(10) unsigned NOT NULL DEFAULT 0,
+            readings int(10) unsigned NOT NULL DEFAULT 0,
             revoked_at bigint(20) unsigned DEFAULT NULL,
             revoked_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
@@ -1167,6 +1169,8 @@ class AudienceActivator {
 	 * When each event left a terminal's queue (#2746): a JSON map of booking
 	 * id to the moment it was removed, so a reading the terminal took
 	 * offline while the event was still in its queue is still recorded.
+	 * And what the Terminals screen counts (#2748): the readings a terminal
+	 * holds unsent, and the attendances it recorded.
 	 *
 	 * @return bool Whether the column exists, or the table does not exist yet.
 	 */
@@ -1179,8 +1183,12 @@ class AudienceActivator {
 		}
 
 		self::add_column_if_missing( $table_name, 'removed', 'text DEFAULT NULL', 'bookings' );
+		// What the Terminals screen counts (#2748): the readings the terminal
+		// last said it holds unsent, and the attendances it recorded.
+		self::add_column_if_missing( $table_name, 'queued', 'int(10) unsigned NOT NULL DEFAULT 0', 'last_seen_at' );
+		self::add_column_if_missing( $table_name, 'readings', 'int(10) unsigned NOT NULL DEFAULT 0', 'queued' );
 
-		return self::has_columns( $table_name, array( 'removed' ) );
+		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings' ) );
 	}
 
 	/**

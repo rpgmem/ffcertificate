@@ -167,16 +167,31 @@ class AudienceTerminalWriter {
 	}
 
 	/**
-	 * Note that a terminal was heard from.
+	 * Note that a terminal was heard from, and how many readings it said it
+	 * holds unsent.
 	 *
-	 * @param int $id  Terminal id.
-	 * @param int $now Unix time.
+	 * @param int $id     Terminal id.
+	 * @param int $now    Unix time.
+	 * @param int $queued Readings waiting on the terminal.
 	 * @return bool
 	 */
-	public static function touch( int $id, int $now ): bool {
+	public static function touch( int $id, int $now, int $queued = 0 ): bool {
 		$wpdb = self::db();
 		return self::run(
-			$wpdb->prepare( 'UPDATE %i SET last_seen_at = %d WHERE id = %d', AudienceTerminalReader::terminals_table(), $now, $id )
+			$wpdb->prepare( 'UPDATE %i SET last_seen_at = %d, queued = %d WHERE id = %d', AudienceTerminalReader::terminals_table(), $now, max( 0, $queued ), $id )
+		) > 0;
+	}
+
+	/**
+	 * Count one attendance a terminal recorded (#2748).
+	 *
+	 * @param int $id Terminal id.
+	 * @return bool
+	 */
+	public static function count_reading( int $id ): bool {
+		$wpdb = self::db();
+		return self::run(
+			$wpdb->prepare( 'UPDATE %i SET readings = readings + 1 WHERE id = %d', AudienceTerminalReader::terminals_table(), $id )
 		) > 0;
 	}
 

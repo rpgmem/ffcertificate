@@ -115,6 +115,13 @@ class AudienceAdminPage {
 	private AudienceAdminPresence $presence;
 
 	/**
+	 * Terminals screen (#2748).
+	 *
+	 * @var AudienceAdminTerminals
+	 */
+	private AudienceAdminTerminals $terminals;
+
+	/**
 	 * Initialize admin page
 	 *
 	 * @return void
@@ -132,6 +139,7 @@ class AudienceAdminPage {
 		$this->bookings    = new AudienceAdminBookings( self::MENU_SLUG );
 		$this->attendance  = new AudienceAdminAttendance( self::MENU_SLUG );
 		$this->presence    = new AudienceAdminPresence( self::MENU_SLUG );
+		$this->terminals   = new AudienceAdminTerminals( self::MENU_SLUG );
 		$this->import      = new AudienceAdminImport( self::MENU_SLUG );
 		$this->settings    = new AudienceAdminSettings( self::MENU_SLUG, $this->import );
 
@@ -248,6 +256,16 @@ class AudienceAdminPage {
 			AudienceAdminPresence::CAP,
 			self::MENU_SLUG . AudienceAdminPresence::SLUG_SUFFIX,
 			array( $this->presence, 'render_page' )
+		);
+
+		// Submenu: Terminals (#2748), the check-in terminals at the entrance.
+		add_submenu_page(
+			self::MENU_SLUG,
+			__( 'Terminals', 'ffcertificate' ),
+			__( 'Terminals', 'ffcertificate' ),
+			AudienceTerminalPairing::CAP,
+			self::MENU_SLUG . AudienceAdminTerminals::SLUG_SUFFIX,
+			array( $this->terminals, 'render_page' )
 		);
 
 		// Import & Export used to be its own submenu here; it is now the
@@ -425,5 +443,6 @@ class AudienceAdminPage {
 		$this->audience->handle_actions();
 		$this->attendance->handle_actions();
 		$this->presence->handle_actions();
+		$this->terminals->handle_actions();
 	}
 }

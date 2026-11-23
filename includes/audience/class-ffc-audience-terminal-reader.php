@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for terminals and the pairing codes that create them.
  *
- * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, bookings: list<int>, removed: array<int, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, revoked_at: int|null, revoked_by: int|null}
+ * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, bookings: list<int>, removed: array<int, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, revoked_at: int|null, revoked_by: int|null}
  * @phpstan-type PairingRow array{id: int, code_hash: string, bookings: list<int>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null}
  *
  * @since 6.50.0
@@ -120,6 +120,31 @@ class AudienceTerminalReader {
 	}
 
 	/**
+	 * Every terminal still active, and those that ended (on their own or by
+	 * hand) since a moment, newest first (#2748).
+	 *
+	 * @param int $since Unix time.
+	 * @return list<TerminalRow>
+	 */
+	public static function recent_terminals( int $since ): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE ( revoked_at IS NULL AND expires_at >= %d ) OR revoked_at >= %d ORDER BY paired_at DESC, id DESC',
+				self::terminals_table(),
+				$since,
+				$since
+			),
+			ARRAY_A
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[] = self::shape_terminal( $row );
+		}
+		return $out;
+	}
+
+	/**
 	 * How many active terminals hold a booking.
 	 *
 	 * @param int $booking_id Booking.
@@ -154,6 +179,8 @@ class AudienceTerminalReader {
 			'paired_at'    => ArrayValue::int( $row, 'paired_at' ),
 			'expires_at'   => ArrayValue::int( $row, 'expires_at' ),
 			'last_seen_at' => self::nullable_int( $row, 'last_seen_at' ),
+			'queued'       => ArrayValue::int( $row, 'queued' ),
+			'readings'     => ArrayValue::int( $row, 'readings' ),
 			'revoked_at'   => self::nullable_int( $row, 'revoked_at' ),
 			'revoked_by'   => self::nullable_int( $row, 'revoked_by' ),
 		);

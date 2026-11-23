@@ -348,7 +348,10 @@ class AudienceTerminalReadingTest extends TestCase {
 			'paired_by'    => 5,
 			'paired_at'    => self::NOW - 3600,
 			'expires_at'   => self::NOW + 36000,
+			'removed'      => array(),
 			'last_seen_at' => null,
+			'queued'       => 0,
+			'readings'     => 0,
 			'revoked_at'   => null,
 			'revoked_by'   => null,
 		);
@@ -418,6 +421,8 @@ class AudienceTerminalReadingTest extends TestCase {
 
 			/** @var list<array<string, mixed>> */
 			public array $attendance = array();
+
+			public int $readings_counted = 0;
 
 			/** @var array<string, array{0: string, 1: list<mixed>}> */
 			private array $prepared = array();
@@ -523,6 +528,10 @@ class AudienceTerminalReadingTest extends TestCase {
 						'method'          => $args[5],
 						'marked_by'       => null,
 					);
+					return 1;
+				}
+				if ( 0 === strpos( $query, 'UPDATE %i SET readings = readings + 1 WHERE id = %d' ) ) {
+					++$this->readings_counted;
 					return 1;
 				}
 				throw new \LogicException( 'Unknown query: ' . $query );

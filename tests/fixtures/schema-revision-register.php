@@ -10,8 +10,8 @@
 return array(
 	'includes/audience/class-ffc-audience-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Audience\\AudienceActivator',
-		'revision'    => '17',
-		'fingerprint' => '7f9dc6852f5a9fcc74981c10ac512923c7618b21',
+		'revision'    => '18',
+		'fingerprint' => '4f56cb352d65ed7444d56a60f046d1e4336f00d6',
 	),
 	'includes/class-ffc-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Activator',
