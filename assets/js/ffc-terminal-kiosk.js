@@ -783,23 +783,166 @@
                 return Promise.resolve(false);
             }
             return terminalRequest('GET', 'self').then(function (result) {
-                var state = current();
-                if (!result || 200 !== result.status || !state) {
+                if (!result || 200 !== result.status || !current()) {
                     return false;
                 }
-                state.label = result.body.label || '';
-                state.bookings = result.body.bookings || [];
-                state.schedule = result.body.schedule || [];
-                if (result.body.expires_at) {
-                    state.expires_at = result.body.expires_at;
-                    state.expires_label = result.body.expires_label || '';
-                }
-                store.set(STATE_KEY, JSON.stringify(state));
-                part('label').textContent = state.label;
-                part('label').hidden = !state.label;
-                part('events').textContent = String(strings.events || '%d').replace('%d', String(state.bookings.length));
-                part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
+                applySchedule(result.body);
+                return true;
+            });
+        }
+
+        // The terminal's events as the site answered them: from the sync
+        // timer, or from the operator menu after a change (#2780).
+        function applySchedule(body) {
+            var state = current();
+            if (!state) {
+                return null;
+            }
+            state.label = body.label || '';
+            state.bookings = body.bookings || [];
+            state.schedule = body.schedule || [];
+            if (body.expires_at) {
+                state.expires_at = body.expires_at;
+                state.expires_label = body.expires_label || '';
+            }
+            store.set(STATE_KEY, JSON.stringify(state));
+            part('label').textContent = state.label;
+            part('label').hidden = !state.label;
+            part('events').textContent = String(strings.events || '%d').replace('%d', String(state.bookings.length));
+            part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
+            if ('menu' === screen) {
+                renderQueue();
+            } else {
                 followPlan();
+            }
+            return state;
+        }
+
+        // The queue card in the operator menu (#2780): the terminal's events
+        // soonest first, the one checking in now marked, and, for an operator
+        // who may pair terminals, Remove on each and Add event below.
+        var menuMayEdit = false;
+        var queueEdit = strings.queueEdit || {};
+
+        function queueError(text) {
+            part('queue-error').textContent = text || '';
+            part('queue-error').hidden = !text;
+        }
+
+        function queueButton(label, category, icon) {
+            var button = el.ownerDocument.createElement('button');
+            button.type = 'button';
+            button.className = 'ffc-btn ffc-btn-' + category + ' ffc-icon-' + icon;
+            button.textContent = label;
+            return button;
+        }
+
+        function queueItem(title, meta) {
+            var item = el.ownerDocument.createElement('li');
+            item.className = 'ffc-terminal-queue-item';
+            var text = el.ownerDocument.createElement('div');
+            text.className = 'ffc-terminal-queue-text';
+            var name = el.ownerDocument.createElement('strong');
+            name.textContent = title;
+            var detail = el.ownerDocument.createElement('span');
+            detail.className = 'ffc-terminal-queue-meta';
+            detail.textContent = meta;
+            text.appendChild(name);
+            text.appendChild(detail);
+            item.appendChild(text);
+            return item;
+        }
+
+        function renderQueue() {
+            var state = current();
+            var list = part('queue-list');
+            list.textContent = '';
+            if (!state) {
+                return;
+            }
+            var plan = state.schedule || [];
+            var bookings = state.bookings || [];
+            plan.forEach(function (entry) {
+                var meta = [entry.place, entry.hours || entry.opens_label].filter(Boolean).join(' · ');
+                var item = queueItem(entry.title || '', meta);
+                if (entry.open) {
+                    var now = el.ownerDocument.createElement('span');
+                    now.className = 'ffc-terminal-chip';
+                    now.textContent = queueEdit.now || '';
+                    item.insertBefore(now, item.firstChild);
+                    item.classList.add('is-open');
+                }
+                if (menuMayEdit) {
+                    var remove = queueButton(queueEdit.remove || '', 'danger', 'cross');
+                    remove.setAttribute('data-ffc-terminal-remove', String(entry.booking_id));
+                    remove.addEventListener('click', function () {
+                        armMenu();
+                        if (!remove.classList.contains('is-confirming')) {
+                            remove.classList.add('is-confirming');
+                            remove.textContent = queueEdit.confirmRemove || '';
+                            return;
+                        }
+                        saveEvents(bookings.filter(function (id) { return id !== entry.booking_id; }));
+                    });
+                    item.appendChild(remove);
+                }
+                list.appendChild(item);
+            });
+            part('queue-summary').textContent = fill(queueEdit.summary || '%1$d / %2$d', [bookings.length, queueEdit.max || 10]);
+            part('queue-edit').hidden = !menuMayEdit;
+            part('queue-locked').hidden = menuMayEdit;
+            part('queue-add').hidden = true;
+        }
+
+        function saveEvents(bookings) {
+            queueError('');
+            return terminalRequest('PUT', 'self', { code: menuCode, bookings: bookings }).then(function (result) {
+                if (!result) {
+                    return false;
+                }
+                if (200 !== result.status) {
+                    queueError(result.body.message || strings.failed);
+                    renderQueue();
+                    return false;
+                }
+                applySchedule(result.body);
+                say(queueEdit.saved || '');
+                return true;
+            });
+        }
+
+        function openAdd() {
+            armMenu();
+            queueError('');
+            return terminalRequest('POST', 'self/events', { code: menuCode }).then(function (result) {
+                if (!result) {
+                    return false;
+                }
+                if (200 !== result.status) {
+                    queueError(result.body.message || strings.failed);
+                    return false;
+                }
+                var state = current() || {};
+                var held = state.bookings || [];
+                var list = part('queue-offered');
+                list.textContent = '';
+                var offered = (result.body.bookings || []).filter(function (event) {
+                    return held.indexOf(event.id) < 0;
+                });
+                offered.forEach(function (event) {
+                    var item = queueItem(event.description || '', [event.place, event.when].filter(Boolean).join(' · '));
+                    var add = queueButton(event.full ? (queueEdit.full || '') : (queueEdit.add || ''), 'create', 'plus');
+                    add.disabled = !!event.full || held.length >= (result.body.max || 10);
+                    add.setAttribute('data-ffc-terminal-add', String(event.id));
+                    add.addEventListener('click', function () {
+                        armMenu();
+                        saveEvents(held.concat([event.id]));
+                    });
+                    item.appendChild(add);
+                    list.appendChild(item);
+                });
+                part('queue-none').hidden = offered.length > 0;
+                part('queue-add').hidden = false;
                 return true;
             });
         }
@@ -817,6 +960,7 @@
                 menuTimer = null;
             }
             menuCode = '';
+            menuMayEdit = false;
             part('menu-confirm').hidden = true;
             part('menu-ask').hidden = false;
             var state = current();
@@ -917,6 +1061,9 @@
                 clearResult();
                 stopUnlockWait();
                 menuCode = code;
+                menuMayEdit = true === result.body.may_edit;
+                queueError('');
+                renderQueue();
                 part('operator').textContent = String(strings.operator || '%s').replace('%s', result.body.name || '');
                 updateQueue();
                 deviceCheck();
@@ -1276,6 +1423,11 @@
         }
 
         part('menu-close').addEventListener('click', closeMenu);
+        part('queue-open-add').addEventListener('click', openAdd);
+        part('queue-close-add').addEventListener('click', function () {
+            armMenu();
+            part('queue-add').hidden = true;
+        });
         part('lock').addEventListener('click', askUnlock);
         part('unlock-cancel').addEventListener('click', leaveUnlock);
         part('menu-end').addEventListener('click', function () {
@@ -1353,7 +1505,7 @@
             }
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 
     root.FFCTerminal = {
