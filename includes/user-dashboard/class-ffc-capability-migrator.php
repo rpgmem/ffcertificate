@@ -1256,6 +1256,33 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Source-to-target map for the presence devices cap (#2743).
+	 *
+	 * @since 6.50.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function presence_cap_grant_map(): array {
+		return array(
+			'ffc_manage_audiences' => array( 'ffc_manage_audiences_presence' ),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_manage_audiences_presence` onto every
+	 * user and role already holding `ffc_manage_audiences`, so whoever runs
+	 * audience calendars today can also look after their presence devices.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_presence_cap_v1` option.
+	 *
+	 * @since 6.50.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_presence_cap_grant(): array {
+		return self::seed_caps( self::presence_cap_grant_map() );
+	}
+
+	/**
 	 * Every edge a seeding migration in this class follows: source cap =>
 	 * the caps it seeds onto the roles holding the source.
 	 *
@@ -1301,6 +1328,7 @@ class CapabilityMigrator {
 			self::audiences_pii_cap_grant_map(),
 			self::ip_pii_caps_grant_map(),
 			self::forms_api_submit_cap_grant_map(),
+			self::presence_cap_grant_map(),
 		);
 		foreach ( $multiple as $map ) {
 			foreach ( $map as $source => $targets ) {

@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '14';
+	public const SCHEMA_REVISION = '15';
 
 	/**
 	 * Option holding the revision last applied.
@@ -538,6 +538,8 @@ class AudienceActivator {
             revoked_by bigint(20) unsigned DEFAULT NULL,
             released_at bigint(20) unsigned DEFAULT NULL,
             released_by bigint(20) unsigned DEFAULT NULL,
+            attested_at bigint(20) unsigned DEFAULT NULL,
+            signals_dismissed_at bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_key_id (key_id),
             KEY idx_user (user_id),
@@ -1038,6 +1040,7 @@ class AudienceActivator {
 		self::create_presence_devices_table();
 		self::create_presence_requests_table();
 		$healed = self::migrate_attendance_method_terminal() && $healed;
+		$healed = self::migrate_presence_admin_columns() && $healed;
 		$healed = $healed
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_attendance' )
 			&& self::table_exists( $wpdb->prefix . 'ffc_audience_checkin_windows' )
@@ -1048,6 +1051,27 @@ class AudienceActivator {
 		if ( $healed ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		}
+	}
+
+	/**
+	 * What the Presence devices screen reads (#2743): when the device's last
+	 * attestation was signed, so the screen can say until when it works
+	 * offline, and when an administrator dismissed its shared-signals alert.
+	 *
+	 * @return bool Whether the table now has both columns, or does not exist yet.
+	 */
+	private static function migrate_presence_admin_columns(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_presence_devices';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'attested_at', 'bigint(20) unsigned DEFAULT NULL', 'released_by' );
+		self::add_column_if_missing( $table_name, 'signals_dismissed_at', 'bigint(20) unsigned DEFAULT NULL', 'attested_at' );
+
+		return self::has_columns( $table_name, array( 'attested_at', 'signals_dismissed_at' ) );
 	}
 
 	/**
