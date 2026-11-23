@@ -6,6 +6,8 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAppScreens;
+use FreeFormCertificate\Shortcodes\AgendaAppScreen;
+use FreeFormCertificate\Shortcodes\CertificatesAppScreen;
 use FreeFormCertificate\Shortcodes\DashboardAppScreens;
 use PHPUnit\Framework\TestCase;
 
@@ -15,6 +17,8 @@ use PHPUnit\Framework\TestCase;
  * version checked.
  *
  * @covers \FreeFormCertificate\Shortcodes\DashboardAppScreens
+ * @covers \FreeFormCertificate\Shortcodes\AgendaAppScreen
+ * @covers \FreeFormCertificate\Shortcodes\CertificatesAppScreen
  * @covers \FreeFormCertificate\Audience\AudienceAppScreens
  */
 class AppScreensTest extends TestCase {
@@ -126,6 +130,89 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'nav', $registry->added['certificates']['place'] );
 		$this->assertSame( 'more', $registry->added['profile']['place'] );
 		$this->assertIsCallable( $registry->added['certificates']['render'] );
+		$this->assertSame( array( CertificatesAppScreen::class, 'render' ), DashboardAppScreens::definitions()['certificates']['render'], 'the app draws its own Certificates screen' );
+		$this->assertSame( array( AgendaAppScreen::class, 'render' ), DashboardAppScreens::definitions()['calendar']['render'], 'the app draws its own Calendar screen' );
+		$this->assertIsCallable( $registry->added['calendar']['render'] );
+	}
+
+	public function test_the_certificates_screen_reads_the_dashboard_route(): void {
+		$styles    = array();
+		$scripts   = array();
+		$localized = array();
+		Functions\when( 'wp_enqueue_style' )->alias( static function ( $handle, $src = '' ) use ( &$styles ) {
+			$styles[ $handle ] = $src;
+		} );
+		Functions\when( 'wp_enqueue_script' )->alias( static function ( $handle, $src = '', $deps = array() ) use ( &$scripts ) {
+			$scripts[ $handle ] = array( $src, $deps );
+		} );
+		Functions\when( 'wp_localize_script' )->alias( static function ( $handle, $name, $data ) use ( &$localized ) {
+			$localized[ $handle ] = array( $name, $data );
+			return true;
+		} );
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_attr_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'rest_url' )->alias( static fn( $path ) => 'https://example.com/wp-json/' . $path );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+
+		$html = CertificatesAppScreen::render();
+
+		$this->assertStringContainsString( 'data-ffc-app-certificates', $html );
+		$this->assertStringContainsString( 'type="search"', $html );
+		$this->assertStringContainsString( 'aria-label="Search by course or code"', $html );
+		$this->assertArrayHasKey( 'ffc-app-certificates', $styles );
+		$this->assertStringContainsString( 'assets/js/ffc-app-certificates', $scripts['ffc-app-certificates'][0] );
+		$this->assertSame( 'ffcAppCertificates', $localized['ffc-app-certificates'][0] );
+		$config = $localized['ffc-app-certificates'][1];
+		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/certificates', $config['rest'] );
+		$this->assertSame( CertificatesAppScreen::NEW_DAYS, $config['newDays'] );
+		$this->assertStringContainsString( '%s', $config['strings']['issued'] );
+	}
+
+	public function test_the_calendar_screen_reads_the_routes_of_the_tabs_the_person_sees(): void {
+		$scripts   = array();
+		$localized = array();
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'wp_enqueue_script' )->alias( static function ( $handle, $src = '' ) use ( &$scripts ) {
+			$scripts[ $handle ] = $src;
+		} );
+		Functions\when( 'wp_localize_script' )->alias( static function ( $handle, $name, $data ) use ( &$localized ) {
+			$localized[ $handle ] = array( $name, $data );
+			return true;
+		} );
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		Functions\when( 'esc_attr_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'rest_url' )->alias( static fn( $path ) => 'https://example.com/wp-json/' . $path );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( 'current_time' )->justReturn( '2026-11-21' );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_posts' )->justReturn( array( 11, 12 ) );
+		Functions\when( 'get_the_title' )->alias( static fn( $id ) => 'Calendar ' . $id );
+		Functions\when( 'determine_locale' )->justReturn( 'pt_BR' );
+
+		$html = AgendaAppScreen::render( array( 'audience' ) );
+
+		$this->assertStringContainsString( 'data-ffc-app-agenda', $html );
+		$this->assertStringContainsString( 'data-ffc-app-view="book"', $html );
+		$this->assertStringContainsString( 'assets/js/ffc-app-agenda', $scripts['ffc-app-agenda'] );
+		$config = $localized['ffc-app-agenda'][1];
+		$this->assertSame( array( 'audience' => 'https://example.com/wp-json/ffc/v1/user/audience-bookings' ), $config['routes'], 'only the tabs the person sees' );
+		$this->assertTrue( $config['presence'] );
+		$this->assertSame( array(), $config['book'], 'no personal calendars without the appointments tab' );
+		$this->assertSame( '2026-11-21', $config['today'] );
+		$this->assertStringContainsString( '%d', $config['strings']['past'] );
 	}
 
 	public function test_a_signed_out_request_registers_nothing(): void {

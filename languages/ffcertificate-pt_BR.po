@@ -36816,7 +36816,6 @@ msgstr "Preencher a partir de um local"
 msgid "No event in the next 7 days takes terminal check-in."
 msgstr "Nenhum evento nos próximos 7 dias aceita check-in por terminal."
 
-
 msgid "Pair this terminal"
 msgstr "Parear este terminal"
 
@@ -36879,6 +36878,84 @@ msgstr "%d dias"
 
 msgid "The Activate screen names the phone that holds the code now by its system and browser (\"Android · Chrome\") and the day it was activated, how many of the 3 device changes allowed in 30 days were used, and how long the code works without internet. Only those two families are kept from the browser's identification, never the identification itself."
 msgstr "A tela Ativar mostra o aparelho que gera o código agora, pelo sistema e pelo navegador (\"Android · Chrome\"), e o dia em que foi ativado, quantas das 3 trocas de aparelho permitidas em 30 dias já foram usadas e por quanto tempo o código funciona sem internet. Da identificação do navegador só ficam essas duas famílias, nunca a identificação em si."
+
+msgid "Loading your certificates…"
+msgstr "Carregando seus certificados…"
+
+msgid "Your certificates could not be loaded. Check the connection and try again."
+msgstr "Não foi possível carregar seus certificados. Verifique a conexão e tente de novo."
+
+msgid "You have no certificate yet."
+msgstr "Você ainda não tem certificados."
+
+msgid "No certificate matches the search."
+msgstr "Nenhum certificado corresponde à busca."
+
+msgid "New"
+msgstr "Novo"
+
+msgid "Issued on %s"
+msgstr "Emitido em %s"
+
+msgid "Code %s"
+msgstr "Código %s"
+
+msgid "Open PDF"
+msgstr "Abrir PDF"
+
+msgid "Share"
+msgstr "Compartilhar"
+
+msgid "Link copied."
+msgstr "Link copiado."
+
+msgid "This phone cannot share the link. Open the PDF and share it from there."
+msgstr "Este aparelho não consegue compartilhar o link. Abra o PDF e compartilhe por lá."
+
+msgid "Downloading is not available for this account."
+msgstr "O download não está disponível para esta conta."
+
+msgid "Search by course or code"
+msgstr "Buscar por curso ou código"
+
+msgid "Certificates in the app is its own screen rather than the dashboard table: a search by course or code, the newest certificate as a card (marked New for its first 7 days) with Open PDF and Share, and the others as rows that open their PDF. It reads the same list as the dashboard, so downloading follows the same permissions."
+msgstr "No app, Certificados é uma tela própria, em vez da tabela do painel: uma busca por curso ou código, o certificado mais recente como cartão (marcado como Novo nos primeiros 7 dias) com Abrir PDF e Compartilhar, e os demais como linhas que abrem o PDF. Ela lê a mesma lista do painel, então o download segue as mesmas permissões."
+
+msgid "Loading your calendar…"
+msgstr "Carregando sua agenda…"
+
+msgid "Your calendar could not be loaded. Check the connection and try again."
+msgstr "Não foi possível carregar sua agenda. Verifique a conexão e tente de novo."
+
+msgid "Nothing booked ahead."
+msgstr "Nada agendado pela frente."
+
+msgid "Already held (%d)"
+msgstr "Já realizadas (%d)"
+
+msgid "Enrolled"
+msgstr "Inscrito"
+
+msgid "Presence QR"
+msgstr "QR de presença"
+
+msgid "Fill in the form · until %s"
+msgstr "Responder formulário · até %s"
+
+msgid "New booking"
+msgstr "Nova reserva"
+
+msgid "No calendar is open for booking here. Book from the calendar's page on the site."
+msgstr "Nenhuma agenda está aberta para reserva aqui. Reserve pela página da agenda no site."
+
+msgid "My bookings"
+msgstr "Minhas reservas"
+
+msgid "Book"
+msgstr "Agendar"
+
+msgid "Calendar in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book, or New booking, lists the personal calendars that a published page lets the person book. It reads the same lists as the dashboard."
+msgstr "No app, Agenda é uma tela própria, em vez das tabelas do painel: Minhas reservas mostra um cartão por dia, com hoje em destaque, o status ou a presença como etiqueta e o próximo passo na própria linha (o código de presença de um evento, o formulário pós-evento, o comprovante de um agendamento); o que já aconteceu fica num grupo recolhido. Agendar, ou Nova reserva, lista as agendas pessoais que uma página publicada permite reservar. Ela lê as mesmas listas do painel."
 
 msgid "Terminal without events"
 msgstr "Terminal sem eventos"
