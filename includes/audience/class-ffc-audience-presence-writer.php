@@ -66,9 +66,11 @@ class AudiencePresenceWriter {
 	 * @param string|null $signals_hash Keyed hash of the device signals, or null.
 	 * @param bool        $is_change    Whether this counts as a device change.
 	 * @param int         $now          Unix time.
+	 * @param string      $platform     Platform family, such as Android (#2781).
+	 * @param string      $browser      Browser family, such as Chrome (#2781).
 	 * @return int The new row's id, or 0 on failure.
 	 */
-	public static function activate( int $user_id, string $device_id, string $key_id, string $public_key, ?string $signals_hash, bool $is_change, int $now ): int {
+	public static function activate( int $user_id, string $device_id, string $key_id, string $public_key, ?string $signals_hash, bool $is_change, int $now, string $platform = '', string $browser = '' ): int {
 		$wpdb = self::db();
 		$ok   = $wpdb->insert(
 			AudiencePresenceReader::devices_table(),
@@ -81,8 +83,10 @@ class AudiencePresenceWriter {
 				'is_change'    => $is_change ? 1 : 0,
 				'activated_at' => $now,
 				'attested_at'  => $now,
+				'platform'     => '' === $platform ? null : $platform,
+				'browser'      => '' === $browser ? null : $browser,
 			),
-			array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d' )
+			array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s' )
 		);
 		return false === $ok ? 0 : (int) $wpdb->insert_id;
 	}
