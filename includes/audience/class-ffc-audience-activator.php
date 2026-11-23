@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '19';
+	public const SCHEMA_REVISION = '20';
 
 	/**
 	 * Option holding the revision last applied.
@@ -545,6 +545,8 @@ class AudienceActivator {
             released_by bigint(20) unsigned DEFAULT NULL,
             attested_at bigint(20) unsigned DEFAULT NULL,
             signals_dismissed_at bigint(20) unsigned DEFAULT NULL,
+            platform varchar(40) DEFAULT NULL,
+            browser varchar(40) DEFAULT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_key_id (key_id),
             KEY idx_user (user_id),
@@ -1165,8 +1167,12 @@ class AudienceActivator {
 
 		self::add_column_if_missing( $table_name, 'attested_at', 'bigint(20) unsigned DEFAULT NULL', 'released_by' );
 		self::add_column_if_missing( $table_name, 'signals_dismissed_at', 'bigint(20) unsigned DEFAULT NULL', 'attested_at' );
+		// The platform and browser families of the phone, shown on the
+		// app's Activate presence screen and the admin list (#2781).
+		self::add_column_if_missing( $table_name, 'platform', 'varchar(40) DEFAULT NULL', 'signals_dismissed_at' );
+		self::add_column_if_missing( $table_name, 'browser', 'varchar(40) DEFAULT NULL', 'platform' );
 
-		return self::has_columns( $table_name, array( 'attested_at', 'signals_dismissed_at' ) );
+		return self::has_columns( $table_name, array( 'attested_at', 'signals_dismissed_at', 'platform', 'browser' ) );
 	}
 
 	/**

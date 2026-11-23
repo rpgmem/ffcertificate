@@ -35683,20 +35683,11 @@ msgstr "O terminal aceita um código de até uma rotação atrás, com 60 segund
 msgid "The short name is the only personal data in the code; a CPF, an RF or an e-mail never is."
 msgstr "O nome curto é o único dado pessoal no código; CPF, RF ou e-mail nunca estão nele."
 
-msgid "Activate this phone"
-msgstr "Ativar este celular"
 
-msgid "Activate this phone once, while online, to show your presence code at an event terminal. It then works without internet."
-msgstr "Ative este celular uma vez, com internet, para mostrar o seu código de presença no terminal do evento. Depois ele funciona sem internet."
 
-msgid "One phone per account: activating another one later stops this one, and you receive an e-mail."
-msgstr "Um celular por conta: ativar outro depois faz este parar, e você recebe um e-mail."
 
 msgid "Activating this phone…"
 msgstr "Ativando este celular…"
-
-msgid "Hold the code up to the terminal's reader, about 20 cm away, with the screen bright. A photo or screenshot of the code stops working within a minute."
-msgstr "Aproxime o código do leitor do terminal, a uns 20 cm, com a tela clara. Uma foto ou captura de tela do código para de funcionar em até um minuto."
 
 #. translators: %d: seconds until the presence code changes
 #, php-format
@@ -36839,6 +36830,57 @@ msgstr "Configurar este terminal"
 
 msgid "Terminal name (optional)"
 msgstr "Nome do terminal (opcional)"
+
+msgid "A screenshot will not do: the code changes every 30 seconds."
+msgstr "Um print não serve: o código muda a cada 30 segundos."
+
+msgid "Hold the screen up to the terminal's reader at the entrance."
+msgstr "Aproxime a tela do leitor do terminal na entrada."
+
+msgid "Works without internet: the code is made and signed on this phone."
+msgstr "Funciona sem internet: o código é gerado e assinado neste aparelho."
+
+msgid "The screen fills the accent colour: the event's name with its day, hours and place on top, the code on a white card, a bar that drains until the next code with the phone owner's short name beside it, and three tips. The event picker shows only when the participant has more than one event in the next 7 days."
+msgstr "A tela ocupa a cor de destaque: no topo, o nome do evento com o dia, o horário e o local, o código num cartão branco, uma barra que se esvazia até o próximo código com o nome curto do dono do celular ao lado, e três dicas. O seletor de evento só aparece quando o participante tem mais de um evento nos próximos 7 dias."
+
+msgid "Activate presence on this phone"
+msgstr "Ativar a presença neste aparelho"
+
+msgid "The presence code works on one phone at a time, even without internet."
+msgstr "O código de presença funciona em um aparelho por vez, inclusive sem internet."
+
+msgid "Phone changes"
+msgstr "Trocas de aparelho"
+
+msgid "Works without internet for"
+msgstr "Funciona sem internet por"
+
+msgid "You receive an e-mail about the change. This phone stays reserved for your account for 30 days."
+msgstr "Você recebe um e-mail avisando da troca. Este aparelho fica reservado para a sua conta por 30 dias."
+
+msgid "Activate on this phone"
+msgstr "Ativar neste aparelho"
+
+msgid "Not now"
+msgstr "Agora não"
+
+msgid "Current phone: %1$s, active since %2$s. It stops making the code as soon as you activate this one."
+msgstr "Aparelho atual: %1$s, ativo desde %2$s. Ele deixa de gerar o código assim que você ativar este."
+
+msgid "another phone"
+msgstr "outro aparelho"
+
+msgid "%1$d of %2$d in the last %3$d days"
+msgstr "%1$d de %2$d nos últimos %3$d dias"
+
+msgid "1 day"
+msgstr "1 dia"
+
+msgid "%d days"
+msgstr "%d dias"
+
+msgid "The Activate screen names the phone that holds the code now by its system and browser (\"Android · Chrome\") and the day it was activated, how many of the 3 device changes allowed in 30 days were used, and how long the code works without internet. Only those two families are kept from the browser's identification, never the identification itself."
+msgstr "A tela Ativar mostra o aparelho que gera o código agora, pelo sistema e pelo navegador (\"Android · Chrome\"), e o dia em que foi ativado, quantas das 3 trocas de aparelho permitidas em 30 dias já foram usadas e por quanto tempo o código funciona sem internet. Da identificação do navegador só ficam essas duas famílias, nunca a identificação em si."
 
 msgid "Loading your certificates…"
 msgstr "Carregando seus certificados…"

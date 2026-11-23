@@ -112,6 +112,16 @@ class AudiencePresenceRestController {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/' . self::REST_BASE . '/device',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'device' ),
+				'permission_callback' => array( $this, 'check_app_permission' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/' . self::REST_BASE . '/events',
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
@@ -181,9 +191,21 @@ class AudiencePresenceRestController {
 			(int) $request->get_param( 'timestamp' ),
 			(string) $request->get_param( 'proof' ),
 			(string) $request->get_param( 'signals' ),
-			time()
+			time(),
+			(string) $request->get_header( 'user_agent' )
 		);
 		return is_wp_error( $result ) ? $result : new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * What the Activate presence screen shows (#2781): the phone active on
+	 * the account now, the device changes used in the window and how long a
+	 * phone works offline.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function device(): \WP_REST_Response {
+		return new \WP_REST_Response( AudiencePresenceEnrolment::status( get_current_user_id(), time() ), 200, array( 'Cache-Control' => 'no-store' ) );
 	}
 
 	/**

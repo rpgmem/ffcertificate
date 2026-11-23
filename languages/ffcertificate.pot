@@ -35605,19 +35605,10 @@ msgstr ""
 msgid "The short name is the only personal data in the code; a CPF, an RF or an e-mail never is."
 msgstr ""
 
-msgid "Activate this phone"
-msgstr ""
 
-msgid "Activate this phone once, while online, to show your presence code at an event terminal. It then works without internet."
-msgstr ""
 
-msgid "One phone per account: activating another one later stops this one, and you receive an e-mail."
-msgstr ""
 
 msgid "Activating this phone…"
-msgstr ""
-
-msgid "Hold the code up to the terminal's reader, about 20 cm away, with the screen bright. A photo or screenshot of the code stops working within a minute."
 msgstr ""
 
 #. translators: %d: seconds until the presence code changes
@@ -36760,6 +36751,57 @@ msgid "Set up this terminal"
 msgstr ""
 
 msgid "Terminal name (optional)"
+msgstr ""
+
+msgid "A screenshot will not do: the code changes every 30 seconds."
+msgstr ""
+
+msgid "Hold the screen up to the terminal's reader at the entrance."
+msgstr ""
+
+msgid "Works without internet: the code is made and signed on this phone."
+msgstr ""
+
+msgid "The screen fills the accent colour: the event's name with its day, hours and place on top, the code on a white card, a bar that drains until the next code with the phone owner's short name beside it, and three tips. The event picker shows only when the participant has more than one event in the next 7 days."
+msgstr ""
+
+msgid "Activate presence on this phone"
+msgstr ""
+
+msgid "The presence code works on one phone at a time, even without internet."
+msgstr ""
+
+msgid "Phone changes"
+msgstr ""
+
+msgid "Works without internet for"
+msgstr ""
+
+msgid "You receive an e-mail about the change. This phone stays reserved for your account for 30 days."
+msgstr ""
+
+msgid "Activate on this phone"
+msgstr ""
+
+msgid "Not now"
+msgstr ""
+
+msgid "Current phone: %1$s, active since %2$s. It stops making the code as soon as you activate this one."
+msgstr ""
+
+msgid "another phone"
+msgstr ""
+
+msgid "%1$d of %2$d in the last %3$d days"
+msgstr ""
+
+msgid "1 day"
+msgstr ""
+
+msgid "%d days"
+msgstr ""
+
+msgid "The Activate screen names the phone that holds the code now by its system and browser (\"Android · Chrome\") and the day it was activated, how many of the 3 device changes allowed in 30 days were used, and how long the code works without internet. Only those two families are kept from the browser's identification, never the identification itself."
 msgstr ""
 
 msgid "Loading your certificates…"

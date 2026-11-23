@@ -54,6 +54,22 @@
      * @param {Uint8Array} bytes Bytes.
      * @return {string}
      */
+    /**
+     * Fill a translated string's %s / %d / %1$s placeholders in order or
+     * by position.
+     *
+     * @param {string} text Template.
+     * @return {string}
+     */
+    function format(text) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        var next = 0;
+        return String(text).replace(/%(?:(\d+)\$)?[sd]/g, function (match, position) {
+            var value = position ? args[Number(position) - 1] : args[next++];
+            return undefined === value ? '' : String(value);
+        });
+    }
+
     function toB64url(bytes) {
         var binary = '';
         for (var i = 0; i < bytes.length; i++) {
@@ -348,6 +364,7 @@
             select.addEventListener('change', function () {
                 self.state.chosen = select.value;
                 self.save();
+                self.heading();
                 self.draw();
             });
         }
@@ -368,7 +385,7 @@
             self.state = saved && saved.userId === self.config.userId ? saved : {};
             if (!self.state.attestation) {
                 self.show('activate');
-                return null;
+                return self.deviceStatus();
             }
             self.show('code');
             self.listEvents();
@@ -379,6 +396,46 @@
         }).catch(function () {
             self.say(strings.storage);
             self.show('unsupported');
+        });
+    };
+
+    /**
+     * Fill the Activate view with the phone that holds the code now, the
+     * change budget and the offline span. Offline, the view stays without
+     * them: activating needs the site anyway.
+     *
+     * @return {Promise}
+     */
+    App.prototype.deviceStatus = function () {
+        var self = this;
+        var strings = self.config.strings;
+        return Promise.resolve().then(function () {
+            return self.request('GET', 'device');
+        }).then(function (answer) {
+            var current = self.part('current');
+            var device = answer && answer.current;
+            if (current) {
+                current.textContent = '';
+                current.hidden = !device || device.device_id === self.state.deviceId;
+                if (!current.hidden) {
+                    var parts = format(strings.current, '\u0000', device.since).split('\u0000');
+                    var name = document.createElement('strong');
+                    name.textContent = device.label || strings.otherPhone;
+                    current.appendChild(document.createTextNode(parts[0]));
+                    current.appendChild(name);
+                    current.appendChild(document.createTextNode(parts[1] || ''));
+                }
+            }
+            var changes = self.part('changes');
+            var offline = self.part('offline');
+            var facts = self.part('facts');
+            if (changes && offline && facts) {
+                changes.textContent = format(strings.changes, answer.changes, answer.max_changes, answer.window_days);
+                offline.textContent = format(1 === answer.offline_days ? strings.dayOne : strings.days, answer.offline_days);
+                facts.hidden = false;
+            }
+        }).catch(function () {
+            return null;
         });
     };
 
@@ -510,6 +567,34 @@
             empty.hidden = events.length > 0;
         }
         select.hidden = events.length === 0;
+        // The picker shows only when there is a choice to make (#2781).
+        var picker = this.part('picker');
+        if (picker) {
+            picker.hidden = events.length < 2;
+        }
+        var card = this.part('card');
+        if (card) {
+            card.hidden = events.length === 0;
+        }
+        this.heading();
+    };
+
+    /**
+     * The event the code is for, and when: the title on top, then its day,
+     * hours and place (#2781).
+     */
+    App.prototype.heading = function () {
+        var event = this.current();
+        var title = this.part('title');
+        var when = this.part('when');
+        if (title) {
+            title.textContent = event ? (event.title || '') : '';
+            title.hidden = !event;
+        }
+        if (when) {
+            when.textContent = event ? [event.date, event.time, event.place].filter(Boolean).join(' · ') : '';
+            when.hidden = !event;
+        }
     };
 
     /**
@@ -578,13 +663,17 @@
         var strings = self.config.strings;
         var nowSeconds = Math.floor(self.now() / 1000);
         var windowStart = nowSeconds - (nowSeconds % ROTATION);
+        var left = ROTATION - (nowSeconds % ROTATION);
         var countdown = self.part('countdown');
         if (countdown) {
-            countdown.textContent = strings.next.replace('%d', String(ROTATION - (nowSeconds % ROTATION)));
+            // "New code in 18 s · Maria S.", under the bar that drains with
+            // the rotation (#2781).
+            countdown.textContent = [strings.next.replace('%d', String(left)), self.state.name || ''].filter(Boolean).join(' · ');
         }
-        var name = self.part('name');
-        if (name) {
-            name.textContent = self.state.name || '';
+        var progress = self.part('progress');
+        if (progress) {
+            progress.setAttribute('max', String(ROTATION));
+            progress.setAttribute('value', String(left));
         }
         var event = self.current();
         var attendance = self.part('attendance');
