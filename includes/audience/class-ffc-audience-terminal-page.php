@@ -419,6 +419,24 @@ final class AudienceTerminalPage {
 					/* translators: %d: readings kept on the terminal */
 					'connOffline'     => __( 'Offline · %d readings saved here', 'ffcertificate' ),
 					'connCamera'      => __( 'front camera', 'ffcertificate' ),
+					'setup'           => array(
+						/* translators: %s: the operator's short name, such as Maria S. */
+						'operator' => __( 'Set up by %s. Choose the events this terminal checks in.', 'ffcertificate' ),
+						/* translators: 1: events chosen, 2: the most a terminal may hold */
+						'count'    => __( '%1$d of %2$d events chosen', 'ffcertificate' ),
+						'full'     => __( 'Full', 'ffcertificate' ),
+					),
+					'queueEdit'       => array(
+						'now'           => __( 'Now', 'ffcertificate' ),
+						'remove'        => __( 'Remove', 'ffcertificate' ),
+						'confirmRemove' => __( 'Tap again to remove', 'ffcertificate' ),
+						'add'           => __( 'Add', 'ffcertificate' ),
+						'full'          => __( 'Full', 'ffcertificate' ),
+						'saved'         => __( 'Events updated.', 'ffcertificate' ),
+						/* translators: 1: events on this terminal, 2: the most it may hold */
+						'summary'       => __( '%1$d of %2$d events', 'ffcertificate' ),
+						'max'           => AudienceTerminalPairing::MAX_BOOKINGS,
+					),
 					'titles'          => array(
 						'ffc_terminal_not_today'           => __( 'No check-in today', 'ffcertificate' ),
 						'ffc_terminal_path_off'            => __( 'No terminal check-in', 'ffcertificate' ),

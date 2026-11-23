@@ -88,6 +88,58 @@ class AudienceTerminalRestController {
 			)
 		);
 
+		// Setting a terminal up on the terminal itself (#2780): the operator
+		// code is the guard, as a pairing code is for /pair.
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/setup/events',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'setup_events' ),
+				'permission_callback' => array( $this, 'check_pair_permission' ),
+				'args'                => array(
+					'code' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/setup',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'setup' ),
+				'permission_callback' => array( $this, 'check_pair_permission' ),
+				'args'                => array(
+					'code'     => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+					),
+					'device'   => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( AudiencePresenceRestController::class, 'sanitize_b64' ),
+					),
+					'bookings' => array(
+						'type'              => 'array',
+						'required'          => true,
+						'items'             => array( 'type' => 'integer' ),
+						'sanitize_callback' => array( self::class, 'sanitize_ids' ),
+					),
+					'label'    => array(
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
 		register_rest_route(
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/pair',
@@ -249,6 +301,41 @@ class AudienceTerminalRestController {
 						),
 					),
 				),
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_self' ),
+					'permission_callback' => array( $this, 'check_terminal_permission' ),
+					'args'                => array(
+						'code'     => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+						),
+						'bookings' => array(
+							'type'              => 'array',
+							'required'          => true,
+							'items'             => array( 'type' => 'integer' ),
+							'sanitize_callback' => array( self::class, 'sanitize_ids' ),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/self/events',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'self_events' ),
+				'permission_callback' => array( $this, 'check_terminal_permission' ),
+				'args'                => array(
+					'code' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+					),
+				),
 			)
 		);
 	}
@@ -345,9 +432,75 @@ class AudienceTerminalRestController {
 			}
 			return $result;
 		}
+		return self::paired_response( $result, $now );
+	}
+
+	/**
+	 * What a terminal keeps once it is paired, by a code or set up on the
+	 * terminal itself.
+	 *
+	 * @param array $result What {@see AudienceTerminalPairing::pair()} returned.
+	 * @param int   $now    Unix time.
+	 * @phpstan-param array{token: string, terminal_id: int, label: string, bookings: list<int>, expires_at: int} $result
+	 * @return \WP_REST_Response
+	 */
+	private static function paired_response( array $result, int $now ): \WP_REST_Response {
 		$result['keys']          = AudiencePresenceKeys::public_keys( $now );
 		$result['expires_label'] = DateFormatter::format_datetime( $result['expires_at'] );
 		return new \WP_REST_Response( $result, 201, array( 'Cache-Control' => 'no-store' ) );
+	}
+
+	/**
+	 * The events an unpaired terminal may be set up with, on an operator's
+	 * code (#2780): the list the app's Pair terminal shows.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function setup_events( \WP_REST_Request $request ) {
+		$operator = self::queue_operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		$user = get_userdata( $operator['user_id'] );
+		return new \WP_REST_Response(
+			array(
+				'bookings' => self::offered_bookings( time() ),
+				'max'      => AudienceTerminalPairing::MAX_BOOKINGS,
+				'name'     => $user instanceof \WP_User ? AudiencePresenceAttestation::display_name( $user ) : '',
+				'expires'  => $operator['expires'],
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
+	}
+
+	/**
+	 * Set an unpaired terminal up on the terminal itself (#2780): the
+	 * operator chooses the events there and the terminal pairs at once. A
+	 * pairing code is still created and spent, so the record, the limits and
+	 * the activity log are the app's, but it never leaves the server.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function setup( \WP_REST_Request $request ) {
+		$operator = self::queue_operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		$now    = time();
+		$label  = $request->get_param( 'label' );
+		$device = $request->get_param( 'device' );
+		$code   = AudienceTerminalPairing::create_code( $operator['user_id'], self::sanitize_ids( $request->get_param( 'bookings' ) ), is_string( $label ) ? $label : '', $now );
+		if ( is_wp_error( $code ) ) {
+			return $code;
+		}
+		$result = AudienceTerminalPairing::pair( $code['code'], is_string( $device ) ? $device : '', IpAddress::fingerprint( ClientIpResolver::resolve() ), $now );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return self::paired_response( $result, $now );
 	}
 
 	/**
@@ -573,8 +726,9 @@ class AudienceTerminalRestController {
 		$user = get_userdata( $operator['user_id'] );
 		return new \WP_REST_Response(
 			array(
-				'name'    => $user instanceof \WP_User ? AudiencePresenceAttestation::display_name( $user ) : '',
-				'expires' => $operator['expires'],
+				'name'     => $user instanceof \WP_User ? AudiencePresenceAttestation::display_name( $user ) : '',
+				'expires'  => $operator['expires'],
+				'may_edit' => self::may_edit_queue( $operator['user_id'] ),
 			),
 			200,
 			array( 'Cache-Control' => 'no-store' )
@@ -602,6 +756,98 @@ class AudienceTerminalRestController {
 			return $result;
 		}
 		return new \WP_REST_Response( array( 'revoked' => $terminal['id'] ), 200 );
+	}
+
+	/**
+	 * Whether an operator may change a terminal's events from the terminal
+	 * itself (#2780): whoever may pair terminals, as in the app.
+	 *
+	 * @param int $user_id Operator.
+	 * @return bool
+	 */
+	public static function may_edit_queue( int $user_id ): bool {
+		return user_can( $user_id, AudienceTerminalPairing::CAP ) || user_can( $user_id, 'manage_options' );
+	}
+
+	/**
+	 * The operator a request's code belongs to, when they may also change
+	 * the terminal's events.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return array{user_id: int, expires: int}|\WP_Error
+	 */
+	private static function queue_operator_of( \WP_REST_Request $request ) {
+		$operator = self::operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		if ( ! self::may_edit_queue( $operator['user_id'] ) ) {
+			return new \WP_Error( 'ffc_operator_queue_not_allowed', __( 'This operator may not change the terminal\'s events.', 'ffcertificate' ), array( 'status' => 403 ) );
+		}
+		return $operator;
+	}
+
+	/**
+	 * The events the calling terminal could take, for its operator menu
+	 * (#2780), on an operator's code.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function self_events( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$operator = self::queue_operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		return new \WP_REST_Response(
+			array(
+				'bookings' => self::offered_bookings( time() ),
+				'max'      => AudienceTerminalPairing::MAX_BOOKINGS,
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
+	}
+
+	/**
+	 * Change the calling terminal's events from its operator menu (#2780),
+	 * under the rules the app's Change events follows. Any operator who may
+	 * pair terminals may do it at the terminal, as any operator may end it
+	 * there; the change is logged in that operator's name.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function update_self( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$operator = self::queue_operator_of( $request );
+		if ( is_wp_error( $operator ) ) {
+			return $operator;
+		}
+		$now    = time();
+		$result = AudienceTerminalPairing::update_bookings( $terminal['id'], self::sanitize_ids( $request->get_param( 'bookings' ) ), $operator['user_id'], true, $now );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return new \WP_REST_Response(
+			array(
+				'label'         => $result['label'],
+				'bookings'      => $result['bookings'],
+				'expires_at'    => $result['expires_at'],
+				'expires_label' => DateFormatter::format_datetime( $result['expires_at'] ),
+				'now'           => $now,
+				'schedule'      => AudienceTerminalSchedule::plan( $result, $now ),
+			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
 	}
 
 	/**

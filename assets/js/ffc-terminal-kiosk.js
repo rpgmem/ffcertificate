@@ -265,7 +265,7 @@
             el.setAttribute('data-ffc-terminal-tone', tone || ('locked' === view ? 'warning' : 'neutral'));
             el.setAttribute('data-ffc-terminal-screen', view);
             part('foot').hidden = !('ready' === view || 'between' === view);
-            if ('pairing' === view || 'locked' === view) {
+            if ('pairing' === view || 'locked' === view || 'setup' === view) {
                 head(strings.terminalTitle, '', strings.notPaired);
             }
             if ('pairing' === view) {
@@ -783,23 +783,166 @@
                 return Promise.resolve(false);
             }
             return terminalRequest('GET', 'self').then(function (result) {
-                var state = current();
-                if (!result || 200 !== result.status || !state) {
+                if (!result || 200 !== result.status || !current()) {
                     return false;
                 }
-                state.label = result.body.label || '';
-                state.bookings = result.body.bookings || [];
-                state.schedule = result.body.schedule || [];
-                if (result.body.expires_at) {
-                    state.expires_at = result.body.expires_at;
-                    state.expires_label = result.body.expires_label || '';
-                }
-                store.set(STATE_KEY, JSON.stringify(state));
-                part('label').textContent = state.label;
-                part('label').hidden = !state.label;
-                part('events').textContent = String(strings.events || '%d').replace('%d', String(state.bookings.length));
-                part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
+                applySchedule(result.body);
+                return true;
+            });
+        }
+
+        // The terminal's events as the site answered them: from the sync
+        // timer, or from the operator menu after a change (#2780).
+        function applySchedule(body) {
+            var state = current();
+            if (!state) {
+                return null;
+            }
+            state.label = body.label || '';
+            state.bookings = body.bookings || [];
+            state.schedule = body.schedule || [];
+            if (body.expires_at) {
+                state.expires_at = body.expires_at;
+                state.expires_label = body.expires_label || '';
+            }
+            store.set(STATE_KEY, JSON.stringify(state));
+            part('label').textContent = state.label;
+            part('label').hidden = !state.label;
+            part('events').textContent = String(strings.events || '%d').replace('%d', String(state.bookings.length));
+            part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
+            if ('menu' === screen) {
+                renderQueue();
+            } else {
                 followPlan();
+            }
+            return state;
+        }
+
+        // The queue card in the operator menu (#2780): the terminal's events
+        // soonest first, the one checking in now marked, and, for an operator
+        // who may pair terminals, Remove on each and Add event below.
+        var menuMayEdit = false;
+        var queueEdit = strings.queueEdit || {};
+
+        function queueError(text) {
+            part('queue-error').textContent = text || '';
+            part('queue-error').hidden = !text;
+        }
+
+        function queueButton(label, category, icon) {
+            var button = el.ownerDocument.createElement('button');
+            button.type = 'button';
+            button.className = 'ffc-btn ffc-btn-' + category + ' ffc-icon-' + icon;
+            button.textContent = label;
+            return button;
+        }
+
+        function queueItem(title, meta) {
+            var item = el.ownerDocument.createElement('li');
+            item.className = 'ffc-terminal-queue-item';
+            var text = el.ownerDocument.createElement('div');
+            text.className = 'ffc-terminal-queue-text';
+            var name = el.ownerDocument.createElement('strong');
+            name.textContent = title;
+            var detail = el.ownerDocument.createElement('span');
+            detail.className = 'ffc-terminal-queue-meta';
+            detail.textContent = meta;
+            text.appendChild(name);
+            text.appendChild(detail);
+            item.appendChild(text);
+            return item;
+        }
+
+        function renderQueue() {
+            var state = current();
+            var list = part('queue-list');
+            list.textContent = '';
+            if (!state) {
+                return;
+            }
+            var plan = state.schedule || [];
+            var bookings = state.bookings || [];
+            plan.forEach(function (entry) {
+                var meta = [entry.place, entry.hours || entry.opens_label].filter(Boolean).join(' · ');
+                var item = queueItem(entry.title || '', meta);
+                if (entry.open) {
+                    var now = el.ownerDocument.createElement('span');
+                    now.className = 'ffc-terminal-chip';
+                    now.textContent = queueEdit.now || '';
+                    item.insertBefore(now, item.firstChild);
+                    item.classList.add('is-open');
+                }
+                if (menuMayEdit) {
+                    var remove = queueButton(queueEdit.remove || '', 'danger', 'cross');
+                    remove.setAttribute('data-ffc-terminal-remove', String(entry.booking_id));
+                    remove.addEventListener('click', function () {
+                        armMenu();
+                        if (!remove.classList.contains('is-confirming')) {
+                            remove.classList.add('is-confirming');
+                            remove.textContent = queueEdit.confirmRemove || '';
+                            return;
+                        }
+                        saveEvents(bookings.filter(function (id) { return id !== entry.booking_id; }));
+                    });
+                    item.appendChild(remove);
+                }
+                list.appendChild(item);
+            });
+            part('queue-summary').textContent = fill(queueEdit.summary || '%1$d / %2$d', [bookings.length, queueEdit.max || 10]);
+            part('queue-edit').hidden = !menuMayEdit;
+            part('queue-locked').hidden = menuMayEdit;
+            part('queue-add').hidden = true;
+        }
+
+        function saveEvents(bookings) {
+            queueError('');
+            return terminalRequest('PUT', 'self', { code: menuCode, bookings: bookings }).then(function (result) {
+                if (!result) {
+                    return false;
+                }
+                if (200 !== result.status) {
+                    queueError(result.body.message || strings.failed);
+                    renderQueue();
+                    return false;
+                }
+                applySchedule(result.body);
+                say(queueEdit.saved || '');
+                return true;
+            });
+        }
+
+        function openAdd() {
+            armMenu();
+            queueError('');
+            return terminalRequest('POST', 'self/events', { code: menuCode }).then(function (result) {
+                if (!result) {
+                    return false;
+                }
+                if (200 !== result.status) {
+                    queueError(result.body.message || strings.failed);
+                    return false;
+                }
+                var state = current() || {};
+                var held = state.bookings || [];
+                var list = part('queue-offered');
+                list.textContent = '';
+                var offered = (result.body.bookings || []).filter(function (event) {
+                    return held.indexOf(event.id) < 0;
+                });
+                offered.forEach(function (event) {
+                    var item = queueItem(event.description || '', [event.place, event.when].filter(Boolean).join(' · '));
+                    var add = queueButton(event.full ? (queueEdit.full || '') : (queueEdit.add || ''), 'create', 'plus');
+                    add.disabled = !!event.full || held.length >= (result.body.max || 10);
+                    add.setAttribute('data-ffc-terminal-add', String(event.id));
+                    add.addEventListener('click', function () {
+                        armMenu();
+                        saveEvents(held.concat([event.id]));
+                    });
+                    item.appendChild(add);
+                    list.appendChild(item);
+                });
+                part('queue-none').hidden = offered.length > 0;
+                part('queue-add').hidden = false;
                 return true;
             });
         }
@@ -817,6 +960,7 @@
                 menuTimer = null;
             }
             menuCode = '';
+            menuMayEdit = false;
             part('menu-confirm').hidden = true;
             part('menu-ask').hidden = false;
             var state = current();
@@ -917,6 +1061,9 @@
                 clearResult();
                 stopUnlockWait();
                 menuCode = code;
+                menuMayEdit = true === result.body.may_edit;
+                queueError('');
+                renderQueue();
                 part('operator').textContent = String(strings.operator || '%s').replace('%s', result.body.name || '');
                 updateQueue();
                 deviceCheck();
@@ -996,25 +1143,7 @@
                 });
             }).then(function (result) {
                 if (201 === result.status && result.body.token) {
-                    var state = {
-                        token: result.body.token,
-                        terminal_id: result.body.terminal_id,
-                        label: result.body.label || '',
-                        bookings: result.body.bookings || [],
-                        expires_at: result.body.expires_at,
-                        expires_label: result.body.expires_label || '',
-                        keys: result.body.keys || {}
-                    };
-                    if (!store.set(STATE_KEY, JSON.stringify(state))) {
-                        say('');
-                        fail(strings.storage);
-                        return null;
-                    }
-                    say(strings.paired);
-                    showReady(state);
-                    refreshRevocations();
-                    refreshSchedule();
-                    return state;
+                    return keepPairing(result.body);
                 }
                 say('');
                 if (429 === result.status) {
@@ -1033,9 +1162,193 @@
             });
         }
 
+        // What a pairing answer leaves on the terminal, from a pairing code or
+        // from the setup on the terminal itself (#2780).
+        function keepPairing(body) {
+            var state = {
+                token: body.token,
+                terminal_id: body.terminal_id,
+                label: body.label || '',
+                bookings: body.bookings || [],
+                expires_at: body.expires_at,
+                expires_label: body.expires_label || '',
+                keys: body.keys || {}
+            };
+            if (!store.set(STATE_KEY, JSON.stringify(state))) {
+                say('');
+                fail(strings.storage);
+                return null;
+            }
+            say(strings.paired);
+            showReady(state);
+            refreshRevocations();
+            refreshSchedule();
+            return state;
+        }
+
+        // Setting the terminal up on the terminal itself (#2780): an operator
+        // who may pair terminals shows their operator code on the pairing
+        // screen, chooses the events here, and the terminal pairs at once.
+        // A pairing code is made and spent on the site; none is shown.
+        var setupCode = '';
+        var setupMax = 10;
+        var setupStrings = strings.setup || {};
+
+        function publicRequest(path, body) {
+            return env.fetch(config.rest + path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'omit',
+                body: JSON.stringify(body)
+            }).then(function (response) {
+                return response.json().catch(function () { return {}; }).then(function (data) {
+                    return { status: response.status, body: data || {} };
+                });
+            }, function () {
+                return { status: 0, body: { message: strings.failed } };
+            });
+        }
+
+        function setupError(text) {
+            part('setup-error').textContent = text || '';
+            part('setup-error').hidden = !text;
+        }
+
+        function setupChecks() {
+            return Array.prototype.slice.call(part('setup-list').querySelectorAll('input[type="checkbox"]'));
+        }
+
+        function setupCount() {
+            var checks = setupChecks();
+            var chosen = checks.filter(function (box) { return box.checked; }).length;
+            checks.forEach(function (box) {
+                box.disabled = box.hasAttribute('data-ffc-terminal-full') || (!box.checked && chosen >= setupMax);
+            });
+            part('setup-count').textContent = fill(setupStrings.count || '%1$d / %2$d', [chosen, setupMax]);
+        }
+
+        function renderSetup(events) {
+            var list = part('setup-list');
+            var place = part('setup-place');
+            list.textContent = '';
+            while (place.options.length > 1) {
+                place.remove(1);
+            }
+            var places = {};
+            events.forEach(function (event) {
+                var item = el.ownerDocument.createElement('li');
+                item.className = 'ffc-terminal-queue-item';
+                var label = el.ownerDocument.createElement('label');
+                label.className = 'ffc-terminal-setup-choice';
+                var box = el.ownerDocument.createElement('input');
+                box.type = 'checkbox';
+                box.value = String(event.id);
+                box.setAttribute('data-ffc-terminal-place', String(event.place_id || 0));
+                if (event.full) {
+                    box.setAttribute('data-ffc-terminal-full', '');
+                }
+                box.addEventListener('change', setupCount);
+                var text = el.ownerDocument.createElement('span');
+                text.className = 'ffc-terminal-queue-text';
+                var name = el.ownerDocument.createElement('strong');
+                name.textContent = event.description || '';
+                var meta = el.ownerDocument.createElement('span');
+                meta.className = 'ffc-terminal-queue-meta';
+                meta.textContent = [event.place, event.when, event.full ? setupStrings.full : ''].filter(Boolean).join(' · ');
+                text.appendChild(name);
+                text.appendChild(meta);
+                label.appendChild(box);
+                label.appendChild(text);
+                item.appendChild(label);
+                list.appendChild(item);
+                if (event.place_id && !places[event.place_id]) {
+                    places[event.place_id] = event.place || String(event.place_id);
+                    var option = el.ownerDocument.createElement('option');
+                    option.value = String(event.place_id);
+                    option.textContent = places[event.place_id];
+                    place.appendChild(option);
+                }
+            });
+            part('setup-none').hidden = events.length > 0;
+            setupCount();
+        }
+
+        function startSetup(code) {
+            fail('');
+            return publicRequest('setup/events', { code: code }).then(function (result) {
+                if (200 !== result.status) {
+                    if ('setup' === screen) {
+                        setupError(result.body.message || strings.failed);
+                    } else {
+                        fail(result.body.message || strings.failed);
+                    }
+                    return false;
+                }
+                var fresh = 'setup' !== screen;
+                setupCode = code;
+                setupMax = result.body.max || 10;
+                part('setup-operator').textContent = fill(setupStrings.operator || '%s', [result.body.name || '']);
+                setupError('');
+                if (fresh) {
+                    renderSetup(result.body.bookings || []);
+                    part('setup-label').value = '';
+                    part('setup-place').value = '';
+                    show('setup');
+                }
+                return true;
+            });
+        }
+
+        function finishSetup() {
+            var id = device();
+            if (!id) {
+                setupError(strings.storage);
+                return Promise.resolve(null);
+            }
+            var bookings = setupChecks().filter(function (box) { return box.checked; }).map(function (box) { return Number(box.value); });
+            setupError('');
+            part('setup-submit').disabled = true;
+            return publicRequest('setup', { code: setupCode, device: id, bookings: bookings, label: part('setup-label').value }).then(function (result) {
+                part('setup-submit').disabled = false;
+                if (201 === result.status && result.body.token) {
+                    setupCode = '';
+                    return keepPairing(result.body);
+                }
+                setupError(result.body.message || strings.failed);
+                return null;
+            });
+        }
+
+        part('setup-place').addEventListener('change', function () {
+            var chosen = part('setup-place').value;
+            var count = 0;
+            setupChecks().forEach(function (box) {
+                var take = '' !== chosen && box.getAttribute('data-ffc-terminal-place') === chosen && !box.hasAttribute('data-ffc-terminal-full') && count < setupMax;
+                box.checked = take;
+                if (take) {
+                    count++;
+                }
+            });
+            setupCount();
+        });
+        part('setup-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            finishSetup();
+        });
+        part('setup-cancel').addEventListener('click', function () {
+            setupCode = '';
+            show('pairing');
+        });
+
         part('form').addEventListener('submit', function (event) {
             event.preventDefault();
-            var code = cleanCode(part('code').value);
+            var raw = part('code').value;
+            if (0 === cleanReading(raw).indexOf(OPERATOR_PREFIX)) {
+                part('code').value = '';
+                startSetup(cleanReading(raw));
+                return;
+            }
+            var code = cleanCode(raw);
             if (code) {
                 pair(code);
             }
@@ -1191,8 +1504,12 @@
             if ('locked' === screen) {
                 return null;
             }
-            if ('pairing' === screen) {
-                var code = cleanCode(raw);
+            var reading = cleanReading(raw);
+            if ('pairing' === screen || 'setup' === screen) {
+                if (0 === reading.indexOf(OPERATOR_PREFIX)) {
+                    return startSetup(reading);
+                }
+                var code = 'pairing' === screen ? cleanCode(raw) : '';
                 return code ? pair(code) : null;
             }
             return take(raw);
@@ -1276,6 +1593,11 @@
         }
 
         part('menu-close').addEventListener('click', closeMenu);
+        part('queue-open-add').addEventListener('click', openAdd);
+        part('queue-close-add').addEventListener('click', function () {
+            armMenu();
+            part('queue-add').hidden = true;
+        });
         part('lock').addEventListener('click', askUnlock);
         part('unlock-cancel').addEventListener('click', leaveUnlock);
         part('menu-end').addEventListener('click', function () {
@@ -1353,7 +1675,7 @@
             }
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
+        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, startSetup: startSetup, finishSetup: finishSetup, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 
     root.FFCTerminal = {

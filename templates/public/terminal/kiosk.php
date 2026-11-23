@@ -69,7 +69,7 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 		<div class="ffc-terminal-camera-slot" data-ffc-terminal-camera-slot="pairing"></div>
 		<div class="ffc-terminal-art" data-ffc-terminal-camera-art aria-hidden="true"><?php echo Icons::svg( 'qr', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
 		<h2><?php esc_html_e( 'Waiting for pairing', 'ffcertificate' ); ?></h2>
-		<p class="ffc-terminal-lead"><?php esc_html_e( 'Operator: in the app, open More → Pair terminal and hold the pairing QR code to this terminal\'s reader.', 'ffcertificate' ); ?></p>
+		<p class="ffc-terminal-lead"><?php esc_html_e( 'Operator: hold your operator QR code to this terminal\'s reader (app → More → Operator QR) and choose the events here, or pair it from the app under More → Pair terminal.', 'ffcertificate' ); ?></p>
 		<form class="ffc-terminal-pair" data-ffc-terminal-part="form" novalidate>
 			<div class="ffc-terminal-field">
 				<label for="ffc-terminal-code"><?php esc_html_e( 'Or type the pairing code', 'ffcertificate' ); ?></label>
@@ -87,6 +87,52 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 			?>
 		</form>
 		<p class="ffc-terminal-note"><?php esc_html_e( 'The code lasts five minutes and works once. No one signs in on this device.', 'ffcertificate' ); ?></p>
+	</section>
+
+	<section class="ffc-terminal-view ffc-terminal-setup" data-ffc-terminal-view="setup" hidden>
+		<h2 class="ffc-icon-link"><?php esc_html_e( 'Set up this terminal', 'ffcertificate' ); ?></h2>
+		<p class="ffc-terminal-lead" data-ffc-terminal-part="setup-operator"></p>
+		<form class="ffc-terminal-setup-form" data-ffc-terminal-part="setup-form" novalidate>
+			<fieldset>
+				<legend><?php esc_html_e( 'Event queue', 'ffcertificate' ); ?></legend>
+				<div class="ffc-terminal-field">
+					<label for="ffc-terminal-setup-place"><?php esc_html_e( 'Fill from one place', 'ffcertificate' ); ?></label>
+					<select id="ffc-terminal-setup-place" data-ffc-terminal-part="setup-place">
+						<option value=""><?php esc_html_e( 'Choose the events one by one', 'ffcertificate' ); ?></option>
+					</select>
+				</div>
+				<p class="ffc-terminal-note" data-ffc-terminal-part="setup-count"></p>
+				<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="setup-list"></ul>
+				<p class="ffc-terminal-note" data-ffc-terminal-part="setup-none" hidden><?php esc_html_e( 'No event in the next 7 days takes terminal check-in.', 'ffcertificate' ); ?></p>
+			</fieldset>
+			<div class="ffc-terminal-field">
+				<label for="ffc-terminal-setup-label"><?php esc_html_e( 'Terminal name (optional)', 'ffcertificate' ); ?></label>
+				<input id="ffc-terminal-setup-label" type="text" maxlength="60" autocomplete="off" placeholder="<?php esc_attr_e( 'Auditorium entrance', 'ffcertificate' ); ?>" data-ffc-terminal-part="setup-label">
+			</div>
+			<p class="ffc-terminal-error" role="alert" data-ffc-terminal-part="setup-error" hidden></p>
+			<div class="ffc-terminal-actions">
+				<?php
+				Button::render(
+					array(
+						'label'    => __( 'Pair this terminal', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'link',
+						'type'     => 'submit',
+						'attrs'    => array( 'data-ffc-terminal-part' => 'setup-submit' ),
+					)
+				);
+				Button::render(
+					array(
+						'label'    => __( 'Cancel', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'chevron-left',
+						'attrs'    => array( 'data-ffc-terminal-part' => 'setup-cancel' ),
+					)
+				);
+				?>
+			</div>
+		</form>
+		<p class="ffc-terminal-note"><?php esc_html_e( 'Check-in windows that cross are refused, naming the event they collide with. No code is shown and no one signs in on this device; the terminal stops on its own after its last event, as the site is set.', 'ffcertificate' ); ?></p>
 	</section>
 
 	<section class="ffc-terminal-view" data-ffc-terminal-view="locked" hidden>
@@ -191,6 +237,7 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 	</section>
 
 	<section class="ffc-terminal-view ffc-terminal-menu" data-ffc-terminal-view="menu" hidden>
+		<div class="ffc-terminal-menu-main">
 		<h2 class="ffc-icon-unlock" data-ffc-terminal-part="operator"></h2>
 		<p data-ffc-terminal-part="queue"></p>
 		<p class="ffc-terminal-note"><?php esc_html_e( 'The menu locks again after two minutes without use.', 'ffcertificate' ); ?></p>
@@ -251,6 +298,42 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 			<h3 id="ffc-terminal-check-title" class="ffc-icon-monitor"><?php esc_html_e( 'Device check', 'ffcertificate' ); ?></h3>
 			<p class="ffc-terminal-note"><?php esc_html_e( 'What this browser offers the terminal. Note it, or take a picture of it, when trying a new tablet.', 'ffcertificate' ); ?></p>
 			<dl data-ffc-terminal-part="device-check"></dl>
+		</section>
+		</div>
+		<section class="ffc-terminal-menu-side ffc-terminal-queue" aria-labelledby="ffc-terminal-queue-title">
+			<h3 id="ffc-terminal-queue-title" class="ffc-icon-calendar"><?php esc_html_e( 'Events on this terminal', 'ffcertificate' ); ?></h3>
+			<p class="ffc-terminal-note" data-ffc-terminal-part="queue-summary"></p>
+			<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="queue-list"></ul>
+			<p class="ffc-terminal-error" role="alert" data-ffc-terminal-part="queue-error" hidden></p>
+			<p class="ffc-terminal-note" data-ffc-terminal-part="queue-locked" hidden><?php esc_html_e( 'Only an operator who may pair terminals changes its events, here or in the app.', 'ffcertificate' ); ?></p>
+			<div class="ffc-terminal-actions" data-ffc-terminal-part="queue-edit" hidden>
+				<?php
+				Button::render(
+					array(
+						'label'    => __( 'Add event', 'ffcertificate' ),
+						'category' => 'create',
+						'icon'     => 'plus',
+						'attrs'    => array( 'data-ffc-terminal-part' => 'queue-open-add' ),
+					)
+				);
+				?>
+			</div>
+			<div class="ffc-terminal-queue-add" data-ffc-terminal-part="queue-add" hidden>
+				<h4><?php esc_html_e( 'Events this terminal can take', 'ffcertificate' ); ?></h4>
+				<p class="ffc-terminal-note"><?php esc_html_e( 'Events whose check-in windows cross another one on this terminal are refused, naming the event they collide with.', 'ffcertificate' ); ?></p>
+				<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="queue-offered"></ul>
+				<p class="ffc-terminal-note" data-ffc-terminal-part="queue-none" hidden><?php esc_html_e( 'No other event can be added now.', 'ffcertificate' ); ?></p>
+				<?php
+				Button::render(
+					array(
+						'label'    => __( 'Close', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'cross',
+						'attrs'    => array( 'data-ffc-terminal-part' => 'queue-close-add' ),
+					)
+				);
+				?>
+			</div>
 		</section>
 	</section>
 

@@ -183,7 +183,9 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-terminal', $html );
 		$this->assertStringContainsString( '<meta name="robots" content="noindex,nofollow,noarchive">', $html );
 		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/?ffc_terminal=manifest">', $html );
-		foreach ( array( 'pairing', 'locked', 'ready', 'between', 'result', 'unlock', 'menu' ) as $view ) {
+		$this->assertStringContainsString( 'data-ffc-terminal-part="queue-list"', $html, 'the operator menu lists the terminal\'s events (#2780)' );
+		$this->assertStringContainsString( 'data-ffc-terminal-part="queue-open-add"', $html );
+		foreach ( array( 'pairing', 'setup', 'locked', 'ready', 'between', 'result', 'unlock', 'menu' ) as $view ) {
 			$this->assertStringContainsString( 'data-ffc-terminal-view="' . $view . '"', $html, $view );
 		}
 		$this->assertStringContainsString( 'id="ffc-terminal-code"', $html );
@@ -203,7 +205,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( array( 'ready', 'reading', 'insecure', 'unsupported', 'denied', 'failed' ), array_keys( $config['strings']['camera'] ) );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="camera-start"', $html );
 		$this->assertMatchesRegularExpression( '/<video[^>]*playsinline[^>]*muted/', $html, 'the viewfinder plays inline and silent' );
-		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'events', 'until', 'expired', 'operator', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'setup', 'queueEdit', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
 	}
 
 	public function test_the_camera_follows_its_option(): void {

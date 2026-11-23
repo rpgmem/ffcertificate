@@ -35617,7 +35617,6 @@ msgstr ""
 msgid "Activating this phone…"
 msgstr ""
 
-
 #. translators: %d: seconds until the presence code changes
 #, php-format
 msgid "New code in %d s"
@@ -36627,8 +36626,6 @@ msgstr ""
 msgid "Operator area"
 msgstr ""
 
-msgid "Operator: in the app, open More → Pair terminal and hold the pairing QR code to this terminal's reader."
-msgstr ""
 
 msgid "Or type the pairing code"
 msgstr ""
@@ -36682,6 +36679,84 @@ msgid "The terminal is a full-screen page, always in the dark theme whatever the
 msgstr ""
 
 msgid "The camera reads on the pairing screen (the pairing QR code), the presence screen and the operator unlock, and its viewfinder moves to whichever is in front. The live view is mirrored, like a mirror, so a code is easy to aim; when a code is read, the screen flashes and shows the captured frame the right way round before the result. Some front cameras hand over frames already mirrored: a frame that reads nothing is read again flipped back."
+msgstr ""
+
+msgid "%1$d of %2$d events"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Add event"
+msgstr ""
+
+msgid "Events on this terminal"
+msgstr ""
+
+msgid "Events this terminal can take"
+msgstr ""
+
+msgid "Events updated."
+msgstr ""
+
+msgid "Events whose check-in windows cross another one on this terminal are refused, naming the event they collide with."
+msgstr ""
+
+msgid "No other event can be added now."
+msgstr ""
+
+msgid "Now"
+msgstr ""
+
+msgid "Only an operator who may pair terminals changes its events, here or in the app."
+msgstr ""
+
+msgid "Tap again to remove"
+msgstr ""
+
+msgid "This operator may not change the terminal's events."
+msgstr ""
+
+msgid "The operator menu has two columns: the actions and the device check on one side, and on the other the events on this terminal, soonest first, with the one checking in now marked Now. An operator who holds ffc_manage_audiences_terminals, or an administrator, may change them there, whoever paired the terminal: Remove takes an event out after a second tap, and Add event lists the events the terminal can take. The rules are those of the app's Change events, a refusal says why on the screen, and the change is written to the activity log in that operator's name. Anyone else who may check people in sees the events without changing them."
+msgstr ""
+
+msgid "%1$d of %2$d events chosen"
+msgstr ""
+
+msgid "A terminal can also be set up on the terminal itself. On Waiting for pairing, an operator who holds ffc_manage_audiences_terminals holds their operator QR code to the reader (or to the camera, where allowed); the terminal lists the events it may take, the same list as the app's Pair terminal, and Fill from one place ticks every event of a place. With the events ticked and an optional name, Pair this terminal pairs it at once. A pairing code is made and spent on the site, so the limits, the activity log and the terminal's attribution to that operator are the app's, but no code is shown. The operator code lasts two minutes: if it expires before the choice is made, hold a fresh one to the reader and the choices stay."
+msgstr ""
+
+msgid "Auditorium entrance"
+msgstr ""
+
+msgid "Check-in windows that cross are refused, naming the event they collide with. No code is shown and no one signs in on this device; the terminal stops on its own after its last event, as the site is set."
+msgstr ""
+
+msgid "Choose the events one by one"
+msgstr ""
+
+msgid "Event queue"
+msgstr ""
+
+msgid "Fill from one place"
+msgstr ""
+
+msgid "No event in the next 7 days takes terminal check-in."
+msgstr ""
+
+msgid "Operator: hold your operator QR code to this terminal's reader (app → More → Operator QR) and choose the events here, or pair it from the app under More → Pair terminal."
+msgstr ""
+
+msgid "Pair this terminal"
+msgstr ""
+
+msgid "Set up by %s. Choose the events this terminal checks in."
+msgstr ""
+
+msgid "Set up this terminal"
+msgstr ""
+
+msgid "Terminal name (optional)"
 msgstr ""
 
 msgid "A screenshot will not do: the code changes every 30 seconds."
