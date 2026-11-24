@@ -596,7 +596,7 @@ class AudienceAdminPresence {
 			)
 		);
 
-		$devices = AudiencePresenceReader::for_user( $user_id );
+		$devices = self::latest_per_device( AudiencePresenceReader::for_user( $user_id ) );
 		echo '<div class="card ffc-presence-history">';
 		/* translators: %s: participant */
 		echo '<h2 class="ffc-icon-history">' . esc_html( sprintf( __( 'Device history: %s', 'ffcertificate' ), self::user_label( $user_id ) ) ) . '</h2>';
@@ -728,6 +728,28 @@ class AudienceAdminPresence {
 			return sprintf( __( 'Expired on %s; renews when the app goes online', 'ffcertificate' ), DateFormatter::format_date( $until ) );
 		}
 		return DateFormatter::format_date( $until );
+	}
+
+	/**
+	 * One row per phone: its latest activation.
+	 *
+	 * Activating the same phone again makes a new key and a new row; the old
+	 * rows stay, because terminals refuse a retired key through the
+	 * revocation list, but the history names each phone once.
+	 *
+	 * @param array $devices Device rows, newest activation first.
+	 * @phpstan-param list<DeviceRow> $devices
+	 * @return array
+	 * @phpstan-return list<DeviceRow>
+	 */
+	public static function latest_per_device( array $devices ): array {
+		$latest = array();
+		foreach ( $devices as $device ) {
+			if ( ! isset( $latest[ $device['device_id'] ] ) ) {
+				$latest[ $device['device_id'] ] = $device;
+			}
+		}
+		return array_values( $latest );
 	}
 
 	/**
