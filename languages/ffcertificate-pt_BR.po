@@ -35730,11 +35730,7 @@ msgid_plural "%1$d device changes in the last %2$d days."
 msgstr[0] "%1$d troca de aparelho nos últimos %2$d dias."
 msgstr[1] "%1$d trocas de aparelho nos últimos %2$d dias."
 
-msgid "%1$s already changed devices %2$d times in %3$d days and asks for one more (%4$s)."
-msgstr "%1$s já trocou de aparelho %2$d vezes em %3$d dias e pede mais uma (%4$s)."
 
-msgid "%1$s tried to activate a phone reserved to another account (%2$s)."
-msgstr "%1$s tentou ativar um celular reservado a outra conta (%2$s)."
 
 msgid "Activated"
 msgstr "Ativado"
@@ -35751,8 +35747,6 @@ msgstr "Alerta dispensado. Ele volta se outro celular informar os mesmos sinais.
 msgid "Back to presence devices"
 msgstr "Voltar aos aparelhos de presença"
 
-msgid "Changes in %d days"
-msgstr "Trocas em %d dias"
 
 msgid "Deactivate"
 msgstr "Desativar"
@@ -35772,14 +35766,10 @@ msgstr "Aparelho desativado. Os códigos dele param de funcionar na próxima sin
 msgid "Device history: %s"
 msgstr "Histórico de aparelhos: %s"
 
-msgid "Expired; renews when the app goes online"
-msgstr "Expirada; renova quando o app ficar online"
 
 msgid "History of %s"
 msgstr "Histórico de %s"
 
-msgid "Identical school phones look the same, so this is a reason to look, not proof of sharing."
-msgstr "Celulares escolares idênticos parecem iguais, então isto é motivo para olhar, não prova de compartilhamento."
 
 msgid "Manage presence devices"
 msgstr "Gerenciar aparelhos de presença"
@@ -35790,8 +35780,6 @@ msgstr "Nenhum participante ativou um celular ainda. Um aparelho aparece aqui qu
 msgid "Nothing changed: someone already answered this, or the device is no longer active."
 msgstr "Nada mudou: alguém já respondeu a isto, ou o aparelho não está mais ativo."
 
-msgid "Nothing needs a look."
-msgstr "Nada precisa de atenção."
 
 msgid "One more device change allowed. The participant can now activate the phone in the app."
 msgstr "Mais uma troca de aparelho liberada. O participante já pode ativar o celular no app."
@@ -35814,8 +35802,6 @@ msgstr "Sinais de aparelho de presença dispensados"
 msgid "Refuse"
 msgstr "Recusar"
 
-msgid "Release"
-msgstr "Liberar"
 
 msgid "Release a phone reserved to another account, allow one more device change, dismiss a shared-signals alert and deactivate a participant's presence device."
 msgstr "Liberar um celular reservado a outra conta, liberar mais uma troca de aparelho, dispensar um alerta de sinais compartilhados e desativar o aparelho de presença de um participante."
@@ -35832,14 +35818,8 @@ msgstr "Substituído por outro celular em %s"
 msgid "Request refused. The participant keeps the device they had."
 msgstr "Pedido recusado. O participante continua com o aparelho que tinha."
 
-msgid "Requests"
-msgstr "Pedidos"
 
-msgid "Scheduling → Presence devices lists the active phones with when each was activated and until when it works offline, and a History per participant with every phone they used and why each one stopped. Deactivate stops a phone at once: its codes are refused from each terminal's next sync and the app asks to activate a phone again. Needs attention holds the requests to answer: Release frees a reserved phone from the other account, Release one change lets one more activation through beyond the limit, and Refuse keeps things as they are. A shared-signals alert can be dismissed, and comes back when another phone reports the same signals. Every answer is in the activity log. The screen needs ffc_manage_audiences_presence."
-msgstr "Agendamento → Aparelhos de presença lista os celulares ativos, com quando cada um foi ativado e até quando funciona sem internet, e um Histórico por participante com todos os celulares que usou e por que cada um parou. Desativar para um celular na hora: os códigos dele são recusados a partir da próxima sincronização de cada terminal, e o app pede para ativar um celular de novo. Precisa de atenção reúne os pedidos a responder: Liberar solta um celular reservado da outra conta, Liberar uma troca deixa passar mais uma ativação além do limite, e Recusar mantém tudo como está. Um alerta de sinais compartilhados pode ser dispensado e volta quando outro celular informar os mesmos sinais. Toda resposta fica no registro de atividades. A tela exige ffc_manage_audiences_presence."
 
-msgid "Signal alerts"
-msgstr "Alertas de sinais"
 
 msgid "The change could not be saved. Try again."
 msgstr "Não foi possível salvar a alteração. Tente de novo."
@@ -35859,10 +35839,6 @@ msgstr "Você não tem permissão para gerenciar aparelhos de presença."
 msgid "open Presence devices: deactivate a participant's phone, release a reserved one, allow one more device change and dismiss shared-signals alerts. Held by the Manager tier and above; existing holders of ffc_manage_audiences received it on update."
 msgstr "abrir Aparelhos de presença: desativar o celular de um participante, liberar um reservado, liberar mais uma troca de aparelho e dispensar alertas de sinais compartilhados. Concedida ao nível Gerente e acima; quem já tinha ffc_manage_audiences a recebeu na atualização."
 
-msgid "%1$d account reports the same device signals: %2$s."
-msgid_plural "%1$d accounts report the same device signals: %2$s."
-msgstr[0] "%1$d conta informa os mesmos sinais de aparelho: %2$s."
-msgstr[1] "%1$d contas informam os mesmos sinais de aparelho: %2$s."
 
 msgid "A terminal holds at most %d events."
 msgstr "Um terminal atende no máximo %d eventos."
@@ -37094,3 +37070,69 @@ msgstr "O link Presenças na linha de uma reserva em Reservas de público abre a
 
 msgid "The Check-in tab starts with the check-in window: Opens is the earliest time Open check-in works, and Closes is when an open check-in closes on its own; by default the window runs from the start of the event to 30 minutes after its end. On an event of several days, each day keeps the same distance from its own start and end, and either time may lie up to 12 hours from the event's hours. Below it come who may check in and the paths the event takes. The times, who and the paths are saved together by Save changes in the side column, which only whoever holds ffc_manage_audiences sees. Who may check in is Enrolled only, the default, or Open: anyone signed in can check in, and the attendance is recorded without enrolling the person, so it is listed as not enrolled, counts toward no attendance rule and earns no post-event invitation. An open event that takes terminals is also listed in the app of every person signed in, so they can show a code for it. The paths are the projected QR code and the terminal; a new event takes the paths set under Scheduling → Settings → Check-in, and an event that already existed has both on. A path that is off refuses its readings: the projected code cannot be shown or scanned, and a terminal cannot hold the event or record a reading for it. With only the terminal on, Open check-in still opens the window the terminals need; with both off, the event takes no check-in and attendance is marked by hand."
 msgstr "A aba Check-in começa pela janela de check-in: Abre é o horário mais cedo em que Abrir check-in funciona, e Fecha é quando um check-in aberto fecha sozinho; por padrão a janela vai do início do evento até 30 minutos depois do fim. Num evento de vários dias, cada dia mantém a mesma distância do seu próprio início e fim, e cada horário pode ficar a até 12 horas do horário do evento. Abaixo vêm quem pode fazer check-in e os caminhos do evento. Os horários, quem e os caminhos são salvos juntos por Salvar alterações na coluna lateral, que só aparece para quem tem ffc_manage_audiences."
+
+msgid "Release requests"
+msgstr "Pedidos de liberação"
+
+msgid "Same-signal alerts"
+msgstr "Alertas de sinais iguais"
+
+msgid "Changes in the last %d days"
+msgstr "Trocas nos últimos %d dias"
+
+msgid "Devices"
+msgstr "Aparelhos"
+
+msgid "Search user"
+msgstr "Buscar usuário"
+
+msgid "Name, username or e-mail"
+msgstr "Nome, usuário ou e-mail"
+
+msgid "No active device belongs to a user matching \"%s\"."
+msgstr "Nenhum aparelho ativo pertence a um usuário que corresponda a \"%s\"."
+
+msgid "Offline until"
+msgstr "Offline até"
+
+msgid "Changes (%d days)"
+msgstr "Trocas (%d dias)"
+
+msgid "%1$d of %2$d"
+msgstr "%1$d de %2$d"
+
+msgid "Deactivating revokes the device's key: terminals refuse its code from their next sync. Every release, refusal and deactivation is written to the activity log."
+msgstr "Desativar revoga a chave do aparelho: os terminais recusam o código dele a partir da próxima sincronização. Cada liberação, recusa e desativação fica no registro de atividades."
+
+msgid "Phone of another account"
+msgstr "Aparelho de outra conta"
+
+msgid "%s tried to activate presence on a phone reserved to another account."
+msgstr "%s tentou ativar a presença num aparelho reservado para outra conta."
+
+msgid "%1$s tried to activate presence on a phone %2$s still uses."
+msgstr "%1$s tentou ativar a presença num aparelho que %2$s ainda usa."
+
+msgid "%1$s tried to activate presence on a phone reserved to %2$s until %3$s."
+msgstr "%1$s tentou ativar a presença num aparelho reservado para %2$s até %3$s."
+
+msgid "Change limit"
+msgstr "Limite de trocas"
+
+msgid "%1$s asked for device change number %2$d in %3$d days."
+msgstr "%1$s pediu a %2$dª troca de aparelho em %3$d dias."
+
+msgid "Release to %s"
+msgstr "Liberar para %s"
+
+msgid "Alert · same signals"
+msgstr "Alerta · sinais iguais"
+
+msgid "The devices of %s report the same signals. It may be the same phone, or two identical school phones."
+msgstr "Os aparelhos de %s têm os mesmos sinais. Pode ser o mesmo celular ou dois celulares iguais da escola."
+
+msgid "Expired on %s; renews when the app goes online"
+msgstr "Vencido em %s; renova quando o app ficar online"
+
+msgid "Scheduling → Presence devices lists the active phones, searchable by user, each with its platform and browser, when it was activated, until when it works offline and how many of the 3 changes allowed in 30 days its owner used, and a History per participant with every phone they used and why each one stopped. Deactivate stops a phone at once: its codes are refused from each terminal's next sync and the app asks to activate a phone again. Needs attention, above the list and only when something waits, holds the requests to answer: Release to the participant frees a phone reserved to another account (the item names that account and until when the phone stays reserved), Release one change lets one more activation through beyond the limit, and Refuse keeps things as they are. A shared-signals alert can be dismissed, and comes back when another phone reports the same signals. Every answer is in the activity log. The screen needs ffc_manage_audiences_presence."
+msgstr "Agendamento → Aparelhos de presença lista os celulares ativos, com busca por usuário, cada um com sua plataforma e navegador, quando foi ativado, até quando funciona sem internet e quantas das 3 trocas permitidas em 30 dias o dono já usou, e um Histórico por participante com todos os celulares que usou e por que cada um parou. Desativar para um celular na hora: os códigos dele são recusados a partir da próxima sincronização de cada terminal, e o app pede para ativar um celular de novo. Precisa de atenção, acima da lista e só quando há algo esperando, reúne os pedidos a responder: Liberar para o participante solta um celular reservado para outra conta (o item diz qual conta e até quando o celular fica reservado), Liberar uma troca deixa passar mais uma ativação além do limite, e Recusar mantém tudo como está. Um alerta de sinais compartilhados pode ser dispensado e volta quando outro celular informar os mesmos sinais. Toda resposta fica no registro de atividades. A tela exige ffc_manage_audiences_presence."
