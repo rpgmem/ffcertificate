@@ -157,6 +157,7 @@ return array(
 	'Shortcodes>Reregistration',
 	'Shortcodes>Scheduling',
 	'Shortcodes>Settings',
+	'Shortcodes>UserDashboard',
 	'Submissions>Core',
 	'Submissions>Integrations',
 	'Submissions>Repositories',

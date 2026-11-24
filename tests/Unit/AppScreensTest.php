@@ -9,6 +9,7 @@ use FreeFormCertificate\Audience\AudienceAppScreens;
 use FreeFormCertificate\Shortcodes\AgendaAppScreen;
 use FreeFormCertificate\Shortcodes\CertificatesAppScreen;
 use FreeFormCertificate\Shortcodes\DashboardAppScreens;
+use FreeFormCertificate\Tests\Support\FakeTerminalTables;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -79,6 +80,7 @@ class AppScreensTest extends TestCase {
 		DashboardAppScreens::init();
 		AudienceAppScreens::init();
 
+		$this->assertSame( 10, has_filter( 'site_pwa_profile_line', array( DashboardAppScreens::class, 'profile_line' ) ), 'the line under the name on More' );
 		$this->assertSame(
 			array(
 				array( 'site_pwa_register_screens', array( DashboardAppScreens::class, 'register' ), 2 ),
@@ -260,6 +262,79 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_pair' ), $registry->added['operator-pair']['render'] );
 		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_terminals' ), $registry->added['operator-terminals']['render'] );
 		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_qr' ), $registry->added['operator-qr']['render'] );
+
+		// More's Operator group (site-pwa#23): every operator screen, each with its line.
+		foreach ( array_keys( $caps ) as $id ) {
+			$this->assertSame( 'operator', $registry->added[ $id ]['section'], $id );
+			$this->assertNotSame( '', $registry->added[ $id ]['subtitle'], $id );
+		}
+		$this->assertArrayNotHasKey( 'section', $registry->added['presence'], 'Presence is in the bar, not in a More group' );
+		$this->assertSame( array( AudienceAppScreens::class, 'terminals_badge' ), $registry->added['operator-terminals']['badge'] );
+		$this->assertArrayNotHasKey( 'badge', $registry->added['operator-pair'] );
+	}
+
+	public function test_my_terminals_counts_the_operators_active_terminals_and_those_not_heard_from(): void {
+		$tables = new FakeTerminalTables();
+		$row    = static fn( int $id, int $by, ?int $seen, ?int $revoked = null, int $expires = 2000 ): array => array(
+			'id'             => $id,
+			'token_hash'     => 't' . $id,
+			'device_hash'    => 'd' . $id,
+			'label'          => 'T' . $id,
+			'bookings'       => '[]',
+			'removed'        => '{}',
+			'paired_by'      => $by,
+			'paired_at'      => $id,
+			'expires_at'     => $expires,
+			'last_seen_at'   => $seen,
+			'queued'         => 0,
+			'readings'       => 0,
+			'auto_end_hours' => null,
+			'revoked_at'     => $revoked,
+			'revoked_by'     => null,
+		);
+		$had    = array_key_exists( 'wpdb', $GLOBALS );
+		$backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = $tables;
+		try {
+			$this->assertSame( '', AudienceAppScreens::terminals_badge( 1000, 7 ), 'no active terminal, no badge' );
+
+			$tables->terminals = array(
+				1 => $row( 1, 7, 990 ),          // heard from 10 s ago: online.
+				2 => $row( 2, 7, 500 ),          // silent for 500 s: offline.
+				3 => $row( 3, 7, null ),         // never heard from: offline.
+				4 => $row( 4, 7, 999, 900 ),     // ended by hand: not counted.
+				5 => $row( 5, 7, 999, null, 900 ), // expired: not counted.
+				6 => $row( 6, 8, 999 ),          // another operator's.
+			);
+			$this->assertSame( '3 active · 2 offline', AudienceAppScreens::terminals_badge( 1000, 7 ) );
+			$this->assertSame( '1 active · 0 offline', AudienceAppScreens::terminals_badge( 1000, 8 ) );
+			$this->assertSame( '', AudienceAppScreens::terminals_badge( 1000, 0 ), 'signed out' );
+		} finally {
+			if ( $had ) {
+				$GLOBALS['wpdb'] = $backup;
+			} else {
+				unset( $GLOBALS['wpdb'] );
+			}
+		}
+	}
+
+	public function test_the_profile_line_shows_the_masked_rf_and_the_department(): void {
+		$this->assertSame( 'RF ***.**1-0 · Teaching', DashboardAppScreens::line( ' ***.**1-0 ', 'Teaching' ) );
+		$this->assertSame( 'RF ***.**1-0', DashboardAppScreens::line( '***.**1-0', '' ) );
+		$this->assertSame( 'Teaching', DashboardAppScreens::line( null, 'Teaching' ) );
+		$this->assertSame( '', DashboardAppScreens::line( null, array() ) );
+
+		$this->assertSame( 'set by another plugin', DashboardAppScreens::profile_line( 'set by another plugin', new \WP_User( 7 ) ), 'a line already set is kept' );
+		$this->assertSame( '', DashboardAppScreens::profile_line( '', null ) );
+		$this->assertSame( 42, DashboardAppScreens::profile_line( 42, new \WP_User( 7 ) ) );
+	}
+
+	public function test_reregistration_shows_no_badge_while_the_module_is_off_or_nobody_is_signed_in(): void {
+		$this->assertSame( '', DashboardAppScreens::reregistration_badge( 7 ) );
+		$this->settings['module_reregistration_enabled'] = true;
+		$this->assertSame( '', DashboardAppScreens::reregistration_badge( 0 ) );
+		$this->assertSame( array( DashboardAppScreens::class, 'reregistration_badge' ), DashboardAppScreens::definitions()['reregistration']['badge'] );
+		$this->assertNotSame( '', DashboardAppScreens::definitions()['reregistration']['subtitle'] );
 	}
 
 	public function test_the_presence_screen_draws_its_markup_and_hands_the_script_what_it_needs(): void {

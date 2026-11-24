@@ -37080,3 +37080,27 @@ msgstr ""
 
 msgid "The app's Home shows what the plugin knows is next for the person: \"Attendance confirmed at\" an event recorded in the last 7 days, as a line they can dismiss; their next booking in the coming 7 days, with Presence QR and Details; and, under Pending, each post-event form still open, each reregistration they can still submit with its deadline, and a certificate issued in the last 7 days. Each item opens the matching screen, and one the account cannot open is left out."
 msgstr ""
+
+msgid "Link a tablet to your events"
+msgstr ""
+
+msgid "Check-in tablets you paired"
+msgstr ""
+
+msgid "Unlock a terminal"
+msgstr ""
+
+msgid "Mark attendance by hand"
+msgstr ""
+
+msgid "Keep your registration up to date"
+msgstr ""
+
+msgid "RF %s"
+msgstr ""
+
+msgid "%1$d active · %2$d offline"
+msgstr ""
+
+msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says."
+msgstr ""
