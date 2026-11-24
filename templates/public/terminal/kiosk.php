@@ -58,6 +58,7 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 
 	<p class="ffc-terminal-status" role="status" aria-live="polite" data-ffc-terminal-part="status"></p>
 	<p class="ffc-terminal-error" role="alert" data-ffc-terminal-part="error" hidden></p>
+	<p class="ffc-terminal-error ffc-terminal-offline" role="status" data-ffc-terminal-part="offline" hidden></p>
 
 	<form class="ffc-terminal-reader" data-ffc-terminal-part="reading-form" novalidate>
 		<label for="ffc-terminal-reading"><?php esc_html_e( 'Code read', 'ffcertificate' ); ?></label>

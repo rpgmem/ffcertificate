@@ -335,7 +335,20 @@
                 placeCamera();
                 autoCamera();
             }
+            offlineNote();
             tickClock();
+        }
+
+        // Offline and unpaired: pairing needs the site, so the screen says so
+        // instead of letting a code fail for a reason it does not name (#2783).
+        function offlineNote() {
+            var note = part('offline');
+            if (!note) {
+                return;
+            }
+            var visible = !current() && !online() && ('pairing' === screen || 'idle' === screen);
+            note.textContent = visible ? (strings.offlinePairing || '') : '';
+            note.hidden = !visible;
         }
 
         function head(title, sub, note) {
@@ -1770,10 +1783,15 @@
         env.setInterval(refreshRevocations, REVOCATIONS_MS);
         if (env.onOnline) {
             env.onOnline(function () {
+                offlineNote();
                 sync();
                 refreshRevocations();
                 refreshSchedule();
             });
+        }
+
+        if (env.onOffline) {
+            env.onOffline(offlineNote);
         }
 
         var state = current();
@@ -1799,7 +1817,37 @@
         return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, startSetup: startSetup, finishSetup: finishSetup, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 
+    /**
+     * Register the worker that keeps the page shell (#2783), then hand it the
+     * addresses this page loaded, which are the exact versions to keep. No
+     * worker where the site offers none (the query form) or the browser has
+     * none; a failure leaves the page working online as before.
+     *
+     * @param {object} config ffcTerminal.
+     * @param {object} env    navigator.serviceWorker and the page's asset addresses.
+     * @returns {Promise<boolean>} Whether the shell was handed over.
+     */
+    function registerShell(config, env) {
+        var container = env && env.serviceWorker;
+        if (!config || !config.worker || !container || !env.secure) {
+            return Promise.resolve(false);
+        }
+        return container.register(config.worker).then(function () {
+            return container.ready;
+        }).then(function (registration) {
+            var worker = registration && registration.active;
+            if (!worker) {
+                return false;
+            }
+            worker.postMessage({ type: 'ffc-terminal-keep', urls: env.assets() });
+            return true;
+        }).catch(function () {
+            return false;
+        });
+    }
+
     root.FFCTerminal = {
+        registerShell: registerShell,
         cleanCode: cleanCode,
         cleanReading: cleanReading,
         clock: clock,
@@ -1834,6 +1882,7 @@
                 BarcodeDetector: root.BarcodeDetector,
                 mediaDevices: root.navigator.mediaDevices,
                 onOnline: function (fn) { root.addEventListener('online', fn); },
+                onOffline: function (fn) { root.addEventListener('offline', fn); },
                 wakeLock: root.navigator.wakeLock,
                 userAgent: root.navigator.userAgent,
                 visible: function () { return 'visible' === root.document.visibilityState; },
@@ -1843,6 +1892,18 @@
                             fn();
                         }
                     });
+                }
+            });
+            registerShell(root.ffcTerminal, {
+                serviceWorker: root.navigator.serviceWorker,
+                secure: !!root.isSecureContext,
+                assets: function () {
+                    var urls = [root.location.href];
+                    var nodes = root.document.querySelectorAll('link[rel="stylesheet"][href], link[rel="manifest"][href], script[src]');
+                    for (var i = 0; i < nodes.length; i++) {
+                        urls.push(nodes[i].href || nodes[i].src);
+                    }
+                    return urls;
                 }
             });
         };

@@ -39,6 +39,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Presence terminals follows the approved screen** (#2782): *Pair terminal* beside the title pairs one from wp-admin (events, name, when it ends by itself; the one-time code as a QR, shown once and never kept), the Queue column reads "One event" / "3 events · Room 3" with *Edit queue*, Seen reads "now" / "14 mins ago", every state is a pill with a dot, *End* becomes *Revoke* and a revoked terminal names who revoked it.
 - **Check-in settings follow the approved screen** (#2782): five sections (paths, terminals with "Today: n of 10", QR reading, pairing lock, presence devices with *See devices and releases*), *End by itself after the end* as a 1 / 2 / 4 h select, and one *Save changes* button instead of the autosave, which no longer accepts those keys.
 - **An event's Check-in tab follows the approved screen** (#2782): an editable check-in window (opens / closes, kept per event as a distance from each day's hours; check-in cannot open before it), the paths with the terminals under the terminal path, and a side column with Save, attendance by path and the unsent-readings warning.
+- **The check-in terminal opens without a connection** (#2783). With pretty permalinks, a worker scoped to `/terminal/` keeps the page shell (network first, versioned by the plugin version, old copies deleted), never a REST answer; a paired terminal reopened offline goes back to reading, and an unpaired one says pairing needs a connection.
 
 ### Security
 

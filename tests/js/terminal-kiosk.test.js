@@ -26,6 +26,7 @@ const CONFIG = {
 	rest: 'https://example.com/wp-json/ffc/v1/terminal/',
 	strings: {
 		idleRefused: 'idle refused',
+		offlinePairing: 'pairing needs a connection',
 		storage: 'storage',
 		pairing: 'pairing',
 		paired: 'paired',
@@ -108,6 +109,7 @@ function markup() {
 			</header>
 			<p data-ffc-terminal-part="status"></p>
 			<p data-ffc-terminal-part="error" hidden></p>
+			<p data-ffc-terminal-part="offline" hidden></p>
 			<form data-ffc-terminal-part="reading-form"><input data-ffc-terminal-part="reading"><button type="submit">Check in</button></form>
 			<section data-ffc-terminal-view="idle" hidden></section>
 			<section data-ffc-terminal-view="pairing" hidden>
@@ -1540,3 +1542,59 @@ describe('device check', () => {
 	});
 });
 
+
+describe('offline shell (#2783)', () => {
+	beforeEach(markup);
+
+	it('says pairing needs a connection on an unpaired terminal that is offline, and clears it once online', () => {
+		const el = document.querySelector('[data-ffc-terminal]');
+		const handlers = {};
+		let up = false;
+		const controls = T().start(el, CONFIG, env({
+			online: () => up,
+			onOnline: (fn) => { handlers.online = fn; },
+			onOffline: (fn) => { handlers.offline = fn; },
+		}));
+		const note = el.querySelector('[data-ffc-terminal-part="offline"]');
+		expect(controls.screen()).toBe('idle');
+		expect(note.hidden).toBe(false);
+		expect(note.textContent).toBe('pairing needs a connection');
+
+		up = true;
+		handlers.online();
+		expect(note.hidden).toBe(true);
+		expect(note.textContent).toBe('');
+
+		up = false;
+		handlers.offline();
+		expect(note.hidden).toBe(false);
+	});
+
+	it('registers the worker and hands it the page\'s assets', async () => {
+		const posted = [];
+		const registered = [];
+		const container = {
+			register: (url) => { registered.push(url); return Promise.resolve({}); },
+			ready: Promise.resolve({ active: { postMessage: (m) => posted.push(m) } }),
+		};
+		const done = await T().registerShell({ worker: 'https://example.com/terminal/sw.js' }, {
+			serviceWorker: container,
+			secure: true,
+			assets: () => ['https://example.com/terminal/', 'https://example.com/a.js'],
+		});
+		expect(done).toBe(true);
+		expect(registered).toEqual(['https://example.com/terminal/sw.js']);
+		expect(posted).toEqual([{ type: 'ffc-terminal-keep', urls: ['https://example.com/terminal/', 'https://example.com/a.js'] }]);
+	});
+
+	it('registers nothing without a worker address, a worker API or a secure page, and survives a refusal', async () => {
+		const container = { register: () => Promise.reject(new Error('denied')), ready: Promise.resolve(null) };
+		const assets = () => [];
+		expect(await T().registerShell({ worker: '' }, { serviceWorker: container, secure: true, assets })).toBe(false);
+		expect(await T().registerShell({ worker: '/terminal/sw.js' }, { secure: true, assets })).toBe(false);
+		expect(await T().registerShell({ worker: '/terminal/sw.js' }, { serviceWorker: container, secure: false, assets })).toBe(false);
+		expect(await T().registerShell({ worker: '/terminal/sw.js' }, { serviceWorker: container, secure: true, assets })).toBe(false);
+		const inactive = { register: () => Promise.resolve({}), ready: Promise.resolve({ active: null }) };
+		expect(await T().registerShell({ worker: '/terminal/sw.js' }, { serviceWorker: inactive, secure: true, assets })).toBe(false);
+	});
+});
