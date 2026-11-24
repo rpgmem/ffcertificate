@@ -10,6 +10,9 @@
  * keeps the active tab in sync with a `#ffc-tab-<key>` URL hash so a panel
  * can be deep-linked and survives reload / back-forward.
  *
+ * A card in the editor's side column that carries `data-ffc-vtab-only`
+ * shows only while one of the tabs it names is open.
+ *
  * When the layout tab becomes visible it refreshes any CodeMirror instance
  * inside it — CodeMirror mis-measures its gutters when initialised in a
  * `display:none` panel, so it needs a refresh once shown.
@@ -123,10 +126,27 @@
 				}
 			} );
 
+			if ( matched ) {
+				toggleSideCards( key );
+			}
 			if ( matched && opts.updateHash ) {
 				updateHash( key );
 			}
 			return matched;
+		}
+
+		/**
+		 * Show only the side-column cards that belong to the open tab. A card
+		 * names its tabs, space-separated, in `data-ffc-vtab-only` (#2782);
+		 * without the script every card shows.
+		 *
+		 * @param {string} key
+		 */
+		function toggleSideCards( key ) {
+			$container.closest( '.ffc-editor' ).find( '[data-ffc-vtab-only]' ).each( function () {
+				var keys = String( $( this ).attr( 'data-ffc-vtab-only' ) || '' ).split( /\s+/ );
+				this.hidden = keys.indexOf( key ) === -1;
+			} );
 		}
 
 		function updateHash( key ) {

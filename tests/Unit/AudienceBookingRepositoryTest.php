@@ -1032,14 +1032,25 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertTrue($result);
 	}
 
-	public function test_a_check_in_switch_writes_one_column_and_refuses_any_other(): void {
+	public function test_the_check_in_tab_writes_its_settings_in_one_row_and_keeps_defaults_null(): void {
 		$this->wpdb->shouldReceive('update')
 			->once()
-			->with('wp_ffc_audience_bookings', array('checkin_terminal' => 0), array('id' => 4), array('%d'), array('%d'))
+			->with(
+				'wp_ffc_audience_bookings',
+				array(
+					'checkin_open'         => 1,
+					'checkin_qr'           => 0,
+					'checkin_terminal'     => 1,
+					'checkin_opens_before' => null,
+					'checkin_closes_after' => 720,
+				),
+				array('id' => 4),
+				array('%d', '%d', '%d', '%d', '%d'),
+				array('%d')
+			)
 			->andReturn(1);
 
-		$this->assertTrue(AudienceBookingWriter::set_checkin(4, 'checkin_terminal', false));
-		$this->assertFalse(AudienceBookingWriter::set_checkin(4, 'status', true), 'Only the check-in columns can be switched.');
+		$this->assertTrue(AudienceBookingWriter::set_checkin_settings(4, array('checkin_open' => true, 'checkin_terminal' => true, 'status' => true), 0, 5000));
 	}
 
 	public function test_update_returns_false_when_the_database_refuses_the_write(): void {

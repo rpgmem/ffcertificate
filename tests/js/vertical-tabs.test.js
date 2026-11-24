@@ -202,6 +202,27 @@ describe('FFC.VerticalTabs.init', () => {
 		expect(refresh).toHaveBeenCalled();
 	});
 
+	it('shows only the side-column cards that name the open tab (#2782)', () => {
+		buildTabs();
+		const tabs = document.body.innerHTML;
+		document.body.innerHTML =
+			'<div class="ffc-editor"><div class="ffc-editor__main">' + tabs + '</div>' +
+			'<div class="ffc-editor__side">' +
+			'<div id="side-email" data-ffc-vtab-only="email"></div>' +
+			'<div id="side-other" data-ffc-vtab-only="layout geolocation"></div>' +
+			'<div id="side-all"></div>' +
+			'</div></div>';
+		window.FFC.VerticalTabs.init();
+
+		expect(document.getElementById('side-email').hidden).toBe(true);
+		expect(document.getElementById('side-other').hidden).toBe(false);
+
+		tab('email').trigger('click');
+		expect(document.getElementById('side-email').hidden).toBe(false);
+		expect(document.getElementById('side-other').hidden).toBe(true);
+		expect(document.getElementById('side-all').hidden).toBe(false);
+	});
+
 	it('is a no-op when no tab container is present', () => {
 		document.body.innerHTML = '<div>no tabs here</div>';
 		expect(() => window.FFC.VerticalTabs.init()).not.toThrow();

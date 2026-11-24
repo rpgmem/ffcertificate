@@ -326,7 +326,7 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		$booking = $this->registered( 'audience_booking' );
 		$this->assertSame( 'ffc_manage_audiences', $booking['cap'] );
 		$this->assertSame(
-			array( 'attendance_mode', 'attendance_min_percent', 'post_event_custom', 'post_event_form_id', 'post_event_window_days', 'post_event_attendees_only', 'checkin_open', 'checkin_qr', 'checkin_terminal' ),
+			array( 'attendance_mode', 'attendance_min_percent', 'post_event_custom', 'post_event_form_id', 'post_event_window_days', 'post_event_attendees_only' ),
 			array_keys( $booking['fields'] )
 		);
 		$this->assertSame( 1, $booking['fields']['attendance_min_percent']['min'] );
@@ -398,20 +398,6 @@ class RecordAutosaveEntitiesTest extends TestCase {
 
 		$this->assertTrue( AudienceRecordAutosave::save_booking( 5, 'attendance_mode', 'total' ) );
 		$this->assertSame( array( 'attendance_mode' => 'total', 'attendance_min_percent' => 75 ), $this->booking_write() );
-	}
-
-	public function test_a_check_in_switch_writes_its_own_column_only(): void {
-		$this->booking_world( array() );
-
-		$this->assertTrue( AudienceRecordAutosave::save_booking( 5, 'checkin_open', 1 ) );
-		$this->assertSame( array( 'checkin_open' => 1 ), $this->booking_write() );
-	}
-
-	public function test_turning_a_check_in_path_off_writes_zero(): void {
-		$this->booking_world( array() );
-
-		$this->assertTrue( AudienceRecordAutosave::save_booking( 5, 'checkin_terminal', 0 ) );
-		$this->assertSame( array( 'checkin_terminal' => 0 ), $this->booking_write() );
 	}
 
 	public function test_a_share_typed_saves_under_share_of_days(): void {

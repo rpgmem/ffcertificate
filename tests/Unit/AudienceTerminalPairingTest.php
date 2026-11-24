@@ -536,6 +536,16 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 'ffc_terminal_overlap', AudienceTerminalPairing::create_code( self::OPERATOR, array( 37, 38 ), '', self::NOW )->get_error_code() );
 	}
 
+	public function test_the_planned_window_follows_the_times_the_event_sets(): void {
+		$this->booking( 39, '2027-01-16', 'active', '10:00:00', '11:00:00' );
+		$this->bookings[39]->checkin_opens_before = 30;
+		$this->bookings[39]->checkin_closes_after = 0;
+
+		$windows = \FreeFormCertificate\Audience\AudienceTerminalSchedule::windows( $this->bookings[39] );
+		$this->assertSame( gmmktime( 9, 30, 0, 1, 16, 2027 ), $windows[0]['opens'] );
+		$this->assertSame( gmmktime( 11, 0, 0, 1, 16, 2027 ), $windows[0]['closes'] );
+	}
+
 	public function test_an_operator_changes_the_events_of_their_terminal(): void {
 		$paired = $this->paired( array( 11 ), self::DEVICE );
 		$id     = $paired['terminal_id'];

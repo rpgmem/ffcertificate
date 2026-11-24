@@ -40,31 +40,93 @@
     font-weight: 600;
 }
 
-/* The Check-in tab's paths, terminals and count by path (#2748). */
-.ffc-page-scheduling-attendance .ffc-checkin-paths {
+/* The Check-in tab (#2748, #2782): the window's times, the paths with the
+   terminals under the terminal path, and who is present in the side column. */
+.ffc-page-scheduling-attendance .ffc-checkin-times {
     display: flex;
-    flex-direction: column;
-    gap: var(--ffc-spacing-sm);
-    margin: var(--ffc-spacing-lg) 0;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-lg);
 }
 
-.ffc-page-scheduling-attendance .ffc-checkin-paths legend {
-    margin: 0 0 var(--ffc-spacing-2xs);
-    font-weight: 600;
-}
-
-.ffc-page-scheduling-attendance .ffc-checkin-terminals,
-.ffc-page-scheduling-attendance .ffc-checkin-by-path {
+.ffc-page-scheduling-attendance .ffc-checkin-time {
     display: flex;
     flex-direction: column;
     gap: var(--ffc-spacing-2xs);
-    margin: 0 0 var(--ffc-spacing-lg);
+    margin: 0;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-time label {
+    font-weight: 600;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-path {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-sm);
+    margin: var(--ffc-spacing-lg) 0 0;
+    padding: var(--ffc-spacing-lg) 0 0;
+    border-top: 1px solid var(--ffc-border-light);
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-terminals {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+    margin: 0;
     padding: 0;
     list-style: none;
 }
 
+.ffc-page-scheduling-attendance .ffc-checkin-terminals li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-md);
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-terminal-name {
+    min-width: 0;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-terminal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    margin: 0;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-terminal-count {
+    color: var(--ffc-text-muted);
+}
+
 .ffc-page-scheduling-attendance .ffc-checkin-terminal-queued {
     color: var(--ffc-warning-text);
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-save .ffc-btn {
+    width: 100%;
+    justify-content: center;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-now-total {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ffc-spacing-xs);
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-now-total strong {
+    font-size: var(--ffc-font-size-2xl);
+    line-height: 1;
+}
+
+.ffc-page-scheduling-attendance .ffc-checkin-now-total span {
+    color: var(--ffc-text-muted);
 }
 
 .ffc-page-scheduling-attendance .ffc-attendance-count {

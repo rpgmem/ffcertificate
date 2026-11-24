@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '21';
+	public const SCHEMA_REVISION = '22';
 
 	/**
 	 * Option holding the revision last applied.
@@ -385,6 +385,8 @@ class AudienceActivator {
             checkin_open tinyint(1) NOT NULL DEFAULT 0,
             checkin_qr tinyint(1) NOT NULL DEFAULT 1,
             checkin_terminal tinyint(1) NOT NULL DEFAULT 1,
+            checkin_opens_before smallint(6) DEFAULT NULL COMMENT 'Minutes the check-in window opens before each day starts',
+            checkin_closes_after smallint(6) DEFAULT NULL COMMENT 'Minutes the check-in window closes after each day ends',
             PRIMARY KEY (id),
             KEY idx_date (booking_date),
             KEY idx_status (status),
@@ -1118,6 +1120,7 @@ class AudienceActivator {
 		$healed = self::migrate_booking_series_column() && $healed;
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_booking_checkin_columns() && $healed;
+		$healed = self::migrate_booking_checkin_window_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
 		$healed = self::migrate_holiday_kind_column() && $healed;
 		$healed = self::migrate_schedule_appearance_names_column() && $healed;
@@ -1497,6 +1500,27 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'checkin_terminal', 'tinyint(1) NOT NULL DEFAULT 1', 'checkin_qr' );
 
 		return self::has_columns( $table_name, array( 'checkin_open', 'checkin_qr', 'checkin_terminal' ) );
+	}
+
+	/**
+	 * When an event's check-in window opens and closes (#2782), as minutes
+	 * before each day starts and after it ends. NULL reads as the window every
+	 * event had before: from the start until 30 minutes after the end.
+	 *
+	 * @return bool Whether the table now has both columns, or does not exist yet.
+	 */
+	private static function migrate_booking_checkin_window_columns(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'checkin_opens_before', 'smallint(6) DEFAULT NULL', 'checkin_terminal' );
+		self::add_column_if_missing( $table_name, 'checkin_closes_after', 'smallint(6) DEFAULT NULL', 'checkin_opens_before' );
+
+		return self::has_columns( $table_name, array( 'checkin_opens_before', 'checkin_closes_after' ) );
 	}
 
 	/**

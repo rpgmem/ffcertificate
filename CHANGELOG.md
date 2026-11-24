@@ -36,6 +36,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The app's Calendar screen follows the approved screen** (#2781): *My bookings* / *Book*, the month, day cards with today highlighted, status and attendance chips, the presence code, post-event form and receipt inline, the past folded, a dashed *New booking*. It reads the dashboard's two routes; outside the app nothing changes.
 - **A terminal without events rests locked** (#2794). Unpaired, or paired with an empty queue, it shows *Terminal without events* with the lock; an operator QR opens setup or the menu, a participant code is refused, and the pairing-code field sits behind *I have a pairing code* on the unlock prompt.
 - **The app's operator screens follow the approved screens** (#2781): *Pair terminal* switches between *Choose events* and *By place*, chooses *End by itself after the end* (1 h / 2 h / 4 h, stored per pairing as `auto_end_hours`, schema revision 21) and shows the code beside a summary, *Expires in m:ss · single use*; *My terminals* and *Operator QR* take the same cards.
+- Audience event Check-in tab follows the approved screen: an editable check-in window (opens / closes, kept per event as a distance from each day's hours; check-in cannot open before it), the paths with the terminals under the terminal path, and a side column with Save, attendance by path and the unsent-readings warning (#2782).
 
 ### Security
 

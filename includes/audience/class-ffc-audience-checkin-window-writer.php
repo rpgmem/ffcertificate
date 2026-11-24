@@ -27,31 +27,58 @@ class AudienceCheckinWindowWriter {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
 	/**
-	 * How long after the day's end time a window closes by itself.
+	 * How long after the day's end time a window closes by itself, when the
+	 * event sets no time of its own.
 	 *
 	 * @var int
 	 */
-	public const AUTO_CLOSE_GRACE = 1800;
+	public const AUTO_CLOSE_GRACE = AudienceCheckinPolicy::CLOSES_AFTER * 60;
 
 	/**
-	 * When a window opened for one day of a booking closes by itself: 30
-	 * minutes after that day's end time, read in the site's timezone. An
-	 * all-day booking ends at 23:59.
+	 * When a window opened for one day of a booking closes by itself: the
+	 * event's closing distance after that day's end time (30 minutes unless
+	 * the event sets its own, #2782), read in the site's timezone. An all-day
+	 * booking ends at 23:59.
 	 *
 	 * @param object $booking Booking row.
 	 * @param string $date    Day (Y-m-d).
 	 * @return int Unix time.
 	 */
 	public static function auto_close_at( object $booking, string $date ): int {
-		$end = ! empty( $booking->is_all_day ) ? '23:59' : AudienceBookingRules::stored_day_times( $booking, $date )['end_time'];
-		if ( ! preg_match( '/^\d{2}:\d{2}$/', $end ) ) {
-			$end = '23:59';
+		return self::day_moment( $booking, $date, 'end_time' ) + AudienceCheckinPolicy::closes_after( $booking ) * 60;
+	}
+
+	/**
+	 * The earliest moment check-in may open for one day of a booking: the
+	 * event's opening distance before that day's start (the start itself
+	 * unless the event sets its own, #2782). An all-day booking starts at
+	 * midnight.
+	 *
+	 * @param object $booking Booking row.
+	 * @param string $date    Day (Y-m-d).
+	 * @return int Unix time.
+	 */
+	public static function planned_open_at( object $booking, string $date ): int {
+		return self::day_moment( $booking, $date, 'start_time' ) - AudienceCheckinPolicy::opens_before( $booking ) * 60;
+	}
+
+	/**
+	 * A day's start or end time as a moment in the site's timezone.
+	 *
+	 * @param object $booking Booking row.
+	 * @param string $date    Day (Y-m-d).
+	 * @param string $which   `start_time` or `end_time`.
+	 * @return int Unix time.
+	 */
+	public static function day_moment( object $booking, string $date, string $which ): int {
+		$fallback = 'start_time' === $which ? '00:00' : '23:59';
+		$time     = ! empty( $booking->is_all_day ) ? $fallback : (string) ( AudienceBookingRules::stored_day_times( $booking, $date )[ $which ] ?? '' );
+		if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
+			$time = $fallback;
 		}
 
-		$moment = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i', $date . ' ' . $end, wp_timezone() );
-		$base   = false === $moment ? time() : $moment->getTimestamp();
-
-		return $base + self::AUTO_CLOSE_GRACE;
+		$moment = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i', $date . ' ' . $time, wp_timezone() );
+		return false === $moment ? time() : $moment->getTimestamp();
 	}
 
 	/**

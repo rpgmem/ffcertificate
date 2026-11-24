@@ -204,6 +204,47 @@ class AudienceAdminAttendance {
 	}
 
 	/**
+	 * The window's distances from the day's hours, from the two times typed
+	 * for the day shown (#2782). Null when a time is missing or malformed,
+	 * or when either end sits further from the day's hours than
+	 * {@see AudienceCheckinPolicy::OFFSET_MAX}. A closing time earlier in the
+	 * day than the opening one is read as past midnight.
+	 *
+	 * @param object $booking Booking row.
+	 * @param string $date    Day the times were typed for (Y-m-d).
+	 * @param string $opens   Opening time (H:i).
+	 * @param string $closes  Closing time (H:i).
+	 * @return array{opens_before: int, closes_after: int}|null
+	 */
+	public static function window_offsets( object $booking, string $date, string $opens, string $closes ): ?array {
+		if ( ! preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $opens ) || ! preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $closes ) ) {
+			return null;
+		}
+		$zone  = wp_timezone();
+		$open  = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i', $date . ' ' . $opens, $zone );
+		$close = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i', $date . ' ' . $closes, $zone );
+		if ( false === $open || false === $close ) {
+			return null;
+		}
+		$open_at  = $open->getTimestamp();
+		$close_at = $close->getTimestamp();
+		if ( $close_at <= $open_at ) {
+			$close_at += DAY_IN_SECONDS;
+		}
+
+		$before = intdiv( AudienceCheckinWindowWriter::day_moment( $booking, $date, 'start_time' ) - $open_at, 60 );
+		$after  = intdiv( $close_at - AudienceCheckinWindowWriter::day_moment( $booking, $date, 'end_time' ), 60 );
+		if ( abs( $before ) > AudienceCheckinPolicy::OFFSET_MAX || abs( $after ) > AudienceCheckinPolicy::OFFSET_MAX ) {
+			return null;
+		}
+
+		return array(
+			'opens_before' => $before,
+			'closes_after' => $after,
+		);
+	}
+
+	/**
 	 * Carry out one write.
 	 *
 	 * @param string $action  Action.
@@ -228,6 +269,9 @@ class AudienceAdminAttendance {
 				$closes = AudienceCheckinWindowWriter::auto_close_at( $booking, $date );
 				if ( $closes <= $now ) {
 					return 'ended';
+				}
+				if ( AudienceCheckinWindowWriter::planned_open_at( $booking, $date ) > $now ) {
+					return 'too_early';
 				}
 				$known    = array_map( static fn( array $l ): string => (string) ( $l['id'] ?? '' ), \FreeFormCertificate\Security\GeofenceLocationRegistry::get_all() );
 				$geofence = array_values( array_intersect( RequestInput::get_post_array( 'geofence_locations' ), $known ) );
@@ -266,6 +310,25 @@ class AudienceAdminAttendance {
 
 			case 'unmark':
 				return AudienceAttendanceWriter::remove( $booking_id, RequestInput::get_post_int( 'unmark_user' ), $date ) ? 'unmarked' : 'failed';
+
+			case 'checkin':
+				if ( ! Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+					return 'denied';
+				}
+				$offsets = self::window_offsets( $booking, $date, RequestInput::get_post_string( 'checkin_opens' ), RequestInput::get_post_string( 'checkin_closes' ) );
+				if ( null === $offsets ) {
+					return 'window_invalid';
+				}
+				return AudienceBookingWriter::set_checkin_settings(
+					$booking_id,
+					array(
+						'checkin_open'     => '1' === RequestInput::get_post_string( 'checkin_open' ),
+						'checkin_qr'       => isset( $_POST['checkin_qr'] ), // phpcs:ignore WordPress.Security.NonceVerification.Missing -- handle_actions() verified the nonce before dispatching here.
+						'checkin_terminal' => isset( $_POST['checkin_terminal'] ), // phpcs:ignore WordPress.Security.NonceVerification.Missing -- handle_actions() verified the nonce before dispatching here.
+					),
+					$offsets['opens_before'],
+					$offsets['closes_after']
+				) ? 'checkin_saved' : 'failed';
 
 			case 'rule':
 				if ( ! Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
@@ -334,6 +397,9 @@ class AudienceAdminAttendance {
 			'marked'              => array( __( 'Attendance marked.', 'ffcertificate' ), 'success' ),
 			'unmarked'            => array( __( 'Attendance removed.', 'ffcertificate' ), 'success' ),
 			'rule_saved'          => array( __( 'Attendance rule saved.', 'ffcertificate' ), 'success' ),
+			'checkin_saved'       => array( __( 'Check-in settings saved.', 'ffcertificate' ), 'success' ),
+			'window_invalid'      => array( __( 'The check-in window was not saved: each time must lie within 12 hours of the event\'s hours.', 'ffcertificate' ), 'error' ),
+			'too_early'           => array( __( 'Check-in cannot be opened yet: its window starts later today.', 'ffcertificate' ), 'warning' ),
 			'post_event_saved'    => array( __( 'Post-event form saved.', 'ffcertificate' ), 'success' ),
 			'invite_sent'         => array( __( 'Invitation sent.', 'ffcertificate' ), 'success' ),
 			'invite_queued'       => array( __( 'Invitations are being sent to everyone eligible who has not answered. A large booking takes a few minutes.', 'ffcertificate' ), 'success' ),
@@ -388,7 +454,7 @@ class AudienceAdminAttendance {
 			echo '<div class="notice notice-' . esc_attr( $message[1] ) . ' is-dismissible"><p>' . esc_html( $message[0] ) . '</p></div>';
 		}
 
-		echo '<p class="ffc-attendance-event"><strong>' . esc_html( (string) ( $booking->description ?? '' ) ) . '</strong> · ' . esc_html( (string) ( $booking->environment_name ?? '' ) ) . '</p>';
+		echo '<p class="ffc-attendance-event"><strong>' . esc_html( (string) ( $booking->description ?? '' ) ) . '</strong> · ' . esc_html( self::event_line( $booking, $date, (int) $roster['total'] ) ) . '</p>';
 
 		if ( count( $days ) > 1 ) {
 			$this->render_day_picker( (int) ( $booking->id ?? 0 ), $days, $date );
@@ -421,8 +487,41 @@ class AudienceAdminAttendance {
 		}
 		AudienceEditorTabs::close();
 		echo '</div><div class="ffc-editor__side">';
+		$this->render_checkin_side( $booking, $date, $roster, $now );
 		$this->render_summary_card( $booking, $date, $today, $roster, $window, $now );
 		echo '</div></div></div></div>';
+	}
+
+	/**
+	 * The line under the event's name: place, day, hours and how many are
+	 * expected (#2782).
+	 *
+	 * @param object $booking Booking row.
+	 * @param string $date    Day shown.
+	 * @param int    $total   People expected.
+	 * @return string
+	 */
+	public static function event_line( object $booking, string $date, int $total ): string {
+		$parts = array();
+		$place = trim( (string) ( $booking->environment_name ?? '' ) );
+		if ( '' !== $place ) {
+			$parts[] = $place;
+		}
+		$parts[] = DateFormatter::format_wallclock_date( $date );
+		if ( ! empty( $booking->is_all_day ) ) {
+			$parts[] = __( 'All day', 'ffcertificate' );
+		} else {
+			$times = AudienceBookingRules::stored_day_times( $booking, $date );
+			$start = DateFormatter::format_wallclock_time( (string) ( $times['start_time'] ?? '' ) . ':00' );
+			$end   = DateFormatter::format_wallclock_time( (string) ( $times['end_time'] ?? '' ) . ':00' );
+			if ( '' !== $start ) {
+				$parts[] = '' === $end ? $start : $start . '–' . $end;
+			}
+		}
+		/* translators: %s: number of people expected */
+		$parts[] = sprintf( _n( '%s expected', '%s expected', $total, 'ffcertificate' ), number_format_i18n( $total ) );
+
+		return implode( ' · ', $parts );
 	}
 
 	/**
@@ -464,6 +563,7 @@ class AudienceAdminAttendance {
 	public static function tab_for( string $action ): string {
 		$map = array(
 			'open'       => self::TAB_CHECKIN,
+			'checkin'    => self::TAB_CHECKIN,
 			'close'      => self::TAB_CHECKIN,
 			'rule'       => self::TAB_RULE,
 			'post_event' => self::TAB_POST_EVENT,
@@ -491,7 +591,9 @@ class AudienceAdminAttendance {
 	private function render_summary_card( object $booking, string $date, string $today, array $roster, ?array $window, int $now ): void {
 		$applied = AudiencePostEventForm::settings( $booking );
 
-		echo '<div class="card ffc-attendance-summary"><h2 class="ffc-icon-clipboard">' . esc_html__( 'Summary', 'ffcertificate' ) . '</h2><dl class="ffc-facts">';
+		// The Check-in tab draws its own side column; this one is for the others.
+		$others = array_diff( array_column( self::tabs(), 'key' ), array( self::TAB_CHECKIN ) );
+		echo '<div class="card ffc-attendance-summary" data-ffc-vtab-only="' . esc_attr( implode( ' ', $others ) ) . '"><h2 class="ffc-icon-clipboard">' . esc_html__( 'Summary', 'ffcertificate' ) . '</h2><dl class="ffc-facts">';
 		echo '<dt class="ffc-facts__label">' . esc_html__( 'Day', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( DateFormatter::format_wallclock_date( $date ) ) . '</dd>';
 		/* translators: 1: people present, 2: people expected */
 		echo '<dt class="ffc-facts__label">' . esc_html__( 'Present', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . wp_kses_post( sprintf( __( '%1$s of %2$s', 'ffcertificate' ), '<strong class="ffc-attendance-present">' . (int) $roster['present'] . '</strong>', '<strong>' . (int) $roster['total'] . '</strong>' ) ) . '</dd>';
@@ -573,9 +675,18 @@ class AudienceAdminAttendance {
 	}
 
 	/**
-	 * The check-in card (#1947, #2748): who may check in and by which paths,
-	 * the day's window, the terminals that hold the event and the day's
-	 * attendance by path.
+	 * The form the Check-in tab saves (#2782): the window's times, who may
+	 * check in and the paths. Controls outside it name it through `form`, so
+	 * the window card and the side column's Save button reach it.
+	 *
+	 * @var string
+	 */
+	public const CHECKIN_FORM = 'ffc-checkin-form';
+
+	/**
+	 * The check-in tab (#1947, #2748, #2782): the window, then the paths with
+	 * the terminals that hold the event. Who is present now sits in the side
+	 * column.
 	 *
 	 * @param object                    $booking Booking row.
 	 * @param string                    $date    Day shown.
@@ -585,36 +696,55 @@ class AudienceAdminAttendance {
 	 * @return void
 	 */
 	private function render_checkin_card( object $booking, string $date, string $today, ?array $window, int $now ): void {
-		$this->render_checkin_rules( $booking );
+		$can_edit = Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 
-		echo '<h3 class="ffc-icon-clock">' . esc_html__( 'Check-in window', 'ffcertificate' ) . '</h3>';
+		echo '<div class="card ffc-checkin-window"><h2 class="ffc-icon-clock">' . esc_html__( 'Check-in window', 'ffcertificate' ) . '</h2>';
+		$this->render_window_times( $booking, $date, $can_edit );
 		$this->render_window( $booking, $date, $today, $window, $now );
+		echo '</div>';
 
-		if ( AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
-			echo '<h3 class="ffc-icon-monitor">' . esc_html__( 'Terminals', 'ffcertificate' ) . '</h3>';
-			self::render_terminals( $booking, $now );
-		}
-
-		echo '<h3 class="ffc-icon-users">' . esc_html__( 'Attendance now', 'ffcertificate' ) . '</h3>';
-		self::render_attendance_by_path( $booking, $date );
+		echo '<form method="post" id="' . esc_attr( self::CHECKIN_FORM ) . '" class="card ffc-checkin-paths-card">' . $this->form_fields( (int) ( $booking->id ?? 0 ), 'checkin', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
+		echo '<h2 class="ffc-icon-split">' . esc_html__( 'Check-in paths', 'ffcertificate' ) . '</h2>';
+		$this->render_checkin_rules( $booking, $can_edit );
+		echo '</form>';
 	}
 
 	/**
-	 * Who may check in, and the paths the event takes (#2748). Each control
-	 * saves on change through the record autosave, like the rule card.
+	 * When the window opens and closes, shown as times of the day on screen
+	 * and stored as distances from every day's hours.
 	 *
-	 * @param object $booking Booking row.
+	 * @param object $booking  Booking row.
+	 * @param string $date     Day shown.
+	 * @param bool   $can_edit Whether the times can be changed.
 	 * @return void
 	 */
-	private function render_checkin_rules( object $booking ): void {
-		$can_edit = Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
-		$id       = $can_edit ? (int) ( $booking->id ?? 0 ) : 0;
+	private function render_window_times( object $booking, string $date, bool $can_edit ): void {
+		$opens    = wp_date( 'H:i', AudienceCheckinWindowWriter::planned_open_at( $booking, $date ) );
+		$closes   = wp_date( 'H:i', AudienceCheckinWindowWriter::auto_close_at( $booking, $date ) );
+		$disabled = disabled( ! $can_edit, true, false );
 
+		echo '<div class="ffc-checkin-times">';
+		echo '<p class="ffc-checkin-time"><label for="ffc-checkin-opens">' . esc_html__( 'Opens', 'ffcertificate' ) . '</label>';
+		echo '<input type="time" id="ffc-checkin-opens" name="checkin_opens" required form="' . esc_attr( self::CHECKIN_FORM ) . '" value="' . esc_attr( (string) $opens ) . '"' . $disabled . '></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- disabled() returns a fixed attribute.
+		echo '<p class="ffc-checkin-time"><label for="ffc-checkin-closes">' . esc_html__( 'Closes', 'ffcertificate' ) . '</label>';
+		echo '<input type="time" id="ffc-checkin-closes" name="checkin_closes" required form="' . esc_attr( self::CHECKIN_FORM ) . '" value="' . esc_attr( (string) $closes ) . '"' . $disabled . '></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- disabled() returns a fixed attribute.
+		echo '</div>';
+		echo '<p class="description">' . esc_html__( 'Check-in can be opened from the first time and closes on its own at the second. On an event of several days, each day keeps the same distance from its own start and end.', 'ffcertificate' ) . '</p>';
+	}
+
+	/**
+	 * Who may check in, and the paths the event takes (#2748), saved with
+	 * the window's times by the side column's Save (#2782).
+	 *
+	 * @param object $booking  Booking row.
+	 * @param bool   $can_edit Whether the switches can be changed.
+	 * @return void
+	 */
+	private function render_checkin_rules( object $booking, bool $can_edit ): void {
 		AdminUI::render_segmented(
 			array(
 				'name'         => 'checkin_open',
 				'id'           => 'ffc-checkin-open',
-				'data'         => RecordAutosave::attrs( 'audience_booking', $id, 'checkin_open' ),
 				'legend'       => __( 'Who may check in', 'ffcertificate' ),
 				'value'        => AudienceCheckinPolicy::is_open( $booking ) ? '1' : '0',
 				'disabled'     => ! $can_edit,
@@ -624,34 +754,184 @@ class AudienceAdminAttendance {
 				),
 				'descriptions' => array(
 					'0' => __( 'Only the people on this booking can check in.', 'ffcertificate' ),
-					'1' => __( 'Anyone signed in can check in. Attendance is recorded without enrolling the person, so it counts toward no attendance rule and earns no post-event invitation.', 'ffcertificate' ),
+					'1' => __( 'Anyone signed in can check in. Someone not on the booking shows as attendance without enrolment: it counts toward no attendance rule and earns no post-event invitation.', 'ffcertificate' ),
 				),
 			)
 		);
 
-		echo '<fieldset class="ffc-checkin-paths"><legend>' . esc_html__( 'Check-in paths', 'ffcertificate' ) . '</legend>';
+		echo '<div class="ffc-checkin-path">';
 		AdminUI::render_toggle(
 			array(
 				'name'        => 'checkin_qr',
 				'checked'     => AudienceCheckinPolicy::qr_allowed( $booking ),
 				'disabled'    => ! $can_edit,
 				'label'       => __( 'Projected QR code', 'ffcertificate' ),
-				'description' => __( 'Participants scan the code projected in the room with their own phone.', 'ffcertificate' ),
-				'data'        => RecordAutosave::attrs( 'audience_booking', $id, 'checkin_qr' ),
+				'description' => __( 'An organiser projects a code in the room and participants scan it with their own phone.', 'ffcertificate' ),
 			)
 		);
+		echo '</div>';
+
+		echo '<div class="ffc-checkin-path">';
 		AdminUI::render_toggle(
 			array(
 				'name'        => 'checkin_terminal',
 				'checked'     => AudienceCheckinPolicy::terminal_allowed( $booking ),
 				'disabled'    => ! $can_edit,
 				'label'       => __( 'Terminal', 'ffcertificate' ),
-				'description' => __( 'A paired terminal at the entrance reads each participant\'s presence code. Turning it off stops terminals from taking new readings for this event.', 'ffcertificate' ),
-				'data'        => RecordAutosave::attrs( 'audience_booking', $id, 'checkin_terminal' ),
+				'description' => __( 'A participant shows the presence code from the app at a terminal on site; the terminal there is the proof of presence. Turning it off stops terminals from taking new readings for this event.', 'ffcertificate' ),
 			)
 		);
-		echo '<p class="description">' . esc_html__( 'Changes apply after the page is reloaded.', 'ffcertificate' ) . '</p>';
-		echo '</fieldset>';
+		if ( AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
+			$this->render_terminals( $booking, time() );
+		}
+		echo '</div>';
+	}
+
+	/**
+	 * The terminals that hold the event now (#2748, #2782): each one's last
+	 * contact and queue, a link to it, the button that pairs another, and how
+	 * many of the allowed the event uses.
+	 *
+	 * @param object $booking Booking row.
+	 * @param int    $now     Unix time.
+	 * @return void
+	 */
+	public function render_terminals( object $booking, int $now ): void {
+		$terminals = AudienceTerminalReader::active_for_booking( (int) ( $booking->id ?? 0 ), $now );
+		$limit     = AudienceTerminalPairing::limits()['booking'];
+		$list_url  = admin_url( 'admin.php?page=' . $this->menu_slug . AudienceAdminTerminals::SLUG_SUFFIX );
+
+		if ( array() === $terminals ) {
+			echo '<p class="description">' . esc_html__( 'No terminal holds this event yet.', 'ffcertificate' ) . '</p>';
+		} else {
+			echo '<ul class="ffc-checkin-terminals">';
+			foreach ( $terminals as $terminal ) {
+				$label = '' !== $terminal['label'] ? $terminal['label'] : sprintf( /* translators: %d: terminal id */ __( 'Terminal %d', 'ffcertificate' ), $terminal['id'] );
+				$seen  = null === $terminal['last_seen_at']
+					? __( 'not used yet', 'ffcertificate' )
+					/* translators: %s: date and time the terminal was last seen */
+					: sprintf( __( 'seen %s', 'ffcertificate' ), DateFormatter::format_datetime( $terminal['last_seen_at'] ) );
+				echo '<li><span class="ffc-checkin-terminal-name"><strong>' . esc_html( $label ) . '</strong> · ' . esc_html( $seen );
+				if ( $terminal['queued'] > 0 ) {
+					/* translators: %d: number of readings waiting to be sent */
+					echo ' · <span class="ffc-checkin-terminal-queued">' . esc_html( sprintf( _n( '%d waiting to be sent', '%d waiting to be sent', $terminal['queued'], 'ffcertificate' ), $terminal['queued'] ) ) . '</span>';
+				}
+				echo '</span>';
+				AdminUI::render_button(
+					array(
+						'label' => __( 'View', 'ffcertificate' ),
+						'icon'  => 'eye',
+						'href'  => $list_url,
+					)
+				);
+				echo '</li>';
+			}
+			echo '</ul>';
+		}
+
+		echo '<p class="ffc-checkin-terminal-actions">';
+		AdminUI::render_button(
+			array(
+				'label'    => __( 'Pair terminal', 'ffcertificate' ),
+				'category' => 'create',
+				'icon'     => 'plus',
+				'href'     => add_query_arg( 'pair', '1', $list_url ),
+			)
+		);
+		/* translators: 1: terminals holding the event, 2: terminals allowed per event */
+		echo ' <span class="ffc-checkin-terminal-count">' . esc_html( sprintf( __( '%1$d of %2$d allowed in this event', 'ffcertificate' ), count( $terminals ), $limit ) ) . '</span></p>';
+	}
+
+	/**
+	 * The side column of the Check-in tab (#2782): the Save that sends the
+	 * tab's form, then who is present now by path, and a warning while a
+	 * terminal still holds readings it has not sent.
+	 *
+	 * @param object               $booking Booking row.
+	 * @param string               $date    Day shown.
+	 * @param array<string, mixed> $roster  Roster.
+	 * @param int                  $now     Unix time.
+	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool, enrolled: bool}>, present: int, total: int, required: int, days: list<string>} $roster
+	 * @return void
+	 */
+	private function render_checkin_side( object $booking, string $date, array $roster, int $now ): void {
+		$only = ' data-ffc-vtab-only="' . esc_attr( self::TAB_CHECKIN ) . '"';
+
+		if ( Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
+			echo '<div class="card ffc-checkin-save"' . $only . '>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from esc_attr() above.
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Save changes', 'ffcertificate' ),
+					'category' => 'primary',
+					'icon'     => 'save',
+					'type'     => 'submit',
+					'attrs'    => array( 'form' => self::CHECKIN_FORM ),
+				)
+			);
+			echo '</div>';
+		}
+
+		$counts = self::attendance_by_path( (int) ( $booking->id ?? 0 ), $date );
+		$labels = array(
+			AudienceAttendanceWriter::METHOD_TERMINAL => __( 'Terminal', 'ffcertificate' ),
+			AudienceAttendanceWriter::METHOD_QR       => __( 'Projected QR code', 'ffcertificate' ),
+			AudienceAttendanceWriter::METHOD_MANUAL   => __( 'By hand', 'ffcertificate' ),
+		);
+
+		echo '<div class="card ffc-checkin-now"' . $only . '><h2 class="ffc-icon-users">' . esc_html__( 'Attendance now', 'ffcertificate' ) . '</h2>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from esc_attr() above.
+		/* translators: %s: people expected */
+		echo '<p class="ffc-checkin-now-total"><strong class="ffc-attendance-present">' . (int) $roster['present'] . '</strong> <span>' . esc_html( sprintf( __( 'of %s', 'ffcertificate' ), number_format_i18n( (int) $roster['total'] ) ) ) . '</span></p>';
+		echo '<dl class="ffc-facts ffc-checkin-by-path">';
+		foreach ( $labels as $method => $label ) {
+			echo '<dt class="ffc-facts__label">' . esc_html( $label ) . '</dt><dd class="ffc-facts__value">' . esc_html( (string) ( $counts[ $method ] ?? 0 ) ) . '</dd>';
+		}
+		echo '</dl>';
+		echo '<p class="description">' . esc_html__( 'Someone who used both paths counts once.', 'ffcertificate' ) . '</p>';
+		echo '</div>';
+
+		self::render_unsent_warning( $booking, $now, $only );
+	}
+
+	/**
+	 * A warning while any terminal that holds the event still keeps readings
+	 * it has not sent, naming each one and when it was last seen.
+	 *
+	 * @param object $booking Booking row.
+	 * @param int    $now     Unix time.
+	 * @param string $attrs   Extra attributes for the notice, already escaped.
+	 * @return void
+	 */
+	public static function render_unsent_warning( object $booking, int $now, string $attrs = '' ): void {
+		$unsent = array_values(
+			array_filter(
+				AudienceTerminalReader::active_for_booking( (int) ( $booking->id ?? 0 ), $now ),
+				static fn( array $terminal ): bool => $terminal['queued'] > 0
+			)
+		);
+		if ( array() === $unsent ) {
+			return;
+		}
+
+		$names = array();
+		foreach ( $unsent as $terminal ) {
+			$label   = '' !== $terminal['label'] ? $terminal['label'] : sprintf( /* translators: %d: terminal id */ __( 'Terminal %d', 'ffcertificate' ), $terminal['id'] );
+			$names[] = null === $terminal['last_seen_at']
+				? $label
+				/* translators: 1: terminal name, 2: time it was last seen */
+				: sprintf( __( '%1$s, seen at %2$s', 'ffcertificate' ), $label, DateFormatter::format_time( $terminal['last_seen_at'] ) );
+		}
+
+		$count = count( $unsent );
+		echo '<div class="notice notice-warning inline ffc-checkin-unsent"' . $attrs . '><p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The caller passes escaped attributes.
+		echo esc_html(
+			sprintf(
+				/* translators: 1: number of terminals, 2: their names and when they were last seen */
+				_n( '%1$d terminal has not sent its readings yet (%2$s). The list may be incomplete until it does.', '%1$d terminals have not sent their readings yet (%2$s). The list may be incomplete until they do.', $count, 'ffcertificate' ),
+				$count,
+				implode( '; ', $names )
+			)
+		);
+		echo '</p></div>';
 	}
 
 	/**
@@ -730,7 +1010,7 @@ class AudienceAdminAttendance {
 		$closes = AudienceCheckinWindowWriter::auto_close_at( $booking, $date );
 		if ( $closes <= $now ) {
 			/* translators: %s: time check-in closed on its own */
-			echo '<p>' . esc_html( sprintf( __( 'Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand on the Participants tab.', 'ffcertificate' ), DateFormatter::format_time( $closes ) ) ) . '</p>';
+			echo '<p>' . esc_html( sprintf( __( 'Check-in closed on its own at %s. Attendance can still be marked by hand on the Participants tab.', 'ffcertificate' ), DateFormatter::format_time( $closes ) ) ) . '</p>';
 			return;
 		}
 
@@ -759,83 +1039,24 @@ class AudienceAdminAttendance {
 			echo '<p class="description">' . esc_html__( 'Opening check-in lets the terminals that hold this event record readings. The projected QR code is off for this event.', 'ffcertificate' ) . '</p>';
 		}
 
-		/* translators: %s: time check-in closes on its own */
-		echo '<p class="description">' . esc_html( sprintf( __( 'Check-in closes on its own at %s, 30 minutes after the booking ends today.', 'ffcertificate' ), DateFormatter::format_time( $closes ) ) ) . '</p>';
+		$opens = AudienceCheckinWindowWriter::planned_open_at( $booking, $date );
+		if ( $opens > $now ) {
+			/* translators: 1: time check-in can be opened, 2: time it closes on its own */
+			echo '<p class="description">' . esc_html( sprintf( __( 'Check-in can be opened from %1$s and closes on its own at %2$s.', 'ffcertificate' ), DateFormatter::format_time( $opens ), DateFormatter::format_time( $closes ) ) ) . '</p>';
+		} else {
+			/* translators: %s: time check-in closes on its own */
+			echo '<p class="description">' . esc_html( sprintf( __( 'Check-in closes on its own at %s.', 'ffcertificate' ), DateFormatter::format_time( $closes ) ) ) . '</p>';
+		}
 		AdminUI::render_button(
 			array(
 				'label'    => __( 'Open check-in', 'ffcertificate' ),
 				'category' => 'primary',
 				'icon'     => 'unlock',
 				'type'     => 'submit',
+				'disabled' => $opens > $now,
 			)
 		);
 		echo '</form>';
-	}
-
-	/**
-	 * The terminals that hold the event now (#2748): how many of the allowed,
-	 * each one's last contact and queue, and a warning while any of them
-	 * still holds readings it has not sent.
-	 *
-	 * @param object $booking Booking row.
-	 * @param int    $now     Unix time.
-	 * @return void
-	 */
-	public static function render_terminals( object $booking, int $now ): void {
-		$terminals = AudienceTerminalReader::active_for_booking( (int) ( $booking->id ?? 0 ), $now );
-		$limit     = AudienceTerminalPairing::limits()['booking'];
-
-		/* translators: 1: terminals holding the event, 2: terminals allowed per event */
-		echo '<p class="ffc-checkin-terminal-count">' . esc_html( sprintf( __( '%1$d of %2$d allowed', 'ffcertificate' ), count( $terminals ), $limit ) ) . '</p>';
-
-		if ( array() === $terminals ) {
-			echo '<p class="description">' . esc_html__( 'No terminal holds this event. Pair one in the app, under More → Pair terminal.', 'ffcertificate' ) . '</p>';
-			return;
-		}
-
-		$unsent = count( array_filter( $terminals, static fn( array $terminal ): bool => $terminal['queued'] > 0 ) );
-		if ( $unsent > 0 ) {
-			/* translators: %d: number of terminals */
-			echo '<div class="notice notice-warning inline"><p>' . esc_html( sprintf( _n( '%d terminal has not sent its readings yet.', '%d terminals have not sent their readings yet.', $unsent, 'ffcertificate' ), $unsent ) ) . '</p></div>';
-		}
-
-		echo '<ul class="ffc-checkin-terminals">';
-		foreach ( $terminals as $terminal ) {
-			$label = '' !== $terminal['label'] ? $terminal['label'] : sprintf( /* translators: %d: terminal id */ __( 'Terminal %d', 'ffcertificate' ), $terminal['id'] );
-			$seen  = null === $terminal['last_seen_at']
-				? __( 'Not used yet', 'ffcertificate' )
-				/* translators: %s: date and time the terminal was last seen */
-				: sprintf( __( 'Last seen %s', 'ffcertificate' ), DateFormatter::format_datetime( $terminal['last_seen_at'] ) );
-			echo '<li><strong>' . esc_html( $label ) . '</strong> · ' . esc_html( $seen );
-			if ( $terminal['queued'] > 0 ) {
-				/* translators: %d: number of readings waiting to be sent */
-				echo ' · <span class="ffc-checkin-terminal-queued">' . esc_html( sprintf( _n( '%d waiting to be sent', '%d waiting to be sent', $terminal['queued'], 'ffcertificate' ), $terminal['queued'] ) ) . '</span>';
-			}
-			echo '</li>';
-		}
-		echo '</ul>';
-	}
-
-	/**
-	 * The day's attendance by path (#2748).
-	 *
-	 * @param object $booking Booking row.
-	 * @param string $date    Day shown.
-	 * @return void
-	 */
-	public static function render_attendance_by_path( object $booking, string $date ): void {
-		$counts = self::attendance_by_path( (int) ( $booking->id ?? 0 ), $date );
-		$labels = array(
-			AudienceAttendanceWriter::METHOD_QR       => __( 'Projected QR code', 'ffcertificate' ),
-			AudienceAttendanceWriter::METHOD_TERMINAL => __( 'Terminal', 'ffcertificate' ),
-			AudienceAttendanceWriter::METHOD_MANUAL   => __( 'By hand', 'ffcertificate' ),
-		);
-
-		echo '<ul class="ffc-checkin-by-path">';
-		foreach ( $labels as $method => $label ) {
-			echo '<li>' . esc_html( $label ) . ': <strong>' . esc_html( (string) ( $counts[ $method ] ?? 0 ) ) . '</strong></li>';
-		}
-		echo '</ul>';
 	}
 
 	/**

@@ -502,26 +502,34 @@ class AudienceBookingWriter {
 	}
 
 	/**
-	 * Switch one of a booking's check-in settings (#2748): who may check in,
-	 * or one of its paths.
+	 * Store everything the Check-in tab saves at once (#2782): who may check
+	 * in, the two paths and the window's distance from each day's hours.
 	 *
-	 * @param int    $id    Booking ID.
-	 * @param string $field One of {@see AudienceCheckinPolicy::FIELDS}.
-	 * @param bool   $on    New value.
+	 * An offset equal to the default is stored as NULL, so an event left at
+	 * the default follows it.
+	 *
+	 * @param int                $id           Booking ID.
+	 * @param array<string,bool> $flags        Each of {@see AudienceCheckinPolicy::FIELDS}.
+	 * @param int                $opens_before Minutes the window opens before each day starts.
+	 * @param int                $closes_after Minutes the window closes after each day ends.
 	 * @return bool Whether the row was written.
 	 */
-	public static function set_checkin( int $id, string $field, bool $on ): bool {
-		if ( ! in_array( $field, AudienceCheckinPolicy::FIELDS, true ) ) {
-			return false;
+	public static function set_checkin_settings( int $id, array $flags, int $opens_before, int $closes_after ): bool {
+		$row     = array();
+		$formats = array();
+		foreach ( AudienceCheckinPolicy::FIELDS as $field ) {
+			$row[ $field ] = ! empty( $flags[ $field ] ) ? 1 : 0;
+			$formats[]     = '%d';
 		}
+		$opens_before = AudienceCheckinPolicy::clamp_offset( $opens_before );
+		$closes_after = AudienceCheckinPolicy::clamp_offset( $closes_after );
 
-		$written = self::db()->update(
-			self::get_table_name(),
-			array( $field => $on ? 1 : 0 ),
-			array( 'id' => $id ),
-			array( '%d' ),
-			array( '%d' )
-		);
+		$row['checkin_opens_before'] = AudienceCheckinPolicy::OPENS_BEFORE === $opens_before ? null : $opens_before;
+		$row['checkin_closes_after'] = AudienceCheckinPolicy::CLOSES_AFTER === $closes_after ? null : $closes_after;
+		$formats[]                   = '%d';
+		$formats[]                   = '%d';
+
+		$written = self::db()->update( self::get_table_name(), $row, array( 'id' => $id ), $formats, array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
 

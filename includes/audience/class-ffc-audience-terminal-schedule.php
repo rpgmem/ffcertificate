@@ -21,10 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * When each event of a terminal's queue takes readings.
  *
- * An event's planned check-in window on one of its days runs from the day's
- * start to the automatic close an operator's window would get
- * ({@see AudienceCheckinWindowWriter::auto_close_at()}): the end of the day's
- * hours plus the grace. An all-day event's window starts at midnight. A
+ * An event's planned check-in window on one of its days runs from the moment
+ * check-in may open ({@see AudienceCheckinWindowWriter::planned_open_at()})
+ * to the automatic close an operator's window would get
+ * ({@see AudienceCheckinWindowWriter::auto_close_at()}): the event's own
+ * times, or the day's hours plus the grace. An all-day event's window starts
+ * at midnight. A
  * terminal reads for one event at a time, so two events whose windows cross
  * cannot share a terminal; windows that only touch, one closing at the
  * moment the next opens, can.
@@ -48,18 +50,10 @@ final class AudienceTerminalSchedule {
 	public static function windows( object $booking ): array {
 		$out = array();
 		foreach ( AudienceAttendanceRule::counted_days( $booking ) as $date ) {
-			$start = ! empty( $booking->is_all_day ) ? '00:00' : AudienceBookingRules::stored_day_times( $booking, $date )['start_time'];
-			if ( ! preg_match( '/^\d{2}:\d{2}$/', $start ) ) {
-				$start = '00:00';
-			}
-			$moment = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i', $date . ' ' . $start, wp_timezone() );
-			if ( false === $moment ) {
-				continue;
-			}
 			$out[] = array(
 				'booking_id' => (int) ( $booking->id ?? 0 ),
 				'date'       => $date,
-				'opens'      => $moment->getTimestamp(),
+				'opens'      => AudienceCheckinWindowWriter::planned_open_at( $booking, $date ),
 				'closes'     => AudienceCheckinWindowWriter::auto_close_at( $booking, $date ),
 			);
 		}
