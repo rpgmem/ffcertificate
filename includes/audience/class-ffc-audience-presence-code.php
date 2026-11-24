@@ -65,14 +65,18 @@ final class AudiencePresenceCode {
 	public const DOMAIN = "FFC-PRESENCE-READING\x00";
 
 	/**
-	 * Seconds between two codes on the phone.
+	 * Seconds between two codes on the phone (#2797): short, so a code
+	 * passed on as a screenshot dies within half a minute.
 	 */
-	public const ROTATION = 30;
+	public const ROTATION = 15;
 
 	/**
-	 * Clock difference tolerated between the phone and the verifier, in seconds.
+	 * Clock difference tolerated between the phone and the verifier, in
+	 * seconds. Kept as short as the rotation because neither clock is taken
+	 * as it is: the app and the terminal each correct theirs by the site's
+	 * `Date` header whenever they reach it (#2797).
 	 */
-	public const SKEW = 60;
+	public const SKEW = 15;
 
 	/**
 	 * Attendance target types, by the byte that carries them.

@@ -35671,8 +35671,6 @@ msgstr "Uma recusa que um administrador pode desfazer deixa um pedido para ele. 
 msgid "Presence code"
 msgstr "Código de presença"
 
-msgid "Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 30 seconds, offline if need be, for as long as the activation lasts. The code carries the site's statement about the phone, the event, the moment and a signature made by the phone's key, so a photo or screenshot of it stops working within a minute and a code from another phone does not pass."
-msgstr "Com o celular ativo, a tela Presença do app mostra um QR code do evento escolhido, uma contagem regressiva e o que fazer. Um código novo é gerado a cada 30 segundos, mesmo sem internet, enquanto a ativação valer. O código leva a declaração do site sobre o celular, o evento, o momento e uma assinatura feita pela chave do celular, então uma foto ou captura de tela dele para de funcionar em até um minuto, e um código de outro celular não passa."
 
 msgid "The screen lists the participant's bookings over the next 7 days. While online, the app also fetches a ticket signed by the site for each of them, which proves the participant is on that booking even when the terminal cannot reach the site."
 msgstr "A tela lista as reservas do participante nos próximos 7 dias. Com internet, o app também busca um ingresso assinado pelo site para cada uma delas, que prova que o participante está naquela reserva mesmo quando o terminal não alcança o site."
@@ -36320,8 +36318,6 @@ msgstr "Um terminal comporta no máximo 10 eventos, cada um terminando nos próx
 msgid "Presence devices: one active phone per person; a phone stays reserved to its account for 30 days; at most 3 phone changes per person in 30 days. More needs an administrator, under Scheduling → Presence devices."
 msgstr "Aparelhos de presença: um celular ativo por pessoa; um celular fica reservado à sua conta por 30 dias; no máximo 3 trocas de celular por pessoa em 30 dias. Além disso, só com um administrador, em Agendamento → Aparelhos de presença."
 
-msgid "A presence code changes every 30 seconds and carries only the person's short name, never a CPF or RF."
-msgstr "Um código de presença muda a cada 30 segundos e leva só o nome curto da pessoa, nunca CPF ou RF."
 
 msgid "Back to terminals"
 msgstr "Voltar aos terminais"
@@ -36818,8 +36814,6 @@ msgstr "Configurar este terminal"
 msgid "Terminal name (optional)"
 msgstr "Nome do terminal (opcional)"
 
-msgid "A screenshot will not do: the code changes every 30 seconds."
-msgstr "Um print não serve: o código muda a cada 30 segundos."
 
 msgid "Hold the screen up to the terminal's reader at the entrance."
 msgstr "Aproxime a tela do leitor do terminal na entrada."
@@ -37003,3 +36997,15 @@ msgstr "Destravar um terminal pareado"
 
 msgid "In the app, Pair terminal switches between Choose events, ticking them one by one, and By place, which ticks the events of one place, soonest first, up to 10. End by itself after the end sets how many hours after the last event the terminal ends (1, 2 or 4; the Check-in settings choose the one marked first), and the code appears beside a summary of what it pairs, with its countdown. My terminals has Change events on each terminal, which the terminal picks up within a minute and which keeps the hours chosen. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
 msgstr "No app, Parear terminal alterna entre Escolher eventos, marcando um a um, e Por local, que marca os eventos de um local, os mais próximos primeiro, até 10. Encerrar sozinho após o fim define quantas horas após o último evento o terminal se encerra (1, 2 ou 4; as configurações de check-in escolhem a marcada de início), e o código aparece ao lado de um resumo do que ele pareia, com sua contagem regressiva. Meus terminais tem Alterar eventos em cada terminal, que o terminal capta em até um minuto e que mantém as horas escolhidas. Durante uma janela de check-in o terminal mostra só o evento que registra agora e se o organizador abriu o check-in; entre janelas mostra o próximo evento e quando seu check-in abre."
+
+msgid "A screenshot will not do: the code changes every 15 seconds."
+msgstr "Um print não serve: o código muda a cada 15 segundos."
+
+msgid "A presence code changes every 15 seconds and carries only the person's short name, never a CPF or RF."
+msgstr "Um código de presença muda a cada 15 segundos e leva só o nome curto da pessoa, nunca CPF ou RF."
+
+msgid "Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 15 seconds, offline if need be, for as long as the activation lasts. The code carries the site's statement about the phone, the event, the moment and a signature made by the phone's key, so a photo or screenshot of it stops working within half a minute and a code from another phone does not pass. The app and the terminal each set their clock by the site's whenever they reach it, which is what lets a terminal accept a code only 15 seconds either side of its own clock; the terminal's operator menu says when its clock was more than 15 seconds off."
+msgstr "Com o celular ativo, a tela Presença do app mostra um QR code do evento escolhido, uma contagem regressiva e o que fazer. Um código novo é gerado a cada 15 segundos, mesmo sem internet, enquanto a ativação valer. O código leva a declaração do site sobre o celular, o evento, o momento e uma assinatura feita pela chave do celular, então uma foto ou captura de tela dele para de funcionar em até meio minuto, e um código de outro celular não passa. O app e o terminal acertam cada um o próprio relógio pelo do site sempre que o alcançam, o que permite ao terminal aceitar um código só até 15 segundos antes ou depois do próprio relógio; o menu do operador do terminal avisa quando o relógio dele estava mais de 15 segundos fora."
+
+msgid "This terminal's clock was %d s off the site's. Readings follow the site's clock; set the device's date and time to automatic."
+msgstr "O relógio deste terminal estava %d s fora do relógio do site. As leituras seguem o relógio do site; deixe a data e a hora do aparelho no automático."

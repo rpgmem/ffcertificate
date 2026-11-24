@@ -259,6 +259,7 @@ $ffc_terminal_site = (string) get_bloginfo( 'name' );
 		<p data-ffc-terminal-part="queue"></p>
 		<p class="ffc-terminal-note"><?php esc_html_e( 'The menu locks again after two minutes without use.', 'ffcertificate' ); ?></p>
 		<p class="ffc-terminal-note ffc-icon-warning" data-ffc-terminal-part="wake-note" hidden></p>
+		<p class="ffc-terminal-note ffc-icon-warning" data-ffc-terminal-part="clock-note" hidden></p>
 		<div class="ffc-terminal-actions" data-ffc-terminal-part="menu-ask">
 			<?php
 			Button::render(

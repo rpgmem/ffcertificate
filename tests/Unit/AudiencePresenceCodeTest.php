@@ -363,4 +363,14 @@ class AudiencePresenceCodeTest extends TestCase {
 		$result = AudiencePresenceCode::verify( $text, $now, $revoked );
 		return is_wp_error( $result ) ? $result->get_error_code() : '';
 	}
+
+	public function test_the_scripts_rotate_and_tolerate_as_the_php_verifier_does(): void {
+		$root = dirname( __DIR__, 2 ) . '/assets/js/';
+		$app  = (string) file_get_contents( $root . 'ffc-presence-app.js' );
+		$read = (string) file_get_contents( $root . 'ffc-presence-verifier.js' );
+		$this->assertMatchesRegularExpression( '/var ROTATION = ' . AudiencePresenceCode::ROTATION . ';/', $app, 'the phone draws a code as often as the site expects' );
+		$this->assertMatchesRegularExpression( '/var ROTATION = ' . AudiencePresenceCode::ROTATION . ';/', $read );
+		$this->assertMatchesRegularExpression( '/var SKEW = ' . AudiencePresenceCode::SKEW . ';/', $read, 'an offline terminal judges a code as the site does' );
+		$this->assertLessThanOrEqual( 30, AudiencePresenceCode::ROTATION + AudiencePresenceCode::SKEW, 'a screenshot dies within half a minute (#2797)' );
+	}
 }

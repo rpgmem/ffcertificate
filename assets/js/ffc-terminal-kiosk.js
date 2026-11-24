@@ -39,6 +39,12 @@
     var EXPIRY_CHECK_MS = 30000;
     var QUEUE_KEY = 'ffcTerminalQueue';
     var REVOKED_KEY = 'ffcTerminalRevoked';
+    /** How far the site's clock is from the terminal's, in milliseconds (#2797). */
+    var CLOCK_KEY = 'ffcTerminalClock';
+    /** A clock gap not worth correcting, in milliseconds. */
+    var CLOCK_NOISE = 1000;
+    /** A clock gap the operator menu reports: the code's tolerance, in milliseconds. */
+    var CLOCK_WARN = 15000;
     var SYNC_MS = 30000;
     var REVOCATIONS_MS = 600000;
     var SYNC_BATCH = 50;
@@ -237,6 +243,27 @@
     }
 
     /**
+     * How far the site's clock is ahead of the terminal's, in milliseconds,
+     * from the `Date` header of a live answer (#2797), or null when the
+     * answer carries none. The header is truncated to the second, so the
+     * site's moment is taken as the middle of that second, and the
+     * terminal's as the middle of the round trip.
+     *
+     * @param {object} response A fetch response.
+     * @param {number} sent Terminal time the request left, in milliseconds.
+     * @param {number} received Terminal time the answer arrived, in milliseconds.
+     * @return {number|null}
+     */
+    function clockOffset(response, sent, received) {
+        var header = response && response.headers && 'function' === typeof response.headers.get ? response.headers.get('Date') : null;
+        var site = header ? Date.parse(header) : NaN;
+        if (isNaN(site)) {
+            return null;
+        }
+        return Math.round(site + 500 - (sent + received) / 2);
+    }
+
+    /**
      * Start the page.
      *
      * @param {HTMLElement} el The page root.
@@ -247,7 +274,23 @@
     function start(el, config, env) {
         var strings = config.strings || {};
         var store = safeStorage(env.storage);
-        var now = function () { return Math.floor(env.now() / 1000); };
+        // The terminal dates and checks every reading by the site's clock,
+        // corrected on each answer from the site, so a code 15 seconds old
+        // is judged the same here and on the site (#2797).
+        var offset = Number(store.get(CLOCK_KEY)) || 0;
+        var clockNow = function () { return env.now() + offset; };
+        var now = function () { return Math.floor(clockNow() / 1000); };
+        var fetchClock = function (address, options) {
+            var sent = env.now();
+            return env.fetch(address, options).then(function (response) {
+                var measured = clockOffset(response, sent, env.now());
+                if (null !== measured) {
+                    offset = Math.abs(measured) < CLOCK_NOISE ? 0 : measured;
+                    store.set(CLOCK_KEY, String(offset));
+                }
+                return response;
+            });
+        };
         var part = function (name) { return el.querySelector('[data-ffc-terminal-part="' + name + '"]'); };
         var timer = null;
 
@@ -304,7 +347,7 @@
         }
 
         function tickClock() {
-            part('clock').textContent = 'pairing' === screen || 'locked' === screen ? '' : wallClock(env.now());
+            part('clock').textContent = 'pairing' === screen || 'locked' === screen ? '' : wallClock(clockNow());
         }
 
         function device() {
@@ -464,7 +507,7 @@
                         badge.setAttribute('data-ffc-terminal-part', 'result-open');
                     }
                 }
-                var when = body.time || wallClock(env.now());
+                var when = body.time || wallClock(clockNow());
                 var detail = 'recorded' === body.status
                     ? (body.open ? strings.openDetail : strings.recordedDetail)
                     : (body.message || '');
@@ -620,7 +663,7 @@
                 options.headers['Content-Type'] = 'application/json';
                 options.body = JSON.stringify(body);
             }
-            return env.fetch(url(path), options).then(function (response) {
+            return fetchClock(url(path), options).then(function (response) {
                 return response.json().catch(function () { return {}; }).then(function (data) {
                     if (401 === response.status) {
                         expire();
@@ -1070,6 +1113,22 @@
             focusReading();
         }
 
+        /**
+         * Tell the operator when this terminal's own clock was more than the
+         * code's tolerance off the site's: the readings follow the site's
+         * clock all the same, but a terminal that stays offline keeps the
+         * gap it last measured (#2797).
+         */
+        function clockCheck() {
+            var note = part('clock-note');
+            if (!note) {
+                return;
+            }
+            var gap = Math.round(Math.abs(offset) / 1000);
+            note.hidden = Math.abs(offset) <= CLOCK_WARN;
+            note.textContent = note.hidden ? '' : String(strings.clockOff || '%d').replace('%d', String(gap));
+        }
+
         function leaveUnlock() {
             stopUnlockWait();
             if ('unlock' === screen) {
@@ -1101,6 +1160,7 @@
                 part('operator').textContent = String(strings.operator || '%s').replace('%s', result.body.name || '');
                 updateQueue();
                 deviceCheck();
+                clockCheck();
                 show('menu');
                 var empty = !(current().bookings || []).length;
                 part(empty && menuMayEdit ? 'queue-open-add' : 'menu-close').focus();
@@ -1167,7 +1227,7 @@
             }
             fail('');
             say(strings.pairing);
-            return env.fetch(config.rest + 'pair', {
+            return fetchClock(config.rest + 'pair', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'omit',
@@ -1230,7 +1290,7 @@
         var setupStrings = strings.setup || {};
 
         function publicRequest(path, body) {
-            return env.fetch(config.rest + path, {
+            return fetchClock(config.rest + path, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'omit',
