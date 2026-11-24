@@ -35,11 +35,90 @@
 	color: var(--ffc-danger-text);
 }
 
-.ffc-terminal-operator-form,
-.ffc-terminal-operator-result {
+.ffc-terminal-operator-card {
 	display: flex;
 	flex-direction: column;
-	gap: var(--ffc-spacing-sm);
+	gap: var(--ffc-spacing-md);
+	padding: var(--ffc-spacing-md);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-bg);
+	color: var(--ffc-text);
+}
+
+.ffc-terminal-operator-card[hidden] {
+	display: none;
+}
+
+.ffc-terminal-operator-heading {
+	margin: 0;
+	font-size: var(--ffc-font-size-base);
+	font-weight: 600;
+}
+
+.ffc-terminal-operator-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-xs);
+}
+
+.ffc-terminal-operator-field[hidden] {
+	display: none;
+}
+
+/* "End by itself after the end": the label and its hours on one line. */
+.ffc-terminal-operator-inline {
+	flex-flow: row wrap;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.ffc-terminal-operator-place {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-terminal-operator-place[hidden] {
+	display: none;
+}
+
+.ffc-terminal-operator-place select {
+	padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-sm);
+	background: var(--ffc-bg-input);
+	color: var(--ffc-text);
+	font-size: var(--ffc-font-size-base);
+}
+
+/* The code beside what it pairs; stacked on a phone. */
+.ffc-terminal-operator-result {
+	flex-flow: row wrap;
+	align-items: center;
+}
+
+.ffc-terminal-operator-result .ffc-terminal-operator-qr {
+	flex: 1 1 200px;
+	max-width: 260px;
+}
+
+.ffc-terminal-operator-result-text {
+	display: flex;
+	flex: 1 1 220px;
+	flex-direction: column;
+	gap: var(--ffc-spacing-xs);
+	min-width: 0;
+}
+
+.ffc-terminal-operator-result-text .ffc-terminal-operator-code,
+.ffc-terminal-operator-result-text .ffc-terminal-operator-countdown {
+	text-align: start;
+}
+
+.ffc-terminal-operator-unlock {
+	align-items: center;
+	text-align: center;
 }
 
 .ffc-terminal-operator-events {
@@ -51,10 +130,8 @@
 	border: 0;
 }
 
-.ffc-terminal-operator-events legend,
-.ffc-terminal-operator-form > label {
+.ffc-terminal-operator-events legend {
 	margin-bottom: var(--ffc-spacing-xs);
-	font-weight: 600;
 }
 
 .ffc-terminal-operator-event {
@@ -106,6 +183,7 @@
 }
 
 .ffc-terminal-operator-countdown {
+	color: var(--ffc-warning-text);
 	font-variant-numeric: tabular-nums;
 	text-align: center;
 }

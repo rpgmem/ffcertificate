@@ -21,6 +21,7 @@ const CONFIG = {
 	rest: 'https://example.com/wp-json/ffc/v1/terminal/',
 	nonce: 'nonce',
 	maxBookings: 2,
+	autoEnd: 2,
 	strings: {
 		loading: 'loading',
 		failed: 'failed',
@@ -30,6 +31,7 @@ const CONFIG = {
 		full: 'full',
 		held: 'held %d',
 		codeExpires: 'expires %s',
+		pairSummary: '%1$d events, %2$d h',
 		expiredCode: 'expired',
 		qrLabel: 'qr',
 		unnamed: 'Terminal %d',
@@ -49,9 +51,16 @@ function screen(mode) {
 	const parts = {
 		pair: `
 			<form data-ffc-op-part="form">
-				<p data-ffc-op-part="by-place" hidden><select data-ffc-op-part="place"><option value="">by hand</option></select></p>
+				<div data-ffc-op-part="queue-mode" hidden>
+					<label><input type="radio" name="ffc_terminal_queue" value="pick" checked>pick</label>
+					<label><input type="radio" name="ffc_terminal_queue" value="place">place</label>
+					<p data-ffc-op-part="by-place" hidden><select data-ffc-op-part="place"></select></p>
+				</div>
 				<div data-ffc-op-part="events"></div>
 				<p data-ffc-op-part="events-empty" hidden></p>
+				<label><input type="radio" name="ffc_terminal_auto_end" value="1">1</label>
+				<label><input type="radio" name="ffc_terminal_auto_end" value="2" checked>2</label>
+				<label><input type="radio" name="ffc_terminal_auto_end" value="4">4</label>
 				<input data-ffc-op-part="label">
 				<button type="submit" data-ffc-op-part="generate">Generate</button>
 			</form>
@@ -59,6 +68,7 @@ function screen(mode) {
 				<div data-ffc-op-part="qr"></div>
 				<p data-ffc-op-part="code"></p>
 				<p data-ffc-op-part="countdown"></p>
+				<p data-ffc-op-part="summary"></p>
 				<button type="button" data-ffc-op-part="again">Again</button>
 			</section>`,
 		terminals: `
@@ -173,7 +183,7 @@ describe('Pair terminal', () => {
 		part(el, 'label').value = 'Entrance A';
 		await controls.generate();
 
-		expect(JSON.parse(e.calls[1][2].body)).toEqual({ bookings: [11], label: 'Entrance A' });
+		expect(JSON.parse(e.calls[1][2].body)).toEqual({ bookings: [11], label: 'Entrance A', auto_end: 2 });
 		expect(part(el, 'form').hidden).toBe(true);
 		expect(part(el, 'result').hidden).toBe(false);
 		expect(part(el, 'code').textContent).toBe('P-AB12-CD34-EF56');
@@ -365,32 +375,62 @@ describe('Event queue', () => {
 	], max: 10 }];
 	const ticked = (list) => Array.from(list.querySelectorAll('input:checked')).map((b) => Number(b.value));
 
-	it('offers each place once and fills its events, soonest first, up to the limit', async () => {
+	const choose = (el, name, value) => {
+		const radio = el.querySelector(`input[name="${name}"][value="${value}"]`);
+		radio.checked = true;
+		radio.dispatchEvent(new window.Event('change'));
+	};
+
+	it('fills the queue by place only once By place is chosen, soonest first, up to the limit', async () => {
 		const el = screen('pair');
 		const controls = O().start(el, CONFIG, env({ 'GET bookings': EVENTS }));
 		await controls.ready;
 		const select = part(el, 'place');
-		expect(part(el, 'by-place').hidden).toBe(false);
-		expect(Array.from(select.options).map((o) => o.textContent)).toEqual(['by hand', 'Hall', 'Room 2']);
+		expect(part(el, 'queue-mode').hidden).toBe(false);
+		expect(part(el, 'by-place').hidden).toBe(true);
+		expect(Array.from(select.options).map((o) => o.textContent)).toEqual(['Hall', 'Room 2']);
+		expect(ticked(part(el, 'events'))).toEqual([]);
 
-		select.value = '7';
-		select.dispatchEvent(new window.Event('change'));
+		choose(el, 'ffc_terminal_queue', 'place');
+		expect(part(el, 'by-place').hidden).toBe(false);
 		expect(ticked(part(el, 'events'))).toEqual([11, 14]);
 
 		select.value = '8';
 		select.dispatchEvent(new window.Event('change'));
 		expect(ticked(part(el, 'events'))).toEqual([13]);
 
-		select.value = '';
-		select.dispatchEvent(new window.Event('change'));
+		choose(el, 'ffc_terminal_queue', 'pick');
+		expect(part(el, 'by-place').hidden).toBe(true);
 		expect(ticked(part(el, 'events'))).toEqual([13]);
 		expect(controls.fillByPlace(part(el, 'events'), '')).toBe(0);
 	});
 
-	it('hides the place choice when no event has a place', async () => {
+	it('hides the queue mode when no event has a place', async () => {
 		const el = screen('pair');
 		await O().start(el, CONFIG, env({ 'GET bookings': [200, { bookings: [{ id: 16, description: 'Nowhere', place_id: 0 }] }] })).ready;
-		expect(part(el, 'by-place').hidden).toBe(true);
+		expect(part(el, 'queue-mode').hidden).toBe(true);
+	});
+
+	it('sends the hours chosen to end by itself and sums the pairing up beside the code', async () => {
+		const el = screen('pair');
+		const sent = [];
+		const controls = O().start(el, CONFIG, env({
+			'GET bookings': EVENTS,
+			'POST pairings': (options) => {
+				sent.push(JSON.parse(options.body));
+				return [201, { code: 'P-AB12-CD34-EF56', expires_at: NOW + 272 }];
+			},
+		}));
+		await controls.ready;
+		part(el, 'events').querySelector('input[value="11"]').checked = true;
+		choose(el, 'ffc_terminal_auto_end', '4');
+		await controls.generate();
+		expect(sent[0]).toEqual({ bookings: [11], label: '', auto_end: 4 });
+		expect(part(el, 'summary').textContent).toBe('1 events, 4 h');
+		expect(part(el, 'countdown').textContent).toBe('expires 4:32');
+
+		await controls.again();
+		expect(part(el, 'summary').textContent).toBe('');
 	});
 
 	it('changes the events of a terminal, keeping one it holds even when full', async () => {

@@ -36015,8 +36015,6 @@ msgstr "Limite de terminais atingido"
 msgid "Terminals: %d"
 msgstr "Terminais: %d"
 
-msgid "The code expires in %s."
-msgstr "O código expira em %s."
 
 msgid "This code has expired."
 msgstr "Este código expirou."
@@ -36078,8 +36076,6 @@ msgstr "Entrada A"
 msgid "Generate pairing code"
 msgstr "Gerar código de pareamento"
 
-msgid "Open the terminal page on the device and hold this code to its reader, or type it there. The code works once."
-msgstr "Abra a página do terminal no aparelho e aproxime este código do leitor dele, ou digite-o lá. O código funciona uma vez."
 
 msgid "Generate another code"
 msgstr "Gerar outro código"
@@ -36232,11 +36228,7 @@ msgstr "Não há mais eventos neste terminal."
 msgid "Events saved. The terminal picks them up within a minute."
 msgstr "Eventos salvos. O terminal os recebe em até um minuto."
 
-msgid "Fill from a place"
-msgstr "Preencher por local"
 
-msgid "Choose events one by one"
-msgstr "Escolher eventos um a um"
 
 msgid "A terminal checks in one event at a time: events whose check-in times cross cannot share it."
 msgstr "Um terminal faz o check-in de um evento por vez: eventos cujos horários de check-in se cruzam não podem dividi-lo."
@@ -36250,8 +36242,6 @@ msgstr "O terminal recebe a alteração em até um minuto. Um evento que você r
 msgid "Save events"
 msgstr "Salvar eventos"
 
-msgid "In the app, Pair terminal can fill the events from one place, soonest first, up to 10, instead of ticking them one by one. My terminals has Change events on each terminal, which the terminal picks up within a minute. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
-msgstr "No app, Parear terminal pode preencher os eventos a partir de um local, dos mais próximos aos mais distantes, até 10, em vez de marcá-los um a um. Meus terminais tem Alterar eventos em cada terminal, que o terminal recebe em até um minuto. Durante uma janela de check-in o terminal mostra só o evento cujo check-in está fazendo, e se o organizador já abriu o check-in; entre janelas ele mostra o próximo evento e quando o check-in dele abre."
 
 msgid "The browser asks for permission to use the camera. Allow it, then hold the presence code inside the frame."
 msgstr "O navegador pede permissão para usar a câmera. Permita e segure o código de presença dentro do quadro."
@@ -36974,3 +36964,42 @@ msgstr "Terminal sem eventos. Um operador precisa liberá-lo primeiro."
 
 msgid "A terminal with no event to check in, unpaired or paired with an empty queue, rests on Terminal without events: a lock, no reading offered, and a participant code read there is refused. The lock in the footer opens the operator area; an operator QR code then opens Set up this terminal on an unpaired terminal and the operator menu on a paired one. On an unpaired terminal the operator area also offers a small I have a pairing code link, which opens the field for the code the app shows under More → Pair terminal; that code read as a QR code pairs directly."
 msgstr "Um terminal sem evento para registrar presença, não pareado ou pareado com a fila vazia, fica em Terminal sem eventos: um cadeado, nenhuma leitura oferecida, e um código de participante lido ali é recusado. O cadeado do rodapé abre a área do operador; um QR de operador então abre Configurar este terminal num terminal não pareado e o menu do operador num pareado. Num terminal não pareado, a área do operador também oferece um link discreto Tenho um código de pareamento, que abre o campo do código que o app mostra em Mais → Parear terminal; esse código lido como QR pareia direto."
+
+msgid "%d h"
+msgstr "%d h"
+
+msgid "Active terminals"
+msgstr "Terminais ativos"
+
+msgid "By place"
+msgstr "Por local"
+
+msgid "By place: the queue fills with the place's events. Check-in windows that cross are left out."
+msgstr "Por local: a fila se enche com os eventos do local. Janelas de check-in que se cruzam ficam de fora."
+
+msgid "Choose events"
+msgstr "Escolher eventos"
+
+msgid "End by itself after the end"
+msgstr "Encerrar sozinho após o fim"
+
+msgid "Events (up to %d, next 7 days)"
+msgstr "Eventos (até %d, próximos 7 dias)"
+
+msgid "Events: %1$d · ends by itself %2$d h after the last one"
+msgstr "Eventos: %1$d · encerra sozinho %2$d h após o último"
+
+msgid "Expires in %s · single use"
+msgstr "Expira em %s · uso único"
+
+msgid "Hold to the terminal's reader"
+msgstr "Aproxime do leitor do terminal"
+
+msgid "Open the terminal page on the device and hold this code to its reader, or type it there."
+msgstr "Abra a página do terminal no aparelho e aproxime este código do leitor dele, ou digite-o lá."
+
+msgid "Unlock a paired terminal"
+msgstr "Destravar um terminal pareado"
+
+msgid "In the app, Pair terminal switches between Choose events, ticking them one by one, and By place, which ticks the events of one place, soonest first, up to 10. End by itself after the end sets how many hours after the last event the terminal ends (1, 2 or 4; the Check-in settings choose the one marked first), and the code appears beside a summary of what it pairs, with its countdown. My terminals has Change events on each terminal, which the terminal picks up within a minute and which keeps the hours chosen. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
+msgstr "No app, Parear terminal alterna entre Escolher eventos, marcando um a um, e Por local, que marca os eventos de um local, os mais próximos primeiro, até 10. Encerrar sozinho após o fim define quantas horas após o último evento o terminal se encerra (1, 2 ou 4; as configurações de check-in escolhem a marcada de início), e o código aparece ao lado de um resumo do que ele pareia, com sua contagem regressiva. Meus terminais tem Alterar eventos em cada terminal, que o terminal capta em até um minuto e que mantém as horas escolhidas. Durante uma janela de check-in o terminal mostra só o evento que registra agora e se o organizador abriu o check-in; entre janelas mostra o próximo evento e quando seu check-in abre."

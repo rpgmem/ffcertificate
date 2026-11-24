@@ -4,9 +4,10 @@
  * One script for the three screens the template draws, chosen by the root's
  * `data-ffc-terminal-operator`:
  *
- * - `pair`: tick the events, or fill them from one place (#2746), name the
- *   terminal, generate a one-time pairing code and show it as a QR code with
- *   its countdown;
+ * - `pair`: tick the events, or switch to By place and fill them from one
+ *   place (#2746), choose how long after the last event the terminal ends
+ *   by itself (#2781), name it, generate a one-time pairing code and show
+ *   it as a QR code beside a summary of what it pairs, with its countdown;
  * - `terminals`: the operator's active terminals, each with Change events
  *   (#2746) and End behind an inline confirmation;
  * - `qr`: the operator's own unlock code, renewed before it expires.
@@ -229,20 +230,47 @@
                 drawEvents(list, bookings, []);
                 var select = part('place');
                 if (select) {
-                    while (select.options.length > 1) {
-                        select.remove(1);
-                    }
+                    select.textContent = '';
                     places(bookings).forEach(function (place) {
                         var option = el.ownerDocument.createElement('option');
                         option.value = String(place.id);
                         option.textContent = place.name;
                         select.appendChild(option);
                     });
-                    select.value = '';
-                    part('by-place').hidden = select.options.length < 2;
+                    part('queue-mode').hidden = select.options.length < 1;
+                    setQueueMode('pick');
                 }
                 return bookings;
             });
+        }
+
+        /**
+         * The queue's mode: `pick` ticks the events one by one; `place`
+         * shows the place list and ticks that place's events.
+         *
+         * @param {string} value `pick` or `place`.
+         */
+        function setQueueMode(value) {
+            var radios = el.querySelectorAll('input[name="ffc_terminal_queue"]');
+            Array.prototype.forEach.call(radios, function (radio) {
+                radio.checked = radio.value === value;
+            });
+            var byPlace = 'place' === value;
+            part('by-place').hidden = !byPlace;
+            if (byPlace) {
+                fillByPlace(part('events'), part('place').value);
+            }
+        }
+
+        /**
+         * The hours chosen for the terminal to end by itself, or 0 for the
+         * Check-in settings.
+         *
+         * @return {number}
+         */
+        function autoEnd() {
+            var checked = el.querySelector('input[name="ffc_terminal_auto_end"]:checked');
+            return checked ? (parseInt(checked.value, 10) || 0) : 0;
         }
 
         function chosen(list) {
@@ -264,7 +292,12 @@
             say(strings.generating);
             var button = part('generate');
             button.disabled = true;
-            return request('POST', 'pairings', { bookings: ids, label: part('label').value || '' }).then(function (result) {
+            var body = { bookings: ids, label: part('label').value || '' };
+            var hours = autoEnd();
+            if (hours > 0) {
+                body.auto_end = hours;
+            }
+            return request('POST', 'pairings', body).then(function (result) {
                 button.disabled = false;
                 say('');
                 if (!result.ok || !result.body.code) {
@@ -274,6 +307,7 @@
                 part('form').hidden = true;
                 part('result').hidden = false;
                 part('code').textContent = result.body.code;
+                part('summary').textContent = fill(strings.pairSummary, [ids.length, hours || config.autoEnd || 0]);
                 drawQr(result.body.code);
                 countdown(Number(result.body.expires_at) || now(), strings.codeExpires);
                 return result.body;
@@ -289,6 +323,7 @@
             part('form').hidden = false;
             part('qr').innerHTML = '';
             part('code').textContent = '';
+            part('summary').textContent = '';
             return loadEvents();
         }
 
@@ -457,6 +492,13 @@
                 part('place').addEventListener('change', function () {
                     fillByPlace(part('events'), part('place').value);
                 });
+                Array.prototype.forEach.call(el.querySelectorAll('input[name="ffc_terminal_queue"]'), function (radio) {
+                    radio.addEventListener('change', function () {
+                        if (radio.checked) {
+                            setQueueMode(radio.value);
+                        }
+                    });
+                });
             }
             ready = loadEvents();
         } else if ('terminals' === mode) {
@@ -471,6 +513,7 @@
             again: again,
             reload: loadTerminals,
             fillByPlace: fillByPlace,
+            setQueueMode: setQueueMode,
             operatorCode: operatorCode
         };
     }

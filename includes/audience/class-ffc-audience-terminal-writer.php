@@ -29,28 +29,30 @@ class AudienceTerminalWriter {
 	/**
 	 * Record a pairing code an operator generated.
 	 *
-	 * @param string $code_hash Keyed hash of the code.
-	 * @param int[]  $bookings  Booking ids the terminal will hold.
-	 * @param string $label     What the operator called the terminal.
-	 * @param int    $by        The operator.
-	 * @param int    $now       Unix time.
-	 * @param int    $expires   Unix time.
+	 * @param string   $code_hash Keyed hash of the code.
+	 * @param int[]    $bookings  Booking ids the terminal will hold.
+	 * @param string   $label     What the operator called the terminal.
+	 * @param int      $by        The operator.
+	 * @param int      $now       Unix time.
+	 * @param int      $expires   Unix time.
+	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself; null for the Check-in settings.
 	 * @phpstan-param list<int> $bookings
 	 * @return int The new row's id, or 0 on failure.
 	 */
-	public static function create_pairing( string $code_hash, array $bookings, string $label, int $by, int $now, int $expires ): int {
+	public static function create_pairing( string $code_hash, array $bookings, string $label, int $by, int $now, int $expires, ?int $auto_end_hours = null ): int {
 		$wpdb = self::db();
 		$ok   = $wpdb->insert(
 			AudienceTerminalReader::pairings_table(),
 			array(
-				'code_hash'  => $code_hash,
-				'label'      => $label,
-				'bookings'   => (string) wp_json_encode( $bookings ),
-				'created_by' => $by,
-				'created_at' => $now,
-				'expires_at' => $expires,
+				'code_hash'      => $code_hash,
+				'label'          => $label,
+				'bookings'       => (string) wp_json_encode( $bookings ),
+				'created_by'     => $by,
+				'created_at'     => $now,
+				'expires_at'     => $expires,
+				'auto_end_hours' => $auto_end_hours,
 			),
-			array( '%s', '%s', '%s', '%d', '%d', '%d' )
+			array( '%s', '%s', '%s', '%d', '%d', '%d', '%d' )
 		);
 		return false === $ok ? 0 : (int) $wpdb->insert_id;
 	}
@@ -100,23 +102,25 @@ class AudienceTerminalWriter {
 	 * @param int|null $by          The operator who generated the code.
 	 * @param int      $now         Unix time.
 	 * @param int      $expires     Unix time.
+	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself; null for the Check-in settings.
 	 * @phpstan-param list<int> $bookings
 	 * @return int The new row's id, or 0 on failure.
 	 */
-	public static function create_terminal( string $token_hash, string $device_hash, string $label, array $bookings, ?int $by, int $now, int $expires ): int {
+	public static function create_terminal( string $token_hash, string $device_hash, string $label, array $bookings, ?int $by, int $now, int $expires, ?int $auto_end_hours = null ): int {
 		$wpdb = self::db();
 		$ok   = $wpdb->insert(
 			AudienceTerminalReader::terminals_table(),
 			array(
-				'token_hash'  => $token_hash,
-				'device_hash' => $device_hash,
-				'label'       => $label,
-				'bookings'    => (string) wp_json_encode( $bookings ),
-				'paired_by'   => $by,
-				'paired_at'   => $now,
-				'expires_at'  => $expires,
+				'token_hash'     => $token_hash,
+				'device_hash'    => $device_hash,
+				'label'          => $label,
+				'bookings'       => (string) wp_json_encode( $bookings ),
+				'paired_by'      => $by,
+				'paired_at'      => $now,
+				'expires_at'     => $expires,
+				'auto_end_hours' => $auto_end_hours,
 			),
-			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d' )
 		);
 		return false === $ok ? 0 : (int) $wpdb->insert_id;
 	}

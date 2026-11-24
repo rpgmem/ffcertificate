@@ -23,8 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for terminals and the pairing codes that create them.
  *
- * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, bookings: list<int>, removed: array<int, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, revoked_at: int|null, revoked_by: int|null}
- * @phpstan-type PairingRow array{id: int, code_hash: string, bookings: list<int>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null}
+ * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, bookings: list<int>, removed: array<int, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, auto_end_hours: int|null, revoked_at: int|null, revoked_by: int|null}
+ * @phpstan-type PairingRow array{id: int, code_hash: string, bookings: list<int>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null, auto_end_hours: int|null}
  *
  * @since 6.50.0
  */
@@ -180,20 +180,21 @@ class AudienceTerminalReader {
 	 */
 	private static function shape_terminal( array $row ): array {
 		return array(
-			'id'           => ArrayValue::int( $row, 'id' ),
-			'token_hash'   => ArrayValue::string( $row, 'token_hash' ),
-			'device_hash'  => ArrayValue::string( $row, 'device_hash' ),
-			'label'        => ArrayValue::string( $row, 'label' ),
-			'bookings'     => self::ids( ArrayValue::string( $row, 'bookings' ) ),
-			'removed'      => self::removals( ArrayValue::string( $row, 'removed' ) ),
-			'paired_by'    => self::nullable_int( $row, 'paired_by' ),
-			'paired_at'    => ArrayValue::int( $row, 'paired_at' ),
-			'expires_at'   => ArrayValue::int( $row, 'expires_at' ),
-			'last_seen_at' => self::nullable_int( $row, 'last_seen_at' ),
-			'queued'       => ArrayValue::int( $row, 'queued' ),
-			'readings'     => ArrayValue::int( $row, 'readings' ),
-			'revoked_at'   => self::nullable_int( $row, 'revoked_at' ),
-			'revoked_by'   => self::nullable_int( $row, 'revoked_by' ),
+			'id'             => ArrayValue::int( $row, 'id' ),
+			'token_hash'     => ArrayValue::string( $row, 'token_hash' ),
+			'device_hash'    => ArrayValue::string( $row, 'device_hash' ),
+			'label'          => ArrayValue::string( $row, 'label' ),
+			'bookings'       => self::ids( ArrayValue::string( $row, 'bookings' ) ),
+			'removed'        => self::removals( ArrayValue::string( $row, 'removed' ) ),
+			'paired_by'      => self::nullable_int( $row, 'paired_by' ),
+			'paired_at'      => ArrayValue::int( $row, 'paired_at' ),
+			'expires_at'     => ArrayValue::int( $row, 'expires_at' ),
+			'last_seen_at'   => self::nullable_int( $row, 'last_seen_at' ),
+			'queued'         => ArrayValue::int( $row, 'queued' ),
+			'readings'       => ArrayValue::int( $row, 'readings' ),
+			'auto_end_hours' => self::nullable_int( $row, 'auto_end_hours' ),
+			'revoked_at'     => self::nullable_int( $row, 'revoked_at' ),
+			'revoked_by'     => self::nullable_int( $row, 'revoked_by' ),
 		);
 	}
 
@@ -205,15 +206,16 @@ class AudienceTerminalReader {
 	 */
 	private static function shape_pairing( array $row ): array {
 		return array(
-			'id'          => ArrayValue::int( $row, 'id' ),
-			'code_hash'   => ArrayValue::string( $row, 'code_hash' ),
-			'bookings'    => self::ids( ArrayValue::string( $row, 'bookings' ) ),
-			'label'       => ArrayValue::string( $row, 'label' ),
-			'created_by'  => self::nullable_int( $row, 'created_by' ),
-			'created_at'  => ArrayValue::int( $row, 'created_at' ),
-			'expires_at'  => ArrayValue::int( $row, 'expires_at' ),
-			'used_at'     => self::nullable_int( $row, 'used_at' ),
-			'terminal_id' => self::nullable_int( $row, 'terminal_id' ),
+			'id'             => ArrayValue::int( $row, 'id' ),
+			'code_hash'      => ArrayValue::string( $row, 'code_hash' ),
+			'bookings'       => self::ids( ArrayValue::string( $row, 'bookings' ) ),
+			'label'          => ArrayValue::string( $row, 'label' ),
+			'created_by'     => self::nullable_int( $row, 'created_by' ),
+			'created_at'     => ArrayValue::int( $row, 'created_at' ),
+			'expires_at'     => ArrayValue::int( $row, 'expires_at' ),
+			'used_at'        => self::nullable_int( $row, 'used_at' ),
+			'terminal_id'    => self::nullable_int( $row, 'terminal_id' ),
+			'auto_end_hours' => self::nullable_int( $row, 'auto_end_hours' ),
 		);
 	}
 

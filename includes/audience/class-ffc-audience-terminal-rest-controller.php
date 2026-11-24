@@ -84,6 +84,13 @@ class AudienceTerminalRestController {
 						'default'           => '',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
+					// Hours after the last event the terminal ends itself (#2781).
+					'auto_end' => array(
+						'type'     => 'integer',
+						'required' => false,
+						'minimum'  => 1,
+						'maximum'  => AudienceCheckinSettings::AUTO_END_HOURS_MAX,
+					),
 				),
 			)
 		);
@@ -135,6 +142,12 @@ class AudienceTerminalRestController {
 						'type'              => 'string',
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'auto_end' => array(
+						'type'     => 'integer',
+						'required' => false,
+						'minimum'  => 1,
+						'maximum'  => AudienceCheckinSettings::AUTO_END_HOURS_MAX,
 					),
 				),
 			)
@@ -385,6 +398,17 @@ class AudienceTerminalRestController {
 	}
 
 	/**
+	 * The auto-end the operator chose (#2781), or null for the Check-in settings.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return int|null
+	 */
+	private static function auto_end_of( \WP_REST_Request $request ): ?int {
+		$hours = $request->get_param( 'auto_end' );
+		return is_numeric( $hours ) ? AudienceTerminalPairing::clean_auto_end( (int) $hours ) : null;
+	}
+
+	/**
 	 * Generate a pairing code.
 	 *
 	 * @param \WP_REST_Request $request Request.
@@ -393,7 +417,7 @@ class AudienceTerminalRestController {
 	public function create_pairing( \WP_REST_Request $request ) {
 		$bookings = self::sanitize_ids( $request->get_param( 'bookings' ) );
 		$label    = $request->get_param( 'label' );
-		$result   = AudienceTerminalPairing::create_code( get_current_user_id(), $bookings, is_string( $label ) ? $label : '', time() );
+		$result   = AudienceTerminalPairing::create_code( get_current_user_id(), $bookings, is_string( $label ) ? $label : '', time(), self::auto_end_of( $request ) );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
@@ -492,7 +516,7 @@ class AudienceTerminalRestController {
 		$now    = time();
 		$label  = $request->get_param( 'label' );
 		$device = $request->get_param( 'device' );
-		$code   = AudienceTerminalPairing::create_code( $operator['user_id'], self::sanitize_ids( $request->get_param( 'bookings' ) ), is_string( $label ) ? $label : '', $now );
+		$code   = AudienceTerminalPairing::create_code( $operator['user_id'], self::sanitize_ids( $request->get_param( 'bookings' ) ), is_string( $label ) ? $label : '', $now, self::auto_end_of( $request ) );
 		if ( is_wp_error( $code ) ) {
 			return $code;
 		}

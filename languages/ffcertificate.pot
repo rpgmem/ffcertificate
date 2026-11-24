@@ -35937,8 +35937,6 @@ msgstr ""
 msgid "Terminals: %d"
 msgstr ""
 
-msgid "The code expires in %s."
-msgstr ""
 
 msgid "This code has expired."
 msgstr ""
@@ -36000,8 +35998,6 @@ msgstr ""
 msgid "Generate pairing code"
 msgstr ""
 
-msgid "Open the terminal page on the device and hold this code to its reader, or type it there. The code works once."
-msgstr ""
 
 msgid "Generate another code"
 msgstr ""
@@ -36154,11 +36150,7 @@ msgstr ""
 msgid "Events saved. The terminal picks them up within a minute."
 msgstr ""
 
-msgid "Fill from a place"
-msgstr ""
 
-msgid "Choose events one by one"
-msgstr ""
 
 msgid "A terminal checks in one event at a time: events whose check-in times cross cannot share it."
 msgstr ""
@@ -36172,8 +36164,6 @@ msgstr ""
 msgid "Save events"
 msgstr ""
 
-msgid "In the app, Pair terminal can fill the events from one place, soonest first, up to 10, instead of ticking them one by one. My terminals has Change events on each terminal, which the terminal picks up within a minute. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
-msgstr ""
 
 msgid "The browser asks for permission to use the camera. Allow it, then hold the presence code inside the frame."
 msgstr ""
@@ -36895,4 +36885,43 @@ msgid "Terminal without events. An operator must release it first."
 msgstr ""
 
 msgid "A terminal with no event to check in, unpaired or paired with an empty queue, rests on Terminal without events: a lock, no reading offered, and a participant code read there is refused. The lock in the footer opens the operator area; an operator QR code then opens Set up this terminal on an unpaired terminal and the operator menu on a paired one. On an unpaired terminal the operator area also offers a small I have a pairing code link, which opens the field for the code the app shows under More → Pair terminal; that code read as a QR code pairs directly."
+msgstr ""
+
+msgid "%d h"
+msgstr ""
+
+msgid "Active terminals"
+msgstr ""
+
+msgid "By place"
+msgstr ""
+
+msgid "By place: the queue fills with the place's events. Check-in windows that cross are left out."
+msgstr ""
+
+msgid "Choose events"
+msgstr ""
+
+msgid "End by itself after the end"
+msgstr ""
+
+msgid "Events (up to %d, next 7 days)"
+msgstr ""
+
+msgid "Events: %1$d · ends by itself %2$d h after the last one"
+msgstr ""
+
+msgid "Expires in %s · single use"
+msgstr ""
+
+msgid "Hold to the terminal's reader"
+msgstr ""
+
+msgid "Open the terminal page on the device and hold this code to its reader, or type it there."
+msgstr ""
+
+msgid "Unlock a paired terminal"
+msgstr ""
+
+msgid "In the app, Pair terminal switches between Choose events, ticking them one by one, and By place, which ticks the events of one place, soonest first, up to 10. End by itself after the end sets how many hours after the last event the terminal ends (1, 2 or 4; the Check-in settings choose the one marked first), and the code appears beside a summary of what it pairs, with its countdown. My terminals has Change events on each terminal, which the terminal picks up within a minute and which keeps the hours chosen. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
 msgstr ""

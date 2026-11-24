@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '20';
+	public const SCHEMA_REVISION = '21';
 
 	/**
 	 * Option holding the revision last applied.
@@ -629,6 +629,7 @@ class AudienceActivator {
             last_seen_at bigint(20) unsigned DEFAULT NULL,
             queued int(10) unsigned NOT NULL DEFAULT 0,
             readings int(10) unsigned NOT NULL DEFAULT 0,
+            auto_end_hours smallint(5) unsigned DEFAULT NULL,
             revoked_at bigint(20) unsigned DEFAULT NULL,
             revoked_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
@@ -669,6 +670,7 @@ class AudienceActivator {
             expires_at bigint(20) unsigned NOT NULL,
             used_at bigint(20) unsigned DEFAULT NULL,
             terminal_id bigint(20) unsigned DEFAULT NULL,
+            auto_end_hours smallint(5) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_code (code_hash),
             KEY idx_expires (expires_at)
@@ -1197,8 +1199,18 @@ class AudienceActivator {
 		// last said it holds unsent, and the attendances it recorded.
 		self::add_column_if_missing( $table_name, 'queued', 'int(10) unsigned NOT NULL DEFAULT 0', 'last_seen_at' );
 		self::add_column_if_missing( $table_name, 'readings', 'int(10) unsigned NOT NULL DEFAULT 0', 'queued' );
+		// How long after its last event the terminal ends itself, chosen
+		// when it was paired (#2781); empty means the Check-in settings.
+		self::add_column_if_missing( $table_name, 'auto_end_hours', 'smallint(5) unsigned DEFAULT NULL', 'readings' );
+		$pairings = $wpdb->prefix . 'ffc_audience_terminal_pairings';
+		if ( self::table_exists( $pairings ) ) {
+			self::add_column_if_missing( $pairings, 'auto_end_hours', 'smallint(5) unsigned DEFAULT NULL', 'terminal_id' );
+			if ( ! self::has_columns( $pairings, array( 'auto_end_hours' ) ) ) {
+				return false;
+			}
+		}
 
-		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings' ) );
+		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings', 'auto_end_hours' ) );
 	}
 
 	/**
