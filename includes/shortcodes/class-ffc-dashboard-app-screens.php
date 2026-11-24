@@ -106,7 +106,8 @@ final class DashboardAppScreens {
 	public static function definitions(): array {
 		return array(
 			'calendar'       => array(
-				'label'    => __( 'Calendar', 'ffcertificate' ),
+				// "Agenda", as the approved app names it (site-pwa#23); the id stays.
+				'label'    => __( 'Agenda', 'ffcertificate' ),
 				'icon'     => 'calendar',
 				'place'    => 'nav',
 				'position' => 1,

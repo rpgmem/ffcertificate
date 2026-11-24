@@ -153,6 +153,7 @@ return array(
 	'Shortcodes>Core',
 	'Shortcodes>DateMessages',
 	'Shortcodes>Recruitment',
+	'Shortcodes>Repositories',
 	'Shortcodes>Reregistration',
 	'Shortcodes>Scheduling',
 	'Shortcodes>Settings',

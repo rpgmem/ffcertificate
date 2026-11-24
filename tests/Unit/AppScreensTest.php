@@ -241,6 +241,9 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( array( 'presence', 'operator-pair', 'operator-terminals', 'operator-qr', 'operator-attendance' ), array_keys( $registry->added ) );
 		$this->assertSame( 'ffc_view_own_audience_bookings', $registry->added['presence']['capability'] );
 		$this->assertSame( 'nav', $registry->added['presence']['place'] );
+		$this->assertSame( 'center', $registry->added['presence']['slot'], 'Presence is raised in the middle of the bar (site-pwa#23)' );
+		$this->assertSame( 'qr', $registry->added['presence']['icon'] );
+		$this->assertArrayNotHasKey( 'slot', $registry->added['operator-pair'], 'only Presence asks for the centre' );
 		$caps = array(
 			'operator-pair'       => 'ffc_manage_audiences_terminals',
 			'operator-terminals'  => 'ffc_manage_audiences_terminals',

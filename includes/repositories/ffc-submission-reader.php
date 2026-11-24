@@ -783,6 +783,49 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * A user's newest certificate issued since a moment, for the app's Home
+	 * (site-pwa#23): what it is and when, never its data.
+	 *
+	 * Trash and a quiz attempt that did not pass are not certificates, as on
+	 * the app's Certificates screen (#1744).
+	 *
+	 * @param int $user_id User.
+	 * @param int $since   Unix time; older certificates are left out.
+	 * @return array{id: int, form_title: string, submission_date: int}|null
+	 */
+	public function latest_certificate_for_user( int $user_id, int $since ): ?array {
+		if ( $user_id <= 0 ) {
+			return null;
+		}
+		$hidden = \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE;
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One %s placeholder per hidden status, filled by prepare(); Interpolated* is file-disabled above.
+		$row = $this->wpdb->get_row(
+			$this->wpdb->prepare(
+				'SELECT s.id, s.submission_date, p.post_title AS form_title FROM %i s LEFT JOIN %i p ON s.form_id = p.ID'
+				. ' WHERE s.user_id = %d AND s.submission_date >= %d AND s.status NOT IN (' . implode( ', ', array_fill( 0, count( $hidden ), '%s' ) ) . ')'
+				. ' ORDER BY s.submission_date DESC, s.id DESC LIMIT 1',
+				$this->table,
+				$this->wpdb->posts,
+				$user_id,
+				$since,
+				...$hidden
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		if ( ! is_array( $row ) || ! is_numeric( $row['id'] ?? null ) ) {
+			return null;
+		}
+		$title = $row['form_title'] ?? '';
+		$date  = $row['submission_date'] ?? 0;
+		return array(
+			'id'              => (int) $row['id'],
+			'form_title'      => is_string( $title ) ? $title : '',
+			'submission_date' => is_numeric( $date ) ? (int) $date : 0,
+		);
+	}
+
+	/**
 	 * The accounts whose name or login contains a search term.
 	 *
 	 * A submission keeps the name only inside its encrypted data, so the
