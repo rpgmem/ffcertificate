@@ -48,14 +48,14 @@ final class AudienceAppScreens {
 
 	/**
 	 * What the app checks before it shows Pair terminal and My terminals
-	 * (#2828): the terminal capability, held by an account whose presence is
-	 * active on a phone. A meta capability, resolved in {@see map_app_caps()}.
+	 * (#2828): the terminal capability, on the phone where the account's
+	 * presence is active. A meta capability, resolved in {@see map_app_caps()}.
 	 */
 	public const APP_PAIR_CAPABILITY = 'ffc_app_pair_terminals';
 
 	/**
 	 * What the app checks before it shows Operator QR (#2828): the check-in
-	 * capability, held by an account whose presence is active on a phone.
+	 * capability, on the phone where the account's presence is active.
 	 */
 	public const APP_OPERATOR_CAPABILITY = 'ffc_app_checkin_audiences';
 
@@ -81,10 +81,10 @@ final class AudienceAppScreens {
 
 	/**
 	 * Resolve the app's operator capabilities (#2828): the real capability
-	 * when the account has a phone with active presence, nothing otherwise.
-	 * The app shows a screen to whoever passes `current_user_can()` on its
-	 * capability, so the operator section stays out of More, and its screens
-	 * refuse to open, until presence is activated. `map_meta_cap` runs
+	 * when the request comes from the phone with the account's active
+	 * presence, nothing otherwise. The app shows a screen to whoever passes
+	 * `current_user_can()` on its capability, so the operator section stays
+	 * out of More, and its screens refuse to open, on any other phone. `map_meta_cap` runs
 	 * before any grant is read, so no role can hold these names directly.
 	 *
 	 * @param mixed $caps    Primitive capabilities so far.
@@ -104,22 +104,15 @@ final class AudienceAppScreens {
 	}
 
 	/**
-	 * Whether the account has a phone whose presence is active: a device
-	 * row that was never revoked.
+	 * Whether this request comes from the phone that holds the account's
+	 * active presence key (#2828), by the cookie the app's presence calls
+	 * write on that phone; another phone of the same account does not count.
 	 *
 	 * @param int $user_id User.
 	 * @return bool
 	 */
 	public static function has_active_presence( int $user_id ): bool {
-		if ( $user_id <= 0 ) {
-			return false;
-		}
-		foreach ( AudiencePresenceReader::for_user( $user_id ) as $device ) {
-			if ( null === $device['revoked_at'] ) {
-				return true;
-			}
-		}
-		return false;
+		return null !== AudiencePresenceDeviceCookie::active_key( $user_id );
 	}
 
 	/**
@@ -168,8 +161,9 @@ final class AudienceAppScreens {
 	 * wp-admin, so it links there; the others draw their own screen.
 	 * Pairing and listing terminals take the terminal capability; the
 	 * operator's unlock code takes the check-in one, because it is what a
-	 * check-in operator shows a terminal. Those three also need presence
-	 * active on a phone (#2828), through the app's meta capabilities.
+	 * check-in operator shows a terminal. Those three also need the phone
+	 * where the account's presence is active (#2828), through the app's meta
+	 * capabilities.
 	 *
 	 * @return array<string, ScreenDef>
 	 */

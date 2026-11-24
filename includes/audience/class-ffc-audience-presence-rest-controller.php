@@ -203,7 +203,11 @@ class AudiencePresenceRestController {
 			time(),
 			(string) $request->get_header( 'user_agent' )
 		);
-		return is_wp_error( $result ) ? $result : new \WP_REST_Response( $result, 200 );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		AudiencePresenceDeviceCookie::remember( get_current_user_id(), $result['key_id'] );
+		return new \WP_REST_Response( $result, 200 );
 	}
 
 	/**
@@ -231,7 +235,11 @@ class AudiencePresenceRestController {
 			(string) $request->get_param( 'proof' ),
 			time()
 		);
-		return is_wp_error( $result ) ? $result : new \WP_REST_Response( $result, 200 );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		AudiencePresenceDeviceCookie::remember( get_current_user_id(), $result['key_id'] );
+		return new \WP_REST_Response( $result, 200 );
 	}
 
 	/**
@@ -254,6 +262,9 @@ class AudiencePresenceRestController {
 			if ( is_wp_error( $device ) ) {
 				return $device;
 			}
+			// This phone holds the active key: mark it, so the app's operator
+			// screens show on it and on no other phone (#2828).
+			AudiencePresenceDeviceCookie::remember( get_current_user_id(), $key );
 		}
 		return new \WP_REST_Response(
 			array(

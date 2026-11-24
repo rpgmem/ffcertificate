@@ -6,9 +6,11 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAppScreens;
+use FreeFormCertificate\Audience\AudiencePresenceDeviceCookie;
 use FreeFormCertificate\Shortcodes\AgendaAppScreen;
 use FreeFormCertificate\Shortcodes\CertificatesAppScreen;
 use FreeFormCertificate\Shortcodes\DashboardAppScreens;
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use FreeFormCertificate\Tests\Support\FakeTerminalTables;
 use PHPUnit\Framework\TestCase;
 
@@ -21,6 +23,7 @@ use PHPUnit\Framework\TestCase;
  * @covers \FreeFormCertificate\Shortcodes\AgendaAppScreen
  * @covers \FreeFormCertificate\Shortcodes\CertificatesAppScreen
  * @covers \FreeFormCertificate\Audience\AudienceAppScreens
+ * @covers \FreeFormCertificate\Audience\AudiencePresenceDeviceCookie
  */
 class AppScreensTest extends TestCase {
 
@@ -274,12 +277,14 @@ class AppScreensTest extends TestCase {
 		$this->assertArrayNotHasKey( 'badge', $registry->added['operator-pair'] );
 	}
 
-	public function test_the_operator_screens_need_the_capability_and_presence_active_on_a_phone(): void {
+	public function test_the_operator_screens_show_only_on_the_phone_that_holds_the_active_presence(): void {
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
+		Functions\when( 'wp_unslash' )->returnArg();
 		$devices = array();
 		$db      = new class( $devices ) extends \wpdb {
-			/** @var array<int, array<string, mixed>> */
+			/** @var array<string, array<string, mixed>> */
 			public array $rows;
-			/** @param array<int, array<string, mixed>> $rows Rows. */
+			/** @param array<string, array<string, mixed>> $rows Rows by key id. */
 			public function __construct( array &$rows ) {
 				$this->prefix = 'wp_';
 				$this->rows   = &$rows;
@@ -293,12 +298,13 @@ class AppScreensTest extends TestCase {
 				return (string) $args[1];
 			}
 			/**
-			 * @param string $query The user id, as prepared above.
+			 * @param string $query The key id, as prepared above.
 			 * @param string $output Output shape.
-			 * @return array<int, array<string, mixed>>
+			 * @param int    $y Row offset.
+			 * @return array<string, mixed>|null
 			 */
-			public function get_results( $query = null, $output = OBJECT ) {
-				return array_values( array_filter( $this->rows, static fn( array $row ): bool => (string) $row['user_id'] === $query ) );
+			public function get_row( $query = null, $output = OBJECT, $y = 0 ) {
+				return $this->rows[ $query ] ?? null;
 			}
 		};
 		$device = static fn( int $user, ?int $revoked ): array => array(
@@ -314,19 +320,28 @@ class AppScreensTest extends TestCase {
 		$had    = array_key_exists( 'wpdb', $GLOBALS );
 		$backup = $GLOBALS['wpdb'] ?? null;
 		$GLOBALS['wpdb'] = $db;
+		unset( $_COOKIE[ AudiencePresenceDeviceCookie::NAME ] );
 		try {
 			$this->assertSame( array( 'edit_posts' ), AudienceAppScreens::map_app_caps( array( 'edit_posts' ), 'edit_posts', 7 ), 'other capabilities pass through' );
-			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ), 'no phone activated' );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ), 'a phone that never activated presence' );
 
-			$devices[] = $device( 7, 500 );
-			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_checkin_audiences', 7 ), 'only a revoked phone' );
-
-			$devices[] = $device( 7, null );
-			$this->assertSame( array( 'ffc_manage_audiences_terminals' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ) );
+			$devices['k-here']  = $device( 7, null );
+			$devices['k-other'] = $device( 7, 500 );
+			$_COOKIE[ AudiencePresenceDeviceCookie::NAME ] = AudiencePresenceDeviceCookie::value( 7, 'k-here' );
+			$this->assertSame( array( 'ffc_manage_audiences_terminals' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ), 'the phone holding the active key' );
 			$this->assertSame( array( 'ffc_checkin_audiences' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_checkin_audiences', 7 ) );
-			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 8 ), 'another account' );
-			$this->assertFalse( AudienceAppScreens::has_active_presence( 0 ), 'signed out' );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 8 ), 'the same cookie names another account' );
+
+			$_COOKIE[ AudiencePresenceDeviceCookie::NAME ] = AudiencePresenceDeviceCookie::value( 7, 'k-other' );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ), 'a phone whose key was replaced' );
+
+			$_COOKIE[ AudiencePresenceDeviceCookie::NAME ] = 'k-here.' . str_repeat( '0', 64 );
+			$this->assertNull( AudiencePresenceDeviceCookie::active_key( 7 ), 'a forged signature' );
+			$this->assertNull( AudiencePresenceDeviceCookie::active_key( 7, 'k-here' ), 'no signature' );
+			$this->assertSame( 'k-here', AudiencePresenceDeviceCookie::active_key( 7, AudiencePresenceDeviceCookie::value( 7, 'k-here' ) ) );
+			$this->assertNull( AudiencePresenceDeviceCookie::active_key( 0, AudiencePresenceDeviceCookie::value( 0, 'k-here' ) ), 'signed out' );
 		} finally {
+			unset( $_COOKIE[ AudiencePresenceDeviceCookie::NAME ] );
 			if ( $had ) {
 				$GLOBALS['wpdb'] = $backup;
 			} else {
