@@ -1562,10 +1562,10 @@ describe('device check', () => {
 
 	it('adds the visible screen in CSS pixels and its density (#2824)', async () => {
 		const el = markup();
-		const controls = T().start(el, CONFIG, env({ storage: memoryStorage(paired), screen: () => ({ width: 1280, height: 752, ratio: 1 }) }));
+		const controls = T().start(el, CONFIG, env({ storage: memoryStorage(paired), view: { innerWidth: 1280, innerHeight: 752, devicePixelRatio: 1.333 } }));
 		await controls.deviceCheck();
 
-		expect(rows(el)[4]).toBe('1280 × 752 px · 1×');
+		expect(rows(el)[4]).toBe('1280 × 752 px · 1.33×');
 		expect(el.querySelectorAll('[data-ffc-terminal-part="device-check"] dt')[4].textContent).toBe('Visible');
 	});
 

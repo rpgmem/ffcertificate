@@ -1099,9 +1099,10 @@
                 ];
                 // The visible screen in CSS pixels and its density (#2824):
                 // what the layout is measured against on a real tablet.
-                var size = env.screen ? env.screen() : null;
-                if (size) {
-                    rows.push([check.screenLabel, size.width + ' × ' + size.height + ' px · ' + size.ratio + '×']);
+                var view = env.view;
+                if (view && view.innerWidth) {
+                    var ratio = Math.round((view.devicePixelRatio || 1) * 100) / 100;
+                    rows.push([check.screenLabel, view.innerWidth + ' × ' + view.innerHeight + ' px · ' + ratio + '×']);
                 }
                 list.textContent = '';
                 rows.forEach(function (row) {
@@ -1906,9 +1907,7 @@
                 onOffline: function (fn) { root.addEventListener('offline', fn); },
                 wakeLock: root.navigator.wakeLock,
                 userAgent: root.navigator.userAgent,
-                screen: function () {
-                    return { width: root.innerWidth, height: root.innerHeight, ratio: Math.round((root.devicePixelRatio || 1) * 100) / 100 };
-                },
+                view: root,
                 visible: function () { return 'visible' === root.document.visibilityState; },
                 onVisible: function (fn) {
                     root.document.addEventListener('visibilitychange', function () {
