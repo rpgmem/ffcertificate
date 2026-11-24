@@ -6,9 +6,11 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAppScreens;
+use FreeFormCertificate\Audience\AudiencePresenceDeviceCookie;
 use FreeFormCertificate\Shortcodes\AgendaAppScreen;
 use FreeFormCertificate\Shortcodes\CertificatesAppScreen;
 use FreeFormCertificate\Shortcodes\DashboardAppScreens;
+use FreeFormCertificate\Tests\Support\FakeCredentials;
 use FreeFormCertificate\Tests\Support\FakeTerminalTables;
 use PHPUnit\Framework\TestCase;
 
@@ -21,6 +23,7 @@ use PHPUnit\Framework\TestCase;
  * @covers \FreeFormCertificate\Shortcodes\AgendaAppScreen
  * @covers \FreeFormCertificate\Shortcodes\CertificatesAppScreen
  * @covers \FreeFormCertificate\Audience\AudienceAppScreens
+ * @covers \FreeFormCertificate\Audience\AudiencePresenceDeviceCookie
  */
 class AppScreensTest extends TestCase {
 
@@ -81,6 +84,7 @@ class AppScreensTest extends TestCase {
 		AudienceAppScreens::init();
 
 		$this->assertSame( 10, has_filter( 'site_pwa_profile_line', array( DashboardAppScreens::class, 'profile_line' ) ), 'the line under the name on More' );
+		$this->assertSame( 10, has_filter( 'map_meta_cap', array( AudienceAppScreens::class, 'map_app_caps' ) ), 'the operator screens wait for presence (#2828)' );
 		$this->assertSame(
 			array(
 				array( 'site_pwa_register_screens', array( DashboardAppScreens::class, 'register' ), 2 ),
@@ -247,9 +251,9 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'qr', $registry->added['presence']['icon'] );
 		$this->assertArrayNotHasKey( 'slot', $registry->added['operator-pair'], 'only Presence asks for the centre' );
 		$caps = array(
-			'operator-pair'       => 'ffc_manage_audiences_terminals',
-			'operator-terminals'  => 'ffc_manage_audiences_terminals',
-			'operator-qr'         => 'ffc_checkin_audiences',
+			'operator-pair'       => 'ffc_app_pair_terminals',
+			'operator-terminals'  => 'ffc_app_pair_terminals',
+			'operator-qr'         => 'ffc_app_checkin_audiences',
 			'operator-attendance' => 'ffc_checkin_audiences',
 		);
 		foreach ( $caps as $id => $cap ) {
@@ -271,6 +275,79 @@ class AppScreensTest extends TestCase {
 		$this->assertArrayNotHasKey( 'section', $registry->added['presence'], 'Presence is in the bar, not in a More group' );
 		$this->assertSame( array( AudienceAppScreens::class, 'terminals_badge' ), $registry->added['operator-terminals']['badge'] );
 		$this->assertArrayNotHasKey( 'badge', $registry->added['operator-pair'] );
+	}
+
+	public function test_the_operator_screens_show_only_on_the_phone_that_holds_the_active_presence(): void {
+		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
+		Functions\when( 'wp_unslash' )->returnArg();
+		$devices = array();
+		$db      = new class( $devices ) extends \wpdb {
+			/** @var array<string, array<string, mixed>> */
+			public array $rows;
+			/** @param array<string, array<string, mixed>> $rows Rows by key id. */
+			public function __construct( array &$rows ) {
+				$this->prefix = 'wp_';
+				$this->rows   = &$rows;
+			}
+			/**
+			 * @param string $query Query.
+			 * @param mixed  ...$args Arguments.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) {
+				return (string) $args[1];
+			}
+			/**
+			 * @param string $query The key id, as prepared above.
+			 * @param string $output Output shape.
+			 * @param int    $y Row offset.
+			 * @return array<string, mixed>|null
+			 */
+			public function get_row( $query = null, $output = OBJECT, $y = 0 ) {
+				return $this->rows[ $query ] ?? null;
+			}
+		};
+		$device = static fn( int $user, ?int $revoked ): array => array(
+			'id'           => 1,
+			'user_id'      => $user,
+			'device_id'    => 'd',
+			'key_id'       => 'k',
+			'public_key'   => 'p',
+			'is_change'    => 0,
+			'activated_at' => 100,
+			'revoked_at'   => $revoked,
+		);
+		$had    = array_key_exists( 'wpdb', $GLOBALS );
+		$backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = $db;
+		unset( $_COOKIE[ AudiencePresenceDeviceCookie::NAME ] );
+		try {
+			$this->assertSame( array( 'edit_posts' ), AudienceAppScreens::map_app_caps( array( 'edit_posts' ), 'edit_posts', 7 ), 'other capabilities pass through' );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ), 'a phone that never activated presence' );
+
+			$devices['k-here']  = $device( 7, null );
+			$devices['k-other'] = $device( 7, 500 );
+			$_COOKIE[ AudiencePresenceDeviceCookie::NAME ] = AudiencePresenceDeviceCookie::value( 7, 'k-here' );
+			$this->assertSame( array( 'ffc_manage_audiences_terminals' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ), 'the phone holding the active key' );
+			$this->assertSame( array( 'ffc_checkin_audiences' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_checkin_audiences', 7 ) );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 8 ), 'the same cookie names another account' );
+
+			$_COOKIE[ AudiencePresenceDeviceCookie::NAME ] = AudiencePresenceDeviceCookie::value( 7, 'k-other' );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ), 'a phone whose key was replaced' );
+
+			$_COOKIE[ AudiencePresenceDeviceCookie::NAME ] = 'k-here.' . str_repeat( '0', 64 );
+			$this->assertNull( AudiencePresenceDeviceCookie::active_key( 7 ), 'a forged signature' );
+			$this->assertNull( AudiencePresenceDeviceCookie::active_key( 7, 'k-here' ), 'no signature' );
+			$this->assertSame( 'k-here', AudiencePresenceDeviceCookie::active_key( 7, AudiencePresenceDeviceCookie::value( 7, 'k-here' ) ) );
+			$this->assertNull( AudiencePresenceDeviceCookie::active_key( 0, AudiencePresenceDeviceCookie::value( 0, 'k-here' ) ), 'signed out' );
+		} finally {
+			unset( $_COOKIE[ AudiencePresenceDeviceCookie::NAME ] );
+			if ( $had ) {
+				$GLOBALS['wpdb'] = $backup;
+			} else {
+				unset( $GLOBALS['wpdb'] );
+			}
+		}
 	}
 
 	public function test_my_terminals_counts_the_operators_active_terminals_and_those_not_heard_from(): void {
