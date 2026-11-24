@@ -25,6 +25,7 @@ const settle = async () => { for (let i = 0; i < 10; i++) { await flush(); } };
 const CONFIG = {
 	rest: 'https://example.com/wp-json/ffc/v1/terminal/',
 	strings: {
+		idleRefused: 'idle refused',
 		storage: 'storage',
 		pairing: 'pairing',
 		paired: 'paired',
@@ -107,10 +108,12 @@ function markup() {
 			<p data-ffc-terminal-part="status"></p>
 			<p data-ffc-terminal-part="error" hidden></p>
 			<form data-ffc-terminal-part="reading-form"><input data-ffc-terminal-part="reading"><button type="submit">Check in</button></form>
+			<section data-ffc-terminal-view="idle" hidden></section>
 			<section data-ffc-terminal-view="pairing" hidden>
 				<div data-ffc-terminal-camera-slot="pairing"></div>
 				<div data-ffc-terminal-camera-art></div>
 				<form data-ffc-terminal-part="form"><input data-ffc-terminal-part="code"><button type="submit">Pair</button></form>
+				<button type="button" data-ffc-terminal-part="pairing-cancel">Cancel</button>
 			</section>
 			<section data-ffc-terminal-view="setup" hidden>
 				<p data-ffc-terminal-part="setup-operator"></p>
@@ -156,6 +159,7 @@ function markup() {
 				<div data-ffc-terminal-camera-art></div>
 				<p data-ffc-terminal-part="unlock-wait"></p>
 				<button type="button" data-ffc-terminal-part="unlock-cancel">Cancel</button>
+				<button type="button" data-ffc-terminal-part="unlock-code" hidden>I have a pairing code</button>
 			</section>
 			<section data-ffc-terminal-view="menu" hidden>
 				<h2 data-ffc-terminal-part="operator"></h2>
@@ -265,10 +269,37 @@ describe('pairing', () => {
 	let el;
 	beforeEach(() => { el = markup(); });
 
-	it('starts on Waiting for pairing with the field focused', () => {
-		T().start(el, CONFIG, env());
+	it('starts locked without events, and reaches the pairing code only from the lock (#2794)', () => {
+		const controls = T().start(el, CONFIG, env());
+		expect(visible(el)).toEqual(['idle']);
+		expect(el.querySelector('[data-ffc-terminal-part="foot"]').hidden).toBe(false);
+		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="reading"]'));
+		el.querySelector('[data-ffc-terminal-part="lock"]').click();
+		expect(controls.screen()).toBe('unlock');
+		const link = el.querySelector('[data-ffc-terminal-part="unlock-code"]');
+		expect(link.hidden).toBe(false);
+		link.click();
 		expect(visible(el)).toEqual(['pairing']);
 		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="code"]'));
+		el.querySelector('[data-ffc-terminal-part="pairing-cancel"]').click();
+		expect(visible(el)).toEqual(['idle']);
+	});
+
+	it('refuses a presence code while locked, and opens setup on an operator code (#2794)', async () => {
+		const calls = [];
+		const controls = T().start(el, CONFIG, env({
+			fetch: (url, options) => {
+				calls.push(url.replace(CONFIG.rest, ''));
+				return respond(200, { max: 10, name: 'Ana L.', bookings: [] })(url, options);
+			},
+		}));
+		const form = el.querySelector('[data-ffc-terminal-part="reading-form"]');
+		el.querySelector('[data-ffc-terminal-part="reading"]').value = 'FFP1SOMEONE';
+		form.dispatchEvent(new Event('submit', { cancelable: true }));
+		expect(el.querySelector('[data-ffc-terminal-part="result-refused"]').textContent).toContain(CONFIG.strings.idleRefused);
+		expect(calls).toEqual([]);
+		await controls.startSetup('FFO1OPERATOR');
+		expect(calls).toEqual(['setup/events']);
 	});
 
 	it('is set up on the terminal with an operator code: events chosen here, no pairing code shown', async () => {
@@ -335,14 +366,14 @@ describe('pairing', () => {
 		expect(el.querySelector('[data-ffc-terminal-part="setup-list"] input').checked).toBe(true);
 
 		el.querySelector('[data-ffc-terminal-part="setup-cancel"]').click();
-		expect(visible(el)).toEqual(['pairing']);
+		expect(visible(el)).toEqual(['idle']);
 	});
 
 	it('stays on the pairing screen when the operator may not set terminals up', async () => {
 		const e = env({ fetch: () => respond(403, { code: 'ffc_operator_queue_not_allowed', message: 'Not allowed.' })() });
 		const controls = T().start(el, CONFIG, e);
 		await controls.startSetup('FFO1ABC');
-		expect(visible(el)).toEqual(['pairing']);
+		expect(visible(el)).toEqual(['idle']);
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('Not allowed.');
 	});
 
@@ -389,7 +420,7 @@ describe('pairing', () => {
 
 		again.clock.now = (NOW + 901) * 1000;
 		again.timers[again.timers.length - 1]();
-		expect(visible(reloaded)).toEqual(['pairing']);
+		expect(visible(reloaded)).toEqual(['idle']);
 		expect(again.storage.data.has('ffcTerminalLock')).toBe(false);
 	});
 
@@ -427,9 +458,24 @@ describe('pairing', () => {
 		later.clock.now = (NOW + 11) * 1000;
 		const reloaded = markup();
 		T().start(reloaded, CONFIG, later);
-		expect(visible(reloaded)).toEqual(['pairing']);
+		expect(visible(reloaded)).toEqual(['idle']);
 		expect(reloaded.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('expired');
 		expect(storage.data.has('ffcTerminal')).toBe(false);
+	});
+});
+
+describe('a paired terminal with no event left (#2794)', () => {
+	it('rests locked, keeps the lock, and hides the pairing-code link', () => {
+		const el = markup();
+		const state = JSON.stringify({ token: TOKEN, label: 'Entrance A', bookings: [], schedule: [], expires_at: NOW + 3600, expires_label: 'later' });
+		const controls = T().start(el, CONFIG, env({ storage: memoryStorage({ ffcTerminal: state }), fetch: () => Promise.reject(new Error('offline')) }));
+		expect(visible(el)).toEqual(['idle']);
+		expect(el.querySelector('[data-ffc-terminal-part="foot"]').hidden).toBe(false);
+		controls.askUnlock();
+		expect(controls.screen()).toBe('unlock');
+		expect(el.querySelector('[data-ffc-terminal-part="unlock-code"]').hidden).toBe(true);
+		el.querySelector('[data-ffc-terminal-part="unlock-cancel"]').click();
+		expect(visible(el)).toEqual(['idle']);
 	});
 });
 
@@ -524,7 +570,7 @@ describe('reading', () => {
 	it('goes back to pairing when the site no longer knows the token', async () => {
 		const { e } = paired({ 'POST readings': [401, { message: 'unpaired' }] });
 		await submit('FFP1ABC');
-		expect(visible(el)).toEqual(['pairing']);
+		expect(visible(el)).toEqual(['idle']);
 		expect(e.storage.data.has('ffcTerminal')).toBe(false);
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('expired');
 	});
@@ -533,7 +579,7 @@ describe('reading', () => {
 		const { e } = paired({});
 		e.clock.now = (NOW + 3601) * 1000;
 		e.timers[0]();
-		expect(visible(el)).toEqual(['pairing']);
+		expect(visible(el)).toEqual(['idle']);
 	});
 
 	it('opens the menu on an operator code and locks it again after two minutes', async () => {
@@ -633,7 +679,7 @@ describe('reading', () => {
 		await settle();
 		const ended = calls.find((c) => c[0] === 'DELETE');
 		expect(JSON.parse(ended[2].body)).toEqual({ code: 'FFO1OPERATOR' });
-		expect(visible(el)).toEqual(['pairing']);
+		expect(visible(el)).toEqual(['idle']);
 		expect(e.storage.data.has('ffcTerminal')).toBe(false);
 		expect(el.querySelector('[data-ffc-terminal-part="status"]').textContent).toBe('ended');
 	});
@@ -656,7 +702,7 @@ describe('failures and the page boot', () => {
 	it('starts on pairing when the storage refuses to be read', () => {
 		const storage = { getItem: () => { throw new Error('blocked'); }, setItem: () => {}, removeItem: () => { throw new Error('blocked'); } };
 		T().start(el, CONFIG, env({ storage }));
-		expect(visible(el)).toEqual(['pairing']);
+		expect(visible(el)).toEqual(['idle']);
 	});
 
 	it('refuses to show paired when the token cannot be kept', async () => {
@@ -668,7 +714,7 @@ describe('failures and the page boot', () => {
 		};
 		const controls = T().start(el, CONFIG, env({ storage, fetch: respond(201, { token: TOKEN, bookings: [1], expires_at: NOW + 60 }) }));
 		await controls.pair('P-AB12-CD34-EF56');
-		expect(visible(el)).toEqual(['pairing']);
+		expect(visible(el)).toEqual(['idle']);
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('storage');
 	});
 
@@ -691,7 +737,7 @@ describe('failures and the page boot', () => {
 		window.ffcTerminal = CONFIG;
 		try {
 			loadScript('assets/js/ffc-terminal-kiosk.js');
-			expect(visible(el)).toEqual(['pairing']);
+			expect(visible(el)).toEqual(['idle']);
 		} finally {
 			delete window.ffcTerminal;
 		}
@@ -1252,9 +1298,11 @@ describe('camera', () => {
 		const controls = T().start(el, config(), e);
 		await controls.camera.ready;
 		await settle();
-		expect(controls.screen()).toBe('pairing');
-		expect(node('viewfinder').parentNode.getAttribute('data-ffc-terminal-camera-slot')).toBe('pairing');
-		expect(el.querySelector('[data-ffc-terminal-view="pairing"] [data-ffc-terminal-camera-art]').hidden).toBe(true);
+		expect(controls.screen()).toBe('idle');
+		controls.askUnlock();
+		await settle();
+		expect(node('viewfinder').parentNode.getAttribute('data-ffc-terminal-camera-slot')).toBe('unlock');
+		expect(el.querySelector('[data-ffc-terminal-view="unlock"] [data-ffc-terminal-camera-art]').hidden).toBe(true);
 		await scanned(e, controls);
 		await settle();
 		expect(calls[0][1]).toBe('pair');

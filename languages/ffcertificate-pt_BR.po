@@ -36816,9 +36816,6 @@ msgstr "Preencher a partir de um local"
 msgid "No event in the next 7 days takes terminal check-in."
 msgstr "Nenhum evento nos próximos 7 dias aceita check-in por terminal."
 
-msgid "Operator: hold your operator QR code to this terminal's reader (app → More → Operator QR) and choose the events here, or pair it from the app under More → Pair terminal."
-msgstr "Operador: aproxime seu QR de operador do leitor deste terminal (app → Mais → QR de operador) e escolha os eventos aqui, ou pareie pelo app em Mais → Parear terminal."
-
 msgid "Pair this terminal"
 msgstr "Parear este terminal"
 
@@ -36959,3 +36956,21 @@ msgstr "Agendar"
 
 msgid "Calendar in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book, or New booking, lists the personal calendars that a published page lets the person book. It reads the same lists as the dashboard."
 msgstr "No app, Agenda é uma tela própria, em vez das tabelas do painel: Minhas reservas mostra um cartão por dia, com hoje em destaque, o status ou a presença como etiqueta e o próximo passo na própria linha (o código de presença de um evento, o formulário pós-evento, o comprovante de um agendamento); o que já aconteceu fica num grupo recolhido. Agendar, ou Nova reserva, lista as agendas pessoais que uma página publicada permite reservar. Ela lê as mesmas listas do painel."
+
+msgid "Terminal without events"
+msgstr "Terminal sem eventos"
+
+msgid "An operator must release this terminal: tap the lock below and hold the operator QR code to the reader."
+msgstr "Um operador precisa liberar este terminal: toque no cadeado abaixo e aproxime o QR do operador do leitor."
+
+msgid "I have a pairing code"
+msgstr "Tenho um código de pareamento"
+
+msgid "Type the pairing code the app shows under More → Pair terminal, or hold its QR code to the reader."
+msgstr "Digite o código de pareamento que o app mostra em Mais → Parear terminal, ou aproxime o QR dele do leitor."
+
+msgid "Terminal without events. An operator must release it first."
+msgstr "Terminal sem eventos. Um operador precisa liberá-lo primeiro."
+
+msgid "A terminal with no event to check in, unpaired or paired with an empty queue, rests on Terminal without events: a lock, no reading offered, and a participant code read there is refused. The lock in the footer opens the operator area; an operator QR code then opens Set up this terminal on an unpaired terminal and the operator menu on a paired one. On an unpaired terminal the operator area also offers a small I have a pairing code link, which opens the field for the code the app shows under More → Pair terminal; that code read as a QR code pairs directly."
+msgstr "Um terminal sem evento para registrar presença, não pareado ou pareado com a fila vazia, fica em Terminal sem eventos: um cadeado, nenhuma leitura oferecida, e um código de participante lido ali é recusado. O cadeado do rodapé abre a área do operador; um QR de operador então abre Configurar este terminal num terminal não pareado e o menu do operador num pareado. Num terminal não pareado, a área do operador também oferece um link discreto Tenho um código de pareamento, que abre o campo do código que o app mostra em Mais → Parear terminal; esse código lido como QR pareia direto."

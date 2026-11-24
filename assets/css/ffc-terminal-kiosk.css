@@ -205,6 +205,24 @@
 	font-size: var(--ffc-font-size-sm);
 }
 
+/* The discreet way to a typed pairing code, under the unlock prompt of an
+   unpaired terminal (#2794). */
+.ffc-terminal-link {
+	padding: var(--ffc-spacing-2xs);
+	border: 0;
+	background: none;
+	color: var(--ffc-terminal-soft);
+	font: inherit;
+	font-size: var(--ffc-font-size-sm);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.ffc-terminal-link:focus-visible {
+	outline: 2px solid var(--ffc-border-focus);
+	outline-offset: 2px;
+}
+
 .ffc-terminal-kicker {
 	color: var(--ffc-terminal-soft);
 	font-size: var(--ffc-font-size-lg);

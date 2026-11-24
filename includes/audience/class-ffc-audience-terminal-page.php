@@ -387,6 +387,7 @@ final class AudienceTerminalPage {
 					/* translators: %s: date and time check-in opens */
 					'opensAt'         => __( 'Check-in opens at %s', 'ffcertificate' ),
 					'noEvents'        => __( 'No more events on this terminal.', 'ffcertificate' ),
+					'idleRefused'     => __( 'Terminal without events. An operator must release it first.', 'ffcertificate' ),
 					'terminalTitle'   => __( 'Check-in terminal', 'ffcertificate' ),
 					'notPaired'       => __( 'Not paired', 'ffcertificate' ),
 					/* translators: %s: time check-in closes */
