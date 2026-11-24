@@ -137,7 +137,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( '/site/terminal/', $manifest['start_url'] );
 		$this->assertSame( '/site/terminal/', $manifest['scope'], 'never the site or the app' );
 		$this->assertSame( 'fullscreen', $manifest['display'] );
-		$this->assertSame( 'landscape', $manifest['orientation'] );
+		$this->assertSame( 'any', $manifest['orientation'], 'the terminal turns with the tablet' );
 		$this->assertSame( 'pt-BR', $manifest['lang'] );
 		$this->assertSame( 'Check-in terminal — Example', $manifest['name'] );
 		$this->assertSame( array( '192x192', '512x512' ), array_column( $manifest['icons'], 'sizes' ) );
