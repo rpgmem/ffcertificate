@@ -282,6 +282,8 @@ class AudienceAttendanceStatusTest extends TestCase {
 				'text'   => 'Post-event form · until ' . gmdate( 'Y-m-d H:i', strtotime( '2027-01-14 08:00:00 UTC' ) + 7 * 86400 ),
 				'detail' => 'Evaluation',
 				'url'    => self::PAGE_URL . '?ffc_invite=' . AudienceFormInvite::code( 5, self::USER, self::FORM ),
+				// The close alone, for the app's Home line (site-pwa#23).
+				'closes' => gmdate( 'Y-m-d H:i', strtotime( '2027-01-14 08:00:00 UTC' ) + 7 * 86400 ),
 			),
 			$items[1]
 		);

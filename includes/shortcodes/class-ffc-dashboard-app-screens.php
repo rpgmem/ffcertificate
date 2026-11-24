@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers the dashboard's screens with Site PWA.
  *
- * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, tabs: list<string>, render?: callable(array<int, string>): string}
+ * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, tabs: list<string>, render?: callable(array<int, string>): string, subtitle?: string, badge?: callable(): string}
  */
 final class DashboardAppScreens {
 
@@ -41,6 +41,40 @@ final class DashboardAppScreens {
 	 */
 	public static function init(): void {
 		add_action( 'site_pwa_register_screens', array( self::class, 'register' ), 10, 2 );
+		add_filter( 'site_pwa_profile_line', array( self::class, 'profile_line' ), 10, 2 );
+	}
+
+	/**
+	 * The line under the person's name on More (site-pwa#23): their RF,
+	 * masked as every screen shows it to its owner, and their department.
+	 * Either part may be missing; a line another plugin set is kept.
+	 *
+	 * @param mixed $line What the app or another plugin handed.
+	 * @param mixed $user The signed-in user.
+	 * @return mixed
+	 */
+	public static function profile_line( $line, $user = null ) {
+		if ( ! is_string( $line ) || '' !== $line || ! $user instanceof \WP_User || $user->ID <= 0 ) {
+			return $line;
+		}
+		$profile = \FreeFormCertificate\UserDashboard\UserProfileService::read( (int) $user->ID, array( 'rf', 'department' ) );
+		return self::line( $profile['rf'] ?? null, $profile['department'] ?? null );
+	}
+
+	/**
+	 * The profile line from what was read: "RF <masked> · <department>",
+	 * leaving out a part that is empty.
+	 *
+	 * @param mixed $rf         The RF, already masked.
+	 * @param mixed $department The department.
+	 * @return string
+	 */
+	public static function line( $rf, $department ): string {
+		$rf         = is_string( $rf ) ? trim( $rf ) : '';
+		$department = is_string( $department ) ? trim( $department ) : '';
+		/* translators: %s: the person's RF, masked */
+		$parts = array( '' === $rf ? '' : sprintf( __( 'RF %s', 'ffcertificate' ), $rf ), $department );
+		return implode( ' · ', array_filter( $parts, static fn( string $part ): bool => '' !== $part ) );
 	}
 
 	/**
@@ -70,18 +104,22 @@ final class DashboardAppScreens {
 			}
 			$attribute = implode( ',', $tabs );
 			$render    = $screen['render'] ?? null;
-			$screens->add(
-				$id,
-				array(
-					'label'    => $screen['label'],
-					'icon'     => $screen['icon'],
-					'place'    => $screen['place'],
-					'position' => $screen['position'],
-					'render'   => null !== $render
-						? static fn(): string => $render( $tabs )
-						: static fn(): string => DashboardShortcode::render( array( 'tabs' => $attribute ) ),
-				)
+			$args      = array(
+				'label'    => $screen['label'],
+				'icon'     => $screen['icon'],
+				'place'    => $screen['place'],
+				'position' => $screen['position'],
+				'render'   => null !== $render
+					? static fn(): string => $render( $tabs )
+					: static fn(): string => DashboardShortcode::render( array( 'tabs' => $attribute ) ),
 			);
+			// More's line and status (site-pwa#23); an older app ignores them.
+			foreach ( array( 'subtitle', 'badge' ) as $key ) {
+				if ( isset( $screen[ $key ] ) ) {
+					$args[ $key ] = $screen[ $key ];
+				}
+			}
+			$screens->add( $id, $args );
 		}
 	}
 
@@ -106,7 +144,8 @@ final class DashboardAppScreens {
 	public static function definitions(): array {
 		return array(
 			'calendar'       => array(
-				'label'    => __( 'Calendar', 'ffcertificate' ),
+				// "Agenda", as the approved app names it (site-pwa#23); the id stays.
+				'label'    => __( 'Agenda', 'ffcertificate' ),
 				'icon'     => 'calendar',
 				'place'    => 'nav',
 				'position' => 1,
@@ -136,6 +175,8 @@ final class DashboardAppScreens {
 				'place'    => 'more',
 				'position' => 21,
 				'tabs'     => array( 'reregistrations' ),
+				'subtitle' => __( 'Keep your registration up to date', 'ffcertificate' ),
+				'badge'    => array( self::class, 'reregistration_badge' ),
 			),
 			'recruitment'    => array(
 				'label'    => __( 'Recruitment', 'ffcertificate' ),
@@ -152,6 +193,27 @@ final class DashboardAppScreens {
 				'tabs'     => array( 'profile' ),
 			),
 		);
+	}
+
+	/**
+	 * Reregistration's status beside its name in More: "Pending" while a
+	 * campaign is still open for this person to submit, the same campaigns
+	 * Home lists. Evaluated only when More is drawn.
+	 *
+	 * @param int|null $user_id Person; the current user when null.
+	 * @return string
+	 */
+	public static function reregistration_badge( ?int $user_id = null ): string {
+		$user_id = $user_id ?? get_current_user_id();
+		if ( $user_id <= 0 || ! \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'reregistration' ) ) {
+			return '';
+		}
+		foreach ( \FreeFormCertificate\Reregistration\ReregistrationFrontend::get_user_reregistrations( $user_id ) as $campaign ) {
+			if ( ! empty( $campaign['can_submit'] ) ) {
+				return __( 'Pending', 'ffcertificate' );
+			}
+		}
+		return '';
 	}
 
 	/**

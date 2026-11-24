@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the same horizon a terminal's queue has (#2738).
  *
  * @phpstan-import-type AttendanceConfirmation from AudienceAttendanceStatus
- * @phpstan-type PresencePending array{type: string, key: string, title: string, text: string, detail: string, url?: string}
+ * @phpstan-type PresencePending array{type: string, key: string, title: string, text: string, detail: string, url?: string, closes?: string}
  * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, expires: int, ticket: string, attendance: string}
  */
 final class AudiencePresenceEvents {
@@ -119,6 +119,8 @@ final class AudiencePresenceEvents {
 				'text'   => sprintf( __( 'Post-event form · until %s', 'ffcertificate' ), $form['closes_label'] ),
 				'detail' => '' === $form['form_title'] ? AudienceAttendanceStatus::title( $booking ) : $form['form_title'],
 				'url'    => $form['url'],
+				// The closing date alone, for a line that names the event (site-pwa#23).
+				'closes' => $form['closes_label'],
 			);
 		}
 		return $items;

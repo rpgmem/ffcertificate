@@ -35482,8 +35482,6 @@ msgstr ""
 msgid "There is nothing here for your account yet."
 msgstr ""
 
-msgid "With the Site PWA plugin installed, the dashboard also appears inside its installable app, one screen per part: Calendar (personal appointments and audience bookings) and Certificates in the bottom navigation, and Messages, Reregistration, Recruitment and Profile under More. Each screen appears only to an account that has the matching tab. The app also lists Presence, and, for holders of ffc_checkin_audiences, Pair terminal, My terminals and Operator QR, each saying it arrives in a coming update until the self-service check-in lands; Manual attendance opens Audience Bookings in wp-admin. Without Site PWA nothing changes."
-msgstr ""
 
 msgid "Optional. Shows only the tabs named, separated by commas: certificates, appointments, audience, reregistrations, recruitment, messages, profile. A narrowed dashboard leaves out the summary cards and the Log Out link, and shows its tab bar only with two tabs or more."
 msgstr ""
@@ -36699,8 +36697,6 @@ msgstr ""
 msgid "Book"
 msgstr ""
 
-msgid "Calendar in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book, or New booking, lists the personal calendars that a published page lets the person book. It reads the same lists as the dashboard."
-msgstr ""
 
 msgid "Terminal without events"
 msgstr ""
@@ -37062,4 +37058,49 @@ msgid "This terminal is offline. Pairing it needs a connection; once paired, it 
 msgstr ""
 
 msgid "On a site with pretty permalinks, the terminal keeps its own page in the browser, so a paired terminal that reloads, restarts its browser or recovers from a crash without a connection opens the reading screen and keeps saving readings to send later. It keeps only the page, its sheets and scripts, never an answer from the site, under /terminal/ and nowhere else, and starts afresh with each release. An unpaired terminal offline says that pairing needs a connection. On a site without pretty permalinks the terminal works as before, but needs a connection to open."
+msgstr ""
+
+msgid "%1$s · until %2$s"
+msgstr ""
+
+msgid "Agenda"
+msgstr ""
+
+msgid "Certificate available"
+msgstr ""
+
+msgid "Deadline %s"
+msgstr ""
+
+msgid "With the Site PWA plugin installed, the dashboard also appears inside its installable app, one screen per part: Agenda (personal appointments and audience bookings), Presence, raised in the middle of the bar, and Certificates in the bottom navigation, and Messages, Reregistration, Recruitment and Profile under More. Each screen appears only to an account that has the matching tab. For holders of ffc_checkin_audiences the app also lists Pair terminal, My terminals and Operator QR, each saying it arrives in a coming update until the self-service check-in lands; Manual attendance opens Audience Bookings in wp-admin. Without Site PWA nothing changes."
+msgstr ""
+
+msgid "Agenda in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book, or New booking, lists the personal calendars that a published page lets the person book. It reads the same lists as the dashboard."
+msgstr ""
+
+msgid "The app's Home shows what the plugin knows is next for the person: \"Attendance confirmed at\" an event recorded in the last 7 days, as a line they can dismiss; their next booking in the coming 7 days, with Presence QR and Details; and, under Pending, each post-event form still open, each reregistration they can still submit with its deadline, and a certificate issued in the last 7 days. Each item opens the matching screen, and one the account cannot open is left out."
+msgstr ""
+
+msgid "Link a tablet to your events"
+msgstr ""
+
+msgid "Check-in tablets you paired"
+msgstr ""
+
+msgid "Unlock a terminal"
+msgstr ""
+
+msgid "Mark attendance by hand"
+msgstr ""
+
+msgid "Keep your registration up to date"
+msgstr ""
+
+msgid "RF %s"
+msgstr ""
+
+msgid "%1$d active · %2$d offline"
+msgstr ""
+
+msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says."
 msgstr ""
