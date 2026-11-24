@@ -37296,3 +37296,6 @@ msgstr "Instalá-lo leva um toque onde o navegador oferece. Em uma aba do navega
 
 msgid "This browser has not offered its install button here yet. Open the browser's menu (⋮) and choose Install app or Add to Home screen. If the button arrives, it appears on this page."
 msgstr "Este navegador ainda não ofereceu o botão de instalar aqui. Abra o menu do navegador (⋮) e escolha Instalar app ou Adicionar à tela inicial. Se o botão chegar, ele aparece nesta página."
+
+msgid "Visible screen"
+msgstr "Tela visível"

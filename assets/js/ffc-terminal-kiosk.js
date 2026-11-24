@@ -1097,6 +1097,13 @@
                     [check.wakeLabel, wake],
                     [check.browserLabel, env.userAgent || '']
                 ];
+                // The visible screen in CSS pixels and its density (#2824):
+                // what the layout is measured against on a real tablet.
+                var view = env.view;
+                if (view && view.innerWidth) {
+                    var ratio = Math.round((view.devicePixelRatio || 1) * 100) / 100;
+                    rows.push([check.screenLabel, view.innerWidth + ' × ' + view.innerHeight + ' px · ' + ratio + '×']);
+                }
                 list.textContent = '';
                 rows.forEach(function (row) {
                     var dt = el.ownerDocument.createElement('dt');
@@ -1900,6 +1907,7 @@
                 onOffline: function (fn) { root.addEventListener('offline', fn); },
                 wakeLock: root.navigator.wakeLock,
                 userAgent: root.navigator.userAgent,
+                view: root,
                 visible: function () { return 'visible' === root.document.visibilityState; },
                 onVisible: function (fn) {
                     root.document.addEventListener('visibilitychange', function () {
