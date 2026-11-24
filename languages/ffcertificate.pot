@@ -35551,8 +35551,6 @@ msgstr ""
 msgid "This device is not activated for your account. Activate it again."
 msgstr ""
 
-msgid "This device was replaced or revoked. Activate it again to use it."
-msgstr ""
 
 msgid "This key cannot be activated again. Reinstall the app and try again."
 msgstr ""
@@ -35575,8 +35573,6 @@ msgstr ""
 msgid "A participant who installs the app activates their phone once, while online, to show a presence code at a terminal. The phone creates a key that cannot be copied, and the site signs a statement binding that key to the account and to a short name, such as \"Maria S.\". The statement lasts 7 days and the app renews it whenever it is online. It never carries a CPF or RF."
 msgstr ""
 
-msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so."
-msgstr ""
 
 msgid "A phone stays reserved to its account for 30 days after it was last used there. Another account trying to activate it is refused until an administrator releases it."
 msgstr ""
@@ -36930,4 +36926,19 @@ msgid "Once the phone is active, the Presence screen of the app shows a QR code 
 msgstr ""
 
 msgid "This terminal's clock was %d s off the site's. Readings follow the site's clock; set the device's date and time to automatic."
+msgstr ""
+
+msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so. The old phone hides its code the next time it reaches the site and says the presence is active on another phone; offline it cannot know, and each terminal refuses its code from its next sync. A phone that is not active shows Activate on this phone when no phone holds the code, and Move it to this phone, with the phone that holds it, when another does. On an iPhone, Safari and the app installed on the home screen keep separate keys, so each counts as a phone, and the screen says so."
+msgstr ""
+
+msgid "Your presence is now active on another phone, so this one stopped making the code."
+msgstr ""
+
+msgid "Your presence is active on another phone"
+msgstr ""
+
+msgid "Move it to this phone"
+msgstr ""
+
+msgid "On an iPhone, always open Presence from the app on the home screen: Safari and the app keep separate keys, so each counts as a phone."
 msgstr ""

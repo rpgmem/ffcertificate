@@ -422,6 +422,23 @@ class AudiencePresenceTest extends TestCase {
 		$this->assertSame( 410, $gone->get_error_data()['status'] );
 	}
 
+	public function test_the_event_list_tells_a_replaced_phone_before_its_attestation_comes_due(): void {
+		$device = EcdsaP256::generate();
+		$first  = $this->enrol( 7, 'device-aaaaaaaaaaaa', $device );
+		$this->assertIsArray( AudiencePresenceEnrolment::active_device( 7, $first['key_id'] ) );
+		$this->assertSame( 'ffc_presence_unknown_key', AudiencePresenceEnrolment::active_device( 8, $first['key_id'] )->get_error_code(), 'another account\'s key' );
+		$this->assertSame( 'ffc_presence_unknown_key', AudiencePresenceEnrolment::active_device( 7, '' )->get_error_code() );
+
+		$this->enrol( 7, 'device-bbbbbbbbbbbb', EcdsaP256::generate(), self::NOW + 60 );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		$request = \Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_param' )->with( 'key' )->andReturn( $first['key_id'] );
+		$answer = ( new AudiencePresenceRestController() )->events( $request );
+		$this->assertInstanceOf( \WP_Error::class, $answer, 'the old phone hears it on its next visit, not when its attestation comes due' );
+		$this->assertSame( 'ffc_presence_revoked', $answer->get_error_code() );
+		$this->assertSame( 410, $answer->get_error_data()['status'] );
+	}
+
 	// ---- Who may call -----------------------------------------------------
 
 	public function test_a_user_agent_is_read_as_two_families_only(): void {
