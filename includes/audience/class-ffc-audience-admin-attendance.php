@@ -512,8 +512,8 @@ class AudienceAdminAttendance {
 			$parts[] = __( 'All day', 'ffcertificate' );
 		} else {
 			$times = AudienceBookingRules::stored_day_times( $booking, $date );
-			$start = DateFormatter::format_wallclock_time( (string) ( $times['start_time'] ?? '' ) . ':00' );
-			$end   = DateFormatter::format_wallclock_time( (string) ( $times['end_time'] ?? '' ) . ':00' );
+			$start = DateFormatter::format_wallclock_time( $times['start_time'] . ':00' );
+			$end   = DateFormatter::format_wallclock_time( $times['end_time'] . ':00' );
 			if ( '' !== $start ) {
 				$parts[] = '' === $end ? $start : $start . '–' . $end;
 			}
