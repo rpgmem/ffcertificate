@@ -51,7 +51,7 @@ $ffc_terminal_address = static function () use ( $ffc_terminal_install_url ): vo
 	);
 };
 ?>
-<main class="ffc-terminal-install" data-ffc-terminal-install-page data-home="<?php echo esc_url( $ffc_terminal_url ); ?>" data-copied="<?php esc_attr_e( 'Address copied.', 'ffcertificate' ); ?>" data-copy-failed="<?php esc_attr_e( 'Select the address and copy it.', 'ffcertificate' ); ?>">
+<main class="ffc-terminal-install" data-ffc-terminal-install-page data-copied="<?php esc_attr_e( 'Address copied.', 'ffcertificate' ); ?>" data-copy-failed="<?php esc_attr_e( 'Select the address and copy it.', 'ffcertificate' ); ?>">
 	<header class="ffc-terminal-install-hero">
 		<span class="ffc-terminal-install-logo" aria-hidden="true">
 			<?php if ( '' !== $ffc_terminal_logo ) : ?>

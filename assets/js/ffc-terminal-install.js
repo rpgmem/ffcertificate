@@ -7,8 +7,8 @@
  * - the install page (`[data-ffc-terminal-install-page]`), which shows the one
  *   state that fits the browser: the browser's own install dialog where it
  *   offers one, the Share steps on iPad and iPhone, "Open the terminal" once
- *   installed, or how to install elsewhere. Inside the installed terminal it
- *   goes straight to the terminal.
+ *   installed (inside the installed terminal too), or how to install
+ *   elsewhere.
  *
  * Its words are in the markup, so it needs no localized data.
  */
@@ -52,7 +52,7 @@
         if (!ipad && !iphone) {
             return null;
         }
-        var safari = /Safari\//.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+        var safari = /Safari\/\d/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
         if (iphone && safari) {
             return 'bottom';
         }
@@ -133,7 +133,7 @@
      *
      * @param {HTMLElement} page The `[data-ffc-terminal-install-page]` element.
      * @param {Window}      win  The window.
-     * @return {string} The state shown first (`app` when it left for the terminal).
+     * @return {string} The state shown first.
      */
     function page(page, win) {
         var nav = win.navigator || {};
@@ -147,9 +147,11 @@
             });
         };
 
+        // Inside the installed terminal there is nothing to install: the
+        // state's own link, printed by the server, opens the terminal.
         if (isStandalone(win)) {
-            win.location.replace(page.getAttribute('data-home'));
-            return 'app';
+            show('installed');
+            return current;
         }
 
         Array.prototype.forEach.call(page.querySelectorAll('[data-ffc-terminal-install-copy]'), function (button) {

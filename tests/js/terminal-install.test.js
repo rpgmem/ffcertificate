@@ -101,7 +101,7 @@ describe('the install page', () => {
 
 	beforeEach(() => {
 		document.body.innerHTML = `
-			<main data-ffc-terminal-install-page data-home="https://example.org/terminal/" data-copied="Copied." data-copy-failed="Select it.">
+			<main data-ffc-terminal-install-page data-copied="Copied." data-copy-failed="Select it.">
 				${STATES.map((state) => `<section data-state="${state}" hidden>${
 					'prompt' === state ? '<button type="button" data-ffc-terminal-install-go>Install</button>' : ''
 				}${
@@ -161,10 +161,12 @@ describe('the install page', () => {
 		expect(win.timers).toEqual([]);
 	});
 
-	it('goes straight to the terminal inside the installed terminal', () => {
+	it('offers the way back to the terminal inside the installed terminal, without navigating', () => {
 		const win = fakeWindow({ media: ['(display-mode: fullscreen)'] });
-		expect(T().page(page, win)).toBe('app');
-		expect(win.location.replace).toHaveBeenCalledWith('https://example.org/terminal/');
+		expect(T().page(page, win)).toBe('installed');
+		expect(shown()).toEqual(['installed']);
+		expect(win.location.replace).not.toHaveBeenCalled();
+		expect(win.timers).toEqual([]);
 	});
 
 	it('copies the address and says so, or selects it when the clipboard refuses', async () => {
