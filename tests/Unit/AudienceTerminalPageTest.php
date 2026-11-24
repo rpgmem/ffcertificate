@@ -67,6 +67,7 @@ class AudienceTerminalPageTest extends TestCase {
 
 		$this->assertSame( 'https://example.com/?ffc_terminal=1', AudienceTerminalPage::url() );
 		$this->assertSame( 'https://example.com/?ffc_terminal=manifest', AudienceTerminalPage::manifest_url() );
+		$this->assertSame( 'https://example.com/?ffc_terminal=install', AudienceTerminalPage::install_url(), 'the install page (#2813)' );
 	}
 
 	public function test_the_address_is_its_own_path_with_pretty_permalinks(): void {
@@ -74,6 +75,7 @@ class AudienceTerminalPageTest extends TestCase {
 
 		$this->assertSame( 'https://example.com/site/terminal/', AudienceTerminalPage::url() );
 		$this->assertSame( 'https://example.com/site/terminal/manifest.webmanifest', AudienceTerminalPage::manifest_url() );
+		$this->assertSame( 'https://example.com/site/terminal/install/', AudienceTerminalPage::install_url() );
 	}
 
 	public function test_only_the_terminal_path_and_its_manifest_are_claimed(): void {
@@ -90,6 +92,9 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( 'worker', AudienceTerminalPage::route_from_path( '/site/terminal/sw.js', '/site/' ) );
 		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/sw.js', '/' ), 'never a worker at the site root' );
 		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/app/sw.js', '/' ) );
+		$this->assertSame( 'install', AudienceTerminalPage::route_from_path( '/terminal/install/', '/' ), 'the install page (#2813)' );
+		$this->assertSame( 'install', AudienceTerminalPage::route_from_path( '/site/terminal/install', '/site/' ) );
+		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/terminal/install/more', '/' ) );
 	}
 
 	public function test_the_worker_lives_under_the_terminal_and_only_with_pretty_permalinks(): void {
@@ -136,6 +141,17 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( 'pt-BR', $manifest['lang'] );
 		$this->assertSame( 'Check-in terminal — Example', $manifest['name'] );
 		$this->assertSame( array( '192x192', '512x512' ), array_column( $manifest['icons'], 'sizes' ) );
+		$this->assertSame(
+			array(
+				array(
+					'platform' => 'webapp',
+					'url'      => 'https://example.com/site/terminal/manifest.webmanifest',
+				),
+			),
+			$manifest['related_applications'],
+			'names itself, so the install page can tell it is installed (#2813)'
+		);
+		$this->assertArrayNotHasKey( 'prefer_related_applications', $manifest );
 	}
 
 	public function test_without_pretty_permalinks_the_manifest_starts_on_the_query_form(): void {
@@ -169,6 +185,37 @@ class AudienceTerminalPageTest extends TestCase {
 		AudienceTerminalPage::maybe_render();
 
 		$this->addToAssertionCount( 1 );
+	}
+
+	public function test_the_install_page_is_public_in_the_terminals_look_with_every_state_hidden(): void {
+		$printed = array();
+		$this->pretty();
+		Functions\when( 'get_language_attributes' )->justReturn( 'lang="pt-BR"' );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Example' );
+		Functions\when( 'get_site_icon_url' )->justReturn( '' );
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_print_styles' )->alias( static function ( $handles ) use ( &$printed ) {
+			$printed[] = 'style:' . implode( ',', $handles );
+		} );
+		Functions\when( 'wp_print_scripts' )->alias( static function ( $handles ) use ( &$printed ) {
+			$printed[] = 'script:' . implode( ',', $handles );
+		} );
+		Functions\when( 'esc_url' )->returnArg();
+
+		$html = AudienceTerminalPage::install_document();
+
+		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="pt-BR" class="ffc-dark-mode"><head>', $html, 'the terminal\'s dark look' );
+		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/site/terminal/manifest.webmanifest">', $html, 'the browser offers the install from here' );
+		$this->assertStringContainsString( 'data-ffc-terminal-install-page data-home="https://example.com/site/terminal/"', $html );
+		foreach ( array( 'wait', 'prompt', 'ios-top', 'ios-bottom', 'ios-old', 'installed', 'unsupported' ) as $state ) {
+			$this->assertMatchesRegularExpression( '/data-state="' . $state . '" hidden>/', $html, 'every state starts hidden: ' . $state );
+		}
+		$this->assertStringContainsString( 'value="https://example.com/site/terminal/install/"', $html, 'the address to copy is this page' );
+		$this->assertStringNotContainsString( 'ffcTerminal', $html, 'no pairing data on the install page' );
+		$this->assertSame( array( 'style:ffc-terminal-kiosk', 'script:ffc-terminal-install' ), $printed );
 	}
 
 	public function test_the_document_prints_the_page_and_its_registered_assets(): void {
@@ -216,7 +263,9 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertStringContainsString( 'id="ffc-terminal-reading"', $html );
 		$this->assertMatchesRegularExpression( '/role="status"[^>]*data-ffc-terminal-part="result-ok"/', $html, 'a recorded result is announced politely' );
 		$this->assertMatchesRegularExpression( '/role="alert"[^>]*data-ffc-terminal-part="result-refused"/', $html, 'a refusal is announced at once' );
-		$this->assertSame( array( 'style:ffc-terminal-kiosk', 'script:ffc-terminal-kiosk' ), $printed, 'the dark-mode toggle is never printed, so the setting cannot turn the terminal light' );
+		$this->assertSame( array( 'style:ffc-terminal-kiosk', 'script:ffc-terminal-kiosk,ffc-terminal-install' ), $printed, 'the dark-mode toggle is never printed, so the setting cannot turn the terminal light' );
+		$this->assertMatchesRegularExpression( '/<aside class="ffc-terminal-install-banner" data-ffc-terminal-install-banner[^>]*hidden>/', $html, 'the install banner starts hidden; the script shows it in a browser tab only (#2813)' );
+		$this->assertStringContainsString( 'href="https://example.com/?ffc_terminal=install"', $html, 'it leads to the install page' );
 		$this->assertSame( array( 'ffc-common' ), $enqueued['style:ffc-terminal-kiosk'][1] ?? null );
 		$this->assertSame( array( 'ffc-presence-verifier' ), $enqueued['ffc-terminal-kiosk'][1] ?? null, 'the kiosk checks codes offline with the verifier' );
 		$this->assertStringContainsString( 'assets/js/ffc-presence-verifier', $enqueued['ffc-presence-verifier'][0] ?? '' );

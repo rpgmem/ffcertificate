@@ -12,8 +12,9 @@
  * site), so a new release starts a new cache and the old one is deleted on
  * activate.
  *
- * - The document is network-first, kept on every answer, and served from the
- *   cache only when the network fails.
+ * - The terminal page is network-first, kept on every answer, and served from
+ *   the cache only when the network fails. Any other page under the scope,
+ *   such as the install page (#2813), is left to the network.
  * - The sheets and scripts the page loaded are kept when the page sends their
  *   addresses, and served from the cache only when the network fails.
  * - REST calls are never touched: they go to the network and fail as they
@@ -35,6 +36,16 @@
     // A REST call, under the pretty base or the query form, is never cached.
     function isRest(url) {
         return -1 !== url.pathname.indexOf('/wp-json/') || url.searchParams.has('rest_route');
+    }
+
+    // Whether a navigation is the terminal page itself: the scope's own
+    // path, with or without a query.
+    function isShell(url) {
+        var base = scope();
+        if ('' === base) {
+            return false;
+        }
+        return new URL(base).pathname === url.pathname;
     }
 
     function sameOrigin(url) {
@@ -125,7 +136,13 @@
         if (!sameOrigin(url) || isRest(url)) {
             return null;
         }
-        return 'navigate' === request.mode ? page(request) : asset(request);
+        if ('navigate' !== request.mode) {
+            return asset(request);
+        }
+        // Only the terminal page is the shell. Another page under the scope,
+        // such as the install page (#2813), goes to the network untouched,
+        // so it never replaces the terminal's offline copy.
+        return isShell(url) ? page(request) : null;
     }
 
     sw.addEventListener('install', function (event) {

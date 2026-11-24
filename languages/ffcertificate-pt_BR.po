@@ -37183,3 +37183,96 @@ msgstr "%1$d ativos · %2$d offline"
 
 msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says."
 msgstr "A tela Mais do app abre na pessoa, com o RF mascarado e o setor sob o nome, e lista as telas de operador à parte, em Operador, cada uma com uma linha dizendo para que serve; Meus terminais mostra quantos dos terminais que o operador pareou estão ativos e quantos deles estão offline, e Recadastramento mostra Pendente enquanto uma campanha ainda está aberta para a pessoa. Ligar o tema escuro do app em um aparelho também escurece as telas do plugin dentro do app, seja qual for o Modo escuro."
+
+msgid "Install this terminal"
+msgstr "Instalar este terminal"
+
+msgid "Install this terminal as an app."
+msgstr "Instale este terminal como app."
+
+msgid "It opens full screen, without the browser's bar, and comes back to this screen by itself."
+msgstr "Ele abre em tela cheia, sem a barra do navegador, e volta sozinho a esta tela."
+
+msgid "Install"
+msgstr "Instalar"
+
+msgid "Install on a tablet"
+msgstr "Instalar em um tablet"
+
+msgid "Point the tablet's camera at the code, or open the address on it. The page shows the install button or the iPad steps."
+msgstr "Aponte a câmera do tablet para o código, ou abra o endereço nele. A página mostra o botão de instalar ou os passos do iPad."
+
+msgid "QR code of the install page's address"
+msgstr "QR code do endereço da página de instalação"
+
+msgid "Copy address"
+msgstr "Copiar endereço"
+
+msgid "Once installed, the terminal opens straight on \"Waiting for pairing\"."
+msgstr "Depois de instalado, o terminal abre direto em \"Aguardando pareamento\"."
+
+msgid "Install the check-in terminal"
+msgstr "Instalar o terminal de check-in"
+
+msgid "Choose Add to Home Screen. If it is not there, scroll the list or tap More."
+msgstr "Escolha Adicionar à Tela de Início. Se não estiver lá, role a lista ou toque em Mais."
+
+msgid "Tap Add."
+msgstr "Toque em Adicionar."
+
+msgid "Address of this page"
+msgstr "Endereço desta página"
+
+msgid "Address copied."
+msgstr "Endereço copiado."
+
+msgid "Select the address and copy it."
+msgstr "Selecione o endereço e copie."
+
+msgid "Install it on this tablet: it opens full screen, without the browser's bar, and asks for no login. The operator's pairing QR code is what binds the tablet to an event."
+msgstr "Instale-o neste tablet: ele abre em tela cheia, sem a barra do navegador, e não pede login. É o QR code de pareamento do operador que vincula o tablet a um evento."
+
+msgid "Checking this browser…"
+msgstr "Verificando este navegador…"
+
+msgid "Install the terminal"
+msgstr "Instalar o terminal"
+
+msgid "The browser confirms in its own window. The Terminal icon goes to the home screen."
+msgstr "O navegador confirma em uma janela própria. O ícone Terminal vai para a tela inicial."
+
+msgid "Add it to the home screen in three taps"
+msgstr "Adicione à tela inicial em três toques"
+
+msgid "Tap Share, at the top, beside the address."
+msgstr "Toque em Compartilhar, no alto, ao lado do endereço."
+
+msgid "On iPad and iPhone no browser installs with a button; these steps are the official way."
+msgstr "No iPad e no iPhone nenhum navegador instala com um botão; estes passos são o caminho oficial."
+
+msgid "Tap Share in Safari's toolbar, at the bottom."
+msgstr "Toque em Compartilhar na barra do Safari, embaixo."
+
+msgid "On this version of iOS only Safari adds apps to the home screen. Open this address in Safari to install."
+msgstr "Nesta versão do iOS só o Safari adiciona apps à tela inicial. Abra este endereço no Safari para instalar."
+
+msgid "Already installed on this device"
+msgstr "Já instalado neste aparelho"
+
+msgid "Open the terminal"
+msgstr "Abrir o terminal"
+
+msgid "It did not open? Look for the Terminal icon on the home screen."
+msgstr "Não abriu? Procure o ícone Terminal na tela inicial."
+
+msgid "This browser offers no install button. Open this address in Chrome (Android) or Safari (iPad), or look for Install app or Add to Home screen in the browser's menu."
+msgstr "Este navegador não oferece um botão de instalar. Abra este endereço no Chrome (Android) ou no Safari (iPad), ou procure Instalar app ou Adicionar à tela inicial no menu do navegador."
+
+msgid "Look for Install app or Add to Home screen in the browser's menu."
+msgstr "Procure Instalar app ou Adicionar à tela inicial no menu do navegador."
+
+msgid "Continue in the browser"
+msgstr "Continuar no navegador"
+
+msgid "Installing it takes one tap where the browser offers it. In a browser tab the terminal shows a banner, Install, which leads to the install page at /terminal/install/ (on a site without pretty permalinks, ?ffc_terminal=install): Install the terminal there opens the browser's own install dialog; on an iPad or iPhone, which install no app with a button, it shows the three Share steps for that browser; once installed it says so and offers Open the terminal; and a browser that installs nothing shows the address to open elsewhere. Not now hides the banner for 30 days on that browser. Scheduling → Terminals shows the install page's address beside the list, as a QR code to point the tablet's camera at, with Copy address and Open. The install page is public, the same for everyone, and is never kept for offline use."
+msgstr "Instalá-lo leva um toque onde o navegador oferece. Em uma aba do navegador o terminal mostra um banner, Instalar, que leva à página de instalação em /terminal/install/ (em um site sem links permanentes amigáveis, ?ffc_terminal=install): ali, Instalar o terminal abre a janela de instalação do próprio navegador; no iPad ou iPhone, que não instalam app com um botão, ela mostra os três passos de Compartilhar daquele navegador; depois de instalado, ela avisa e oferece Abrir o terminal; e um navegador que não instala nada mostra o endereço para abrir em outro. Agora não esconde o banner por 30 dias naquele navegador. Agendamento → Terminais mostra o endereço da página de instalação ao lado da lista, como um QR code para apontar a câmera do tablet, com Copiar endereço e Abrir. A página de instalação é pública, igual para todos, e nunca fica guardada para uso offline."

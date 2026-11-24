@@ -19,7 +19,8 @@
  *
  * @package FreeFormCertificate\Audience
  *
- * @var string $ffc_terminal_logo Site icon URL, or ''.
+ * @var string $ffc_terminal_logo        Site icon URL, or ''.
+ * @var string $ffc_terminal_install_url The install page's address (#2813).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -30,9 +31,35 @@ use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Core\Icons;
 use FreeFormCertificate\Core\Notice;
 
-$ffc_terminal_logo = isset( $ffc_terminal_logo ) ? (string) $ffc_terminal_logo : '';
-$ffc_terminal_site = (string) get_bloginfo( 'name' );
+$ffc_terminal_logo        = isset( $ffc_terminal_logo ) ? (string) $ffc_terminal_logo : '';
+$ffc_terminal_install_url = isset( $ffc_terminal_install_url ) ? (string) $ffc_terminal_install_url : '';
+$ffc_terminal_site        = (string) get_bloginfo( 'name' );
 ?>
+<?php if ( '' !== $ffc_terminal_install_url ) : ?>
+<aside class="ffc-terminal-install-banner" data-ffc-terminal-install-banner aria-label="<?php esc_attr_e( 'Install this terminal', 'ffcertificate' ); ?>" hidden>
+	<span class="ffc-terminal-install-banner-icon" aria-hidden="true"><?php echo Icons::svg( 'download', 26 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></span>
+	<p><strong><?php esc_html_e( 'Install this terminal as an app.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'It opens full screen, without the browser\'s bar, and comes back to this screen by itself.', 'ffcertificate' ); ?></p>
+	<?php
+	Button::render(
+		array(
+			'label'    => __( 'Install', 'ffcertificate' ),
+			'category' => 'primary',
+			'icon'     => 'download',
+			'href'     => $ffc_terminal_install_url,
+		)
+	);
+	Button::render(
+		array(
+			'label'     => __( 'Not now', 'ffcertificate' ),
+			'category'  => 'neutral',
+			'icon'      => 'cross',
+			'icon_only' => true,
+			'attrs'     => array( 'data-ffc-terminal-install-dismiss' => '' ),
+		)
+	);
+	?>
+</aside>
+<?php endif; ?>
 <main class="ffc-terminal" data-ffc-terminal data-ffc-terminal-tone="neutral">
 	<header class="ffc-terminal-head">
 		<span class="ffc-terminal-logo" aria-hidden="true">
