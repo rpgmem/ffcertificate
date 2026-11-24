@@ -18,6 +18,9 @@
  *   addresses, and served from the cache only when the network fails.
  * - REST calls are never touched: they go to the network and fail as they
  *   would without a worker, which is what the page's own queue expects.
+ * - Only the site's own pages may ask it to keep anything, and what it
+ *   fetches always carries its own origin, never a host from the message
+ *   (#2809).
  */
 (function (sw) {
     'use strict';
@@ -38,19 +41,30 @@
         return url.origin === sw.location.origin;
     }
 
-    // The addresses the page asked to keep: same origin, not REST.
-    function keepable(address) {
+    // The address the page asked to keep, rebuilt on this worker's own
+    // origin, or '' when it is another origin, not http(s) or REST. Only the
+    // path and the query come from the message.
+    function own(address) {
         var url;
         try {
-            url = new URL(address, sw.location.href);
+            url = new URL(String(address), sw.location.href);
         } catch (e) {
-            return false;
+            return '';
         }
-        return ('http:' === url.protocol || 'https:' === url.protocol) && sameOrigin(url) && !isRest(url);
+        if (('http:' !== url.protocol && 'https:' !== url.protocol) || !sameOrigin(url) || isRest(url)) {
+            return '';
+        }
+        return sw.location.origin + url.pathname + url.search;
+    }
+
+    function keepable(address) {
+        return '' !== own(address);
     }
 
     function keep(urls) {
-        var list = (Array.isArray(urls) ? urls : []).filter(keepable);
+        var list = (Array.isArray(urls) ? urls : []).map(own).filter(function (address) {
+            return '' !== address;
+        });
         return sw.caches.open(CACHE).then(function (cache) {
             return Promise.all(list.map(function (address) {
                 return sw.fetch(address, { credentials: 'same-origin' }).then(function (response) {
@@ -124,7 +138,16 @@
         }));
     });
 
+    // Only a page of this site may ask: a message from any other origin is
+    // ignored.
+    function trusted(event) {
+        return !!event && event.origin === sw.location.origin;
+    }
+
     sw.addEventListener('message', function (event) {
+        if (!trusted(event)) {
+            return;
+        }
         var data = event.data || {};
         if ('ffc-terminal-keep' === data.type) {
             event.waitUntil(keep(data.urls));
@@ -138,5 +161,5 @@
         }
     });
 
-    sw.FFCTerminalShell = { cache: CACHE, keep: keep, clean: clean, route: route, keepable: keepable };
+    sw.FFCTerminalShell = { cache: CACHE, keep: keep, clean: clean, route: route, keepable: keepable, own: own, trusted: trusted };
 }(self));

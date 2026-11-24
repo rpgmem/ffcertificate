@@ -92,9 +92,14 @@ describe('the terminal shell worker', () => {
 	});
 
 	it('keeps the addresses the page sends, and only same-origin ones that are not REST', async () => {
-		network = (address) => Promise.resolve(ok('file:' + address));
+		const fetched = [];
+		network = (address) => {
+			fetched.push(address);
+			return Promise.resolve(ok('file:' + address));
+		};
 		const kept = [];
 		const event = {
+			origin: ORIGIN,
 			data: {
 				type: 'ffc-terminal-keep',
 				urls: [
@@ -112,6 +117,7 @@ describe('the terminal shell worker', () => {
 
 		const store = window.caches.stores.get('ffc-terminal-9.9.9');
 		expect([...store.entries.keys()]).toEqual([ORIGIN + '/wp-content/plugins/ffcertificate/assets/js/ffc-terminal-kiosk.min.js?ver=1']);
+		expect(fetched).toEqual([ORIGIN + '/wp-content/plugins/ffcertificate/assets/js/ffc-terminal-kiosk.min.js?ver=1'], 'only the kept address reaches the network');
 
 		network = () => Promise.reject(new TypeError('offline'));
 		const asset = fetchEvent({ method: 'GET', mode: 'no-cors', url: ORIGIN + '/wp-content/plugins/ffcertificate/assets/js/ffc-terminal-kiosk.min.js?ver=1' });
@@ -120,9 +126,31 @@ describe('the terminal shell worker', () => {
 
 	it('ignores messages it does not know', () => {
 		let waited = false;
-		listeners.message({ data: { type: 'other' }, waitUntil() { waited = true; } });
-		listeners.message({ waitUntil() { waited = true; } });
+		listeners.message({ origin: ORIGIN, data: { type: 'other' }, waitUntil() { waited = true; } });
+		listeners.message({ origin: ORIGIN, waitUntil() { waited = true; } });
 		expect(waited).toBe(false);
+	});
+
+	it('ignores a keep request from any origin but its own (#2809)', () => {
+		let waited = false;
+		const keep = { type: 'ffc-terminal-keep', urls: [ORIGIN + '/wp-content/x.js'] };
+		listeners.message({ origin: 'https://elsewhere.example', data: keep, waitUntil() { waited = true; } });
+		listeners.message({ origin: '', data: keep, waitUntil() { waited = true; } });
+		listeners.message({ data: keep, waitUntil() { waited = true; } });
+		expect(waited).toBe(false);
+		expect(S().trusted(null)).toBe(false);
+		expect(S().trusted({ origin: ORIGIN })).toBe(true);
+	});
+
+	it('rebuilds a kept address on its own origin, keeping only the path and the query (#2809)', () => {
+		expect(S().own('/wp-content/x.js?ver=2#frag')).toBe(ORIGIN + '/wp-content/x.js?ver=2');
+		expect(S().own(ORIGIN + '/a/b.css')).toBe(ORIGIN + '/a/b.css');
+		expect(S().own('https://elsewhere.example/a.js')).toBe('');
+		expect(S().own('//elsewhere.example/a.js')).toBe('');
+		expect(S().own('javascript:alert(1)')).toBe('');
+		expect(S().own(ORIGIN + '/wp-json/ffc/v1/x')).toBe('');
+		expect(S().own('http://[bad')).toBe('');
+		expect(S().keepable('/ok.js')).toBe(true);
 	});
 
 	it('never answers a REST call, a write or another origin', () => {
