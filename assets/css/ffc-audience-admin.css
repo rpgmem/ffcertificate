@@ -826,10 +826,6 @@
     gap: var(--ffc-spacing-xs);
 }
 
-.ffc-page-scheduling-presence .ffc-presence-main {
-    min-width: 0;
-}
-
 .ffc-page-scheduling-presence .ffc-presence-scroll {
     overflow-x: auto;
 }
@@ -861,6 +857,30 @@
     margin-top: var(--ffc-spacing-md);
     padding-top: var(--ffc-spacing-md);
     border-top: 1px solid var(--ffc-border-light);
+}
+
+/* Each item names its kind above the sentence, and the sentence ends with
+   when it was asked, in a lighter tone (#2782). */
+.ffc-page-scheduling-presence .ffc-presence-attention-kind {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-page-scheduling-presence .ffc-presence-attention-when,
+.ffc-page-scheduling-presence .ffc-presence-footnote {
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-page-scheduling-presence .ffc-presence-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 /* Check-in settings (#2782): the three terminal numbers side by side,

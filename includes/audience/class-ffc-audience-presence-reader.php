@@ -93,11 +93,26 @@ class AudiencePresenceReader {
 	 * @return int|null The other account's id.
 	 */
 	public static function reserving_user( string $device_id, int $user_id, int $now ): ?int {
+		$reservation = self::reservation( $device_id, $user_id, $now );
+		return null === $reservation ? null : $reservation['user_id'];
+	}
+
+	/**
+	 * The account a phone is reserved to, and until when (#2782): null while
+	 * that account still uses it, otherwise the end of the reservation that
+	 * started when it stopped.
+	 *
+	 * @param string $device_id Device id.
+	 * @param int    $user_id   The account asking, which the device is never reserved against.
+	 * @param int    $now       Unix time.
+	 * @return array{user_id: int, until: int|null}|null
+	 */
+	public static function reservation( string $device_id, int $user_id, int $now ): ?array {
 		$wpdb  = self::db();
 		$since = $now - AudiencePresenceEnrolment::RESERVATION;
-		$other = $wpdb->get_var(
+		$row   = $wpdb->get_row(
 			$wpdb->prepare(
-				'SELECT user_id FROM %i WHERE device_id = %s AND user_id <> %d AND released_at IS NULL'
+				'SELECT user_id, activated_at, revoked_at FROM %i WHERE device_id = %s AND user_id <> %d AND released_at IS NULL'
 				. ' AND ( revoked_at IS NULL OR revoked_at >= %d OR activated_at >= %d )'
 				. ' ORDER BY activated_at DESC LIMIT 1',
 				self::devices_table(),
@@ -105,9 +120,17 @@ class AudiencePresenceReader {
 				$user_id,
 				$since,
 				$since
-			)
+			),
+			ARRAY_A
 		);
-		return null === $other ? null : (int) $other;
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+		$revoked = isset( $row['revoked_at'] ) ? (int) $row['revoked_at'] : null;
+		return array(
+			'user_id' => (int) $row['user_id'],
+			'until'   => null === $revoked ? null : max( $revoked, (int) $row['activated_at'] ) + AudiencePresenceEnrolment::RESERVATION,
+		);
 	}
 
 	/**
@@ -236,34 +259,62 @@ class AudiencePresenceReader {
 	/**
 	 * Active devices, newest first, one page of them (#2743).
 	 *
-	 * @param int $limit  Rows per page.
-	 * @param int $offset Rows to skip.
+	 * @param int            $limit    Rows per page.
+	 * @param int            $offset   Rows to skip.
+	 * @param list<int>|null $user_ids Only these accounts (the screen's search, #2782), or null for every one.
 	 * @return list<DeviceRow>
 	 */
-	public static function active_devices( int $limit, int $offset ): array {
+	public static function active_devices( int $limit, int $offset, ?array $user_ids = null ): array {
+		if ( array() === $user_ids ) {
+			return array();
+		}
 		$wpdb = self::db();
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
+		if ( null === $user_ids ) {
+			$sql = $wpdb->prepare(
 				'SELECT * FROM %i WHERE revoked_at IS NULL ORDER BY activated_at DESC, id DESC LIMIT %d OFFSET %d',
 				self::devices_table(),
 				max( 1, $limit ),
 				max( 0, $offset )
-			),
-			ARRAY_A
-		);
+			);
+		} else {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The interpolated part is one %d placeholder per account id, filled by prepare().
+			$sql = $wpdb->prepare(
+				'SELECT * FROM %i WHERE revoked_at IS NULL AND user_id IN (' . implode( ', ', array_fill( 0, count( $user_ids ), '%d' ) ) . ') ORDER BY activated_at DESC, id DESC LIMIT %d OFFSET %d',
+				self::devices_table(),
+				...array_merge( $user_ids, array( max( 1, $limit ), max( 0, $offset ) ) )
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		}
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is the prepare() result above.
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
 		return array_map( array( self::class, 'shape' ), is_array( $rows ) ? $rows : array() );
 	}
 
 	/**
 	 * How many devices are active.
 	 *
+	 * @param list<int>|null $user_ids Only these accounts, or null for every one.
 	 * @return int
 	 */
-	public static function count_active(): int {
+	public static function count_active( ?array $user_ids = null ): int {
+		if ( array() === $user_ids ) {
+			return 0;
+		}
 		$wpdb = self::db();
-		return (int) $wpdb->get_var(
-			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE revoked_at IS NULL', self::devices_table() )
+		if ( null === $user_ids ) {
+			return (int) $wpdb->get_var(
+				$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE revoked_at IS NULL', self::devices_table() )
+			);
+		}
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The interpolated part is one %d placeholder per account id, filled by prepare().
+		$sql = $wpdb->prepare(
+			'SELECT COUNT(*) FROM %i WHERE revoked_at IS NULL AND user_id IN (' . implode( ', ', array_fill( 0, count( $user_ids ), '%d' ) ) . ')',
+			self::devices_table(),
+			...$user_ids
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is the prepare() result above.
+		return (int) $wpdb->get_var( $sql );
 	}
 
 	/**

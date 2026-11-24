@@ -84,6 +84,17 @@ final class FakePresenceTables extends \wpdb {
 			}
 			return null;
 		}
+		if ( false !== strpos( $query, 'SELECT user_id, activated_at, revoked_at FROM %i WHERE device_id = %s AND user_id <> %d' ) ) {
+			list( , $device, $user, $since ) = $args;
+			$found                           = null;
+			foreach ( $this->devices as $row ) {
+				$touched = null === $row['revoked_at'] || (int) $row['revoked_at'] >= $since || (int) $row['activated_at'] >= $since;
+				if ( $row['device_id'] === $device && (int) $row['user_id'] !== (int) $user && null === $row['released_at'] && $touched && ( null === $found || (int) $row['activated_at'] > (int) $found['activated_at'] ) ) {
+					$found = $row;
+				}
+			}
+			return $found;
+		}
 		if ( 'SELECT * FROM %i WHERE id = %d LIMIT 1' === $query ) {
 			$rows = 'wp_ffc_audience_presence_requests' === $args[0] ? $this->requests : $this->devices;
 			return $rows[ (int) $args[1] ] ?? null;
@@ -108,6 +119,14 @@ final class FakePresenceTables extends \wpdb {
 			usort( $rows, static fn( array $a, array $b ): int => array( $b['activated_at'], $b['id'] ) <=> array( $a['activated_at'], $a['id'] ) );
 			return array_slice( $rows, (int) $args[2], (int) $args[1] );
 		}
+		if ( false !== strpos( $query, 'WHERE revoked_at IS NULL AND user_id IN (' ) ) {
+			$offset = (int) array_pop( $args );
+			$limit  = (int) array_pop( $args );
+			$ids    = array_map( 'intval', array_slice( $args, 1 ) );
+			$rows   = array_values( array_filter( $this->devices, static fn( array $r ): bool => null === $r['revoked_at'] && in_array( (int) $r['user_id'], $ids, true ) ) );
+			usort( $rows, static fn( array $a, array $b ): int => array( $b['activated_at'], $b['id'] ) <=> array( $a['activated_at'], $a['id'] ) );
+			return array_slice( $rows, $offset, $limit );
+		}
 		if ( false !== strpos( $query, 'WHERE status = %s ORDER BY created_at ASC' ) ) {
 			$rows = array_values( array_filter( $this->requests, static fn( array $r ): bool => $r['status'] === $args[1] ) );
 			usort( $rows, static fn( array $a, array $b ): int => array( $a['created_at'], $a['id'] ) <=> array( $b['created_at'], $b['id'] ) );
@@ -127,19 +146,6 @@ final class FakePresenceTables extends \wpdb {
 	 */
 	public function get_var( $handle = null, $x = 0, $y = 0 ) {
 		list( $query, $args ) = $this->statement( $handle );
-		if ( false !== strpos( $query, 'SELECT user_id FROM %i WHERE device_id = %s AND user_id <> %d' ) ) {
-			list( , $device, $user, $since ) = $args;
-			$found                           = null;
-			$latest                          = -1;
-			foreach ( $this->devices as $row ) {
-				$touched = null === $row['revoked_at'] || (int) $row['revoked_at'] >= $since || (int) $row['activated_at'] >= $since;
-				if ( $row['device_id'] === $device && (int) $row['user_id'] !== (int) $user && null === $row['released_at'] && $touched && (int) $row['activated_at'] > $latest ) {
-					$found  = (string) $row['user_id'];
-					$latest = (int) $row['activated_at'];
-				}
-			}
-			return $found;
-		}
 		if ( false !== strpos( $query, 'SELECT COUNT(*) FROM %i WHERE user_id = %d AND is_change = 1' ) ) {
 			$count = 0;
 			foreach ( $this->devices as $row ) {
@@ -148,6 +154,10 @@ final class FakePresenceTables extends \wpdb {
 				}
 			}
 			return (string) $count;
+		}
+		if ( 0 === strpos( $query, 'SELECT COUNT(*) FROM %i WHERE revoked_at IS NULL AND user_id IN (' ) ) {
+			$ids = array_map( 'intval', array_slice( $args, 1 ) );
+			return (string) count( array_filter( $this->devices, static fn( array $r ): bool => null === $r['revoked_at'] && in_array( (int) $r['user_id'], $ids, true ) ) );
 		}
 		if ( 'SELECT COUNT(*) FROM %i WHERE revoked_at IS NULL' === $query ) {
 			return (string) count( array_filter( $this->devices, static fn( array $r ): bool => null === $r['revoked_at'] ) );
