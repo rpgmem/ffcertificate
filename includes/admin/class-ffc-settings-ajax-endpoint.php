@@ -135,46 +135,6 @@ class SettingsAjaxEndpoint {
 		);
 
 		$allowlist = array(
-			// Scheduling → Settings → Check-in (#2747): whoever manages the
-			// audience calendars decides whether terminals may use a camera.
-			'terminal_camera'               => array(
-				'option' => 'ffc_settings',
-				'type'   => 'bool',
-				'cap'    => 'ffc_manage_audiences',
-			),
-			// The same tab (#2748): the terminal limits and the auto-end.
-			'terminal_site_limit'           => array(
-				'option' => 'ffc_settings',
-				'type'   => 'int',
-				'min'    => 1,
-				'max'    => \FreeFormCertificate\Audience\AudienceCheckinSettings::SITE_LIMIT_MAX,
-				'cap'    => 'ffc_manage_audiences',
-			),
-			'terminal_event_limit'          => array(
-				'option' => 'ffc_settings',
-				'type'   => 'int',
-				'min'    => 1,
-				'max'    => \FreeFormCertificate\Audience\AudienceCheckinSettings::EVENT_LIMIT_MAX,
-				'cap'    => 'ffc_manage_audiences',
-			),
-			'terminal_auto_end_hours'       => array(
-				'option' => 'ffc_settings',
-				'type'   => 'int',
-				'min'    => 1,
-				'max'    => \FreeFormCertificate\Audience\AudienceCheckinSettings::AUTO_END_HOURS_MAX,
-				'cap'    => 'ffc_manage_audiences',
-			),
-			// The check-in paths a new event starts with (#2748).
-			'checkin_path_qr'               => array(
-				'option' => 'ffc_settings',
-				'type'   => 'bool',
-				'cap'    => 'ffc_manage_audiences',
-			),
-			'checkin_path_terminal'         => array(
-				'option' => 'ffc_settings',
-				'type'   => 'bool',
-				'cap'    => 'ffc_manage_audiences',
-			),
 			'admin_bypass_datetime'         => array(
 				'option' => 'ffc_geolocation_settings',
 				'type'   => 'bool',

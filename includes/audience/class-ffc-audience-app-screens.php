@@ -298,7 +298,7 @@ final class AudienceAppScreens {
 				'rest'        => esc_url_raw( rest_url( AudienceTerminalRestController::NAMESPACE . '/' . AudienceTerminalRestController::REST_BASE . '/' ) ),
 				'nonce'       => wp_create_nonce( 'wp_rest' ),
 				'maxBookings' => AudienceTerminalPairing::MAX_BOOKINGS,
-				'autoEnd'     => self::default_auto_end(),
+				'autoEnd'     => AudienceCheckinSettings::auto_end_hours(),
 				'strings'     => array(
 					'loading'         => __( 'Loading…', 'ffcertificate' ),
 					'failed'          => __( 'The site could not be reached. Check the connection and try again.', 'ffcertificate' ),
@@ -336,39 +336,11 @@ final class AudienceAppScreens {
 			)
 		);
 
-		$ffc_terminal_auto_end         = self::default_auto_end();
-		$ffc_terminal_auto_end_options = self::auto_end_options( $ffc_terminal_auto_end );
+		$ffc_terminal_auto_end         = AudienceCheckinSettings::auto_end_hours();
+		$ffc_terminal_auto_end_options = AudienceCheckinSettings::auto_end_choices( $ffc_terminal_auto_end );
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/public/terminal/operator.php';
 		return (string) ob_get_clean();
-	}
-	/**
-	 * The hours a new terminal ends after its last event unless the operator
-	 * picks another: the Check-in settings' value.
-	 *
-	 * @return int
-	 */
-	private static function default_auto_end(): int {
-		return max( 1, intdiv( AudienceCheckinSettings::auto_end_seconds(), HOUR_IN_SECONDS ) );
-	}
-
-	/**
-	 * The choices the Pair terminal screen offers for ending by itself
-	 * (#2781): 1, 2 and 4 hours, plus the settings' value when it is none of
-	 * them, so the default is always one of the choices.
-	 *
-	 * @param int $default_hours The settings' value.
-	 * @return array<int, string> Hours => label.
-	 */
-	private static function auto_end_options( int $default_hours ): array {
-		$hours = array_values( array_unique( array( 1, 2, 4, $default_hours ) ) );
-		sort( $hours );
-		$options = array();
-		foreach ( $hours as $h ) {
-			/* translators: %d: hours */
-			$options[ $h ] = sprintf( __( '%d h', 'ffcertificate' ), $h );
-		}
-		return $options;
 	}
 }

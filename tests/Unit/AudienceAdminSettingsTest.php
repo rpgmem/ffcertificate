@@ -43,6 +43,8 @@ class AudienceAdminSettingsTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
 		Functions\when( '_x' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
@@ -485,20 +487,32 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $html );
 	}
 
-	public function test_render_page_checkin_tab_autosaves_the_terminal_camera(): void {
+	public function test_render_page_checkin_tab_is_one_form_with_a_save_button(): void {
 		$_GET['tab'] = 'checkin';
 		Functions\when( 'get_option' )->alias( static fn ( $key, $default = false ) => 'ffc_settings' === $key ? array( 'terminal_camera' => 1 ) : $default );
+		Functions\when( 'selected' )->alias( static function ( $a, $b = true, $echo = true ) {
+			$out = (string) $a === (string) $b ? ' selected="selected"' : '';
+			if ( $echo ) {
+				echo $out; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+			}
+			return $out;
+		} );
 
 		$html = $this->render( $this->page() );
 
 		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-checkin"', $html );
 		$this->assertMatchesRegularExpression( '/name="terminal_camera"[^>]*checked/', $html );
-		$this->assertStringContainsString( 'data-ffc-autosave-key="terminal_camera"', $html );
-		$this->assertStringNotContainsString( '<form', $html, 'every field saves on its own' );
-		foreach ( array( 'terminal_site_limit' => '10', 'terminal_event_limit' => '3', 'terminal_auto_end_hours' => '2' ) as $key => $value ) {
-			$this->assertMatchesRegularExpression( '/name="' . $key . '"[^>]*required[^>]*value="' . $value . '"[^>]*data-ffc-autosave-key="' . $key . '"/s', $html, $key );
+		$this->assertStringNotContainsString( 'data-ffc-autosave-key', $html, 'the approved screen saves with one button (#2782)' );
+		$this->assertStringContainsString( 'name="ffc_action" value="save_checkin_settings"', $html );
+		$this->assertStringContainsString( 'Save changes', $html );
+		foreach ( array( 'terminal_site_limit' => '10', 'terminal_event_limit' => '3' ) as $key => $value ) {
+			$this->assertMatchesRegularExpression( '/name="' . $key . '"[^>]*required[^>]*value="' . $value . '"/s', $html, $key );
 		}
-		$this->assertStringContainsString( 'Rules that always apply', $html );
+		$this->assertMatchesRegularExpression( '/<select[^>]*name="terminal_auto_end_hours".*<option value="2" selected="selected">/s', $html, 'a 1 / 2 / 4 h select' );
+		$this->assertStringContainsString( 'Today: 0 of 10.', $html );
+		foreach ( array( 'Check-in paths for new events', 'QR reading', 'Pairing lock', 'Presence devices', 'See devices and releases' ) as $text ) {
+			$this->assertStringContainsString( $text, $html );
+		}
 	}
 
 	public function test_render_page_import_tab_delegates_to_the_import_page(): void {
@@ -691,6 +705,49 @@ class AudienceAdminSettingsTest extends TestCase {
 			}
 		);
 		return $notices;
+	}
+
+	public function test_the_checkin_tab_saves_its_keys_and_keeps_the_others(): void {
+		Functions\when( 'get_option' )->alias( static fn ( $key, $default = false ) => 'ffc_settings' === $key ? array( 'other' => 'kept', 'terminal_site_limit' => 7 ) : $default );
+		$written = $this->record_writes();
+		$notices = $this->record_notices();
+		$_POST   = array(
+			'ffc_action'                 => 'save_checkin_settings',
+			'ffc_checkin_settings_nonce' => 'n',
+			'checkin_path_qr'            => '1',
+			'terminal_camera'            => '1',
+			'terminal_site_limit'        => '',
+			'terminal_event_limit'       => '99',
+			'terminal_auto_end_hours'    => '4',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$saved = $written['ffc_settings'];
+		$this->assertSame( 'kept', $saved['other'] );
+		$this->assertSame( 1, $saved['checkin_path_qr'] );
+		$this->assertSame( 0, $saved['checkin_path_terminal'], 'an unticked switch posts nothing and saves off' );
+		$this->assertSame( 1, $saved['terminal_camera'] );
+		$this->assertSame( 7, $saved['terminal_site_limit'], 'an empty number keeps the stored value' );
+		$this->assertSame( \FreeFormCertificate\Audience\AudienceCheckinSettings::EVENT_LIMIT_MAX, $saved['terminal_event_limit'], 'bounded' );
+		$this->assertSame( 4, $saved['terminal_auto_end_hours'] );
+		$this->assertSame( array( 'Check-in settings saved.' ), $notices->getArrayCopy() );
+	}
+
+	public function test_the_checkin_tab_with_a_bad_nonce_writes_nothing(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'                 => 'save_checkin_settings',
+			'ffc_checkin_settings_nonce' => 'forged',
+			'terminal_camera'            => '1',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertCount( 0, $written );
 	}
 
 	public function test_visibility_settings_need_the_manage_capability(): void {
