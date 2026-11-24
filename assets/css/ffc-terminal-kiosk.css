@@ -47,6 +47,19 @@
 	color: var(--ffc-text);
 }
 
+/* The sizes follow the VISIBLE height (#2824). On Android `vh` is the height
+   with the system bars hidden, so when the navigation bar shows (pulled up,
+   or when the camera opens) the shell shrinks and `vh` sizes do not, which
+   pushes the screen into scrolling; `dvh` follows the bar. */
+@supports (height: 1dvh) {
+	.ffc-terminal {
+		--ffc-terminal-display: clamp(var(--ffc-font-size-2xl), 6dvh, calc(var(--ffc-font-size-2xl) * 2));
+		--ffc-terminal-headline: clamp(var(--ffc-font-size-2xl), 4.8dvh, calc(var(--ffc-font-size-2xl) * 1.6));
+		--ffc-terminal-clock-size: clamp(var(--ffc-font-size-2xl), 4dvh, calc(var(--ffc-font-size-2xl) * 1.35));
+		--ffc-terminal-countdown-size: clamp(calc(var(--ffc-font-size-2xl) * 1.5), 7.8dvh, calc(var(--ffc-font-size-2xl) * 2.6));
+	}
+}
+
 .ffc-terminal[data-ffc-terminal-tone="ok"] {
 	background: var(--ffc-success-bg);
 	color: var(--ffc-success-text);
@@ -255,6 +268,7 @@
 	justify-content: center;
 	width: 200px;
 	max-width: min(40vw, 25vh);
+	max-width: min(40vw, 25dvh);
 	aspect-ratio: 1;
 	border: 3px dashed var(--ffc-terminal-soft);
 	border-radius: var(--ffc-radius-lg);
@@ -272,6 +286,7 @@
 	justify-content: center;
 	width: 180px;
 	max-width: min(36vw, 22.5vh);
+	max-width: min(36vw, 22.5dvh);
 	aspect-ratio: 1;
 	border-radius: var(--ffc-radius-full);
 	background: var(--ffc-text);
@@ -434,6 +449,7 @@
 	flex: none;
 	width: 460px;
 	max-width: min(80vw, 62vh);
+	max-width: min(80vw, 62dvh);
 	aspect-ratio: 1;
 	overflow: hidden;
 	border-radius: var(--ffc-radius-lg);
@@ -499,6 +515,7 @@
 .ffc-terminal-view > .ffc-terminal-camera-slot .ffc-terminal-viewfinder {
 	width: 320px;
 	max-width: min(80vw, 28vh);
+	max-width: min(80vw, 28dvh);
 }
 
 .ffc-terminal-frame {

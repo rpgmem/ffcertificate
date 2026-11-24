@@ -37217,3 +37217,6 @@ msgstr ""
 
 msgid "This browser has not offered its install button here yet. Open the browser's menu (⋮) and choose Install app or Add to Home screen. If the button arrives, it appears on this page."
 msgstr ""
+
+msgid "Visible screen"
+msgstr ""

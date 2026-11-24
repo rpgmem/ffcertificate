@@ -666,6 +666,7 @@ final class AudienceTerminalPage {
 						'cameraLabel'       => __( 'Camera reading', 'ffcertificate' ),
 						'wakeLabel'         => __( 'Screen kept on', 'ffcertificate' ),
 						'browserLabel'      => __( 'Browser', 'ffcertificate' ),
+						'screenLabel'       => __( 'Visible screen', 'ffcertificate' ),
 						'yes'               => __( 'Yes', 'ffcertificate' ),
 						'no'                => __( 'No', 'ffcertificate' ),
 						'cameraOn'          => __( 'Supported and allowed', 'ffcertificate' ),

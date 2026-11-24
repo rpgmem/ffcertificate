@@ -78,7 +78,7 @@ const CONFIG = {
 		wakeUnsupported: 'cannot keep the screen on',
 		wakeRefused: 'screen on refused',
 		check: {
-			secureLabel: 'HTTPS', cameraLabel: 'Camera', wakeLabel: 'Screen', browserLabel: 'Browser',
+			secureLabel: 'HTTPS', cameraLabel: 'Camera', wakeLabel: 'Screen', browserLabel: 'Browser', screenLabel: 'Visible',
 			yes: 'yes', no: 'no', cameraOn: 'camera on', cameraOff: 'camera off', cameraInsecure: 'camera needs https',
 			cameraUnsupported: 'camera unsupported', wakeActive: 'screen active', wakeAvailable: 'screen available', wakeUnsupported: 'screen unsupported',
 		},
@@ -1558,6 +1558,15 @@ describe('device check', () => {
 		await controls.deviceCheck();
 
 		expect(rows(el)).toEqual(['yes', 'camera on', 'screen available', 'TabletBrowser/1.0']);
+	});
+
+	it('adds the visible screen in CSS pixels and its density (#2824)', async () => {
+		const el = markup();
+		const controls = T().start(el, CONFIG, env({ storage: memoryStorage(paired), screen: () => ({ width: 1280, height: 752, ratio: 1 }) }));
+		await controls.deviceCheck();
+
+		expect(rows(el)[4]).toBe('1280 × 752 px · 1×');
+		expect(el.querySelectorAll('[data-ffc-terminal-part="device-check"] dt')[4].textContent).toBe('Visible');
 	});
 
 	it('says why the camera and the screen lock are missing', async () => {
