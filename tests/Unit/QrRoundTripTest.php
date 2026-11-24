@@ -30,6 +30,21 @@ final class QrRoundTripTest extends TestCase {
 	private const SCALE = 4;
 
 	/**
+	 * Load the bundled encoder this class calls directly (`\QRcode::png()`).
+	 *
+	 * The plugin loads it lazily, inside the classes that draw, so a test that
+	 * reaches it only through `\QRcode` must load it itself: otherwise it
+	 * passes only after another test drew a code, which a random order
+	 * breaks (#2811).
+	 */
+	public static function setUpBeforeClass(): void {
+		parent::setUpBeforeClass();
+		if ( ! class_exists( '\QRcode', false ) ) {
+			require_once FFC_PLUGIN_DIR . 'libs/phpqrcode/qrlib.php';
+		}
+	}
+
+	/**
 	 * Every text the plugin encodes, by kind.
 	 *
 	 * @return array<string, array{0: string}>
