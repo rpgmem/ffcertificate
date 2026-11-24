@@ -59,6 +59,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The QR round-trip test loads the encoder it calls** (#2811), so it passes in any order: it relied on an earlier test having drawn a code.
 - **Presence device history names each phone once** (#2815). Activating the same phone again made a new row per key, each but the last reading "Replaced by another phone"; the history now shows each phone's latest activation, and a new key on the same phone no longer mails the participant that their presence moved.
 - **The check-in terminal installs on a site with no site icon** (#2818). Its manifest had no icon then, so Chrome offered no install and the install page called it unsupported. The terminal now falls back to an icon of its own, and a browser that has not fired its install event yet is pointed to its menu, with the button still appearing if the event arrives.
+- **The check-in terminal fits a short tablet screen** (#2820). The terminal is now exactly the viewport, with only the screen between header and footer able to scroll; display sizes and the illustration follow the screen's height; and the reading screen lost an empty 320px block that a camera-only rule left under its heading.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 
