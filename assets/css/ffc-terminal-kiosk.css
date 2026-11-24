@@ -25,16 +25,24 @@
 .ffc-terminal {
 	--ffc-terminal-soft: var(--ffc-text-muted);
 	--ffc-terminal-mark: var(--ffc-primary);
-	--ffc-terminal-display: calc(var(--ffc-font-size-2xl) * 2);
-	--ffc-terminal-headline: calc(var(--ffc-font-size-2xl) * 1.6);
-	--ffc-terminal-clock-size: calc(var(--ffc-font-size-2xl) * 1.35);
-	--ffc-terminal-countdown-size: calc(var(--ffc-font-size-2xl) * 2.6);
+	/* Display sizes follow the screen's height, between the scale's largest
+	   step and the size a full-HD tablet shows (#2820): an 8" tablet held
+	   landscape (about 600px tall) gets three quarters of it, and nothing
+	   jumps at a breakpoint. */
+	--ffc-terminal-display: clamp(var(--ffc-font-size-2xl), 6vh, calc(var(--ffc-font-size-2xl) * 2));
+	--ffc-terminal-headline: clamp(var(--ffc-font-size-2xl), 4.8vh, calc(var(--ffc-font-size-2xl) * 1.6));
+	--ffc-terminal-clock-size: clamp(var(--ffc-font-size-2xl), 4vh, calc(var(--ffc-font-size-2xl) * 1.35));
+	--ffc-terminal-countdown-size: clamp(calc(var(--ffc-font-size-2xl) * 1.5), 7.8vh, calc(var(--ffc-font-size-2xl) * 2.6));
 
+	/* The terminal is the screen: exactly the viewport, never a page that
+	   scrolls. The header and the footer stay put; only the screen between
+	   them may scroll, and only when a list outgrows it (#2820). */
 	display: flex;
 	flex-direction: column;
-	min-height: 100vh;
-	min-height: 100dvh;
+	height: 100vh;
+	height: 100dvh;
 	box-sizing: border-box;
+	overflow: hidden;
 	background: var(--ffc-bg);
 	color: var(--ffc-text);
 }
@@ -185,7 +193,9 @@
 	gap: var(--ffc-spacing-xl);
 	align-items: center;
 	justify-content: center;
+	min-height: 0;
 	padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
+	overflow-y: auto;
 	text-align: center;
 }
 
@@ -244,7 +254,7 @@
 	align-items: center;
 	justify-content: center;
 	width: 200px;
-	max-width: 40vw;
+	max-width: min(40vw, 25vh);
 	aspect-ratio: 1;
 	border: 3px dashed var(--ffc-terminal-soft);
 	border-radius: var(--ffc-radius-lg);
@@ -261,7 +271,7 @@
 	align-items: center;
 	justify-content: center;
 	width: 180px;
-	max-width: 36vw;
+	max-width: min(36vw, 22.5vh);
 	aspect-ratio: 1;
 	border-radius: var(--ffc-radius-full);
 	background: var(--ffc-text);
@@ -376,14 +386,18 @@
 
 .ffc-terminal-ready-text {
 	display: flex;
-	flex: 1 1 320px;
+	flex: 0 1 auto;
 	flex-direction: column;
 	gap: var(--ffc-spacing-lg);
 	align-items: center;
 	max-width: 40em;
 }
 
+/* Beside the camera the text takes the row's remaining width. In the column
+   without it, a 320px basis would be a height, an empty block under the
+   heading that pushed the screen past a short display (#2820). */
 .ffc-terminal-ready.has-camera .ffc-terminal-ready-text {
+	flex: 1 1 320px;
 	align-items: flex-start;
 }
 
@@ -1033,5 +1047,28 @@
 	.ffc-terminal-install-hero {
 		border-right: 0;
 		border-bottom: 1px solid var(--ffc-border);
+	}
+}
+
+/* A short screen, such as an 8" tablet held landscape (about 960 by 600):
+   the spacing steps down, since the scale's steps are fixed, while the
+   display sizes and the illustration already follow the height (#2820). */
+@media (max-height: 700px) {
+	.ffc-terminal-head {
+		padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
+	}
+
+	.ffc-terminal-view {
+		gap: var(--ffc-spacing-md);
+		padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+	}
+
+	.ffc-terminal-ready,
+	.ffc-terminal-ready.has-camera {
+		gap: var(--ffc-spacing-md);
+	}
+
+	.ffc-terminal-ready-text {
+		gap: var(--ffc-spacing-sm);
 	}
 }
