@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers the attendance screens with Site PWA.
  *
- * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, capability: string, url?: string}
+ * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, capability: string, url?: string, slot?: string}
  */
 final class AudienceAppScreens {
 
@@ -89,6 +89,9 @@ final class AudienceAppScreens {
 				'position'   => $screen['position'],
 				'capability' => $screen['capability'],
 			);
+			if ( isset( $screen['slot'] ) ) {
+				$args['slot'] = $screen['slot'];
+			}
 			if ( isset( $screen['url'] ) ) {
 				$args['url'] = $screen['url'];
 			} else {
@@ -113,8 +116,10 @@ final class AudienceAppScreens {
 		return array(
 			'presence'            => array(
 				'label'      => __( 'Presence', 'ffcertificate' ),
-				'icon'       => 'check',
+				'icon'       => 'qr',
 				'place'      => 'nav',
+				// Raised in the middle of the bar, as the app's main action (site-pwa#23).
+				'slot'       => 'center',
 				'position'   => 3,
 				'capability' => self::PARTICIPANT_CAPABILITY,
 			),

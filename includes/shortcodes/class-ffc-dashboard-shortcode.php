@@ -38,6 +38,7 @@ class DashboardShortcode {
 		// The dashboard's screens in the installable app (#2750); a no-op
 		// unless the Site PWA plugin fires its registration action.
 		DashboardAppScreens::init();
+		AppHome::init();
 	}
 
 	/**

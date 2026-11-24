@@ -325,6 +325,17 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * A user's newest certificate issued since a moment.
+	 *
+	 * @param int $user_id User.
+	 * @param int $since   Unix time.
+	 * @return array{id: int, form_title: string, submission_date: int}|null
+	 */
+	public function latest_certificate_for_user( int $user_id, int $since ): ?array {
+		return $this->reader->latest_certificate_for_user( $user_id, $since );
+	}
+
+	/**
 	 * SQL fragment for the WP_User_Query orderby rewrite.
 	 *
 	 * @since 6.6.2
