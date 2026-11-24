@@ -724,13 +724,18 @@ class AudienceTerminalRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function sync( \WP_REST_Request $request ) {
-		$terminal = self::terminal_of( $request );
+		// A revoked terminal may still send what it read before the
+		// revocation (#2802); the answer tells it that it ended.
+		$terminal = self::terminal_of( $request, true );
 		if ( null === $terminal ) {
 			return self::not_paired();
 		}
 		$readings = self::sanitize_queue( $request->get_param( 'readings' ) );
 		return new \WP_REST_Response(
-			array( 'results' => (object) AudienceTerminalReading::sync( $terminal, $readings, time() ) ),
+			array(
+				'results' => (object) AudienceTerminalReading::sync( $terminal, $readings, time() ),
+				'revoked' => null !== $terminal['revoked_at'],
+			),
 			200,
 			array( 'Cache-Control' => 'no-store' )
 		);
@@ -950,13 +955,14 @@ class AudienceTerminalRestController {
 	/**
 	 * The terminal a request's token belongs to.
 	 *
-	 * @param \WP_REST_Request $request Request.
+	 * @param \WP_REST_Request $request       Request.
+	 * @param bool             $to_send_queue Whether the request only sends the queue, which a revoked terminal may still do (#2802).
 	 * @return TerminalRow|null
 	 */
-	public static function terminal_of( \WP_REST_Request $request ): ?array {
+	public static function terminal_of( \WP_REST_Request $request, bool $to_send_queue = false ): ?array {
 		$token  = (string) $request->get_header( self::TOKEN_HEADER );
 		$queued = (string) $request->get_header( self::QUEUE_HEADER );
-		return '' === $token ? null : AudienceTerminalPairing::authenticate( $token, time(), 1 === preg_match( '/^\d{1,6}$/', $queued ) ? (int) $queued : null );
+		return '' === $token ? null : AudienceTerminalPairing::authenticate( $token, time(), 1 === preg_match( '/^\d{1,6}$/', $queued ) ? (int) $queued : null, $to_send_queue );
 	}
 
 	/**

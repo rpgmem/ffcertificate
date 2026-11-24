@@ -300,6 +300,31 @@ class AudienceTerminalReadingTest extends TestCase {
 		$this->assertStringNotContainsString( 'FFP1', (string) wp_json_encode( $refusals ), 'the log never carries a code' );
 	}
 
+	public function test_a_revoked_terminal_sends_what_it_read_before_and_the_rest_is_refused_and_counted(): void {
+		$this->db->window = $this->window( self::NOW - 600, self::NOW + 600 );
+		$terminal         = array_merge( $this->terminal(), array( 'revoked_at' => self::NOW - 100, 'revoked_by' => 5 ) );
+		$batch            = array(
+			array(
+				'id'   => 'before',
+				'code' => $this->code( self::BOOKING, '', self::NOW - 200 ),
+				'at'   => self::NOW - 200,
+			),
+			array(
+				'id'   => 'after',
+				'code' => $this->code( self::BOOKING, '', self::NOW - 50 ),
+				'at'   => self::NOW - 50,
+			),
+		);
+
+		$results = AudienceTerminalReading::sync( $terminal, $batch, self::NOW );
+
+		$this->assertSame( AudienceTerminalReading::RECORDED, $results['before']['status'], $results['before']['message'] );
+		$this->assertSame( AudienceTerminalReading::AFTER_REVOCATION, $results['after']['code'] );
+		$this->assertSame( '', $results['after']['name'], 'a refusal names nobody' );
+		$this->assertCount( 1, $this->db->attendance );
+		$this->assertSame( 1, $this->db->refused_after_revocation, 'counted on the terminal' );
+	}
+
 	public function test_the_queue_route_keeps_well_formed_readings_only(): void {
 		$queue = AudienceTerminalRestController::sanitize_queue(
 			array(
@@ -375,6 +400,7 @@ class AudienceTerminalReadingTest extends TestCase {
 			'last_seen_at' => null,
 			'queued'       => 0,
 			'readings'     => 0,
+			'refused_after_revocation' => 0,
 			'revoked_at'   => null,
 			'revoked_by'   => null,
 		);
@@ -446,6 +472,8 @@ class AudienceTerminalReadingTest extends TestCase {
 			public array $attendance = array();
 
 			public int $readings_counted = 0;
+
+			public int $refused_after_revocation = 0;
 
 			/** @var array<string, array{0: string, 1: list<mixed>}> */
 			private array $prepared = array();
@@ -555,6 +583,10 @@ class AudienceTerminalReadingTest extends TestCase {
 				}
 				if ( 0 === strpos( $query, 'UPDATE %i SET readings = readings + 1 WHERE id = %d' ) ) {
 					++$this->readings_counted;
+					return 1;
+				}
+				if ( 0 === strpos( $query, 'UPDATE %i SET refused_after_revocation = refused_after_revocation + %d WHERE id = %d' ) ) {
+					$this->refused_after_revocation += (int) $args[1];
 					return 1;
 				}
 				throw new \LogicException( 'Unknown query: ' . $query );

@@ -59,6 +59,12 @@ final class AudienceTerminalReading {
 	public const REFUSED = 'refused';
 
 	/**
+	 * The refusal of a queued reading a revoked terminal took after its
+	 * revocation (#2802).
+	 */
+	public const AFTER_REVOCATION = 'ffc_terminal_after_revocation';
+
+	/**
 	 * How many readings one sync may carry.
 	 */
 	public const SYNC_BATCH = 100;
@@ -109,6 +115,10 @@ final class AudienceTerminalReading {
 	 * A refused reading is logged with its reason, never with the code or a
 	 * name, so a reading taken after a revocation leaves a trace.
 	 *
+	 * A revoked terminal still sends its queue (#2802): a reading it took
+	 * before the revocation is judged as any other, a later one is refused
+	 * and counted on the terminal.
+	 *
 	 * @param array $terminal Terminal row.
 	 * @param array $readings Each `{id, code, at}`.
 	 * @param int   $now      Unix time.
@@ -119,13 +129,20 @@ final class AudienceTerminalReading {
 	public static function sync( array $terminal, array $readings, int $now ): array {
 		$results = array();
 		$refused = array();
+		$late    = 0;
 		foreach ( array_slice( $readings, 0, self::SYNC_BATCH ) as $reading ) {
-			$result                    = self::read_queued( $terminal, $reading['code'], $reading['at'], $now );
+			if ( null !== $terminal['revoked_at'] && $reading['at'] >= $terminal['revoked_at'] ) {
+				$result = self::refused( self::AFTER_REVOCATION, __( 'This terminal was revoked before this reading, so it was not recorded.', 'ffcertificate' ) );
+				++$late;
+			} else {
+				$result = self::read_queued( $terminal, $reading['code'], $reading['at'], $now );
+			}
 			$results[ $reading['id'] ] = $result;
 			if ( self::REFUSED === $result['status'] ) {
 				$refused[ $result['code'] ] = ( $refused[ $result['code'] ] ?? 0 ) + 1;
 			}
 		}
+		AudienceTerminalWriter::count_refused_after_revocation( $terminal['id'], $late );
 		if ( array() !== $refused ) {
 			ActivityLog::log(
 				'terminal_readings_refused',

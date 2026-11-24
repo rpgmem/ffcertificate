@@ -37105,6 +37105,23 @@ msgstr ""
 msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says."
 msgstr ""
 
+msgid "This terminal was revoked before this reading, so it was not recorded."
+msgstr ""
+
+msgid "This terminal was revoked. The readings it took before that were sent. Ask an operator for a new pairing code."
+msgstr ""
+
+msgid "Readings it took offline before the revocation are still recorded when it connects; later ones are refused, counted here and written to the activity log."
+msgstr ""
+
+msgid "A revoked terminal still sends the queue it kept offline when it next connects, for up to 7 days after the revocation: a reading it took before the revocation is judged as any other, and one it took later is refused, written to the activity log and counted on Presence terminals as refused after revocation. The terminal then says it was revoked and takes no more readings."
+msgstr ""
+
+msgid "%d refused after revocation"
+msgid_plural "%d refused after revocation"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Install this terminal"
 msgstr ""
 

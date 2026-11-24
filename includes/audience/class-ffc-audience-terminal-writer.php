@@ -200,6 +200,24 @@ class AudienceTerminalWriter {
 	}
 
 	/**
+	 * Count queued readings a revoked terminal took after its revocation
+	 * (#2802).
+	 *
+	 * @param int $id    Terminal id.
+	 * @param int $count How many.
+	 * @return bool
+	 */
+	public static function count_refused_after_revocation( int $id, int $count ): bool {
+		if ( $count <= 0 ) {
+			return false;
+		}
+		$wpdb = self::db();
+		return self::run(
+			$wpdb->prepare( 'UPDATE %i SET refused_after_revocation = refused_after_revocation + %d WHERE id = %d', AudienceTerminalReader::terminals_table(), $count, $id )
+		) > 0;
+	}
+
+	/**
 	 * Delete pairing codes that expired before a moment. A spent or expired
 	 * code pairs nothing, so the row only takes space.
 	 *

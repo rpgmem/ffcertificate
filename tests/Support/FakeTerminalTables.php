@@ -212,6 +212,7 @@ final class FakeTerminalTables extends \wpdb {
 					'last_seen_at' => null,
 					'queued'       => 0,
 					'readings'     => 0,
+					'refused_after_revocation' => 0,
 					'revoked_at'   => null,
 					'revoked_by'   => null,
 				),

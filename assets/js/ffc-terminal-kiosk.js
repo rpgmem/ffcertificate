@@ -550,7 +550,7 @@
             }, RESULT_MS);
         }
 
-        function expire() {
+        function expire(message) {
             if (camera && camera.stream) {
                 stopCamera();
             }
@@ -560,7 +560,7 @@
             closeMenu();
             wakeNote('');
             releaseAwake();
-            fail(strings.expired);
+            fail(message || strings.expired);
             show('idle');
         }
 
@@ -679,7 +679,14 @@
             return fetchClock(url(path), options).then(function (response) {
                 return response.json().catch(function () { return {}; }).then(function (data) {
                     if (401 === response.status) {
-                        expire();
+                        // A revoked terminal may still send what it read
+                        // before the revocation (#2802): send the queue
+                        // first, and the answer ends the terminal.
+                        if ('sync' !== path && queue().length) {
+                            sync();
+                        } else {
+                            expire();
+                        }
                         return null;
                     }
                     return { status: response.status, body: data || {} };
@@ -818,7 +825,15 @@
                 saveQueue(rest);
                 updateQueue();
                 var sent = list.length - rest.length;
-                return rest.length && sent > 0 ? sync().then(function (more) { return sent + Math.max(0, more); }) : sent;
+                if (rest.length && sent > 0) {
+                    return sync().then(function (more) { return sent + Math.max(0, more); });
+                }
+                // Revoked (#2802): the queue went as far as it could, and
+                // the terminal takes no more readings.
+                if (result.body.revoked) {
+                    expire(strings.revoked);
+                }
+                return sent;
             });
             return syncing;
         }

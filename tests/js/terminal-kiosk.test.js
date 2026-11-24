@@ -34,6 +34,7 @@ const CONFIG = {
 		events: 'events %d',
 		until: 'until %s',
 		expired: 'expired',
+		revoked: 'revoked, queue sent',
 		operator: 'by %s',
 		clockOff: 'clock off %d s',
 		ended: 'ended',
@@ -879,6 +880,46 @@ describe('offline queue', () => {
 		expect(await controls.sync()).toBe(1);
 		expect(storage.data.has('ffcTerminalQueue')).toBe(false);
 		expect(await controls.sync()).toBe(0);
+	});
+
+	it('sends what it read before a revocation, then ends and says so (#2802)', async () => {
+		const { controls, storage } = offline({
+			online: true,
+			routes: {
+				'POST sync': (options) => {
+					const results = {};
+					JSON.parse(options.body).readings.forEach((r) => { results[r.id] = { status: 'recorded' }; });
+					return respond(200, { results, revoked: true })();
+				},
+			},
+		});
+		await controls.read(CODE);
+		expect(await controls.sync()).toBe(1);
+		expect(storage.data.has('ffcTerminal')).toBe(false);
+		expect(storage.data.has('ffcTerminalQueue')).toBe(false);
+		expect(visible(el)).toEqual(['idle']);
+		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('revoked, queue sent');
+	});
+
+	it('sends the queue before ending when the site refuses the token elsewhere (#2802)', async () => {
+		const sent = [];
+		const run = offline({
+			online: true,
+			routes: {
+				'POST readings': [401, { message: 'unpaired' }],
+				'POST sync': (options) => {
+					const results = {};
+					JSON.parse(options.body).readings.forEach((r) => { sent.push(r.id); results[r.id] = { status: 'recorded' }; });
+					return respond(200, { results, revoked: true })();
+				},
+			},
+			extra: { ffcTerminalQueue: JSON.stringify([{ id: 'q1', code: CODE, at: NOW, key: 'k1' }]) },
+		});
+		await run.controls.read(CODE);
+		await settle();
+		expect(sent).toEqual(['q1']);
+		expect(run.storage.data.has('ffcTerminal')).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('revoked, queue sent');
 	});
 
 	it('sends the queue from the operator menu and says how many went', async () => {
