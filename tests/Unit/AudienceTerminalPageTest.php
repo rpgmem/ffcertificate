@@ -164,7 +164,16 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( '/?ffc_terminal=1', $manifest['start_url'] );
 		$this->assertSame( '/', $manifest['scope'] );
 		$this->assertSame( 'Check-in terminal', $manifest['name'] );
-		$this->assertSame( array(), $manifest['icons'], 'no site icon, no icon entry' );
+		$this->assertSame(
+			array( FFC_PLUGIN_URL . 'assets/img/terminal/terminal-icon-192.png', FFC_PLUGIN_URL . 'assets/img/terminal/terminal-icon-512.png' ),
+			array_column( $manifest['icons'], 'src' ),
+			'no site icon: the plugin\'s own, since a browser installs no app without an icon (#2818)'
+		);
+		$this->assertSame( array( '192x192', '512x512' ), array_column( $manifest['icons'], 'sizes' ) );
+		foreach ( array( 192, 512 ) as $size ) {
+			$this->assertFileExists( dirname( __DIR__, 2 ) . '/assets/img/terminal/terminal-icon-' . $size . '.png' );
+			$this->assertSame( array( $size, $size ), array_slice( (array) getimagesize( dirname( __DIR__, 2 ) . '/assets/img/terminal/terminal-icon-' . $size . '.png' ), 0, 2 ) );
+		}
 	}
 
 	/**
@@ -211,7 +220,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/site/terminal/manifest.webmanifest">', $html, 'the browser offers the install from here' );
 		$this->assertStringContainsString( 'data-ffc-terminal-install-page data-copied=', $html );
 		$this->assertStringContainsString( 'href="https://example.com/site/terminal/"', $html, 'the installed state links back to the terminal, the server printing the address' );
-		foreach ( array( 'wait', 'prompt', 'ios-top', 'ios-bottom', 'ios-old', 'installed', 'unsupported' ) as $state ) {
+		foreach ( array( 'wait', 'prompt', 'ios-top', 'ios-bottom', 'ios-old', 'installed', 'menu', 'unsupported' ) as $state ) {
 			$this->assertMatchesRegularExpression( '/data-state="' . $state . '" hidden>/', $html, 'every state starts hidden: ' . $state );
 		}
 		$this->assertStringContainsString( 'value="https://example.com/site/terminal/install/"', $html, 'the address to copy is this page' );

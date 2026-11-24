@@ -11,7 +11,7 @@ const IPAD = 'Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15
 const IPAD_DESKTOP = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15';
 const ANDROID = 'Mozilla/5.0 (Linux; Android 14; SM-X200) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 const DAY = 24 * 60 * 60 * 1000;
-const STATES = ['wait', 'prompt', 'ios-top', 'ios-bottom', 'ios-old', 'installed', 'unsupported'];
+const STATES = ['wait', 'prompt', 'ios-top', 'ios-bottom', 'ios-old', 'installed', 'menu', 'unsupported'];
 
 beforeAll(() => {
 	window.FFCTerminalInstallManual = true;
@@ -139,6 +139,17 @@ describe('the install page', () => {
 		expect(shown()).toEqual(['installed']);
 		win.timers.forEach((t) => t.fn());
 		expect(shown()).toEqual(['installed'], 'the timeout never overrides it');
+	});
+
+	it('sends a browser that knows the install event to its menu, and the event still brings the button (#2818)', () => {
+		const win = fakeWindow();
+		win.onbeforeinstallprompt = null;
+		T().page(page, win);
+		win.timers[0].fn();
+		expect(shown()).toEqual(['menu']);
+
+		win.fire('beforeinstallprompt', { preventDefault: vi.fn(), prompt: vi.fn(), userChoice: Promise.resolve({ outcome: 'dismissed' }) });
+		expect(shown()).toEqual(['prompt']);
 	});
 
 	it('falls back to the unsupported text when nothing is offered in time', () => {

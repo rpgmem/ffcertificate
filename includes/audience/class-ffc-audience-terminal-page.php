@@ -366,16 +366,32 @@ final class AudienceTerminalPage {
 			),
 		);
 		foreach ( array( 192, 512 ) as $size ) {
-			$icon = (string) get_site_icon_url( $size );
-			if ( '' !== $icon ) {
-				$manifest['icons'][] = array(
+			$icon                = (string) get_site_icon_url( $size );
+			$manifest['icons'][] = '' !== $icon
+				? array(
 					'src'   => $icon,
 					'sizes' => $size . 'x' . $size,
 					'type'  => 'image/png',
+				)
+				: array(
+					'src'     => self::bundled_icon_url( $size ),
+					'sizes'   => $size . 'x' . $size,
+					'type'    => 'image/png',
+					'purpose' => 'any maskable',
 				);
-			}
 		}
 		return $manifest;
+	}
+
+	/**
+	 * The plugin's own terminal icon, for a site with no site icon (#2818):
+	 * a browser installs no app whose manifest has no icon.
+	 *
+	 * @param int $size 192 or 512.
+	 * @return string
+	 */
+	public static function bundled_icon_url( int $size ): string {
+		return FFC_PLUGIN_URL . 'assets/img/terminal/terminal-icon-' . ( 512 === $size ? 512 : 192 ) . '.png';
 	}
 
 	/**
@@ -462,6 +478,7 @@ final class AudienceTerminalPage {
 		wp_print_styles( array( 'ffc-terminal-kiosk' ) );
 		echo '</head><body class="ffc-shortcode ffc-terminal-page">';
 		$ffc_terminal_logo        = (string) get_site_icon_url( 192 );
+		$ffc_terminal_logo        = '' !== $ffc_terminal_logo ? $ffc_terminal_logo : self::bundled_icon_url( 192 );
 		$ffc_terminal_url         = self::url();
 		$ffc_terminal_install_url = self::install_url();
 		include FFC_PLUGIN_DIR . 'templates/public/terminal/install.php';
