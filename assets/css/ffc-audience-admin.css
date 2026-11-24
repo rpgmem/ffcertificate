@@ -720,13 +720,97 @@
     margin: 0;
 }
 
+/* The title and its Pair terminal button on one line (#2782). */
+.ffc-page-scheduling-terminals .ffc-terminals-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+}
+
+/* A pill per state, with a dot, as in the mockup (#2782). */
 .ffc-page-scheduling-terminals .ffc-terminal-state {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    border: 1px solid transparent;
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
     white-space: nowrap;
 }
 
+.ffc-page-scheduling-terminals .ffc-terminal-state::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
 .ffc-page-scheduling-terminals .ffc-terminal-state-online {
+    background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
-    font-weight: 600;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminal-state-offline {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+@media (forced-colors: active) {
+    .ffc-page-scheduling-terminals .ffc-terminal-state {
+        border-color: CanvasText;
+    }
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-note {
+    color: var(--ffc-text-muted);
+}
+
+/* The code beside what it pairs; stacked on a narrow screen (#2782). */
+.ffc-page-scheduling-terminals .ffc-terminals-paired {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-lg);
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-qr {
+    flex: 0 0 auto;
+    width: 240px;
+    max-width: 100%;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-qr svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-paired-text {
+    display: flex;
+    flex: 1 1 240px;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+    min-width: 0;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-code {
+    margin: 0;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: var(--ffc-font-size-xl);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    user-select: all;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-expires {
+    margin: 0;
+    color: var(--ffc-warning-text);
 }
 
 .ffc-page-scheduling-terminals .ffc-terminals-events {
