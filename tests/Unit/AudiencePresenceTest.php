@@ -295,6 +295,7 @@ class AudiencePresenceTest extends TestCase {
 		$this->enrol( 7, 'device-aaaaaaaaaaaa', EcdsaP256::generate(), self::NOW + 60 );
 
 		$this->assertSame( 0, (int) array_values( $this->tables->devices )[1]['is_change'] );
+		$this->assertSame( array(), $this->mailed, 'the presence did not move to another phone, so nothing is mailed' );
 	}
 
 	public function test_a_device_reserved_to_another_account_is_refused_and_leaves_a_request(): void {

@@ -69,6 +69,12 @@ final class AudienceTerminalPage {
 	public const WORKER = 'sw.js';
 
 	/**
+	 * The install page's segment under {@see self::PATH} (#2813), and the
+	 * query value that asks for it on a site without pretty permalinks.
+	 */
+	public const INSTALL = 'install';
+
+	/**
 	 * The files the cached shell is made of, relative to the plugin, whose
 	 * modification times version the cache on a testes site.
 	 */
@@ -78,6 +84,7 @@ final class AudienceTerminalPage {
 		'assets/js/ffc-terminal-kiosk.js',
 		'assets/js/ffc-presence-verifier.js',
 		'assets/js/ffc-terminal-sw.js',
+		'assets/js/ffc-terminal-install.js',
 		'templates/public/terminal/kiosk.php',
 	);
 
@@ -169,6 +176,16 @@ final class AudienceTerminalPage {
 	}
 
 	/**
+	 * The install page's address: `/terminal/install/`, or the query form on
+	 * a site without pretty permalinks (#2813).
+	 *
+	 * @return string
+	 */
+	public static function install_url(): string {
+		return self::pretty() ? home_url( '/' . self::PATH . '/' . self::INSTALL . '/' ) : add_query_arg( self::QUERY_VAR, self::INSTALL, home_url( '/' ) );
+	}
+
+	/**
 	 * The service worker's address, or '' on a site without pretty
 	 * permalinks, which gets none (#2783).
 	 *
@@ -179,7 +196,8 @@ final class AudienceTerminalPage {
 	}
 
 	/**
-	 * What a request path asks for: `page`, `manifest`, `worker` or '' (#2780, #2783).
+	 * What a request path asks for: `page`, `manifest`, `worker`, `install`
+	 * or '' (#2780, #2783, #2813).
 	 *
 	 * Only the home path followed by `terminal`, with or without a trailing
 	 * slash, or by `terminal/manifest.webmanifest`, matches; `/docs/terminal`
@@ -201,6 +219,9 @@ final class AudienceTerminalPage {
 		}
 		if ( $base . '/' . self::WORKER === $path ) {
 			return 'worker';
+		}
+		if ( $base . '/' . self::INSTALL === $path ) {
+			return 'install';
 		}
 		return '';
 	}
@@ -232,13 +253,19 @@ final class AudienceTerminalPage {
 		if ( '' === $value ) {
 			return;
 		}
-		self::serve( self::MANIFEST_QUERY === $value ? 'manifest' : 'page' );
+		$route = 'page';
+		if ( self::MANIFEST_QUERY === $value ) {
+			$route = 'manifest';
+		} elseif ( self::INSTALL === $value ) {
+			$route = 'install';
+		}
+		self::serve( $route );
 	}
 
 	/**
 	 * Send the page or the manifest and stop, while the module is on.
 	 *
-	 * @param string $route `page`, `manifest` or `worker`.
+	 * @param string $route `page`, `manifest`, `worker` or `install`.
 	 * @return void
 	 */
 	private static function serve( string $route ): void {
@@ -256,6 +283,10 @@ final class AudienceTerminalPage {
 			exit;
 		}
 		self::send_headers( 'text/html; charset=utf-8' );
+		if ( 'install' === $route ) {
+			echo self::install_document(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- install_document() escapes every value it prints.
+			exit;
+		}
 		echo self::document(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- document() escapes every value it prints.
 		exit;
 	}
@@ -312,18 +343,27 @@ final class AudienceTerminalPage {
 		$site  = (string) get_bloginfo( 'name' );
 
 		$manifest = array(
-			'name'             => '' === $site ? $name : $name . ' — ' . $site,
-			'short_name'       => __( 'Terminal', 'ffcertificate' ),
-			'id'               => $start . ( '' === $query ? '' : '?' . $query ),
-			'start_url'        => $start . ( '' === $query ? '' : '?' . $query ),
-			'scope'            => '' === $scope ? '/' : $scope,
-			'display'          => 'fullscreen',
-			'display_override' => array( 'fullscreen', 'standalone' ),
-			'orientation'      => 'landscape',
-			'background_color' => self::BACKGROUND,
-			'theme_color'      => self::BACKGROUND,
-			'lang'             => (string) get_bloginfo( 'language' ),
-			'icons'            => array(),
+			'name'                 => '' === $site ? $name : $name . ' — ' . $site,
+			'short_name'           => __( 'Terminal', 'ffcertificate' ),
+			'id'                   => $start . ( '' === $query ? '' : '?' . $query ),
+			'start_url'            => $start . ( '' === $query ? '' : '?' . $query ),
+			'scope'                => '' === $scope ? '/' : $scope,
+			'display'              => 'fullscreen',
+			'display_override'     => array( 'fullscreen', 'standalone' ),
+			'orientation'          => 'landscape',
+			'background_color'     => self::BACKGROUND,
+			'theme_color'          => self::BACKGROUND,
+			'lang'                 => (string) get_bloginfo( 'language' ),
+			'icons'                => array(),
+			// The terminal names itself, so its install page can ask the
+			// browser whether it is already installed (#2813); it is not
+			// preferred over itself, so the browser still offers it.
+			'related_applications' => array(
+				array(
+					'platform' => 'webapp',
+					'url'      => self::manifest_url(),
+				),
+			),
 		);
 		foreach ( array( 192, 512 ) as $size ) {
 			$icon = (string) get_site_icon_url( $size );
@@ -391,11 +431,75 @@ final class AudienceTerminalPage {
 		echo '<title>' . esc_html__( 'Check-in terminal', 'ffcertificate' ) . ' — ' . esc_html( get_bloginfo( 'name' ) ) . '</title>';
 		wp_print_styles( array( 'ffc-terminal-kiosk' ) );
 		echo '</head><body class="ffc-shortcode ffc-terminal-page">';
-		$ffc_terminal_logo = (string) get_site_icon_url( 96 );
+		$ffc_terminal_logo        = (string) get_site_icon_url( 96 );
+		$ffc_terminal_install_url = self::install_url();
 		include FFC_PLUGIN_DIR . 'templates/public/terminal/kiosk.php';
-		wp_print_scripts( array( 'ffc-terminal-kiosk' ) );
+		wp_print_scripts( array( 'ffc-terminal-kiosk', 'ffc-terminal-install' ) );
 		echo '</body></html>';
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * The install page's whole document (#2813): public, no pairing, no
+	 * credential, in the terminal's own look. Every state is in the markup
+	 * and hidden; `ffc-terminal-install.js` shows the one that fits.
+	 *
+	 * @return string
+	 */
+	public static function install_document(): string {
+		AssetHelper::enqueue_common_style();
+		AssetHelper::enqueue_dark_mode();
+		self::enqueue_sheet();
+		self::enqueue_install_script();
+
+		ob_start();
+		echo '<!DOCTYPE html><html ' . get_language_attributes() . self::root_class() . '><head>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_language_attributes() returns a safe attribute string; root_class() returns one literal.
+		echo '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+		echo '<meta name="robots" content="noindex,nofollow,noarchive">';
+		echo '<meta name="theme-color" content="' . esc_attr( self::BACKGROUND ) . '">';
+		echo '<link rel="manifest" href="' . esc_url( self::manifest_url() ) . '">';
+		echo '<title>' . esc_html__( 'Install the check-in terminal', 'ffcertificate' ) . ' — ' . esc_html( get_bloginfo( 'name' ) ) . '</title>';
+		wp_print_styles( array( 'ffc-terminal-kiosk' ) );
+		echo '</head><body class="ffc-shortcode ffc-terminal-page">';
+		$ffc_terminal_logo        = (string) get_site_icon_url( 192 );
+		$ffc_terminal_url         = self::url();
+		$ffc_terminal_install_url = self::install_url();
+		include FFC_PLUGIN_DIR . 'templates/public/terminal/install.php';
+		wp_print_scripts( array( 'ffc-terminal-install' ) );
+		echo '</body></html>';
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * The terminal's stylesheet, shared by the page and the install page.
+	 *
+	 * @return void
+	 */
+	private static function enqueue_sheet(): void {
+		$suffix = AssetHelper::asset_suffix();
+		wp_enqueue_style(
+			'ffc-terminal-kiosk',
+			FFC_PLUGIN_URL . "assets/css/ffc-terminal-kiosk{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+	}
+
+	/**
+	 * The install script: the banner on the page, the states on the install
+	 * page (#2813). It reads its words from the markup, so it needs no data.
+	 *
+	 * @return void
+	 */
+	private static function enqueue_install_script(): void {
+		$suffix = AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-terminal-install',
+			FFC_PLUGIN_URL . "assets/js/ffc-terminal-install{$suffix}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
 	}
 
 	/**
@@ -409,13 +513,10 @@ final class AudienceTerminalPage {
 		// and never the toggle, so the site's setting cannot turn it light.
 		AssetHelper::enqueue_dark_mode();
 
+		self::enqueue_sheet();
+		self::enqueue_install_script();
+
 		$suffix = AssetHelper::asset_suffix();
-		wp_enqueue_style(
-			'ffc-terminal-kiosk',
-			FFC_PLUGIN_URL . "assets/css/ffc-terminal-kiosk{$suffix}.css",
-			array( 'ffc-common' ),
-			FFC_VERSION
-		);
 		wp_enqueue_script(
 			'ffc-presence-verifier',
 			FFC_PLUGIN_URL . "assets/js/ffc-presence-verifier{$suffix}.js",

@@ -168,10 +168,12 @@ final class AudiencePresenceEnrolment {
 			AudiencePresenceWriter::use_request( $approval );
 		}
 
+		// A new key on the same phone retires the old key without moving the
+		// presence anywhere, so only another phone warrants the e-mail.
 		$replaced = false;
 		foreach ( $devices as $device ) {
 			if ( null === $device['revoked_at'] && AudiencePresenceWriter::revoke( $device['id'], AudiencePresenceWriter::REVOKED_REPLACED, null, $now ) ) {
-				$replaced = true;
+				$replaced = $replaced || $device['device_id'] !== $device_id;
 				self::log(
 					'presence_device_revoked',
 					ActivityLog::LEVEL_INFO,

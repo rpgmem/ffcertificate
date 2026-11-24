@@ -44,6 +44,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The app's Home shows what is next** (site-pwa#23). Through Site PWA's `site_pwa_home` filter: an attendance confirmed in the last 7 days as a dismissible line, the next booking with *Presence QR* and *Details*, and under Pending the open post-event forms, open reregistrations with their deadline and a certificate issued in the last 7 days. Presence takes the bar's raised centre with a QR icon, and Calendar is now Agenda.
 - **The app's More screen knows the person and the operator** (site-pwa#23). The line under the name shows the masked RF and the department; Pair terminal, My terminals, Operator QR and Manual attendance sit under Operator, each with a line, My terminals with "n active · m offline"; Reregistration shows *Pending* while a campaign is open; the app's per-device dark theme also darkens the plugin's screens.
 - **A revoked terminal still sends what it read before the revocation** (#2802). For up to 7 days after it, a revoked terminal's queue is judged reading by reading: what it took before is recorded, what it took later is refused, logged and counted as "refused after revocation" on Presence terminals; the terminal then says it was revoked.
+- **The check-in terminal installs in one tap** (#2813). A banner on `/terminal/` (hidden for 30 days after *Not now*) leads to the public install page `/terminal/install/`, which shows the browser's install dialog, the Share steps on iPad and iPhone, *Open the terminal* once installed, or the address to open elsewhere; Scheduling → Terminals shows that address as a QR code. The terminal's worker now keeps only `/terminal/` itself as its shell.
 
 ### Security
 
@@ -56,6 +57,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment import jobs keep their dates on upgrade** (#2763). The 6.45.0 timestamp conversion read an `id` column the import-jobs table does not have, logged an error on every request and dropped the dates, so the stale-job cleanup deleted the jobs. It now reads `job_id`, and a conversion that cannot read keeps the old column.
 - **A replaced phone stops showing its presence code** (#2799): the app sends its key with the event list, so the old phone hides the code the next time it reaches the site instead of when its attestation comes due, and offers *Move it to this phone* beside the phone that holds it; a first activation keeps *Activate on this phone*. An iPhone is told that Safari and the installed app count as two phones.
 - **The QR round-trip test loads the encoder it calls** (#2811), so it passes in any order: it relied on an earlier test having drawn a code.
+- **Presence device history names each phone once** (#2815). Activating the same phone again made a new row per key, each but the last reading "Replaced by another phone"; the history now shows each phone's latest activation, and a new key on the same phone no longer mails the participant that their presence moved.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 

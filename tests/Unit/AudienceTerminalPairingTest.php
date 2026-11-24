@@ -974,7 +974,8 @@ class AudienceTerminalPairingTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( self::OPERATOR );
 		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
-		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		// Both shapes: an array of arguments, or a key, a value and the URL.
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url, $more = null ) => is_array( $args ) ? $url . '?' . http_build_query( $args ) : $more . '?' . $args . '=' . $url );
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
@@ -985,6 +986,8 @@ class AudienceTerminalPairingTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'checked' )->alias( static fn( $a, $b = true, $echo = true ) => $a === $b ? ' checked="checked"' : '' );
 		Functions\when( 'disabled' )->alias( static fn( $a, $b = true, $echo = true ) => $a === $b ? ' disabled="disabled"' : '' );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.com' . $path );
+		Functions\when( 'esc_attr__' )->returnArg();
 		$screen = new AudienceAdminTerminals( 'ffc-scheduling' );
 
 		ob_start();
@@ -992,6 +995,9 @@ class AudienceTerminalPairingTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'ffc-page-scheduling-terminals', $html );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-download">Install on a tablet</h2>', $html, 'the install card (#2813)' );
+		$this->assertMatchesRegularExpression( '/ffc-terminals-install-qr[^>]*><svg/', $html, 'the install page as a QR code' );
+		$this->assertStringContainsString( 'data-ffc-copy-target="#ffc-terminals-install-url"', $html );
 		$this->assertStringContainsString( 'Entrance A', $html );
 		$this->assertStringContainsString( 'Account #' . self::OPERATOR, $html, 'who paired it' );
 		$this->assertStringContainsString( 'ffc-terminal-state-online', $html );

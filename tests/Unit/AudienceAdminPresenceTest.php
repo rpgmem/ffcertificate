@@ -333,6 +333,22 @@ class AudienceAdminPresenceTest extends TestCase {
 		$this->assertStringContainsString( 'name="return_user" value="7"', $html );
 	}
 
+	public function test_the_history_names_each_phone_once_with_its_latest_activation(): void {
+		$this->grant( true );
+		$first = $this->device( 7, 'same-phone-000000001', 'kid-1', $this->now - 3 * self::DAY );
+		AudiencePresenceWriter::revoke( $first, AudiencePresenceWriter::REVOKED_REPLACED, null, $this->now - 2 * self::DAY );
+		$second = $this->device( 7, 'same-phone-000000001', 'kid-2', $this->now - 2 * self::DAY );
+		AudiencePresenceWriter::revoke( $second, AudiencePresenceWriter::REVOKED_REPLACED, null, $this->now - self::DAY );
+		$this->device( 7, 'same-phone-000000001', 'kid-3', $this->now - self::DAY );
+		$_GET['user'] = '7';
+
+		$html = $this->render();
+
+		$this->assertSame( 1, substr_count( $html, '<td><code>' ), 'three keys on one phone are one row' );
+		$this->assertStringNotContainsString( 'Replaced by another phone', $html );
+		$this->assertSame( 1, substr_count( $html, 'value="deactivate"' ), 'the row is the active key' );
+	}
+
 	public function test_a_participant_without_devices_has_an_empty_history(): void {
 		$this->grant( true );
 		$_GET['user'] = '42';

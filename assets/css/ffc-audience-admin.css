@@ -908,3 +908,48 @@
     padding-left: var(--ffc-spacing-lg);
     list-style: disc;
 }
+
+/* The list and the install card side by side (#2813), the card in the
+   side column's width; stacked on a narrow screen. */
+.ffc-page-scheduling-terminals .ffc-terminals-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
+    align-items: start;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-install {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-sm);
+    max-width: none;
+    margin: 0;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-install p {
+    margin: 0;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-install-qr {
+    align-self: center;
+    width: 180px;
+    max-width: 100%;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-install-qr svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.ffc-page-scheduling-terminals .ffc-terminals-install-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+}
+
+@media (max-width: 960px) {
+    .ffc-page-scheduling-terminals .ffc-terminals-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

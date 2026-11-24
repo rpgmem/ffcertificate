@@ -86,7 +86,22 @@ describe('the terminal shell worker', () => {
 		expect((await offline.answer).body).toBe('<html>page</html>', 'any way into the page finds the kept document');
 	});
 
-	it('serves an error, not a blank answer, when nothing was kept yet', async () => {
+	it('leaves another page under the scope to the network, so it never becomes the shell (#2813)', async () => {
+		network = () => Promise.resolve(ok('<html>page</html>'));
+		await fetchEvent({ method: 'GET', mode: 'navigate', url: SCOPE }).answer;
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		network = () => Promise.resolve(ok('<html>install</html>'));
+		const install = fetchEvent({ method: 'GET', mode: 'navigate', url: SCOPE + 'install/' });
+		expect(install.answer).toBeNull();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		network = () => Promise.reject(new TypeError('offline'));
+		const offline = fetchEvent({ method: 'GET', mode: 'navigate', url: SCOPE });
+		expect((await offline.answer).body).toBe('<html>page</html>', 'the terminal\'s offline copy is still the terminal');
+	});
+
+		it('serves an error, not a blank answer, when nothing was kept yet', async () => {
 		const event = fetchEvent({ method: 'GET', mode: 'navigate', url: SCOPE });
 		expect(await event.answer).toEqual({ error: true });
 	});
