@@ -159,6 +159,13 @@
 	color: var(--ffc-danger-text);
 }
 
+/* Offline and unpaired (#2783): a caution, not a failure. */
+.ffc-terminal-error.ffc-terminal-offline {
+	border-color: var(--ffc-warning-border);
+	background: var(--ffc-warning-bg);
+	color: var(--ffc-warning-text);
+}
+
 /* The reader types into this field on every paired screen, so it stays in
    the page and out of the layout. */
 .ffc-terminal-reader {

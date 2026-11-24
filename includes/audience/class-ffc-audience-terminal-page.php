@@ -28,7 +28,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * no login: the pairing QR code is what binds it. `/?ffc_terminal=1` keeps
  * working, and is the address on a site without pretty permalinks.
  *
- * Neither address registers a rewrite rule: the request path is read on
+ * With pretty permalinks the page also serves a service worker at
+ * `/terminal/sw.js` (#2783), whose scope is `/terminal/` only: it keeps the
+ * page shell so a paired terminal reopens without a connection. The query
+ * form has no worker, because a worker served from `/?ffc_terminal=…` would
+ * claim the whole site.
+ *
+ * No address registers a rewrite rule: the request path is read on
  * `parse_request`, the way the short URLs are (#2693), so nothing is stored
  * and no flush is needed. Every response is kept out of search engines
  * (`X-Robots-Tag: noindex`) and out of caches (#2780).
@@ -56,6 +62,24 @@ final class AudienceTerminalPage {
 	 * The manifest's file name under {@see self::PATH}.
 	 */
 	public const MANIFEST = 'manifest.webmanifest';
+
+	/**
+	 * The service worker's file name under {@see self::PATH} (#2783).
+	 */
+	public const WORKER = 'sw.js';
+
+	/**
+	 * The files the cached shell is made of, relative to the plugin, whose
+	 * modification times version the cache on a testes site.
+	 */
+	private const SHELL_FILES = array(
+		'assets/css/ffc-common.css',
+		'assets/css/ffc-terminal-kiosk.css',
+		'assets/js/ffc-terminal-kiosk.js',
+		'assets/js/ffc-presence-verifier.js',
+		'assets/js/ffc-terminal-sw.js',
+		'templates/public/terminal/kiosk.php',
+	);
 
 	/**
 	 * The query value that asks for the manifest on a site without pretty
@@ -145,7 +169,17 @@ final class AudienceTerminalPage {
 	}
 
 	/**
-	 * What a request path asks for: `page`, `manifest` or '' (#2780).
+	 * The service worker's address, or '' on a site without pretty
+	 * permalinks, which gets none (#2783).
+	 *
+	 * @return string
+	 */
+	public static function worker_url(): string {
+		return self::pretty() ? home_url( '/' . self::PATH . '/' . self::WORKER ) : '';
+	}
+
+	/**
+	 * What a request path asks for: `page`, `manifest`, `worker` or '' (#2780, #2783).
 	 *
 	 * Only the home path followed by `terminal`, with or without a trailing
 	 * slash, or by `terminal/manifest.webmanifest`, matches; `/docs/terminal`
@@ -164,6 +198,9 @@ final class AudienceTerminalPage {
 		}
 		if ( $base . '/' . self::MANIFEST === $path ) {
 			return 'manifest';
+		}
+		if ( $base . '/' . self::WORKER === $path ) {
+			return 'worker';
 		}
 		return '';
 	}
@@ -201,7 +238,7 @@ final class AudienceTerminalPage {
 	/**
 	 * Send the page or the manifest and stop, while the module is on.
 	 *
-	 * @param string $route `page` or `manifest`.
+	 * @param string $route `page`, `manifest` or `worker`.
 	 * @return void
 	 */
 	private static function serve( string $route ): void {
@@ -211,6 +248,11 @@ final class AudienceTerminalPage {
 		if ( 'manifest' === $route ) {
 			self::send_headers( 'application/manifest+json' );
 			echo wp_json_encode( self::manifest(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a JSON document served as application/manifest+json, encoded by wp_json_encode().
+			exit;
+		}
+		if ( 'worker' === $route ) {
+			self::send_headers( 'text/javascript; charset=utf-8' );
+			echo self::worker(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a script served as text/javascript: the plugin's own file after a JSON-encoded cache name.
 			exit;
 		}
 		self::send_headers( 'text/html; charset=utf-8' );
@@ -297,6 +339,42 @@ final class AudienceTerminalPage {
 	}
 
 	/**
+	 * The cache name the worker keeps the shell under: the plugin version,
+	 * and on a site with SCRIPT_DEBUG the newest modification time of the
+	 * shell's files, so a merge reaches the testes site without a release
+	 * (#2783).
+	 *
+	 * @param bool|null $debug Whether SCRIPT_DEBUG is on; read from the constant when null.
+	 * @return string
+	 */
+	public static function cache_name( ?bool $debug = null ): string {
+		$debug = $debug ?? ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG );
+		$name  = 'ffc-terminal-' . FFC_VERSION;
+		if ( $debug ) {
+			$newest = 0;
+			foreach ( self::SHELL_FILES as $file ) {
+				$time = is_file( FFC_PLUGIN_DIR . $file ) ? filemtime( FFC_PLUGIN_DIR . $file ) : false;
+				if ( false !== $time && $time > $newest ) {
+					$newest = $time;
+				}
+			}
+			$name .= '.' . $newest;
+		}
+		return $name;
+	}
+
+	/**
+	 * The service worker's script: its cache name, then the plugin's file.
+	 *
+	 * @return string
+	 */
+	public static function worker(): string {
+		$file   = FFC_PLUGIN_DIR . 'assets/js/ffc-terminal-sw' . AssetHelper::asset_suffix() . '.js';
+		$source = is_readable( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- a file of the plugin's own, read from disk.
+		return 'self.ffcTerminalCache = ' . wp_json_encode( self::cache_name() ) . ";\n" . $source;
+	}
+
+	/**
 	 * The whole document.
 	 *
 	 * @return string
@@ -359,7 +437,9 @@ final class AudienceTerminalPage {
 				'rest'     => esc_url_raw( rest_url( AudienceTerminalRestController::NAMESPACE . '/' . AudienceTerminalRestController::REST_BASE . '/' ) ),
 				'presence' => esc_url_raw( rest_url( AudiencePresenceRestController::NAMESPACE . '/' . AudiencePresenceRestController::REST_BASE . '/' ) ),
 				'camera'   => self::camera_allowed(),
+				'worker'   => self::worker_url(),
 				'strings'  => array(
+					'offlinePairing'  => __( 'This terminal is offline. Pairing it needs a connection; once paired, it reads codes offline.', 'ffcertificate' ),
 					'storage'         => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
 					'pairing'         => __( 'Pairing…', 'ffcertificate' ),
 					'paired'          => __( 'Terminal paired.', 'ffcertificate' ),

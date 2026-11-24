@@ -86,6 +86,30 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/terminal/anything', '/' ) );
 		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/terminals/', '/' ) );
 		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/', '/' ) );
+		$this->assertSame( 'worker', AudienceTerminalPage::route_from_path( '/terminal/sw.js', '/' ), 'the shell worker (#2783)' );
+		$this->assertSame( 'worker', AudienceTerminalPage::route_from_path( '/site/terminal/sw.js', '/site/' ) );
+		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/sw.js', '/' ), 'never a worker at the site root' );
+		$this->assertSame( '', AudienceTerminalPage::route_from_path( '/app/sw.js', '/' ) );
+	}
+
+	public function test_the_worker_lives_under_the_terminal_and_only_with_pretty_permalinks(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		$this->assertSame( '', AudienceTerminalPage::worker_url() );
+
+		$this->pretty();
+		$this->assertSame( 'https://example.com/site/terminal/sw.js', AudienceTerminalPage::worker_url() );
+	}
+
+	public function test_the_worker_script_carries_its_versioned_cache_and_the_plugin_file(): void {
+		Functions\when( 'wp_json_encode' )->alias( static fn ( $value ) => json_encode( $value ) );
+
+		$script = AudienceTerminalPage::worker();
+		$this->assertStringStartsWith( 'self.ffcTerminalCache = "ffc-terminal-' . FFC_VERSION, $script );
+		$this->assertStringContainsString( 'FFCTerminalShell', $script, 'the plugin\'s own worker file follows' );
+
+		$this->assertSame( 'ffc-terminal-' . FFC_VERSION, AudienceTerminalPage::cache_name( false ), 'a release names the cache by its version' );
+		$this->assertMatchesRegularExpression( '/^ffc-terminal-' . preg_quote( FFC_VERSION, '/' ) . '\\.\\d{9,}$/', AudienceTerminalPage::cache_name( true ), 'a testes site adds the newest file time of the shell' );
+		$this->assertSame( 'text/javascript; charset=utf-8', AudienceTerminalPage::headers( 'text/javascript; charset=utf-8' )['Content-Type'] );
 	}
 
 	public function test_every_response_is_kept_out_of_search_engines_and_caches(): void {
@@ -202,10 +226,12 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/presence/', $config['presence'] );
 		$this->assertArrayNotHasKey( 'nonce', $config, 'a terminal has no account to carry a nonce for' );
 		$this->assertFalse( $config['camera'], 'the camera is off until an administrator allows it' );
+		$this->assertSame( '', $config['worker'], 'the query form registers no worker, which would claim the whole site (#2783)' );
+		$this->assertStringContainsString( 'data-ffc-terminal-part="offline"', $html );
 		$this->assertSame( array( 'ready', 'reading', 'insecure', 'unsupported', 'denied', 'failed' ), array_keys( $config['strings']['camera'] ) );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="camera-start"', $html );
 		$this->assertMatchesRegularExpression( '/<video[^>]*playsinline[^>]*muted/', $html, 'the viewfinder plays inline and silent' );
-		$this->assertSame( array( 'storage', 'pairing', 'paired', 'failed', 'events', 'until', 'expired', 'operator', 'clockOff', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'idleRefused', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'setup', 'queueEdit', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'offlinePairing', 'storage', 'pairing', 'paired', 'failed', 'events', 'until', 'expired', 'operator', 'clockOff', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'idleRefused', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'setup', 'queueEdit', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
 	}
 
 	public function test_the_camera_follows_its_option(): void {
