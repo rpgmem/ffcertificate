@@ -37104,3 +37104,96 @@ msgstr ""
 
 msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says."
 msgstr ""
+
+msgid "Install this terminal"
+msgstr ""
+
+msgid "Install this terminal as an app."
+msgstr ""
+
+msgid "It opens full screen, without the browser's bar, and comes back to this screen by itself."
+msgstr ""
+
+msgid "Install"
+msgstr ""
+
+msgid "Install on a tablet"
+msgstr ""
+
+msgid "Point the tablet's camera at the code, or open the address on it. The page shows the install button or the iPad steps."
+msgstr ""
+
+msgid "QR code of the install page's address"
+msgstr ""
+
+msgid "Copy address"
+msgstr ""
+
+msgid "Once installed, the terminal opens straight on \"Waiting for pairing\"."
+msgstr ""
+
+msgid "Install the check-in terminal"
+msgstr ""
+
+msgid "Choose Add to Home Screen. If it is not there, scroll the list or tap More."
+msgstr ""
+
+msgid "Tap Add."
+msgstr ""
+
+msgid "Address of this page"
+msgstr ""
+
+msgid "Address copied."
+msgstr ""
+
+msgid "Select the address and copy it."
+msgstr ""
+
+msgid "Install it on this tablet: it opens full screen, without the browser's bar, and asks for no login. The operator's pairing QR code is what binds the tablet to an event."
+msgstr ""
+
+msgid "Checking this browser…"
+msgstr ""
+
+msgid "Install the terminal"
+msgstr ""
+
+msgid "The browser confirms in its own window. The Terminal icon goes to the home screen."
+msgstr ""
+
+msgid "Add it to the home screen in three taps"
+msgstr ""
+
+msgid "Tap Share, at the top, beside the address."
+msgstr ""
+
+msgid "On iPad and iPhone no browser installs with a button; these steps are the official way."
+msgstr ""
+
+msgid "Tap Share in Safari's toolbar, at the bottom."
+msgstr ""
+
+msgid "On this version of iOS only Safari adds apps to the home screen. Open this address in Safari to install."
+msgstr ""
+
+msgid "Already installed on this device"
+msgstr ""
+
+msgid "Open the terminal"
+msgstr ""
+
+msgid "It did not open? Look for the Terminal icon on the home screen."
+msgstr ""
+
+msgid "This browser offers no install button. Open this address in Chrome (Android) or Safari (iPad), or look for Install app or Add to Home screen in the browser's menu."
+msgstr ""
+
+msgid "Look for Install app or Add to Home screen in the browser's menu."
+msgstr ""
+
+msgid "Continue in the browser"
+msgstr ""
+
+msgid "Installing it takes one tap where the browser offers it. In a browser tab the terminal shows a banner, Install, which leads to the install page at /terminal/install/ (on a site without pretty permalinks, ?ffc_terminal=install): Install the terminal there opens the browser's own install dialog; on an iPad or iPhone, which install no app with a button, it shows the three Share steps for that browser; once installed it says so and offers Open the terminal; and a browser that installs nothing shows the address to open elsewhere. Not now hides the banner for 30 days on that browser. Scheduling → Terminals shows the install page's address beside the list, as a QR code to point the tablet's camera at, with Copy address and Open. The install page is public, the same for everyone, and is never kept for offline use."
+msgstr ""

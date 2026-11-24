@@ -299,9 +299,56 @@ class AudienceAdminTerminals {
 			$this->render_editor( $editing, $now );
 		} else {
 			$this->render_stats( $terminals, $now );
+			echo '<div class="ffc-terminals-layout">';
 			$this->render_list( $terminals, $all, $now );
+			$this->render_install();
+			echo '</div>';
 		}
 		echo '</div>';
+	}
+
+	/**
+	 * How to install the terminal on a tablet (#2813): the install page's
+	 * address as a QR code the tablet's camera reads, the address itself,
+	 * Copy and Open.
+	 *
+	 * @return void
+	 */
+	private function render_install(): void {
+		$url = AudienceTerminalPage::install_url();
+		$svg = \FreeFormCertificate\Generators\QrSvgRenderer::render( $url, \FreeFormCertificate\Generators\QrDesign::plain(), 'M', 2, 180 );
+
+		echo '<aside class="card ffc-terminals-install">';
+		echo '<h2 class="ffc-icon-download">' . esc_html__( 'Install on a tablet', 'ffcertificate' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Point the tablet\'s camera at the code, or open the address on it. The page shows the install button or the iPad steps.', 'ffcertificate' ) . '</p>';
+		echo '<div class="ffc-terminals-install-qr" role="img" aria-label="' . esc_attr__( 'QR code of the install page\'s address', 'ffcertificate' ) . '">' . $svg . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- QrSvgRenderer builds the SVG from module coordinates and literals.
+		echo '<label for="ffc-terminals-install-url">' . esc_html__( 'Address', 'ffcertificate' ) . '</label>';
+		echo '<input type="text" id="ffc-terminals-install-url" class="large-text" readonly value="' . esc_url( $url ) . '">';
+		echo '<p class="ffc-terminals-install-actions">';
+		AdminUI::render_button(
+			array(
+				'label'    => __( 'Copy address', 'ffcertificate' ),
+				'category' => 'neutral',
+				'icon'     => 'copy',
+				'class'    => 'ffc-copy-link',
+				'attrs'    => array( 'data-ffc-copy-target' => '#ffc-terminals-install-url' ),
+			)
+		);
+		AdminUI::render_button(
+			array(
+				'label'    => __( 'Open', 'ffcertificate' ),
+				'category' => 'neutral',
+				'icon'     => 'external',
+				'href'     => $url,
+				'attrs'    => array(
+					'target' => '_blank',
+					'rel'    => 'noopener',
+				),
+			)
+		);
+		echo '</p>';
+		echo '<p>' . esc_html__( 'Once installed, the terminal opens straight on "Waiting for pairing".', 'ffcertificate' ) . '</p>';
+		echo '</aside>';
 	}
 
 	/**

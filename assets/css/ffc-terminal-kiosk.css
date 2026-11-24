@@ -844,3 +844,194 @@
 	flex: none;
 }
 
+
+/*
+ * Install banner on the terminal page and the install page itself (#2813).
+ * The banner shows only in a browser tab (ffc-terminal-install.js); the
+ * install page splits in two on a landscape tablet and stacks on a phone.
+ */
+.ffc-terminal-install-banner {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ffc-spacing-md);
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+	border-bottom: 1px solid var(--ffc-border);
+	background: var(--ffc-gray-100);
+	color: var(--ffc-text);
+}
+
+.ffc-terminal-install-banner[hidden] {
+	display: none;
+}
+
+.ffc-terminal-install-banner p {
+	flex: 1 1 320px;
+	min-width: 0;
+	margin: 0;
+	font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-terminal-install-banner-icon {
+	display: inline-flex;
+	color: var(--ffc-primary);
+}
+
+.ffc-terminal-install {
+	--ffc-terminal-install-title: calc(var(--ffc-font-size-2xl) * 1.6);
+
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	min-height: 100vh;
+	min-height: 100dvh;
+	background: var(--ffc-bg);
+	color: var(--ffc-text);
+}
+
+.ffc-terminal-install-hero {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: var(--ffc-spacing-md);
+	padding: var(--ffc-spacing-2xl);
+	border-right: 1px solid var(--ffc-border);
+}
+
+.ffc-terminal-install-hero h1 {
+	margin: 0;
+	font-size: var(--ffc-terminal-install-title);
+	line-height: 1.15;
+}
+
+.ffc-terminal-install-hero p {
+	max-width: 30em;
+	margin: 0;
+	font-size: var(--ffc-font-size-lg);
+	line-height: 1.5;
+}
+
+.ffc-terminal-install-hero .ffc-terminal-install-site {
+	color: var(--ffc-text-muted);
+}
+
+.ffc-terminal-install-logo {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 128px;
+	height: 128px;
+	overflow: hidden;
+	border-radius: var(--ffc-radius-lg);
+	background: var(--ffc-gray-100);
+	color: var(--ffc-primary);
+}
+
+.ffc-terminal-install-logo img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.ffc-terminal-install-body {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: var(--ffc-spacing-md);
+	padding: var(--ffc-spacing-2xl);
+}
+
+.ffc-terminal-install-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-md);
+	padding: var(--ffc-spacing-xl);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-lg);
+	background: var(--ffc-gray-100);
+	color: var(--ffc-text);
+}
+
+.ffc-terminal-install-card[hidden] {
+	display: none;
+}
+
+.ffc-terminal-install-card h2,
+.ffc-terminal-install-card p {
+	margin: 0;
+	font-size: var(--ffc-font-size-lg);
+	line-height: 1.5;
+}
+
+.ffc-terminal-install-steps {
+	display: grid;
+	gap: var(--ffc-spacing-md);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-terminal-install-steps li {
+	display: flex;
+	align-items: center;
+	gap: var(--ffc-spacing-md);
+}
+
+.ffc-terminal-install-step-icon {
+	display: inline-flex;
+	flex: none;
+	color: var(--ffc-primary);
+}
+
+.ffc-terminal-install-done {
+	display: flex;
+	align-items: center;
+	gap: var(--ffc-spacing-sm);
+	color: var(--ffc-success-text);
+	font-weight: 600;
+}
+
+.ffc-terminal-install-address {
+	width: 100%;
+	min-height: 48px;
+	box-sizing: border-box;
+	padding: 0 var(--ffc-spacing-md);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-md);
+	background: var(--ffc-bg);
+	color: var(--ffc-text);
+	font: inherit;
+}
+
+.ffc-terminal-install-continue {
+	margin: 0;
+	text-align: center;
+}
+
+.ffc-terminal-install-continue a {
+	display: inline-block;
+	padding: var(--ffc-spacing-sm);
+	color: var(--ffc-primary);
+	font-size: var(--ffc-font-size-lg);
+	font-weight: 600;
+}
+
+.ffc-terminal-install-status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+@media (max-width: 782px) {
+	.ffc-terminal-install {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.ffc-terminal-install-hero {
+		border-right: 0;
+		border-bottom: 1px solid var(--ffc-border);
+	}
+}
