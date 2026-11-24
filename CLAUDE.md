@@ -903,7 +903,7 @@ Every admin screen of ours is one of four shapes, and each reads the same layout
 
 Content takes the width left beside the menus — no `max-width` on a wrap or a card — and the vertical menu and the side column are sticky, from the top token. A box is the one `.card` (`ffc-settings-wrap` or `ffc-boxed` on the wrap), and the first card of a column starts level with the other column: a card or a row of cards never carries its own top margin there. `AdminLayoutTokensTest` holds the sheets that read the tokens; whether a screen looks right is only visible rendered, so a layout change is screenshotted before it ships.
 
-**Four check-in screens follow their approved mockups where those depart from this standard (#2782).** The maintainer decided it, so the departures are recorded rather than re-argued. Presence terminals: the title carries a Pair terminal button, and the table sits in a card with no heading of its own, a footnote under it. The other three (check-in settings, an event's Check-in tab, Presence devices) are listed here as their PRs land.
+**Four check-in screens follow their approved mockups where those depart from this standard (#2782).** The maintainer decided it, so the departures are recorded rather than re-argued. Presence terminals: the title carries a Pair terminal button, and the table sits in a card with no heading of its own, a footnote under it. Check-in settings: five sections with no intro card, saved together by one **Save changes** button instead of the settings autosave, so its keys left the autosave allowlist. The other two (an event's Check-in tab, Presence devices) are listed here as their PRs land.
 
 ### Inline CSS (one rule, a short list of exceptions — #1837)
 
