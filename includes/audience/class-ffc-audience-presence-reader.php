@@ -108,9 +108,9 @@ class AudiencePresenceReader {
 	 * @return array{user_id: int, until: int|null}|null
 	 */
 	public static function reservation( string $device_id, int $user_id, int $now ): ?array {
-		$wpdb  = self::db();
-		$since = $now - AudiencePresenceEnrolment::RESERVATION;
-		$row   = $wpdb->get_row(
+		$wpdb      = self::db();
+		$since     = $now - AudiencePresenceEnrolment::RESERVATION;
+		$row       = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT user_id, activated_at, revoked_at FROM %i WHERE device_id = %s AND user_id <> %d AND released_at IS NULL'
 				. ' AND ( revoked_at IS NULL OR revoked_at >= %d OR activated_at >= %d )'
@@ -123,13 +123,15 @@ class AudiencePresenceReader {
 			),
 			ARRAY_A
 		);
-		if ( ! is_array( $row ) ) {
+		$owner     = is_array( $row ) ? ( $row['user_id'] ?? null ) : null;
+		$activated = is_array( $row ) ? ( $row['activated_at'] ?? null ) : null;
+		$revoked   = is_array( $row ) ? ( $row['revoked_at'] ?? null ) : null;
+		if ( ! is_numeric( $owner ) || ! is_numeric( $activated ) ) {
 			return null;
 		}
-		$revoked = isset( $row['revoked_at'] ) ? (int) $row['revoked_at'] : null;
 		return array(
-			'user_id' => (int) $row['user_id'],
-			'until'   => null === $revoked ? null : max( $revoked, (int) $row['activated_at'] ) + AudiencePresenceEnrolment::RESERVATION,
+			'user_id' => (int) $owner,
+			'until'   => is_numeric( $revoked ) ? max( (int) $revoked, (int) $activated ) + AudiencePresenceEnrolment::RESERVATION : null,
 		);
 	}
 
