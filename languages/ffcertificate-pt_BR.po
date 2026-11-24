@@ -35629,8 +35629,6 @@ msgstr "Este aparelho está em uso por outra conta. Um administrador pode liber�
 msgid "This device is not activated for your account. Activate it again."
 msgstr "Este aparelho não está ativado para a sua conta. Ative-o de novo."
 
-msgid "This device was replaced or revoked. Activate it again to use it."
-msgstr "Este aparelho foi substituído ou revogado. Ative-o de novo para usá-lo."
 
 msgid "This key cannot be activated again. Reinstall the app and try again."
 msgstr "Esta chave não pode ser ativada de novo. Reinstale o app e tente de novo."
@@ -35653,8 +35651,6 @@ msgstr "Aparelhos de presença"
 msgid "A participant who installs the app activates their phone once, while online, to show a presence code at a terminal. The phone creates a key that cannot be copied, and the site signs a statement binding that key to the account and to a short name, such as \"Maria S.\". The statement lasts 7 days and the app renews it whenever it is online. It never carries a CPF or RF."
 msgstr "O participante que instala o app ativa o celular uma vez, com internet, para mostrar um código de presença num terminal. O celular cria uma chave que não pode ser copiada, e o site assina uma declaração que liga essa chave à conta e a um nome curto, como \"Maria S.\". A declaração vale 7 dias e o app a renova sempre que está com internet. Ela nunca leva CPF nem RF."
 
-msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so."
-msgstr "Um aparelho ativo por conta: ativar um celular novo faz o antigo deixar de mostrar um código válido, e o participante recebe um e-mail avisando."
 
 msgid "A phone stays reserved to its account for 30 days after it was last used there. Another account trying to activate it is refused until an administrator releases it."
 msgstr "Um celular fica reservado à sua conta por 30 dias depois do último uso nela. Outra conta que tentar ativá-lo é recusada até um administrador liberá-lo."
@@ -36084,6 +36080,8 @@ msgstr "Nenhum terminal está pareado. Pareie um em Parear terminal."
 msgid "End terminal"
 msgstr "Encerrar terminal"
 
+msgid "End this terminal? It stops checking people in at once."
+msgstr "Encerrar este terminal? Ele para de fazer check-in na hora."
 
 msgid "Keep"
 msgstr "Manter"
@@ -36142,8 +36140,6 @@ msgstr "Código lido"
 
 msgid "The menu locks again after two minutes without use."
 msgstr "O menu volta a travar depois de dois minutos sem uso."
-
-
 
 msgid "The terminal opens at the site's address followed by /terminal/ (on a site without pretty permalinks, the home page with ?ffc_terminal=1 added), outside the theme and with no login, and waits for pairing. The browser can install it as an app of its own, full screen and in landscape, apart from the participants' app: the pairing QR code is what binds it, never an account. Search engines are told not to list either address, and no cache keeps them. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires."
 msgstr "O terminal abre no endereço do site seguido de /terminal/ (num site sem links permanentes amigáveis, a página inicial com ?ffc_terminal=1 acrescentado), fora do tema e sem login, e aguarda o pareamento. O navegador pode instalá-lo como um app próprio, em tela cheia e na horizontal, separado do app dos participantes: quem o vincula é o QR de pareamento, nunca uma conta. Os buscadores são avisados para não listar nenhum dos dois endereços, e nenhum cache os guarda. No app, o operador gera o código em Mais → Parear terminal, marcando os eventos e dando um nome ao terminal; Mais → Meus terminais lista os terminais ativos com a última leitura de cada um e até quando funciona, e encerra um depois de uma confirmação na tela; Mais → QR do operador mostra o código de desbloqueio do operador, renovado antes de expirar."
@@ -36321,7 +36317,6 @@ msgstr "Voltar aos terminais"
 msgid "Current event"
 msgstr "Evento atual"
 
-
 msgid "Ended automatically"
 msgstr "Encerrado automaticamente"
 
@@ -36330,10 +36325,6 @@ msgstr "Encerrado manualmente"
 
 msgid "Events of %s"
 msgstr "Eventos de %s"
-
-
-
-
 
 msgid "None now"
 msgstr "Nenhum agora"
@@ -36358,8 +36349,6 @@ msgstr "Leituras"
 
 msgid "Readings today"
 msgstr "Leituras hoje"
-
-
 
 msgid "Terminal ended. It stops checking people in at once."
 msgstr "Terminal encerrado. Ele deixa de fazer check-in na hora."
@@ -36992,6 +36981,21 @@ msgstr "Com o celular ativo, a tela Presença do app mostra um QR code do evento
 msgid "This terminal's clock was %d s off the site's. Readings follow the site's clock; set the device's date and time to automatic."
 msgstr "O relógio deste terminal estava %d s fora do relógio do site. As leituras seguem o relógio do site; deixe a data e a hora do aparelho no automático."
 
+msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so. The old phone hides its code the next time it reaches the site and says the presence is active on another phone; offline it cannot know, and each terminal refuses its code from its next sync. A phone that is not active shows Activate on this phone when no phone holds the code, and Move it to this phone, with the phone that holds it, when another does. On an iPhone, Safari and the app installed on the home screen keep separate keys, so each counts as a phone, and the screen says so."
+msgstr "Um aparelho ativo por conta: ativar um celular novo faz o antigo deixar de mostrar um código válido, e o participante recebe um e-mail avisando. O celular antigo esconde o código na próxima vez que alcança o site e diz que a presença está ativa em outro aparelho; offline ele não tem como saber, e cada terminal recusa o código dele a partir da próxima sincronização. Um celular que não está ativo mostra Ativar neste aparelho quando nenhum celular tem o código, e Trazer para este aparelho, com o celular que o tem, quando outro tem. No iPhone, o Safari e o app instalado na tela inicial guardam chaves separadas, então cada um conta como um aparelho, e a tela avisa isso."
+
+msgid "Your presence is now active on another phone, so this one stopped making the code."
+msgstr "Sua presença agora está ativa em outro aparelho, então este deixou de gerar o código."
+
+msgid "Your presence is active on another phone"
+msgstr "Sua presença está ativa em outro aparelho"
+
+msgid "Move it to this phone"
+msgstr "Trazer para este aparelho"
+
+msgid "On an iPhone, always open Presence from the app on the home screen: Safari and the app keep separate keys, so each counts as a phone."
+msgstr "No iPhone, abra a Presença sempre pelo app na tela inicial: o Safari e o app guardam chaves separadas, então cada um conta como um aparelho."
+
 msgid "%s ago"
 msgstr "há %s"
 
@@ -37049,9 +37053,6 @@ msgid "%d in the queue"
 msgid_plural "%d in the queue"
 msgstr[0] "%d na fila"
 msgstr[1] "%d na fila"
-
-msgid "End this terminal? It stops checking people in at once."
-msgstr "Encerrar este terminal? Ele para de fazer check-in na hora."
 
 msgid "Scheduling → Terminals (Presence terminals) lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings in the queue. Each row shows the terminal's queue (one event, or how many, with the place when they all share one), the event it checks in now, who paired it and when, when it was last seen (now, minutes ago, or the date), its readings and how many it holds unsent, and its state as a pill: Online, Offline, Ended automatically, or Revoked by whoever ended it. Edit queue changes its events under the same rules as the app, and Revoke stops it after a confirmation on the screen, the next time it connects. Pair terminal, beside the title, pairs one from wp-admin as the app does: tick the events, name the terminal, choose when it ends by itself, and the one-time code appears as a QR code with the time it expires; it is shown once and never kept."
 msgstr "Agendamentos → Terminais (Terminais de presença) lista os terminais ativos, e os que terminaram nos últimos 7 dias, para quem tem ffc_manage_audiences_terminals: um operador vê os terminais que pareou, um administrador vê todos. Cartões contam os terminais online (vistos nos últimos dois minutos) e offline, as leituras de terminal de hoje e as leituras na fila. Cada linha mostra a fila do terminal (um evento, ou quantos, com o local quando todos compartilham um), o evento que ele registra agora, quem o pareou e quando, quando foi visto pela última vez (agora, há minutos ou a data), suas leituras e quantas guarda sem enviar, e seu estado numa pílula: Online, Offline, Encerrado automaticamente ou Revogado por quem o encerrou. Editar fila muda os eventos com as mesmas regras do app, e Revogar o interrompe após uma confirmação na tela, na próxima vez que ele se conectar. Parear terminal, ao lado do título, pareia um pelo wp-admin como o app faz: marque os eventos, dê um nome ao terminal, escolha quando ele se encerra sozinho, e o código de uso único aparece como QR code com o horário em que expira; ele é mostrado uma vez e nunca guardado."

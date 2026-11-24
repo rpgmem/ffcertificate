@@ -46,6 +46,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **Recruitment import jobs keep their dates on upgrade** (#2763). The 6.45.0 timestamp conversion read an `id` column the import-jobs table does not have, logged an error on every request and dropped the dates, so the stale-job cleanup deleted the jobs. It now reads `job_id`, and a conversion that cannot read keeps the old column.
+- **A replaced phone stops showing its presence code** (#2799): the app sends its key with the event list, so the old phone hides the code the next time it reaches the site instead of when its attestation comes due, and offers *Move it to this phone* beside the phone that holds it; a first activation keeps *Activate on this phone*. An iPhone is told that Safari and the installed app count as two phones.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 
