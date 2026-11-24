@@ -37200,6 +37200,7 @@ msgid "%d refused after revocation"
 msgid_plural "%d refused after revocation"
 msgstr[0] "%d recusada após revogação"
 msgstr[1] "%d recusadas após revogação"
+
 msgid "Install this terminal"
 msgstr "Instalar este terminal"
 
