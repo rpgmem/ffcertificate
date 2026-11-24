@@ -29,7 +29,7 @@ use FreeFormCertificate\Core\Notice;
 
 	<div class="ffc-presence-activate" data-ffc-presence-part="activate-view" data-ffc-presence-view="activate" hidden>
 		<span class="ffc-presence-activate-icon" aria-hidden="true"><?php echo Icons::svg( 'qr', 28 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() returns a closed-vocabulary drawing. ?></span>
-		<h2 class="ffc-presence-activate-title"><?php esc_html_e( 'Activate presence on this phone', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-presence-activate-title" data-ffc-presence-part="activate-title"><?php esc_html_e( 'Activate presence on this phone', 'ffcertificate' ); ?></h2>
 		<p class="ffc-presence-activate-lead"><?php esc_html_e( 'The presence code works on one phone at a time, even without internet.', 'ffcertificate' ); ?></p>
 		<p class="ffc-presence-current" data-ffc-presence-part="current" hidden></p>
 		<dl class="ffc-presence-facts" data-ffc-presence-part="facts" hidden>
@@ -43,6 +43,7 @@ use FreeFormCertificate\Core\Notice;
 			</div>
 		</dl>
 		<p class="ffc-presence-activate-note"><?php esc_html_e( 'You receive an e-mail about the change. This phone stays reserved for your account for 30 days.', 'ffcertificate' ); ?></p>
+		<p class="ffc-presence-activate-note" data-ffc-presence-part="ios-note" hidden><?php esc_html_e( 'On an iPhone, always open Presence from the app on the home screen: Safari and the app keep separate keys, so each counts as a phone.', 'ffcertificate' ); ?></p>
 		<div class="ffc-presence-actions">
 			<?php
 			Button::render(

@@ -35629,8 +35629,6 @@ msgstr "Este aparelho está em uso por outra conta. Um administrador pode liber�
 msgid "This device is not activated for your account. Activate it again."
 msgstr "Este aparelho não está ativado para a sua conta. Ative-o de novo."
 
-msgid "This device was replaced or revoked. Activate it again to use it."
-msgstr "Este aparelho foi substituído ou revogado. Ative-o de novo para usá-lo."
 
 msgid "This key cannot be activated again. Reinstall the app and try again."
 msgstr "Esta chave não pode ser ativada de novo. Reinstale o app e tente de novo."
@@ -35653,8 +35651,6 @@ msgstr "Aparelhos de presença"
 msgid "A participant who installs the app activates their phone once, while online, to show a presence code at a terminal. The phone creates a key that cannot be copied, and the site signs a statement binding that key to the account and to a short name, such as \"Maria S.\". The statement lasts 7 days and the app renews it whenever it is online. It never carries a CPF or RF."
 msgstr "O participante que instala o app ativa o celular uma vez, com internet, para mostrar um código de presença num terminal. O celular cria uma chave que não pode ser copiada, e o site assina uma declaração que liga essa chave à conta e a um nome curto, como \"Maria S.\". A declaração vale 7 dias e o app a renova sempre que está com internet. Ela nunca leva CPF nem RF."
 
-msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so."
-msgstr "Um aparelho ativo por conta: ativar um celular novo faz o antigo deixar de mostrar um código válido, e o participante recebe um e-mail avisando."
 
 msgid "A phone stays reserved to its account for 30 days after it was last used there. Another account trying to activate it is refused until an administrator releases it."
 msgstr "Um celular fica reservado à sua conta por 30 dias depois do último uso nela. Outra conta que tentar ativá-lo é recusada até um administrador liberá-lo."
@@ -36084,6 +36080,8 @@ msgstr "Nenhum terminal está pareado. Pareie um em Parear terminal."
 msgid "End terminal"
 msgstr "Encerrar terminal"
 
+msgid "End this terminal? It stops checking people in at once."
+msgstr "Encerrar este terminal? Ele para de fazer check-in na hora."
 
 msgid "Keep"
 msgstr "Manter"
@@ -36142,8 +36140,6 @@ msgstr "Código lido"
 
 msgid "The menu locks again after two minutes without use."
 msgstr "O menu volta a travar depois de dois minutos sem uso."
-
-
 
 msgid "The terminal opens at the site's address followed by /terminal/ (on a site without pretty permalinks, the home page with ?ffc_terminal=1 added), outside the theme and with no login, and waits for pairing. The browser can install it as an app of its own, full screen and in landscape, apart from the participants' app: the pairing QR code is what binds it, never an account. Search engines are told not to list either address, and no cache keeps them. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires."
 msgstr "O terminal abre no endereço do site seguido de /terminal/ (num site sem links permanentes amigáveis, a página inicial com ?ffc_terminal=1 acrescentado), fora do tema e sem login, e aguarda o pareamento. O navegador pode instalá-lo como um app próprio, em tela cheia e na horizontal, separado do app dos participantes: quem o vincula é o QR de pareamento, nunca uma conta. Os buscadores são avisados para não listar nenhum dos dois endereços, e nenhum cache os guarda. No app, o operador gera o código em Mais → Parear terminal, marcando os eventos e dando um nome ao terminal; Mais → Meus terminais lista os terminais ativos com a última leitura de cada um e até quando funciona, e encerra um depois de uma confirmação na tela; Mais → QR do operador mostra o código de desbloqueio do operador, renovado antes de expirar."
@@ -36265,24 +36261,8 @@ msgstr "Parar a câmera"
 msgid "Allow the device camera"
 msgstr "Permitir a câmera do aparelho"
 
-
-
-
 msgid "At most 10 terminals may be active on the site and 3 on one event at a time, unless Scheduling → Settings → Check-in says otherwise; the ffc_terminal_limits filter can still change both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
 msgstr "No máximo 10 terminais podem estar ativos no site e 3 em um mesmo evento ao mesmo tempo, salvo o que Agendamento → Configurações → Check-in definir; o filtro ffc_terminal_limits ainda pode mudar os dois. Um site ou evento cheio recusa antes de o código ser gasto, então encerrar um terminal faz o mesmo código funcionar."
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 msgid "Back to terminals"
@@ -36290,7 +36270,6 @@ msgstr "Voltar aos terminais"
 
 msgid "Current event"
 msgstr "Evento atual"
-
 
 msgid "Ended automatically"
 msgstr "Encerrado automaticamente"
@@ -36300,10 +36279,6 @@ msgstr "Encerrado manualmente"
 
 msgid "Events of %s"
 msgstr "Eventos de %s"
-
-
-
-
 
 msgid "None now"
 msgstr "Nenhum agora"
@@ -36328,8 +36303,6 @@ msgstr "Leituras"
 
 msgid "Readings today"
 msgstr "Leituras hoje"
-
-
 
 msgid "Terminal ended. It stops checking people in at once."
 msgstr "Terminal encerrado. Ele deixa de fazer check-in na hora."
@@ -36417,7 +36390,6 @@ msgstr "QR code projetado"
 msgid "Terminal"
 msgstr "Terminal"
 
-
 msgid "This event does not take check-in at a terminal. Speak to the organiser."
 msgstr "Este evento não aceita check-in por terminal. Fale com o organizador."
 
@@ -36430,7 +36402,6 @@ msgstr "Este evento não aceita check-in: ligue primeiro o QR code projetado ou 
 msgid "Who may check in"
 msgstr "Quem pode fazer check-in"
 
-
 msgid "Anyone signed in can check in. Attendance is recorded without enrolling the person, so it counts toward no attendance rule and earns no post-event invitation."
 msgstr "Qualquer pessoa com login pode fazer check-in. A presença é registrada sem inscrever a pessoa, então não conta para nenhuma regra de presença e não dá direito a convite pós-evento."
 
@@ -36440,7 +36411,6 @@ msgstr "O participante lê o código com a câmera do celular, faz login se for 
 msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen, in four tabs: Participants, which opens first, Check-in, Attendance rule and Post-event form. Beside them a summary shows the day, how many are present, the check-in, the rule and the form. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
 msgstr "O link Presença na linha de uma reserva em Reservas de Público-alvo abre a tela de presença, em quatro abas: Participantes, que abre primeiro, Check-in, Regra de presença e Formulário pós-evento. Ao lado delas, um resumo mostra o dia, quantos estão presentes, o check-in, a regra e o formulário. No próprio dia, até 30 minutos após o fim da reserva, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
 
-
 msgid "The Check-in tab starts with who may check in and the paths the event takes, each saved as soon as it is changed by whoever holds ffc_manage_audiences. Who may check in is Enrolled only, the default, or Open: anyone signed in can check in, and the attendance is recorded without enrolling the person, so it is listed as not enrolled, counts toward no attendance rule and earns no post-event invitation. An open event that takes terminals is also listed in the app of every person signed in, so they can show a code for it. The paths are the projected QR code and the terminal; a new event takes the paths set under Scheduling → Settings → Check-in, and an event that already existed has both on. A path that is off refuses its readings: the projected code cannot be shown or scanned, and a terminal cannot hold the event or record a reading for it. With only the terminal on, Open check-in still opens the window the terminals need; with both off, the event takes no check-in and attendance is marked by hand."
 msgstr "A aba Check-in começa com quem pode fazer check-in e os caminhos que o evento aceita, cada um salvo assim que é alterado por quem tem ffc_manage_audiences. Quem pode fazer check-in é Somente inscritos, o padrão, ou Aberto: qualquer pessoa com login pode fazer check-in, e a presença é registrada sem inscrever a pessoa, então aparece como sem inscrição, não conta para nenhuma regra de presença e não dá direito a convite pós-evento. Um evento aberto que aceita terminais também aparece no app de toda pessoa com login, para que ela possa mostrar um código para ele. Os caminhos são o QR code projetado e o terminal; um novo evento recebe os caminhos definidos em Agendamento → Configurações → Check-in, e um evento que já existia tem os dois ligados. Um caminho desligado recusa suas leituras: o código projetado não pode ser exibido nem lido, e um terminal não pode ter o evento nem registrar leitura para ele. Com só o terminal ligado, Abrir check-in ainda abre a janela de que os terminais precisam; com os dois desligados, o evento não aceita check-in e a presença é marcada manualmente."
 
@@ -36449,7 +36419,6 @@ msgstr "Abaixo da janela, a aba lista os terminais que têm o evento, com quanto
 
 msgid "A paired terminal at the entrance reads each participant's presence code. Turning it off stops terminals from taking new readings for this event."
 msgstr "Um terminal pareado na entrada lê o código de presença de cada participante. Desligá-lo impede que os terminais façam novas leituras para este evento."
-
 
 msgctxt "who may check in"
 msgid "Open"
@@ -36945,12 +36914,26 @@ msgstr "No app, Parear terminal alterna entre Escolher eventos, marcando um a um
 msgid "A screenshot will not do: the code changes every 15 seconds."
 msgstr "Um print não serve: o código muda a cada 15 segundos."
 
-
 msgid "Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 15 seconds, offline if need be, for as long as the activation lasts. The code carries the site's statement about the phone, the event, the moment and a signature made by the phone's key, so a photo or screenshot of it stops working within half a minute and a code from another phone does not pass. The app and the terminal each set their clock by the site's whenever they reach it, which is what lets a terminal accept a code only 15 seconds either side of its own clock; the terminal's operator menu says when its clock was more than 15 seconds off."
 msgstr "Com o celular ativo, a tela Presença do app mostra um QR code do evento escolhido, uma contagem regressiva e o que fazer. Um código novo é gerado a cada 15 segundos, mesmo sem internet, enquanto a ativação valer. O código leva a declaração do site sobre o celular, o evento, o momento e uma assinatura feita pela chave do celular, então uma foto ou captura de tela dele para de funcionar em até meio minuto, e um código de outro celular não passa. O app e o terminal acertam cada um o próprio relógio pelo do site sempre que o alcançam, o que permite ao terminal aceitar um código só até 15 segundos antes ou depois do próprio relógio; o menu do operador do terminal avisa quando o relógio dele estava mais de 15 segundos fora."
 
 msgid "This terminal's clock was %d s off the site's. Readings follow the site's clock; set the device's date and time to automatic."
 msgstr "O relógio deste terminal estava %d s fora do relógio do site. As leituras seguem o relógio do site; deixe a data e a hora do aparelho no automático."
+
+msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so. The old phone hides its code the next time it reaches the site and says the presence is active on another phone; offline it cannot know, and each terminal refuses its code from its next sync. A phone that is not active shows Activate on this phone when no phone holds the code, and Move it to this phone, with the phone that holds it, when another does. On an iPhone, Safari and the app installed on the home screen keep separate keys, so each counts as a phone, and the screen says so."
+msgstr "Um aparelho ativo por conta: ativar um celular novo faz o antigo deixar de mostrar um código válido, e o participante recebe um e-mail avisando. O celular antigo esconde o código na próxima vez que alcança o site e diz que a presença está ativa em outro aparelho; offline ele não tem como saber, e cada terminal recusa o código dele a partir da próxima sincronização. Um celular que não está ativo mostra Ativar neste aparelho quando nenhum celular tem o código, e Trazer para este aparelho, com o celular que o tem, quando outro tem. No iPhone, o Safari e o app instalado na tela inicial guardam chaves separadas, então cada um conta como um aparelho, e a tela avisa isso."
+
+msgid "Your presence is now active on another phone, so this one stopped making the code."
+msgstr "Sua presença agora está ativa em outro aparelho, então este deixou de gerar o código."
+
+msgid "Your presence is active on another phone"
+msgstr "Sua presença está ativa em outro aparelho"
+
+msgid "Move it to this phone"
+msgstr "Trazer para este aparelho"
+
+msgid "On an iPhone, always open Presence from the app on the home screen: Safari and the app keep separate keys, so each counts as a phone."
+msgstr "No iPhone, abra a Presença sempre pelo app na tela inicial: o Safari e o app guardam chaves separadas, então cada um conta como um aparelho."
 
 msgid "%s ago"
 msgstr "há %s"
@@ -37009,9 +36992,6 @@ msgid "%d in the queue"
 msgid_plural "%d in the queue"
 msgstr[0] "%d na fila"
 msgstr[1] "%d na fila"
-
-msgid "End this terminal? It stops checking people in at once."
-msgstr "Encerrar este terminal? Ele para de fazer check-in na hora."
 
 msgid "Scheduling → Terminals (Presence terminals) lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings in the queue. Each row shows the terminal's queue (one event, or how many, with the place when they all share one), the event it checks in now, who paired it and when, when it was last seen (now, minutes ago, or the date), its readings and how many it holds unsent, and its state as a pill: Online, Offline, Ended automatically, or Revoked by whoever ended it. Edit queue changes its events under the same rules as the app, and Revoke stops it after a confirmation on the screen, the next time it connects. Pair terminal, beside the title, pairs one from wp-admin as the app does: tick the events, name the terminal, choose when it ends by itself, and the one-time code appears as a QR code with the time it expires; it is shown once and never kept."
 msgstr "Agendamentos → Terminais (Terminais de presença) lista os terminais ativos, e os que terminaram nos últimos 7 dias, para quem tem ffc_manage_audiences_terminals: um operador vê os terminais que pareou, um administrador vê todos. Cartões contam os terminais online (vistos nos últimos dois minutos) e offline, as leituras de terminal de hoje e as leituras na fila. Cada linha mostra a fila do terminal (um evento, ou quantos, com o local quando todos compartilham um), o evento que ele registra agora, quem o pareou e quando, quando foi visto pela última vez (agora, há minutos ou a data), suas leituras e quantas guarda sem enviar, e seu estado numa pílula: Online, Offline, Encerrado automaticamente ou Revogado por quem o encerrou. Editar fila muda os eventos com as mesmas regras do app, e Revogar o interrompe após uma confirmação na tela, na próxima vez que ele se conectar. Parear terminal, ao lado do título, pareia um pelo wp-admin como o app faz: marque os eventos, dê um nome ao terminal, escolha quando ele se encerra sozinho, e o código de uso único aparece como QR code com o horário em que expira; ele é mostrado uma vez e nunca guardado."

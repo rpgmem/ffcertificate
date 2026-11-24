@@ -36,6 +36,10 @@ const STRINGS = {
 	fillForm: 'fill form',
 	current: 'Now: %1$s since %2$s.',
 	otherPhone: 'another phone',
+	titleFirst: 'first',
+	titleElsewhere: 'elsewhere',
+	activateHere: 'activate here',
+	moveHere: 'move here',
 	changes: '%1$d of %2$d / %3$d',
 	dayOne: '1 day',
 	days: '%d days',
@@ -47,6 +51,9 @@ function markup() {
 			<p data-ffc-presence-part="status"></p>
 			<div data-ffc-presence-part="unsupported" data-ffc-presence-view="unsupported" hidden></div>
 			<div data-ffc-presence-part="activate-view" data-ffc-presence-view="activate" hidden>
+				<h2 data-ffc-presence-part="activate-title">Activate</h2>
+				<p data-ffc-presence-part="current" hidden></p>
+				<p data-ffc-presence-part="ios-note" hidden></p>
 				<button type="button" data-ffc-presence-part="activate">Activate</button>
 			</div>
 			<div data-ffc-presence-part="code-view" data-ffc-presence-view="code" hidden>
@@ -368,23 +375,62 @@ describe('presence app screen', () => {
 		});
 		const [app] = boot(store, fetch);
 		await settle();
-		expect(paths).toEqual([rest('renew'), rest('events')]);
+		expect(paths).toEqual([rest('renew'), rest('events?key=kid')]);
 		expect(store.data.get('device').expires).toBe(NOW + 7 * 86400);
 		expect(store.data.get('device').events.length).toBe(2);
 		app.stop();
 	});
 
-	it('goes back to activation when the site says the key was replaced', async () => {
+	it('hides the code and offers to move it here once another phone took it (#2797)', async () => {
 		const { state } = await deviceState();
 		const el = markup();
 		const store = memoryStore(state);
-		const fetch = vi.fn(() => reply(403, { code: 'ffc_presence_revoked', message: 'replaced' }));
+		const fetch = vi.fn((url) => (url.endsWith('/device')
+			? reply(200, { current: { device_id: 'other', label: 'iPhone · Safari', since: '20/11' }, changes: 1, max_changes: 3, window_days: 30, offline_days: 7 })
+			: reply(410, { code: 'ffc_presence_revoked', message: 'replaced' })));
 		const [app] = boot(store, fetch);
 		await settle();
+		expect(fetch.mock.calls[0][0]).toBe(rest('events?key=kid'));
 		expect(el.querySelector('[data-ffc-presence-view="activate"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-presence-view="code"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-presence-part="qr"]').innerHTML).toBe('');
 		expect(el.querySelector('[data-ffc-presence-part="status"]').textContent).toBe('replaced');
-		expect(store.data.get('device')).toEqual({ userId: USER, deviceId: 'dev', clockOffset: 0 });
+		expect(el.querySelector('[data-ffc-presence-part="activate-title"]').textContent).toBe('elsewhere');
+		expect(el.querySelector('[data-ffc-presence-part="activate"]').textContent).toBe('move here');
+		expect(el.querySelector('[data-ffc-presence-part="current"]').textContent).toBe('Now: iPhone · Safari since 20/11.');
+		expect(store.data.get('device')).toMatchObject({ userId: USER, deviceId: 'dev' });
+		expect(store.data.get('device').attestation).toBeUndefined();
 		expect(app.timer).toBeNull();
+	});
+
+	it('calls a first activation by its name when no phone holds the code', async () => {
+		const el = markup();
+		const fetch = vi.fn(() => reply(200, { current: null, changes: 0, max_changes: 3, window_days: 30, offline_days: 7 }));
+		boot(memoryStore(), fetch);
+		await settle();
+		expect(el.querySelector('[data-ffc-presence-part="activate-title"]').textContent).toBe('first');
+		expect(el.querySelector('[data-ffc-presence-part="activate"]').textContent).toBe('activate here');
+	});
+
+	it('says on an iPhone that Safari and the installed app are two phones', async () => {
+		const agent = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent');
+		Object.defineProperty(window.navigator, 'userAgent', { value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', configurable: true });
+		try {
+			const el = markup();
+			boot(memoryStore(), vi.fn(() => reply(200, { current: null })));
+			await settle();
+			expect(el.querySelector('[data-ffc-presence-part="ios-note"]').hidden).toBe(false);
+		} finally {
+			if (agent) {
+				Object.defineProperty(window.navigator, 'userAgent', agent);
+			} else {
+				delete window.navigator.userAgent;
+			}
+		}
+		const el = markup();
+		boot(memoryStore(), vi.fn(() => reply(200, { current: null })));
+		await settle();
+		expect(el.querySelector('[data-ffc-presence-part="ios-note"]').hidden).toBe(true);
 	});
 
 	it('keeps showing the code offline', async () => {

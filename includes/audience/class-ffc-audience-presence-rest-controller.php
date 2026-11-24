@@ -127,6 +127,15 @@ class AudiencePresenceRestController {
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'events' ),
 				'permission_callback' => array( $this, 'check_app_permission' ),
+				'args'                => array(
+					// This phone's key, so a phone another one replaced
+					// hears it on its next visit (#2797).
+					'key' => array(
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
 			)
 		);
 
@@ -232,9 +241,20 @@ class AudiencePresenceRestController {
 	 * participant's own dashboard does not already show them; the pending
 	 * items (#2749) are the attendance and post-event forms it shows too.
 	 *
-	 * @return \WP_REST_Response
+	 * Given this phone's key, it first checks the phone still holds the
+	 * code, and answers 410 once another phone took it (#2797).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function events(): \WP_REST_Response {
+	public function events( \WP_REST_Request $request ) {
+		$key = $request->get_param( 'key' );
+		if ( is_string( $key ) && '' !== $key ) {
+			$device = AudiencePresenceEnrolment::active_device( get_current_user_id(), $key );
+			if ( is_wp_error( $device ) ) {
+				return $device;
+			}
+		}
 		return new \WP_REST_Response(
 			array(
 				'events'  => AudiencePresenceEvents::for_user( get_current_user_id(), time() ),
