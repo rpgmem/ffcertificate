@@ -35589,8 +35589,6 @@ msgstr ""
 msgid "Presence code"
 msgstr ""
 
-msgid "Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 30 seconds, offline if need be, for as long as the activation lasts. The code carries the site's statement about the phone, the event, the moment and a signature made by the phone's key, so a photo or screenshot of it stops working within a minute and a code from another phone does not pass."
-msgstr ""
 
 msgid "The screen lists the participant's bookings over the next 7 days. While online, the app also fetches a ticket signed by the site for each of them, which proves the participant is on that booking even when the terminal cannot reach the site."
 msgstr ""
@@ -36238,8 +36236,6 @@ msgstr ""
 msgid "Presence devices: one active phone per person; a phone stays reserved to its account for 30 days; at most 3 phone changes per person in 30 days. More needs an administrator, under Scheduling → Presence devices."
 msgstr ""
 
-msgid "A presence code changes every 30 seconds and carries only the person's short name, never a CPF or RF."
-msgstr ""
 
 msgid "Back to terminals"
 msgstr ""
@@ -36736,8 +36732,6 @@ msgstr ""
 msgid "Terminal name (optional)"
 msgstr ""
 
-msgid "A screenshot will not do: the code changes every 30 seconds."
-msgstr ""
 
 msgid "Hold the screen up to the terminal's reader at the entrance."
 msgstr ""
@@ -36920,6 +36914,18 @@ msgid "Unlock a paired terminal"
 msgstr ""
 
 msgid "In the app, Pair terminal switches between Choose events, ticking them one by one, and By place, which ticks the events of one place, soonest first, up to 10. End by itself after the end sets how many hours after the last event the terminal ends (1, 2 or 4; the Check-in settings choose the one marked first), and the code appears beside a summary of what it pairs, with its countdown. My terminals has Change events on each terminal, which the terminal picks up within a minute and which keeps the hours chosen. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
+msgstr ""
+
+msgid "A screenshot will not do: the code changes every 15 seconds."
+msgstr ""
+
+msgid "A presence code changes every 15 seconds and carries only the person's short name, never a CPF or RF."
+msgstr ""
+
+msgid "Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 15 seconds, offline if need be, for as long as the activation lasts. The code carries the site's statement about the phone, the event, the moment and a signature made by the phone's key, so a photo or screenshot of it stops working within half a minute and a code from another phone does not pass. The app and the terminal each set their clock by the site's whenever they reach it, which is what lets a terminal accept a code only 15 seconds either side of its own clock; the terminal's operator menu says when its clock was more than 15 seconds off."
+msgstr ""
+
+msgid "This terminal's clock was %d s off the site's. Readings follow the site's clock; set the device's date and time to automatic."
 msgstr ""
 
 msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so. The old phone hides its code the next time it reaches the site and says the presence is active on another phone; offline it cannot know, and each terminal refuses its code from its next sync. A phone that is not active shows Activate on this phone when no phone holds the code, and Move it to this phone, with the phone that holds it, when another does. On an iPhone, Safari and the app installed on the home screen keep separate keys, so each counts as a phone, and the screen says so."

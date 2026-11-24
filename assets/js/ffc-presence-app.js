@@ -4,7 +4,7 @@
  * Activates this phone once, while online: a non-extractable P-256 key is
  * created with WebCrypto and kept in IndexedDB, and the site answers with an
  * attestation binding it to the account (#2741). From then on the screen
- * draws a presence code every 30 seconds, offline if need be: the attestation,
+ * draws a presence code every 15 seconds, offline if need be: the attestation,
  * the chosen event, the moment, the event's ticket when the app has one, all
  * signed by the phone's key. The byte layout is the one
  * `AudiencePresenceCode` documents and verifies.
@@ -18,7 +18,9 @@
     'use strict';
 
     var PREFIX = 'FFP1';
-    var ROTATION = 30;
+    var ROTATION = 15;
+    /** A clock gap the app does not bother to correct, in milliseconds. */
+    var CLOCK_NOISE = 1000;
     var ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
     var DOMAIN_READING = 'FFC-PRESENCE-READING\u0000';
     var DOMAIN_ENROL = 'FFC-PRESENCE-ENROL\u0000';
@@ -293,6 +295,27 @@
      * @param {Object}      config Localized configuration.
      * @param {Object}      deps   Storage, fetch and clock, injectable for the tests.
      */
+    /**
+     * How far the site's clock is ahead of this phone's, in milliseconds,
+     * from the `Date` header of a live answer (#2797), or null when the
+     * answer carries none. The header is truncated to the second, so the
+     * site's moment is taken as the middle of that second, and the phone's
+     * as the middle of the round trip.
+     *
+     * @param {object} response A fetch response.
+     * @param {number} sent Phone time the request left, in milliseconds.
+     * @param {number} received Phone time the answer arrived, in milliseconds.
+     * @return {number|null}
+     */
+    function clockOffset(response, sent, received) {
+        var header = response && response.headers && 'function' === typeof response.headers.get ? response.headers.get('Date') : null;
+        var site = header ? Date.parse(header) : NaN;
+        if (isNaN(site)) {
+            return null;
+        }
+        return Math.round(site + 500 - (sent + received) / 2);
+    }
+
     function App(el, config, deps) {
         this.el = el;
         this.config = config;
@@ -301,7 +324,19 @@
         this.now = deps.now;
         this.state = {};
         this.timer = null;
+        this.offset = 0;
     }
+
+    /**
+     * The time, in milliseconds, by the site's clock as last measured: a
+     * code is dated with it, so a phone whose clock is off still makes codes
+     * a terminal accepts within the 15-second tolerance (#2797).
+     *
+     * @return {number}
+     */
+    App.prototype.clock = function () {
+        return this.now() + this.offset;
+    };
 
     App.prototype.part = function (name) {
         return this.el.querySelector('[data-ffc-presence-part="' + name + '"]');
@@ -331,7 +366,13 @@
             options.headers['Content-Type'] = 'application/json';
             options.body = JSON.stringify(body);
         }
+        var self = this;
+        var sent = self.now();
         return this.fetch(this.config.rest + path, options).then(function (response) {
+            var offset = clockOffset(response, sent, self.now());
+            if (null !== offset) {
+                self.offset = Math.abs(offset) < CLOCK_NOISE ? 0 : offset;
+            }
             return response.json().then(function (data) {
                 if (!response.ok) {
                     var error = new Error(data && data.message ? data.message : 'request failed');
@@ -344,6 +385,7 @@
     };
 
     App.prototype.save = function () {
+        this.state.clockOffset = this.offset;
         return this.store.set('device', this.state);
     };
 
@@ -390,6 +432,9 @@
         self.stop();
         return self.store.get('device').then(function (saved) {
             self.state = saved && saved.userId === self.config.userId ? saved : {};
+            if ('number' === typeof self.state.clockOffset) {
+                self.offset = self.state.clockOffset;
+            }
             if (!self.state.attestation) {
                 self.show('activate');
                 return self.deviceStatus();
@@ -466,7 +511,7 @@
         }
         self.say(strings.activating);
         var deviceId = self.state.deviceId || newDeviceId();
-        var timestamp = Math.floor(self.now() / 1000);
+        var timestamp = Math.floor(self.clock() / 1000);
         var keys;
         return root.crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']).then(function (pair) {
             keys = pair;
@@ -509,7 +554,7 @@
 
     App.prototype.refresh = function () {
         var self = this;
-        var nowSeconds = Math.floor(self.now() / 1000);
+        var nowSeconds = Math.floor(self.clock() / 1000);
         var renew = Promise.resolve();
         if (self.state.expires - nowSeconds < RENEW_BEFORE) {
             var statement = DOMAIN_RENEW + self.config.userId + '|' + self.state.keyId + '|' + nowSeconds;
@@ -690,7 +735,7 @@
     App.prototype.draw = function () {
         var self = this;
         var strings = self.config.strings;
-        var nowSeconds = Math.floor(self.now() / 1000);
+        var nowSeconds = Math.floor(self.clock() / 1000);
         var windowStart = nowSeconds - (nowSeconds % ROTATION);
         var left = ROTATION - (nowSeconds % ROTATION);
         var countdown = self.part('countdown');
@@ -779,6 +824,7 @@
     root.FFCPresence = {
         PREFIX: PREFIX,
         ROTATION: ROTATION,
+        clockOffset: clockOffset,
         base45: base45,
         toB64url: toB64url,
         fromB64url: fromB64url,

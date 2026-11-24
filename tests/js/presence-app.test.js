@@ -450,10 +450,10 @@ describe('presence app screen', () => {
 		const [app] = boot(memoryStore(state), vi.fn(() => Promise.reject(new Error('offline'))));
 		await settle();
 		const holder = el.querySelector('[data-ffc-presence-part="qr"]');
-		expect(app.drawn).toBe('42@' + (NOW - (NOW % 30)));
-		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent.split(' · ')[0]).toBe('next ' + (30 - (NOW % 30)));
-		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('value')).toBe(String(30 - (NOW % 30)), 'the bar drains with the rotation');
-		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('max')).toBe('30');
+		expect(app.drawn).toBe('42@' + (NOW - (NOW % 15)));
+		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent.split(' · ')[0]).toBe('next ' + (15 - (NOW % 15)));
+		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('value')).toBe(String(15 - (NOW % 15)), 'the bar drains with the rotation');
+		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('max')).toBe('15');
 
 		const first = holder.innerHTML;
 		expect(await app.draw()).toBeNull();
@@ -608,6 +608,32 @@ describe('presence app attendance (#2749)', () => {
 	});
 
 	const items = (el) => Array.from(el.querySelectorAll('[data-ffc-presence-part="pending"] li'));
+
+	it('dates its codes by the site clock measured on each answer (#2797)', async () => {
+		const { state } = await deviceState();
+		markup();
+		const store = memoryStore(state);
+		const site = new Date((NOW + 40) * 1000).toUTCString();
+		const fetch = vi.fn(() => Promise.resolve({
+			ok: true,
+			headers: { get: (name) => ('Date' === name ? site : null) },
+			json: () => Promise.resolve({ events: EVENTS, pending: [] }),
+		}));
+		const [app] = P().boot({ store, fetch, now: () => NOW * 1000 });
+		await settle();
+		expect(app.offset).toBe(40500, 'the middle of the site\'s second, against the middle of the round trip');
+		expect(store.data.get('device').clockOffset).toBe(40500);
+		const site15 = NOW + 40;
+		expect(app.drawn).toBe('42@' + (site15 - (site15 % 15)));
+		app.stop();
+	});
+
+	it('reads the site clock only from a Date header, and ignores a gap under a second', () => {
+		expect(P().clockOffset({ headers: { get: () => null } }, 0, 0)).toBeNull();
+		expect(P().clockOffset({}, 0, 0)).toBeNull();
+		expect(P().clockOffset({ headers: { get: () => 'garbage' } }, 0, 0)).toBeNull();
+		expect(P().clockOffset({ headers: { get: () => new Date(10000).toUTCString() } }, 9000, 11000)).toBe(500);
+	});
 
 	it('lists what waits and says Present on the chosen event', async () => {
 		const { state } = await deviceState();

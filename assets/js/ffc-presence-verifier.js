@@ -21,8 +21,8 @@
 
     var PREFIX = 'FFP1';
     var ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
-    var ROTATION = 30;
-    var SKEW = 60;
+    var ROTATION = 15;
+    var SKEW = 15;
     var POINT_BYTES = 65;
     var SIGNATURE_BYTES = 64;
     var NAME_BYTES = 48;

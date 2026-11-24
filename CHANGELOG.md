@@ -40,6 +40,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Security
 
 - **Verification refuses a code whose prefix names no document**, before any lookup and with the answer a wrong code gets, on the page, without JavaScript and in the REST `verify` route. Only C, R and A are looked up, so a `P-` terminal pairing code, which is a credential, never reaches the verification lookups (#2739).
+- **A presence code dies within half a minute** (#2797): the app draws one every 15 s instead of 30, and the terminal accepts it only 15 s either side of its clock instead of 60, since the app and the terminal now set their clocks by the site's `Date` header on every answer. The terminal's operator menu says when its clock was more than 15 s off.
 
 ### Fixed
 
