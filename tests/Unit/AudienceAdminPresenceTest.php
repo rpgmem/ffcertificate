@@ -69,6 +69,7 @@ class AudienceAdminPresenceTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->alias( static fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES ) );
 		Functions\when( 'esc_attr' )->alias( static fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES ) );
 		Functions\when( 'esc_url' )->returnArg();
@@ -227,7 +228,7 @@ class AudienceAdminPresenceTest extends TestCase {
 	public function test_the_overview_counts_and_lists_and_asks_what_needs_attention(): void {
 		$this->grant( true );
 		$hash = str_repeat( 'ab', 32 );
-		$this->device( 7, 'school-phone-0000001', 'kid-a', $this->now - 2 * self::DAY, $hash, true );
+		AudiencePresenceWriter::activate( 7, 'school-phone-0000001', 'kid-a', 'public', $hash, true, $this->now - 2 * self::DAY, 'Android', 'Chrome' );
 		$this->device( 8, 'school-phone-0000002', 'kid-b', $this->now - self::DAY, $hash );
 		AudiencePresenceWriter::request( 9, 'school-phone-0000001', AudiencePresenceEnrolment::REASON_RESERVED, $this->now - 60 );
 		AudiencePresenceWriter::request( 9, 'fifth-phone-000000001', AudiencePresenceEnrolment::REASON_CHANGE_LIMIT, $this->now - 30 );
@@ -236,16 +237,71 @@ class AudienceAdminPresenceTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-page-scheduling-presence', $html );
 		$this->assertMatchesRegularExpression( '/Active devices.*?2/s', $html );
+		$this->assertStringContainsString( 'Release requests', $html );
+		$this->assertStringContainsString( 'Same-signal alerts', $html );
 		$this->assertStringContainsString( 'Maria Silva', $html );
-		$this->assertStringContainsString( '…-0000001', $html );
-		$this->assertStringContainsString( gmdate( 'Y-m-d H:i', $this->now - 2 * self::DAY + AudiencePresenceAttestation::TTL ), $html, 'works offline until the attestation expires' );
-		$this->assertStringContainsString( 'Ana Costa tried to activate a phone reserved to another account', $html );
-		$this->assertStringContainsString( 'Ana Costa already changed devices 3 times in 30 days', $html );
-		$this->assertStringContainsString( '2 accounts report the same device signals: Maria Silva, João Lima.', $html );
+		$this->assertStringContainsString( 'Android · Chrome <code>…-0000001</code>', $html, 'the phone is named by its families, with its id beside them' );
+		$this->assertStringContainsString( '<code>…-0000002</code>', $html, 'a phone without known families keeps the id alone' );
+		$this->assertStringContainsString( '1 of 3', $html, 'changes read against the limit' );
+		$this->assertStringContainsString( gmdate( 'Y-m-d', $this->now - 2 * self::DAY + AudiencePresenceAttestation::TTL ), $html, 'works offline until the attestation expires' );
+		$this->assertLessThan( strpos( $html, 'ffc-presence-devices' ), strpos( $html, 'ffc-presence-attention' ), '"Needs attention" comes above the list' );
+		$this->assertStringContainsString( 'Phone of another account', $html );
+		$this->assertStringContainsString( 'Ana Costa tried to activate presence on a phone Maria Silva still uses.', $html );
+		$this->assertStringContainsString( 'Release to Ana Costa', $html );
+		$this->assertStringContainsString( 'Change limit', $html );
+		$this->assertStringContainsString( 'Ana Costa asked for device change number 4 in 30 days.', $html );
+		$this->assertStringContainsString( 'Alert · same signals', $html );
+		$this->assertStringContainsString( 'The devices of Maria Silva, João Lima report the same signals.', $html );
 		$this->assertStringContainsString( 'value="dismiss"', $html );
 		$this->assertStringContainsString( 'value="' . $hash . '"', $html );
 		$this->assertStringContainsString( 'data-confirm=', $html, 'deactivating asks first' );
+		$this->assertStringContainsString( 'terminals refuse its code from their next sync', $html );
+		$this->assertStringContainsString( 'name="s"', $html, 'the list can be searched' );
 		$this->assertSame( 3, substr_count( $html, 'value="deactivate"' ) + substr_count( $html, 'value="approve"' ) - 1, 'one deactivate per device and one release per request' );
+	}
+
+	public function test_a_reserved_phone_names_its_account_and_when_the_reservation_ends(): void {
+		$this->grant( true );
+		$old = $this->device( 7, 'school-phone-0000001', 'kid-a', $this->now - 10 * self::DAY );
+		AudiencePresenceWriter::revoke( $old, AudiencePresenceWriter::REVOKED_REPLACED, null, $this->now - 5 * self::DAY );
+		AudiencePresenceWriter::request( 9, 'school-phone-0000001', AudiencePresenceEnrolment::REASON_RESERVED, $this->now - 60 );
+
+		$reservation = AudiencePresenceReader::reservation( 'school-phone-0000001', 9, $this->now );
+		$this->assertSame( array( 'user_id' => 7, 'until' => $this->now - 5 * self::DAY + AudiencePresenceEnrolment::RESERVATION ), $reservation );
+		$this->assertSame( 7, AudiencePresenceReader::reserving_user( 'school-phone-0000001', 9, $this->now ) );
+		$this->assertNull( AudiencePresenceReader::reservation( 'school-phone-0000001', 7, $this->now ), 'never reserved against its own account' );
+
+		$html = $this->render();
+		$this->assertStringContainsString(
+			'Ana Costa tried to activate presence on a phone reserved to Maria Silva until ' . gmdate( 'Y-m-d', $this->now - 5 * self::DAY + AudiencePresenceEnrolment::RESERVATION ) . '.',
+			$html
+		);
+	}
+
+	public function test_the_user_search_narrows_the_list_and_says_when_nothing_matches(): void {
+		$this->grant( true );
+		$this->device( 7, 'phone-maria-00000001', 'kid-a', $this->now - self::DAY );
+		$this->device( 8, 'phone-joao-000000002', 'kid-b', $this->now - self::DAY );
+		Functions\when( 'get_users' )->alias(
+			static function ( array $args ) {
+				return '*joão*' === $args['search'] ? array( '8' ) : array();
+			}
+		);
+
+		$_GET['s'] = 'joão';
+		$html      = $this->render();
+		$this->assertStringContainsString( '…00000002', $html );
+		$this->assertStringNotContainsString( '…00000001', $html );
+		$this->assertStringContainsString( 'value="joão"', $html );
+		$this->assertSame( array( 8 ), array_column( AudiencePresenceReader::active_devices( 10, 0, array( 8 ) ), 'user_id' ) );
+		$this->assertSame( 1, AudiencePresenceReader::count_active( array( 8, 9 ) ) );
+
+		$_GET['s'] = 'nobody';
+		$html      = $this->render();
+		$this->assertStringContainsString( 'No active device belongs to a user matching &quot;nobody&quot;.', $html );
+		$this->assertStringNotContainsString( '<table', $html );
+		$this->assertSame( array(), AudiencePresenceReader::active_devices( 10, 0, array() ) );
+		$this->assertSame( 0, AudiencePresenceReader::count_active( array() ) );
 	}
 
 	public function test_an_empty_install_says_so_instead_of_drawing_an_empty_table(): void {
@@ -254,7 +310,7 @@ class AudienceAdminPresenceTest extends TestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'No participant has activated a phone yet.', $html );
-		$this->assertStringContainsString( 'Nothing needs a look.', $html );
+		$this->assertStringNotContainsString( 'Needs attention', $html, 'nothing waits, so nothing asks' );
 		$this->assertStringNotContainsString( '<table', $html );
 	}
 
@@ -300,9 +356,9 @@ class AudienceAdminPresenceTest extends TestCase {
 			'activated_at' => $this->now - 30 * self::DAY,
 			'attested_at'  => null,
 		);
-		$this->assertSame( 'Expired; renews when the app goes online', AudienceAdminPresence::offline_until( $device, $this->now ) );
+		$this->assertSame( 'Expired on ' . gmdate( 'Y-m-d', $this->now - 23 * self::DAY ) . '; renews when the app goes online', AudienceAdminPresence::offline_until( $device, $this->now ) );
 		$device['attested_at'] = $this->now - self::DAY;
-		$this->assertSame( gmdate( 'Y-m-d H:i', $this->now + 6 * self::DAY ), AudienceAdminPresence::offline_until( $device, $this->now ) );
+		$this->assertSame( gmdate( 'Y-m-d', $this->now + 6 * self::DAY ), AudienceAdminPresence::offline_until( $device, $this->now ) );
 	}
 
 	public function test_a_renewal_moves_the_offline_until_date(): void {

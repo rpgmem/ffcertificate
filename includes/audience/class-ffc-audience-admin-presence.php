@@ -64,6 +64,11 @@ class AudienceAdminPresence {
 	public const CHANGE_DAYS = 30;
 
 	/**
+	 * The most accounts a user search narrows the list to.
+	 */
+	public const SEARCH_LIMIT = 200;
+
+	/**
 	 * Menu slug prefix.
 	 *
 	 * @var string
@@ -306,7 +311,8 @@ class AudienceAdminPresence {
 	}
 
 	/**
-	 * The stat cards, the device list and "Needs attention".
+	 * The stat cards, "Needs attention" and the device list, one above the
+	 * other as the approved mockup draws them (#2782).
 	 *
 	 * @param int $now Unix time.
 	 * @return void
@@ -328,14 +334,14 @@ class AudienceAdminPresence {
 		);
 		echo AdminUI::get_stat_card(
 			array(
-				'label' => __( 'Requests', 'ffcertificate' ),
+				'label' => __( 'Release requests', 'ffcertificate' ),
 				'value' => count( $requests ),
 				'icon'  => 'unlock',
 			)
 		);
 		echo AdminUI::get_stat_card(
 			array(
-				'label' => __( 'Signal alerts', 'ffcertificate' ),
+				'label' => __( 'Same-signal alerts', 'ffcertificate' ),
 				'value' => count( $groups ),
 				'icon'  => 'warning',
 			)
@@ -343,7 +349,7 @@ class AudienceAdminPresence {
 		echo AdminUI::get_stat_card(
 			array(
 				/* translators: %d: number of days */
-				'label' => sprintf( __( 'Changes in %d days', 'ffcertificate' ), self::CHANGE_DAYS ),
+				'label' => sprintf( __( 'Changes in the last %d days', 'ffcertificate' ), self::CHANGE_DAYS ),
 				'value' => $changes,
 				'icon'  => 'sync',
 			)
@@ -351,52 +357,81 @@ class AudienceAdminPresence {
 		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '</div>';
 
-		echo '<div class="ffc-dashboard"><div class="ffc-presence-main">';
-		$this->render_list( $active, $now );
-		echo '</div><aside class="ffc-dashboard__side">';
 		$this->render_attention( $requests, $groups, $now );
-		echo '</aside></div>';
+		$this->render_list( $now );
 	}
 
 	/**
-	 * The active devices, one page of them.
+	 * The active devices, one page of them, narrowed by the user search.
 	 *
-	 * @param int $total Active devices.
-	 * @param int $now   Unix time.
+	 * @param int $now Unix time.
 	 * @return void
 	 */
-	private function render_list( int $total, int $now ): void {
-		$paged   = max( 1, RequestInput::get_get_int( 'paged' ) );
-		$devices = AudiencePresenceReader::active_devices( self::PER_PAGE, ( $paged - 1 ) * self::PER_PAGE );
+	private function render_list( int $now ): void {
+		$search   = trim( RequestInput::get_get_string( 's' ) );
+		$user_ids = '' === $search ? null : self::matching_users( $search );
+		$total    = AudiencePresenceReader::count_active( $user_ids );
+		$paged    = max( 1, RequestInput::get_get_int( 'paged' ) );
+		$devices  = AudiencePresenceReader::active_devices( self::PER_PAGE, ( $paged - 1 ) * self::PER_PAGE, $user_ids );
 
 		echo '<div class="card ffc-presence-devices">';
-		echo '<h2 class="ffc-icon-phone">' . esc_html__( 'Active devices', 'ffcertificate' ) . '</h2>';
-		if ( array() === $devices ) {
+		echo '<h2 class="ffc-icon-phone">' . esc_html__( 'Devices', 'ffcertificate' ) . '</h2>';
+
+		if ( '' === $search && array() === $devices ) {
 			echo '<p>' . esc_html__( 'No participant has activated a phone yet. A device appears here once someone activates it on the app\'s Presence screen.', 'ffcertificate' ) . '</p>';
+			echo '</div>';
+			return;
+		}
+
+		echo '<form method="get" class="ffc-list-filters ffc-presence-search" action="' . esc_url( admin_url( 'admin.php' ) ) . '">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( $this->menu_slug . self::SLUG_SUFFIX ) . '">';
+		echo '<label for="ffc-presence-search">' . esc_html__( 'Search user', 'ffcertificate' ) . '</label>';
+		echo '<input type="search" id="ffc-presence-search" name="s" value="' . esc_attr( $search ) . '" placeholder="' . esc_attr__( 'Name, username or e-mail', 'ffcertificate' ) . '">';
+		AdminUI::render_button(
+			array(
+				'label'    => __( 'Search', 'ffcertificate' ),
+				'category' => 'neutral',
+				'icon'     => 'search',
+				'type'     => 'submit',
+			)
+		);
+		echo '</form>';
+
+		if ( array() === $devices ) {
+			/* translators: %s: search term */
+			echo '<p>' . esc_html( sprintf( __( 'No active device belongs to a user matching "%s".', 'ffcertificate' ), $search ) ) . '</p>';
 			echo '</div>';
 			return;
 		}
 
 		echo '<div class="ffc-presence-scroll"><table class="widefat striped ffc-presence-table"><thead><tr>';
 		foreach ( array(
-			__( 'Participant', 'ffcertificate' ),
+			__( 'User', 'ffcertificate' ),
 			__( 'Device', 'ffcertificate' ),
 			__( 'Active since', 'ffcertificate' ),
-			__( 'Works offline until', 'ffcertificate' ),
+			__( 'Offline until', 'ffcertificate' ),
 			/* translators: %d: number of days */
-			sprintf( __( 'Changes in %d days', 'ffcertificate' ), self::CHANGE_DAYS ),
+			sprintf( __( 'Changes (%d days)', 'ffcertificate' ), self::CHANGE_DAYS ),
 			__( 'Actions', 'ffcertificate' ),
 		) as $heading ) {
 			echo '<th scope="col">' . esc_html( $heading ) . '</th>';
 		}
 		echo '</tr></thead><tbody>';
 		foreach ( $devices as $device ) {
+			$family = AudiencePresenceAgent::label( $device['platform'], $device['browser'] );
 			echo '<tr>';
 			echo '<td>' . esc_html( self::user_label( $device['user_id'] ) ) . '</td>';
-			echo '<td><code>' . esc_html( self::device_label( $device['device_id'] ) ) . '</code></td>';
-			echo '<td>' . esc_html( DateFormatter::format_datetime( $device['activated_at'] ) ) . '</td>';
+			echo '<td>' . ( '' !== $family ? esc_html( $family ) . ' ' : '' ) . '<code>' . esc_html( self::device_label( $device['device_id'] ) ) . '</code></td>';
+			echo '<td>' . esc_html( DateFormatter::format_date( $device['activated_at'] ) ) . '</td>';
 			echo '<td>' . esc_html( self::offline_until( $device, $now ) ) . '</td>';
-			echo '<td>' . esc_html( (string) AudiencePresenceReader::changes_since( $device['user_id'], $now - self::CHANGE_DAYS * DAY_IN_SECONDS ) ) . '</td>';
+			echo '<td>' . esc_html(
+				sprintf(
+					/* translators: 1: changes made, 2: changes allowed */
+					__( '%1$d of %2$d', 'ffcertificate' ),
+					AudiencePresenceReader::changes_since( $device['user_id'], $now - self::CHANGE_DAYS * DAY_IN_SECONDS ),
+					AudiencePresenceEnrolment::MAX_CHANGES
+				)
+			) . '</td>';
 			echo '<td><div class="ffc-presence-actions">';
 			AdminUI::render_button(
 				array(
@@ -420,9 +455,10 @@ class AudienceAdminPresence {
 
 		$pages = (int) ceil( $total / self::PER_PAGE );
 		if ( $pages > 1 ) {
+			$base  = '' === $search ? $this->url() : $this->url( array( 's' => $search ) );
 			$links = paginate_links(
 				array(
-					'base'    => add_query_arg( 'paged', '%#%', $this->url() ),
+					'base'    => add_query_arg( 'paged', '%#%', $base ),
 					'format'  => '',
 					'current' => $paged,
 					'total'   => $pages,
@@ -430,11 +466,34 @@ class AudienceAdminPresence {
 			);
 			echo '<div class="tablenav"><div class="tablenav-pages">' . wp_kses_post( (string) $links ) . '</div></div>';
 		}
+		echo '<p class="description ffc-presence-footnote">' . esc_html__( 'Deactivating revokes the device\'s key: terminals refuse its code from their next sync. Every release, refusal and deactivation is written to the activity log.', 'ffcertificate' ) . '</p>';
 		echo '</div>';
 	}
 
 	/**
-	 * What an administrator has to answer.
+	 * The accounts a search term names, by name, username or e-mail.
+	 *
+	 * Capped, so a one-letter search cannot turn into an IN list of every
+	 * account; a term that broad narrows nothing anyway.
+	 *
+	 * @param string $search Search term.
+	 * @return list<int>
+	 */
+	private static function matching_users( string $search ): array {
+		$ids = get_users(
+			array(
+				'search'         => '*' . $search . '*',
+				'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
+				'fields'         => 'ID',
+				'number'         => self::SEARCH_LIMIT,
+			)
+		);
+		return array_values( array_map( 'intval', $ids ) );
+	}
+
+	/**
+	 * What an administrator has to answer, above the list, and nothing at
+	 * all when nothing waits.
 	 *
 	 * @param array $requests Pending requests.
 	 * @param array $groups   Shared-signals groups.
@@ -444,29 +503,43 @@ class AudienceAdminPresence {
 	 * @return void
 	 */
 	private function render_attention( array $requests, array $groups, int $now ): void {
-		echo '<div class="card ffc-presence-attention">';
-		echo '<h2 class="ffc-icon-warning">' . esc_html__( 'Needs attention', 'ffcertificate' ) . '</h2>';
 		if ( array() === $requests && array() === $groups ) {
-			echo '<p>' . esc_html__( 'Nothing needs a look.', 'ffcertificate' ) . '</p></div>';
 			return;
 		}
 
+		echo '<div class="card ffc-presence-attention">';
+		echo '<h2 class="ffc-icon-warning">' . esc_html__( 'Needs attention', 'ffcertificate' ) . '</h2>';
 		echo '<ul class="ffc-presence-attention-list">';
 		foreach ( $requests as $request ) {
+			$name     = self::user_label( $request['user_id'] );
 			$reserved = AudiencePresenceEnrolment::REASON_RESERVED === $request['reason'];
+			if ( $reserved ) {
+				$title       = __( 'Phone of another account', 'ffcertificate' );
+				$reservation = AudiencePresenceReader::reservation( $request['device_id'], $request['user_id'], $now );
+				if ( null === $reservation ) {
+					/* translators: %s: participant */
+					$text = sprintf( __( '%s tried to activate presence on a phone reserved to another account.', 'ffcertificate' ), $name );
+				} elseif ( null === $reservation['until'] ) {
+					/* translators: 1: participant, 2: the account that uses the phone */
+					$text = sprintf( __( '%1$s tried to activate presence on a phone %2$s still uses.', 'ffcertificate' ), $name, self::user_label( $reservation['user_id'] ) );
+				} else {
+					/* translators: 1: participant, 2: the account the phone is reserved to, 3: date */
+					$text = sprintf( __( '%1$s tried to activate presence on a phone reserved to %2$s until %3$s.', 'ffcertificate' ), $name, self::user_label( $reservation['user_id'] ), DateFormatter::format_date( $reservation['until'] ) );
+				}
+			} else {
+				$title = __( 'Change limit', 'ffcertificate' );
+				/* translators: 1: participant, 2: the change asked for (one more than the limit), 3: number of days */
+				$text = sprintf( __( '%1$s asked for device change number %2$d in %3$d days.', 'ffcertificate' ), $name, AudiencePresenceEnrolment::MAX_CHANGES + 1, self::CHANGE_DAYS );
+			}
 			echo '<li>';
-			echo '<p>' . esc_html(
-				$reserved
-					/* translators: 1: participant, 2: date and time */
-					? sprintf( __( '%1$s tried to activate a phone reserved to another account (%2$s).', 'ffcertificate' ), self::user_label( $request['user_id'] ), DateFormatter::format_datetime( $request['created_at'] ) )
-					/* translators: 1: participant, 2: maximum number of changes, 3: number of days, 4: date and time */
-					: sprintf( __( '%1$s already changed devices %2$d times in %3$d days and asks for one more (%4$s).', 'ffcertificate' ), self::user_label( $request['user_id'] ), AudiencePresenceEnrolment::MAX_CHANGES, self::CHANGE_DAYS, DateFormatter::format_datetime( $request['created_at'] ) )
-			) . '</p>';
+			echo '<p class="ffc-presence-attention-kind">' . esc_html( $title ) . '</p>';
+			echo '<p>' . esc_html( $text ) . ' <span class="ffc-presence-attention-when">· ' . esc_html( DateFormatter::format_datetime( $request['created_at'] ) ) . '</span></p>';
 			echo '<div class="ffc-presence-actions">';
 			$this->action_form(
 				'approve',
 				(string) $request['id'],
-				$reserved ? __( 'Release', 'ffcertificate' ) : __( 'Release one change', 'ffcertificate' ),
+				/* translators: %s: participant */
+				$reserved ? sprintf( __( 'Release to %s', 'ffcertificate' ), $name ) : __( 'Release one change', 'ffcertificate' ),
 				'caution',
 				'unlock',
 				$reserved
@@ -479,15 +552,14 @@ class AudienceAdminPresence {
 		foreach ( $groups as $group ) {
 			$names = array_map( array( self::class, 'user_label' ), $group['user_ids'] );
 			echo '<li>';
+			echo '<p class="ffc-presence-attention-kind">' . esc_html__( 'Alert · same signals', 'ffcertificate' ) . '</p>';
 			echo '<p>' . esc_html(
 				sprintf(
-					/* translators: 1: number of accounts, 2: list of participants */
-					_n( '%1$d account reports the same device signals: %2$s.', '%1$d accounts report the same device signals: %2$s.', count( $names ), 'ffcertificate' ),
-					count( $names ),
+					/* translators: %s: list of participants */
+					__( 'The devices of %s report the same signals. It may be the same phone, or two identical school phones.', 'ffcertificate' ),
 					implode( ', ', $names )
 				)
 			) . '</p>';
-			echo '<p class="description">' . esc_html__( 'Identical school phones look the same, so this is a reason to look, not proof of sharing.', 'ffcertificate' ) . '</p>';
 			echo '<div class="ffc-presence-actions">';
 			foreach ( $group['user_ids'] as $user_id ) {
 				AdminUI::render_button(
@@ -652,9 +724,10 @@ class AudienceAdminPresence {
 	public static function offline_until( array $device, int $now ): string {
 		$until = ( $device['attested_at'] ?? $device['activated_at'] ) + AudiencePresenceAttestation::TTL;
 		if ( $until < $now ) {
-			return __( 'Expired; renews when the app goes online', 'ffcertificate' );
+			/* translators: %s: date */
+			return sprintf( __( 'Expired on %s; renews when the app goes online', 'ffcertificate' ), DateFormatter::format_date( $until ) );
 		}
-		return DateFormatter::format_datetime( $until );
+		return DateFormatter::format_date( $until );
 	}
 
 	/**

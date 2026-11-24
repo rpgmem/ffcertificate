@@ -35651,11 +35651,7 @@ msgid_plural "%1$d device changes in the last %2$d days."
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "%1$s already changed devices %2$d times in %3$d days and asks for one more (%4$s)."
-msgstr ""
 
-msgid "%1$s tried to activate a phone reserved to another account (%2$s)."
-msgstr ""
 
 msgid "Activated"
 msgstr ""
@@ -35672,8 +35668,6 @@ msgstr ""
 msgid "Back to presence devices"
 msgstr ""
 
-msgid "Changes in %d days"
-msgstr ""
 
 msgid "Deactivate"
 msgstr ""
@@ -35693,14 +35687,10 @@ msgstr ""
 msgid "Device history: %s"
 msgstr ""
 
-msgid "Expired; renews when the app goes online"
-msgstr ""
 
 msgid "History of %s"
 msgstr ""
 
-msgid "Identical school phones look the same, so this is a reason to look, not proof of sharing."
-msgstr ""
 
 msgid "Manage presence devices"
 msgstr ""
@@ -35711,8 +35701,6 @@ msgstr ""
 msgid "Nothing changed: someone already answered this, or the device is no longer active."
 msgstr ""
 
-msgid "Nothing needs a look."
-msgstr ""
 
 msgid "One more device change allowed. The participant can now activate the phone in the app."
 msgstr ""
@@ -35735,8 +35723,6 @@ msgstr ""
 msgid "Refuse"
 msgstr ""
 
-msgid "Release"
-msgstr ""
 
 msgid "Release a phone reserved to another account, allow one more device change, dismiss a shared-signals alert and deactivate a participant's presence device."
 msgstr ""
@@ -35753,14 +35739,8 @@ msgstr ""
 msgid "Request refused. The participant keeps the device they had."
 msgstr ""
 
-msgid "Requests"
-msgstr ""
 
-msgid "Scheduling → Presence devices lists the active phones with when each was activated and until when it works offline, and a History per participant with every phone they used and why each one stopped. Deactivate stops a phone at once: its codes are refused from each terminal's next sync and the app asks to activate a phone again. Needs attention holds the requests to answer: Release frees a reserved phone from the other account, Release one change lets one more activation through beyond the limit, and Refuse keeps things as they are. A shared-signals alert can be dismissed, and comes back when another phone reports the same signals. Every answer is in the activity log. The screen needs ffc_manage_audiences_presence."
-msgstr ""
 
-msgid "Signal alerts"
-msgstr ""
 
 msgid "The change could not be saved. Try again."
 msgstr ""
@@ -35780,10 +35760,6 @@ msgstr ""
 msgid "open Presence devices: deactivate a participant's phone, release a reserved one, allow one more device change and dismiss shared-signals alerts. Held by the Manager tier and above; existing holders of ffc_manage_audiences received it on update."
 msgstr ""
 
-msgid "%1$d account reports the same device signals: %2$s."
-msgid_plural "%1$d accounts report the same device signals: %2$s."
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "A terminal holds at most %d events."
 msgstr ""
@@ -37014,6 +36990,72 @@ msgid "The Attendance link in a booking's row of Audience Bookings opens its att
 msgstr ""
 
 msgid "The Check-in tab starts with the check-in window: Opens is the earliest time Open check-in works, and Closes is when an open check-in closes on its own; by default the window runs from the start of the event to 30 minutes after its end. On an event of several days, each day keeps the same distance from its own start and end, and either time may lie up to 12 hours from the event's hours. Below it come who may check in and the paths the event takes. The times, who and the paths are saved together by Save changes in the side column, which only whoever holds ffc_manage_audiences sees. Who may check in is Enrolled only, the default, or Open: anyone signed in can check in, and the attendance is recorded without enrolling the person, so it is listed as not enrolled, counts toward no attendance rule and earns no post-event invitation. An open event that takes terminals is also listed in the app of every person signed in, so they can show a code for it. The paths are the projected QR code and the terminal; a new event takes the paths set under Scheduling → Settings → Check-in, and an event that already existed has both on. A path that is off refuses its readings: the projected code cannot be shown or scanned, and a terminal cannot hold the event or record a reading for it. With only the terminal on, Open check-in still opens the window the terminals need; with both off, the event takes no check-in and attendance is marked by hand."
+msgstr ""
+
+msgid "Release requests"
+msgstr ""
+
+msgid "Same-signal alerts"
+msgstr ""
+
+msgid "Changes in the last %d days"
+msgstr ""
+
+msgid "Devices"
+msgstr ""
+
+msgid "Search user"
+msgstr ""
+
+msgid "Name, username or e-mail"
+msgstr ""
+
+msgid "No active device belongs to a user matching \"%s\"."
+msgstr ""
+
+msgid "Offline until"
+msgstr ""
+
+msgid "Changes (%d days)"
+msgstr ""
+
+msgid "%1$d of %2$d"
+msgstr ""
+
+msgid "Deactivating revokes the device's key: terminals refuse its code from their next sync. Every release, refusal and deactivation is written to the activity log."
+msgstr ""
+
+msgid "Phone of another account"
+msgstr ""
+
+msgid "%s tried to activate presence on a phone reserved to another account."
+msgstr ""
+
+msgid "%1$s tried to activate presence on a phone %2$s still uses."
+msgstr ""
+
+msgid "%1$s tried to activate presence on a phone reserved to %2$s until %3$s."
+msgstr ""
+
+msgid "Change limit"
+msgstr ""
+
+msgid "%1$s asked for device change number %2$d in %3$d days."
+msgstr ""
+
+msgid "Release to %s"
+msgstr ""
+
+msgid "Alert · same signals"
+msgstr ""
+
+msgid "The devices of %s report the same signals. It may be the same phone, or two identical school phones."
+msgstr ""
+
+msgid "Expired on %s; renews when the app goes online"
+msgstr ""
+
+msgid "Scheduling → Presence devices lists the active phones, searchable by user, each with its platform and browser, when it was activated, until when it works offline and how many of the 3 changes allowed in 30 days its owner used, and a History per participant with every phone they used and why each one stopped. Deactivate stops a phone at once: its codes are refused from each terminal's next sync and the app asks to activate a phone again. Needs attention, above the list and only when something waits, holds the requests to answer: Release to the participant frees a phone reserved to another account (the item names that account and until when the phone stays reserved), Release one change lets one more activation through beyond the limit, and Refuse keeps things as they are. A shared-signals alert can be dismissed, and comes back when another phone reports the same signals. Every answer is in the activity log. The screen needs ffc_manage_audiences_presence."
 msgstr ""
 
 msgid "This terminal is offline. Pairing it needs a connection; once paired, it reads codes offline."
