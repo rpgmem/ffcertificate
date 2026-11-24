@@ -62,6 +62,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The check-in terminal fits a short tablet screen** (#2820). The terminal is now exactly the viewport, with only the screen between header and footer able to scroll; display sizes and the illustration follow the screen's height; and the reading screen lost an empty 320px block that a camera-only rule left under its heading.
 - **The terminal fits a short screen and turns with the tablet** (#2822). The camera viewfinder follows the screen's height, the operator menu's device check moved beside the event queue and each menu column scrolls on its own, so an 8" tablet no longer scrolls; the installed terminal now follows the tablet's rotation instead of staying in landscape (reinstall it to apply at once).
 - **The terminal follows the visible height** (#2824). Its sizes read `dvh` instead of `vh`, so the Android navigation bar showing (pulled up, or when the camera opens) no longer pushes the screen into scrolling; the device check also shows the visible screen in CSS pixels and its density.
+- **Presence no longer offers activation on a phone already activated** (#2826). The Activate card and its facts set their own `display`, which overrode `hidden`, so the card showed above the code with empty boxes.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 
