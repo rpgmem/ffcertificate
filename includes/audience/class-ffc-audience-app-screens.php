@@ -77,6 +77,26 @@ final class AudienceAppScreens {
 	public static function init(): void {
 		add_action( 'site_pwa_register_screens', array( self::class, 'register' ), 10, 2 );
 		add_filter( 'map_meta_cap', array( self::class, 'map_app_caps' ), 10, 3 );
+		add_filter( 'site_pwa_lock_required', array( self::class, 'lock_required' ), 10, 2 );
+	}
+
+	/**
+	 * The app lock is mandatory for operators (site-pwa#38): an account that
+	 * may check people in or pair terminals sees nothing in the app until
+	 * the phone's screen lock guards it. Everyone else is only invited.
+	 *
+	 * @param mixed $required What the app or an earlier filter decided.
+	 * @param mixed $user     The signed-in user.
+	 * @return bool
+	 */
+	public static function lock_required( $required, $user ): bool {
+		if ( true === $required ) {
+			return true;
+		}
+		if ( ! $user instanceof \WP_User || $user->ID <= 0 || ! \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'audiences' ) ) {
+			return false;
+		}
+		return user_can( $user, self::OPERATOR_CAPABILITY ) || user_can( $user, AudienceTerminalPairing::CAP );
 	}
 
 	/**

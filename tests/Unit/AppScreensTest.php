@@ -85,6 +85,7 @@ class AppScreensTest extends TestCase {
 
 		$this->assertSame( 10, has_filter( 'site_pwa_profile_line', array( DashboardAppScreens::class, 'profile_line' ) ), 'the line under the name on More' );
 		$this->assertSame( 10, has_filter( 'map_meta_cap', array( AudienceAppScreens::class, 'map_app_caps' ) ), 'the operator screens wait for presence (#2828)' );
+		$this->assertSame( 10, has_filter( 'site_pwa_lock_required', array( AudienceAppScreens::class, 'lock_required' ) ), 'operators must lock the app (#2830)' );
 		$this->assertSame(
 			array(
 				array( 'site_pwa_register_screens', array( DashboardAppScreens::class, 'register' ), 2 ),
@@ -348,6 +349,31 @@ class AppScreensTest extends TestCase {
 				unset( $GLOBALS['wpdb'] );
 			}
 		}
+	}
+
+	public function test_the_app_lock_is_mandatory_for_operators_only(): void {
+		$operator = new \WP_User( 7 );
+		$user_can = array();
+		Functions\when( 'user_can' )->alias(
+			static function ( $user, $cap ) use ( &$user_can ) {
+				return in_array( $cap, $user_can[ $user->ID ] ?? array(), true );
+			}
+		);
+
+		$this->assertFalse( AudienceAppScreens::lock_required( false, $operator ), 'the audience module is off' );
+		$this->assertTrue( AudienceAppScreens::lock_required( true, $operator ), 'another plugin already required it' );
+
+		$this->settings['module_audiences_enabled'] = true;
+		$this->assertFalse( AudienceAppScreens::lock_required( false, $operator ), 'a participant is only invited' );
+
+		$user_can[7] = array( 'ffc_checkin_audiences' );
+		$this->assertTrue( AudienceAppScreens::lock_required( false, $operator ), 'a check-in operator' );
+
+		$user_can[7] = array( 'ffc_manage_audiences_terminals' );
+		$this->assertTrue( AudienceAppScreens::lock_required( false, $operator ), 'a terminal operator' );
+
+		$this->assertFalse( AudienceAppScreens::lock_required( false, new \WP_User( 0 ) ), 'signed out' );
+		$this->assertFalse( AudienceAppScreens::lock_required( false, 'not a user' ) );
 	}
 
 	public function test_my_terminals_counts_the_operators_active_terminals_and_those_not_heard_from(): void {
