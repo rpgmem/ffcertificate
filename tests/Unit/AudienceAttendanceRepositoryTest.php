@@ -268,6 +268,27 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 		$this->assertSame( $expected, AudienceCheckinWindowWriter::auto_close_at( $all_day, '2027-01-15' ) );
 	}
 
+	public function test_an_event_moves_both_ends_of_its_window_by_its_own_distances(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
+		$zone = new \DateTimeZone( 'America/Sao_Paulo' );
+
+		$day = (object) array(
+			'booking_date'         => '2027-01-15',
+			'start_time'           => '08:00:00',
+			'end_time'             => '12:00:00',
+			'is_all_day'           => '0',
+			'checkin_opens_before' => '45',
+			'checkin_closes_after' => '-15',
+		);
+		$this->assertSame( ( new \DateTimeImmutable( '2027-01-15 07:15', $zone ) )->getTimestamp(), AudienceCheckinWindowWriter::planned_open_at( $day, '2027-01-15' ) );
+		$this->assertSame( ( new \DateTimeImmutable( '2027-01-15 11:45', $zone ) )->getTimestamp(), AudienceCheckinWindowWriter::auto_close_at( $day, '2027-01-15' ) );
+
+		$day->checkin_opens_before = null;
+		$day->checkin_closes_after = '9999';
+		$this->assertSame( ( new \DateTimeImmutable( '2027-01-15 08:00', $zone ) )->getTimestamp(), AudienceCheckinWindowWriter::planned_open_at( $day, '2027-01-15' ), 'No distance opens at the start.' );
+		$this->assertSame( ( new \DateTimeImmutable( '2027-01-16 00:00', $zone ) )->getTimestamp(), AudienceCheckinWindowWriter::auto_close_at( $day, '2027-01-15' ), 'A stored distance is held to 12 hours.' );
+	}
+
 	public function test_the_rule_is_stored_normalised_and_single_stores_nothing(): void {
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		$written = array();

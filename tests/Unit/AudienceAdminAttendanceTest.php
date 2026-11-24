@@ -136,6 +136,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
 		Functions\when( '_x' )->returnArg();
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
@@ -435,7 +436,9 @@ class AudienceAdminAttendanceTest extends TestCase {
 		);
 		$this->locations = array( array( 'id' => 'loc_a' ) );
 
-		$this->assertSame( 'opened', $this->page()->perform( 'open', $this->booking(), self::TODAY, self::NOW ) );
+		// At the booking's 09:00 start, the moment its window opens.
+		$at = self::utc( '2027-03-01 09:00' );
+		$this->assertSame( 'opened', $this->page()->perform( 'open', $this->booking(), self::TODAY, $at ) );
 
 		$this->assertSame(
 			array(
@@ -446,7 +449,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 						'booking_id'         => 5,
 						'window_date'        => self::TODAY,
 						'rotation_seconds'   => 300,
-						'opened_at'          => self::NOW,
+						'opened_at'          => $at,
 						// 30 minutes after the booking's 12:00 end, today.
 						'closes_at'          => self::utc( '2027-03-01 12:30' ),
 						'opened_by'          => 3,
@@ -997,7 +1000,8 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertLessThan( strpos( $html, 'ffc-attendance-summary' ), strpos( $html, 'ffc-vtabs__panels' ), 'The summary sits after the tabs.' );
 		$this->assertStringContainsString( 'id="ffc-attendance-summary-rule"', $html );
 		$this->assertStringContainsString( 'id="ffc-attendance-summary-post-event"', $html );
-		$this->assertSame( 2, substr_count( $html, 'class="ffc-attendance-present"' ), 'The count shows in the tab and in the summary, so the poll updates both.' );
+		$this->assertSame( 3, substr_count( $html, 'class="ffc-attendance-present"' ), 'The count shows in the tab, in the Check-in side column and in the summary, so the poll updates all three.' );
+		$this->assertMatchesRegularExpression( '/class="card ffc-attendance-summary" data-ffc-vtab-only="participants rule post-event"/', $html, 'The summary belongs to every tab but Check-in.' );
 
 		$_GET['tab'] = AudienceAdminAttendance::TAB_CHECKIN;
 		ob_start();
@@ -1078,16 +1082,23 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$html = $this->checkin_tab();
 
 		$this->assertMatchesRegularExpression( '/<input\b[^>]*name="checkin_open"[^>]*value="0"[^>]*checked/', $html, 'Enrolled only is the default.' );
+		// One form, saved by the side column's button (#2782), not on change.
+		$this->assertMatchesRegularExpression( '/<form method="post" id="ffc-checkin-form"[^>]*>.*name="ffc_attendance_action" value="checkin"/s', $html );
 		foreach ( array( 'checkin_open', 'checkin_qr', 'checkin_terminal' ) as $name ) {
-			$this->assertMatchesRegularExpression( '/<input\b[^>]*name="' . $name . '"[^>]*data-ffc-autosave-record="audience_booking:5"/', $html, $name . ' saves on change.' );
+			$this->assertDoesNotMatchRegularExpression( '/<input\b[^>]*name="' . $name . '"[^>]*data-ffc-autosave-record/', $html, $name . ' waits for Save.' );
 		}
-		$this->assertStringContainsString( '2 of 3 allowed', $html );
+		$this->assertMatchesRegularExpression( '/<input type="time" id="ffc-checkin-opens" name="checkin_opens" required form="ffc-checkin-form" value="09:00">/', $html, 'The window opens at the start by default.' );
+		$this->assertMatchesRegularExpression( '/<input type="time" id="ffc-checkin-closes" name="checkin_closes" required form="ffc-checkin-form" value="12:30">/', $html, 'And closes 30 minutes after the end.' );
+		$this->assertMatchesRegularExpression( '/<div class="card ffc-checkin-save" data-ffc-vtab-only="checkin"><button type="submit"[^>]*form="ffc-checkin-form">Save changes<\/button>/', $html );
+		$this->assertStringContainsString( '2 of 3 allowed in this event', $html );
 		$this->assertStringContainsString( 'Entrance A', $html );
+		$this->assertStringContainsString( 'Pair terminal', $html );
 		$this->assertStringContainsString( '3 waiting to be sent', $html );
-		$this->assertStringContainsString( '1 terminal has not sent its readings yet.', $html );
-		$this->assertMatchesRegularExpression( '/Projected QR code: <strong>1<\/strong>/', $html );
-		$this->assertMatchesRegularExpression( '/Terminal: <strong>1<\/strong>/', $html );
-		$this->assertMatchesRegularExpression( '/By hand: <strong>0<\/strong>/', $html );
+		$this->assertStringContainsString( '1 terminal has not sent its readings yet (Entrance B, seen at', $html );
+		$this->assertMatchesRegularExpression( '/Projected QR code<\/dt><dd class="ffc-facts__value">1</', $html );
+		$this->assertMatchesRegularExpression( '/Terminal<\/dt><dd class="ffc-facts__value">1</', $html );
+		$this->assertMatchesRegularExpression( '/By hand<\/dt><dd class="ffc-facts__value">0</', $html );
+		$this->assertStringContainsString( 'Room 3 · 2027-03-01 · 09:00–12:00 · 2 expected', $html, 'The line under the name says where, when and how many.' );
 		$this->assertStringContainsString( 'name="rotation_seconds"', $html, 'The projected QR code takes its rotation when it opens.' );
 	}
 
@@ -1099,7 +1110,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertStringNotContainsString( 'name="rotation_seconds"', $html );
 		$this->assertStringContainsString( 'The projected QR code is off for this event.', $html );
 		$this->assertContains( 'Open check-in', self::button_labels( $html ) );
-		$this->assertSame( 'opened_terminal', $this->page()->perform( 'open', $this->booking_row, self::TODAY, self::NOW ) );
+		$this->assertSame( 'opened_terminal', $this->page()->perform( 'open', $this->booking_row, self::TODAY, self::utc( '2027-03-01 09:00' ) ) );
 		$this->assertCount( 1, $this->writes_to( 'wp_ffc_audience_checkin_windows' ), 'The window opens for the terminals.' );
 	}
 
@@ -1115,26 +1126,106 @@ class AudienceAdminAttendanceTest extends TestCase {
 
 		$this->assertStringContainsString( 'This event takes no check-in: both paths are off.', $html );
 		$this->assertStringNotContainsString( 'value="open"', $html );
-		$this->assertStringNotContainsString( 'allowed</p>', $html, 'No terminal section while the terminal path is off.' );
+		$this->assertStringNotContainsString( 'allowed in this event', $html, 'No terminal section while the terminal path is off.' );
 		$this->assertSame( 'no_path', $this->page()->perform( 'open', $this->booking_row, self::TODAY, self::NOW ) );
 		$this->assertSame( array(), $this->writes, 'No window is opened.' );
 		$this->assertSame( 'error', AudienceAdminAttendance::messages()['no_path'][1] );
 	}
 
+	public function test_save_stores_who_the_paths_and_the_window_as_distances_from_the_hours(): void {
+		$this->caps = array( 'ffc_checkin_audiences', 'ffc_manage_audiences' );
+		$_POST      = array(
+			'checkin_open'   => '1',
+			'checkin_qr'     => '1',
+			'checkin_opens'  => '08:30',
+			'checkin_closes' => '13:00',
+		);
+
+		$this->assertSame( 'checkin_saved', $this->page()->perform( 'checkin', $this->booking(), self::TODAY, self::NOW ) );
+
+		$update = $this->writes_to( 'wp_ffc_audience_bookings' );
+		$this->assertCount( 1, $update );
+		$this->assertSame(
+			array(
+				'checkin_open'         => 1,
+				'checkin_qr'           => 1,
+				'checkin_terminal'     => 0,
+				// 30 minutes before the 09:00 start, an hour after the 12:00 end.
+				'checkin_opens_before' => 30,
+				'checkin_closes_after' => 60,
+			),
+			$update[0][2]
+		);
+		$this->assertSame( AudienceAdminAttendance::TAB_CHECKIN, AudienceAdminAttendance::tab_for( 'checkin' ) );
+	}
+
+	public function test_save_keeps_the_default_window_as_null_so_the_event_follows_it(): void {
+		$this->caps = array( 'ffc_checkin_audiences', 'ffc_manage_audiences' );
+		$_POST      = array(
+			'checkin_open'     => '0',
+			'checkin_terminal' => '1',
+			'checkin_opens'    => '09:00',
+			'checkin_closes'   => '12:30',
+		);
+
+		$this->assertSame( 'checkin_saved', $this->page()->perform( 'checkin', $this->booking(), self::TODAY, self::NOW ) );
+
+		$row = $this->writes_to( 'wp_ffc_audience_bookings' )[0][2];
+		$this->assertNull( $row['checkin_opens_before'] );
+		$this->assertNull( $row['checkin_closes_after'] );
+		$this->assertSame( 0, $row['checkin_qr'] );
+	}
+
+	public function test_save_refuses_a_window_too_far_from_the_hours_and_needs_the_manage_capability(): void {
+		$_POST = array(
+			'checkin_opens'  => '08:00',
+			'checkin_closes' => '12:30',
+		);
+		$this->assertSame( 'denied', $this->page()->perform( 'checkin', $this->booking(), self::TODAY, self::NOW ), 'Running check-in is not changing it.' );
+
+		$this->caps = array( 'ffc_checkin_audiences', 'ffc_manage_audiences' );
+		foreach ( array( array( '', '12:30' ), array( '9h', '12:30' ), array( '25:00', '12:30' ) ) as $times ) {
+			$_POST = array(
+				'checkin_opens'  => $times[0],
+				'checkin_closes' => $times[1],
+			);
+			$this->assertSame( 'window_invalid', $this->page()->perform( 'checkin', $this->booking(), self::TODAY, self::NOW ), implode( ' / ', $times ) );
+		}
+		$this->assertSame( array(), $this->writes, 'Nothing is stored.' );
+		$this->assertSame( 'error', AudienceAdminAttendance::messages()['window_invalid'][1] );
+	}
+
+	public function test_window_offsets_read_a_closing_time_earlier_than_the_opening_one_as_past_midnight(): void {
+		$booking = $this->booking();
+
+		$this->assertSame( array( 'opens_before' => 0, 'closes_after' => 30 ), AudienceAdminAttendance::window_offsets( $booking, self::TODAY, '09:00', '12:30' ) );
+		$this->assertSame( array( 'opens_before' => -15, 'closes_after' => -60 ), AudienceAdminAttendance::window_offsets( $booking, self::TODAY, '09:15', '11:00' ), 'Either end may sit inside the hours.' );
+		$this->assertNull( AudienceAdminAttendance::window_offsets( $booking, self::TODAY, '09:00', '01:00' ), 'Past midnight, 13 hours after the end, is too far.' );
+		$this->assertSame( array( 'opens_before' => -660, 'closes_after' => 540 ), AudienceAdminAttendance::window_offsets( $booking, self::TODAY, '20:00', '21:00' ), 'Eleven hours after the start is still inside the 12-hour bound.' );
+	}
+
+	public function test_open_waits_for_the_window_the_event_sets(): void {
+		$booking = $this->booking( array( 'checkin_opens_before' => '-30' ) );
+
+		$this->assertSame( 'too_early', $this->page()->perform( 'open', $booking, self::TODAY, self::utc( '2027-03-01 09:10' ) ) );
+		$this->assertSame( array(), $this->writes, 'No window is opened before its time.' );
+		$this->assertSame( 'opened', $this->page()->perform( 'open', $booking, self::TODAY, self::utc( '2027-03-01 09:30' ) ) );
+	}
+
 	public function test_the_poll_carries_no_code_while_the_projected_path_is_off(): void {
 		$this->windows = array(
-			array(
-				'id'                 => '9',
-				'booking_id'         => '5',
-				'window_date'        => self::TODAY,
-				'rotation_seconds'   => '60',
-				'opened_at'          => (string) ( self::NOW - 60 ),
-				'closes_at'          => (string) ( self::NOW + 600 ),
-				'closed_at'          => null,
-				'opened_by'          => '3',
-				'closed_by'          => null,
-				'geofence_locations' => '',
-			),
+		array(
+			'id'                 => '9',
+			'booking_id'         => '5',
+			'window_date'        => self::TODAY,
+			'rotation_seconds'   => '60',
+			'opened_at'          => (string) ( self::NOW - 60 ),
+			'closes_at'          => (string) ( self::NOW + 600 ),
+			'closed_at'          => null,
+			'opened_by'          => '3',
+			'closed_by'          => null,
+			'geofence_locations' => '',
+		),
 		);
 
 		$state = AudienceAttendanceAjax::state( $this->booking( array( 'checkin_qr' => '0' ) ), self::TODAY, true, self::NOW );

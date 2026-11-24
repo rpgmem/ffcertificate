@@ -147,9 +147,6 @@ class AudienceRecordAutosave {
 					),
 					'post_event_attendees_only' => array( 'type' => 'bool' ),
 					// The Check-in tab (#2748).
-					'checkin_open'              => array( 'type' => 'bool' ),
-					'checkin_qr'                => array( 'type' => 'bool' ),
-					'checkin_terminal'          => array( 'type' => 'bool' ),
 				),
 				'exists'    => static fn( int $id ): bool => null !== AudienceBookingReader::get_by_id( $id ),
 				'save'      => array( self::class, 'save_booking' ),
@@ -273,13 +270,6 @@ class AudienceRecordAutosave {
 		$booking = AudienceBookingReader::get_by_id( $id );
 		if ( null === $booking ) {
 			return new \WP_Error( 'ffc_record_not_saved', __( 'The booking could not be saved.', 'ffcertificate' ) );
-		}
-
-		if ( in_array( $key, AudienceCheckinPolicy::FIELDS, true ) ) {
-			if ( ! AudienceBookingWriter::set_checkin( $id, $key, (bool) $value ) ) {
-				return new \WP_Error( 'ffc_record_not_saved', __( 'The booking could not be saved.', 'ffcertificate' ) );
-			}
-			return true;
 		}
 
 		if ( 'attendance_mode' === $key || 'attendance_min_percent' === $key ) {
