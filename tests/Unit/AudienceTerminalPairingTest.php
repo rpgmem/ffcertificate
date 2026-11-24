@@ -980,6 +980,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'get_site_icon_url' )->justReturn( '' );
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( 'get_userdata' )->justReturn( (object) array( 'display_name' => 'Ana Lima' ) );
@@ -1002,6 +1003,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertStringContainsString( 'Account #' . self::OPERATOR, $html, 'who paired it' );
 		$this->assertStringContainsString( 'ffc-terminal-state-online', $html );
 		$this->assertStringContainsString( '3 in the queue', $html );
+		$this->assertStringContainsString( 'This site has no site icon', $html, 'a browser installs nothing without one (#2818)' );
 		$this->assertStringContainsString( '2 refused after revocation', $html, 'readings a revoked terminal took too late (#2802)' );
 		$this->assertStringContainsString( 'later ones are refused, counted here and written to the activity log', $html );
 		$this->assertStringContainsString( 'Presence terminals', $html );

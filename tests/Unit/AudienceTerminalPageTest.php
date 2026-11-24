@@ -211,7 +211,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/site/terminal/manifest.webmanifest">', $html, 'the browser offers the install from here' );
 		$this->assertStringContainsString( 'data-ffc-terminal-install-page data-copied=', $html );
 		$this->assertStringContainsString( 'href="https://example.com/site/terminal/"', $html, 'the installed state links back to the terminal, the server printing the address' );
-		foreach ( array( 'wait', 'prompt', 'ios-top', 'ios-bottom', 'ios-old', 'installed', 'unsupported' ) as $state ) {
+		foreach ( array( 'wait', 'prompt', 'ios-top', 'ios-bottom', 'ios-old', 'installed', 'menu', 'unsupported' ) as $state ) {
 			$this->assertMatchesRegularExpression( '/data-state="' . $state . '" hidden>/', $html, 'every state starts hidden: ' . $state );
 		}
 		$this->assertStringContainsString( 'value="https://example.com/site/terminal/install/"', $html, 'the address to copy is this page' );

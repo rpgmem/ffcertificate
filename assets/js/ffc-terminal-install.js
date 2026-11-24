@@ -225,9 +225,13 @@
                 }
             }, function () {});
         }
+        // A browser that knows the install event but has not fired it yet
+        // (Chrome waits for its own checks, and fires nothing when one
+        // fails) still installs from its menu; the event, if it comes later,
+        // still switches to the button (#2818).
         win.setTimeout(function () {
             if (!settled) {
-                settle('unsupported');
+                settle('onbeforeinstallprompt' in win ? 'menu' : 'unsupported');
             }
         }, WAIT_MS);
         return current;

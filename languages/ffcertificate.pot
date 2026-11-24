@@ -37214,3 +37214,9 @@ msgstr ""
 
 msgid "Installing it takes one tap where the browser offers it. In a browser tab the terminal shows a banner, Install, which leads to the install page at /terminal/install/ (on a site without pretty permalinks, ?ffc_terminal=install): Install the terminal there opens the browser's own install dialog; on an iPad or iPhone, which install no app with a button, it shows the three Share steps for that browser; once installed it says so and offers Open the terminal; and a browser that installs nothing shows the address to open elsewhere. Not now hides the banner for 30 days on that browser. Scheduling → Terminals shows the install page's address beside the list, as a QR code to point the tablet's camera at, with Copy address and Open. The install page is public, the same for everyone, and is never kept for offline use."
 msgstr ""
+
+msgid "This browser has not offered its install button here yet. Open the browser's menu (⋮) and choose Install app or Add to Home screen. If the button arrives, it appears on this page."
+msgstr ""
+
+msgid "This site has no site icon, and browsers only offer to install an app that has one. Set a site icon in WordPress's general settings, at least 512 by 512 pixels."
+msgstr ""

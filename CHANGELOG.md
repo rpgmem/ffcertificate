@@ -58,6 +58,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A replaced phone stops showing its presence code** (#2799): the app sends its key with the event list, so the old phone hides the code the next time it reaches the site instead of when its attestation comes due, and offers *Move it to this phone* beside the phone that holds it; a first activation keeps *Activate on this phone*. An iPhone is told that Safari and the installed app count as two phones.
 - **The QR round-trip test loads the encoder it calls** (#2811), so it passes in any order: it relied on an earlier test having drawn a code.
 - **Presence device history names each phone once** (#2815). Activating the same phone again made a new row per key, each but the last reading "Replaced by another phone"; the history now shows each phone's latest activation, and a new key on the same phone no longer mails the participant that their presence moved.
+- **The terminal install page no longer tells Chrome it cannot install** (#2818). A browser that knows the install event but has not fired it is pointed to its menu, and the button still appears if the event arrives; the Terminals screen warns when the site has no site icon, without which no browser offers the install.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 

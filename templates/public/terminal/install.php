@@ -120,6 +120,10 @@ $ffc_terminal_address = static function () use ( $ffc_terminal_install_url ): vo
 			<p><?php esc_html_e( 'It did not open? Look for the Terminal icon on the home screen.', 'ffcertificate' ); ?></p>
 		</section>
 
+		<section class="ffc-terminal-install-card" data-state="menu" hidden>
+			<p><?php esc_html_e( 'This browser has not offered its install button here yet. Open the browser\'s menu (⋮) and choose Install app or Add to Home screen. If the button arrives, it appears on this page.', 'ffcertificate' ); ?></p>
+		</section>
+
 		<section class="ffc-terminal-install-card" data-state="unsupported" hidden>
 			<p><?php esc_html_e( 'This browser offers no install button. Open this address in Chrome (Android) or Safari (iPad), or look for Install app or Add to Home screen in the browser\'s menu.', 'ffcertificate' ); ?></p>
 			<?php $ffc_terminal_address(); ?>
