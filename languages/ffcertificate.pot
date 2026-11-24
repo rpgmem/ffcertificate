@@ -37220,3 +37220,6 @@ msgstr ""
 
 msgid "Visible screen"
 msgstr ""
+
+msgid "The app locks with the phone's own screen lock (fingerprint, face or the phone's PIN) when it opens and when it comes back after a few seconds away; for holders of ffc_checkin_audiences or ffc_manage_audiences_terminals the lock is mandatory, so the app shows nothing until it is turned on, and everyone else is invited to turn it on."
+msgstr ""

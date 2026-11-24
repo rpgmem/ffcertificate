@@ -37299,3 +37299,6 @@ msgstr "Este navegador ainda não ofereceu o botão de instalar aqui. Abra o men
 
 msgid "Visible screen"
 msgstr "Tela visível"
+
+msgid "The app locks with the phone's own screen lock (fingerprint, face or the phone's PIN) when it opens and when it comes back after a few seconds away; for holders of ffc_checkin_audiences or ffc_manage_audiences_terminals the lock is mandatory, so the app shows nothing until it is turned on, and everyone else is invited to turn it on."
+msgstr "O app trava com o próprio bloqueio de tela do celular (digital, rosto ou PIN do celular) quando abre e quando volta após alguns segundos fora; para quem tem ffc_checkin_audiences ou ffc_manage_audiences_terminals a trava é obrigatória, então o app não mostra nada até ela ser ativada, e os demais são convidados a ativá-la."
