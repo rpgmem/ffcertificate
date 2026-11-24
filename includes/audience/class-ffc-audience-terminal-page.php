@@ -371,6 +371,8 @@ final class AudienceTerminalPage {
 					'expired'         => __( 'This terminal\'s pairing has ended. Ask an operator for a new pairing code.', 'ffcertificate' ),
 					/* translators: %s: the operator's short name, such as Maria S. */
 					'operator'        => __( 'Unlocked by %s.', 'ffcertificate' ),
+					/* translators: %d: seconds between this terminal's clock and the site's */
+					'clockOff'        => __( 'This terminal\'s clock was %d s off the site\'s. Readings follow the site\'s clock; set the device\'s date and time to automatic.', 'ffcertificate' ),
 					'ended'           => __( 'Terminal ended. Pair it again with a new code from the app.', 'ffcertificate' ),
 					'queued'          => __( 'Saved. It is sent to the site when the connection returns.', 'ffcertificate' ),
 					/* translators: Offline: this person's reading for this event is already waiting to be sent. */

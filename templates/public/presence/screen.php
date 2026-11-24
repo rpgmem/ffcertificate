@@ -89,7 +89,7 @@ use FreeFormCertificate\Core\Notice;
 			<ul class="ffc-presence-tips">
 				<li class="ffc-icon-qr"><?php esc_html_e( 'Hold the screen up to the terminal\'s reader at the entrance.', 'ffcertificate' ); ?></li>
 				<li class="ffc-icon-shield"><?php esc_html_e( 'Works without internet: the code is made and signed on this phone.', 'ffcertificate' ); ?></li>
-				<li class="ffc-icon-clock"><?php esc_html_e( 'A screenshot will not do: the code changes every 30 seconds.', 'ffcertificate' ); ?></li>
+				<li class="ffc-icon-clock"><?php esc_html_e( 'A screenshot will not do: the code changes every 15 seconds.', 'ffcertificate' ); ?></li>
 			</ul>
 		</div>
 	</div>

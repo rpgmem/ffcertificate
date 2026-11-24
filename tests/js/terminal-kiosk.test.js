@@ -34,6 +34,7 @@ const CONFIG = {
 		until: 'until %s',
 		expired: 'expired',
 		operator: 'by %s',
+		clockOff: 'clock off %d s',
 		ended: 'ended',
 		queued: 'Saved.',
 		alreadyQueued: 'Already saved.',
@@ -165,6 +166,7 @@ function markup() {
 				<h2 data-ffc-terminal-part="operator"></h2>
 				<p data-ffc-terminal-part="queue"></p>
 				<p data-ffc-terminal-part="wake-note" hidden></p>
+				<p data-ffc-terminal-part="clock-note" hidden></p>
 				<dl data-ffc-terminal-part="device-check"></dl>
 				<div data-ffc-terminal-part="menu-ask">
 					<button type="button" data-ffc-terminal-part="menu-close">Back</button>
@@ -580,6 +582,39 @@ describe('reading', () => {
 		e.clock.now = (NOW + 3601) * 1000;
 		e.timers[0]();
 		expect(visible(el)).toEqual(['idle']);
+	});
+
+	it('follows the site clock from each answer and says so in the menu when it was off (#2797)', async () => {
+		el = markup();
+		const site = new Date((NOW + 40) * 1000).toUTCString();
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: STATE }),
+			fetch: () => Promise.resolve({
+				status: 200,
+				headers: { get: (name) => ('Date' === name ? site : null) },
+				json: () => Promise.resolve({ name: 'Ana L.', expires: NOW + 160 }),
+			}),
+		});
+		T().start(el, CONFIG, e);
+		await submit('FFO1OPERATOR');
+		expect(visible(el)).toEqual(['menu']);
+		expect(e.storage.data.get('ffcTerminalClock')).toBe('40500');
+		const note = el.querySelector('[data-ffc-terminal-part="clock-note"]');
+		expect(note.hidden).toBe(false);
+		expect(note.textContent).toBe('clock off 41 s');
+	});
+
+	it('keeps a gap within the tolerance to itself, and an answer without a Date header changes nothing', async () => {
+		el = markup();
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: STATE, ffcTerminalClock: '12000' }),
+			fetch: respond(200, { name: 'Ana L.', expires: NOW + 160 }),
+		});
+		T().start(el, CONFIG, e);
+		await submit('FFO1OPERATOR');
+		expect(visible(el)).toEqual(['menu']);
+		expect(e.storage.data.get('ffcTerminalClock')).toBe('12000');
+		expect(el.querySelector('[data-ffc-terminal-part="clock-note"]').hidden).toBe(true);
 	});
 
 	it('opens the menu on an operator code and locks it again after two minutes', async () => {

@@ -146,6 +146,6 @@ $ffc_disabled = empty( $can_edit ) ? ' disabled' : '';
 		<li><?php esc_html_e( 'Pairing: a code lives five minutes and pairs one terminal once. Three wrong codes in a row lock that terminal for 15 minutes, and each further one for 30; one network address may send at most 20 wrong codes an hour.', 'ffcertificate' ); ?></li>
 		<li><?php esc_html_e( 'A terminal holds at most 10 events, each ending within the next 7 days, and no two whose check-in windows cross.', 'ffcertificate' ); ?></li>
 		<li><?php esc_html_e( 'Presence devices: one active phone per person; a phone stays reserved to its account for 30 days; at most 3 phone changes per person in 30 days. More needs an administrator, under Scheduling → Presence devices.', 'ffcertificate' ); ?></li>
-		<li><?php esc_html_e( 'A presence code changes every 30 seconds and carries only the person\'s short name, never a CPF or RF.', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'A presence code changes every 15 seconds and carries only the person\'s short name, never a CPF or RF.', 'ffcertificate' ); ?></li>
 	</ul>
 </div>
