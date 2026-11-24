@@ -862,3 +862,29 @@
     padding-top: var(--ffc-spacing-md);
     border-top: 1px solid var(--ffc-border-light);
 }
+
+/* Check-in settings (#2782): the three terminal numbers side by side,
+   stacked on a narrow screen, each with its label above. */
+.ffc-checkin-settings .ffc-checkin-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--ffc-spacing-md);
+}
+
+.ffc-checkin-settings .ffc-checkin-field {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-2xs);
+    margin: 0;
+}
+
+.ffc-checkin-settings .ffc-checkin-field label {
+    font-weight: 600;
+}
+
+.ffc-checkin-settings .ffc-checkin-rules {
+    margin: 0;
+    padding-left: var(--ffc-spacing-lg);
+    list-style: disc;
+}

@@ -299,7 +299,8 @@ class AudienceAdminSettings {
 
 	/**
 	 * Render the Check-in tab (#2747, #2748): how attendance is taken, the
-	 * terminals included. Each field saves on its own through the settings autosave.
+	 * terminals included, saved by one Save button as in the approved screen
+	 * (#2782).
 	 *
 	 * @return void
 	 */
@@ -311,8 +312,42 @@ class AudienceAdminSettings {
 		$auto_end_hours  = intdiv( AudienceCheckinSettings::auto_end_seconds(), HOUR_IN_SECONDS );
 		$path_qr         = AudienceCheckinSettings::default_path_qr();
 		$path_terminal   = AudienceCheckinSettings::default_path_terminal();
+		$active_count    = count( AudienceTerminalReader::active_terminals( time() ) );
+		$presence_url    = add_query_arg( array( 'page' => AudienceAdminPage::MENU_SLUG . AudienceAdminPresence::SLUG_SUFFIX ), admin_url( 'admin.php' ) );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/checkin-tab.php';
+	}
+
+	/**
+	 * Save the Check-in tab (#2782): one Save button, as in the approved
+	 * screen, writing its keys into `ffc_settings` and leaving every other
+	 * key as it was. An empty number keeps the stored value, since (int) ''
+	 * would be read as 1 by the bounds.
+	 *
+	 * @return void
+	 */
+	private function save_checkin_settings(): void {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( 'ffc_checkin_settings_nonce' ), 'ffc_checkin_settings' ) ) {
+			return;
+		}
+		$settings = get_option( 'ffc_settings', array() );
+		$settings = is_array( $settings ) ? $settings : array();
+		foreach ( array( 'checkin_path_qr', 'checkin_path_terminal', 'terminal_camera' ) as $key ) {
+			$settings[ $key ] = '1' === RequestInput::get_post_string( $key ) ? 1 : 0;
+		}
+		$numbers = array(
+			'terminal_site_limit'     => AudienceCheckinSettings::SITE_LIMIT_MAX,
+			'terminal_event_limit'    => AudienceCheckinSettings::EVENT_LIMIT_MAX,
+			'terminal_auto_end_hours' => AudienceCheckinSettings::AUTO_END_HOURS_MAX,
+		);
+		foreach ( $numbers as $key => $max ) {
+			$value = RequestInput::get_post_string( $key, '' );
+			if ( '' !== $value && is_numeric( $value ) ) {
+				$settings[ $key ] = max( 1, min( $max, (int) $value ) );
+			}
+		}
+		update_option( 'ffc_settings', $settings );
+		add_settings_error( 'ffc_audience', 'ffc_message', __( 'Check-in settings saved.', 'ffcertificate' ), 'success' );
 	}
 
 	/**
@@ -324,6 +359,10 @@ class AudienceAdminSettings {
 	public function handle_visibility_settings(): void {
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			return;
+		}
+
+		if ( isset( $_POST['ffc_action'] ) && 'save_checkin_settings' === $_POST['ffc_action'] ) {
+			$this->save_checkin_settings();
 		}
 
 		// Save Self-Scheduling visibility settings.

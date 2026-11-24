@@ -36261,54 +36261,8 @@ msgstr "Parar a câmera"
 msgid "Allow the device camera"
 msgstr "Permitir a câmera do aparelho"
 
-msgid "A terminal may read presence codes with its own camera, where the browser can read QR codes by itself and the site is served over HTTPS. Elsewhere the option shows as unavailable, with its reason. A reader connected to the device stays the recommended way."
-msgstr "Um terminal pode ler códigos de presença com a própria câmera, onde o navegador consegue ler códigos QR sozinho e o site é servido por HTTPS. Nos demais casos a opção aparece como indisponível, com o motivo. Um leitor conectado ao aparelho continua sendo a forma recomendada."
-
-msgid "A terminal can also read codes with its own camera when Scheduling → Settings → Check-in has Allow the device camera on; the switch saves as soon as it is flipped, and needs ffc_manage_audiences. The option is offered only where the browser can read QR codes by itself (the BarcodeDetector interface) and the site is served over HTTPS; elsewhere it shows as unavailable with its reason, and the decision is made from what the browser offers, never from its name. Use the camera opens a framed viewfinder with the front camera, after the browser asks for permission, and a code held in it is read exactly as the reader would type it. The same code held still is read once every five seconds. A reader connected to the device stays the recommended way: it works in every browser and in poor light. The camera is off by default."
-msgstr "Um terminal também pode ler códigos com a própria câmera quando Agendamento → Configurações → Check-in tem Permitir a câmera do aparelho ativado; a chave salva assim que é acionada e exige ffc_manage_audiences. A opção só é oferecida onde o navegador consegue ler códigos QR sozinho (a interface BarcodeDetector) e o site é servido por HTTPS; nos demais casos aparece como indisponível, com o motivo, e a decisão vem do que o navegador oferece, nunca do nome dele. Usar a câmera abre um visor emoldurado com a câmera frontal, depois que o navegador pede permissão, e um código segurado nele é lido exatamente como o leitor o digitaria. O mesmo código parado é lido uma vez a cada cinco segundos. Um leitor conectado ao aparelho continua sendo a forma recomendada: funciona em todo navegador e com pouca luz. A câmera vem desligada."
-
-msgid "How attendance is taken at audience calendar events: the QR code an organiser projects, and the terminals at the entrance that read each participant's own code."
-msgstr "Como a presença é registrada nos eventos dos calendários de público-alvo: o código QR que o organizador projeta e os terminais na entrada que leem o código de cada participante."
-
 msgid "At most 10 terminals may be active on the site and 3 on one event at a time, unless Scheduling → Settings → Check-in says otherwise; the ffc_terminal_limits filter can still change both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
 msgstr "No máximo 10 terminais podem estar ativos no site e 3 em um mesmo evento ao mesmo tempo, salvo o que Agendamento → Configurações → Check-in definir; o filtro ffc_terminal_limits ainda pode mudar os dois. Um site ou evento cheio recusa antes de o código ser gasto, então encerrar um terminal faz o mesmo código funcionar."
-
-
-msgid "Terminals on the site"
-msgstr "Terminais no site"
-
-msgid "How many terminals may be active at once, from 1 to %1$d (default %2$d). Pairing one more is refused until a terminal is ended."
-msgstr "Quantos terminais podem estar ativos ao mesmo tempo, de 1 a %1$d (padrão %2$d). Parear mais um é recusado até um terminal ser encerrado."
-
-msgid "Terminals per event"
-msgstr "Terminais por evento"
-
-msgid "How many terminals may check in one event at once, from 1 to %1$d (default %2$d)."
-msgstr "Quantos terminais podem fazer o check-in de um mesmo evento ao mesmo tempo, de 1 a %1$d (padrão %2$d)."
-
-msgid "Ends on its own after"
-msgstr "Encerra sozinho depois de"
-
-msgid "A terminal stops this many hours after the last of its events ends, from 1 to %1$d (default %2$d). It applies to terminals paired or changed from now on."
-msgstr "Um terminal para essa quantidade de horas depois do fim do último de seus eventos, de 1 a %1$d (padrão %2$d). Vale para terminais pareados ou alterados a partir de agora."
-
-msgid "Camera"
-msgstr "Câmera"
-
-msgid "Rules that always apply"
-msgstr "Regras que sempre valem"
-
-msgid "These are fixed, to keep pairing and presence codes hard to abuse."
-msgstr "Estas são fixas, para dificultar o abuso do pareamento e dos códigos de presença."
-
-msgid "Pairing: a code lives five minutes and pairs one terminal once. Three wrong codes in a row lock that terminal for 15 minutes, and each further one for 30; one network address may send at most 20 wrong codes an hour."
-msgstr "Pareamento: um código dura cinco minutos e pareia um terminal uma vez. Três códigos errados seguidos bloqueiam aquele terminal por 15 minutos, e cada um a mais por 30; um endereço de rede pode enviar no máximo 20 códigos errados por hora."
-
-msgid "A terminal holds at most 10 events, each ending within the next 7 days, and no two whose check-in windows cross."
-msgstr "Um terminal comporta no máximo 10 eventos, cada um terminando nos próximos 7 dias, e nenhum par cujas janelas de check-in se cruzem."
-
-msgid "Presence devices: one active phone per person; a phone stays reserved to its account for 30 days; at most 3 phone changes per person in 30 days. More needs an administrator, under Scheduling → Presence devices."
-msgstr "Aparelhos de presença: um celular ativo por pessoa; um celular fica reservado à sua conta por 30 dias; no máximo 3 trocas de celular por pessoa em 30 dias. Além disso, só com um administrador, em Agendamento → Aparelhos de presença."
 
 
 msgid "Back to terminals"
@@ -36436,9 +36390,6 @@ msgstr "QR code projetado"
 msgid "Terminal"
 msgstr "Terminal"
 
-msgid "The ways a new event takes check-in. Each event keeps its own switches afterwards, on its Check-in tab; changing these does not change events that already exist."
-msgstr "As formas de check-in com que um novo evento começa. Cada evento mantém suas próprias chaves depois, na aba Check-in dele; mudar estas não muda os eventos que já existem."
-
 msgid "This event does not take check-in at a terminal. Speak to the organiser."
 msgstr "Este evento não aceita check-in por terminal. Fale com o organizador."
 
@@ -36451,9 +36402,6 @@ msgstr "Este evento não aceita check-in: ligue primeiro o QR code projetado ou 
 msgid "Who may check in"
 msgstr "Quem pode fazer check-in"
 
-msgid "An organiser opens check-in and projects a code that participants scan with their own phone."
-msgstr "Um organizador abre o check-in e projeta um código que os participantes leem com o próprio celular."
-
 msgid "Anyone signed in can check in. Attendance is recorded without enrolling the person, so it counts toward no attendance rule and earns no post-event invitation."
 msgstr "Qualquer pessoa com login pode fazer check-in. A presença é registrada sem inscrever a pessoa, então não conta para nenhuma regra de presença e não dá direito a convite pós-evento."
 
@@ -36463,9 +36411,6 @@ msgstr "O participante lê o código com a câmera do celular, faz login se for 
 msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen, in four tabs: Participants, which opens first, Check-in, Attendance rule and Post-event form. Beside them a summary shows the day, how many are present, the check-in, the rule and the form. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
 msgstr "O link Presença na linha de uma reserva em Reservas de Público-alvo abre a tela de presença, em quatro abas: Participantes, que abre primeiro, Check-in, Regra de presença e Formulário pós-evento. Ao lado delas, um resumo mostra o dia, quantos estão presentes, o check-in, a regra e o formulário. No próprio dia, até 30 minutos após o fim da reserva, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
 
-msgid "Scheduling → Settings → Check-in holds the terminal settings, each saved as soon as it is changed, for whoever holds ffc_manage_audiences: how many terminals may be active on the site (1 to 100, default 10) and on one event (1 to 20, default 3), how many hours a terminal outlives the last of its events (1 to 24, default 2; it applies to terminals paired or changed afterwards), the check-in paths a new event starts with, and the camera. The tab also states the rules that always apply to pairing and presence devices."
-msgstr "Agendamento → Configurações → Check-in reúne as configurações dos terminais, cada uma salva assim que é alterada, para quem tem ffc_manage_audiences: quantos terminais podem estar ativos no site (1 a 100, padrão 10) e em um evento (1 a 20, padrão 3), quantas horas um terminal dura depois do último de seus eventos (1 a 24, padrão 2; vale para terminais pareados ou alterados depois), os caminhos de check-in com que um novo evento começa e a câmera. A aba também informa as regras que sempre valem para o pareamento e os aparelhos de presença."
-
 msgid "The Check-in tab starts with who may check in and the paths the event takes, each saved as soon as it is changed by whoever holds ffc_manage_audiences. Who may check in is Enrolled only, the default, or Open: anyone signed in can check in, and the attendance is recorded without enrolling the person, so it is listed as not enrolled, counts toward no attendance rule and earns no post-event invitation. An open event that takes terminals is also listed in the app of every person signed in, so they can show a code for it. The paths are the projected QR code and the terminal; a new event takes the paths set under Scheduling → Settings → Check-in, and an event that already existed has both on. A path that is off refuses its readings: the projected code cannot be shown or scanned, and a terminal cannot hold the event or record a reading for it. With only the terminal on, Open check-in still opens the window the terminals need; with both off, the event takes no check-in and attendance is marked by hand."
 msgstr "A aba Check-in começa com quem pode fazer check-in e os caminhos que o evento aceita, cada um salvo assim que é alterado por quem tem ffc_manage_audiences. Quem pode fazer check-in é Somente inscritos, o padrão, ou Aberto: qualquer pessoa com login pode fazer check-in, e a presença é registrada sem inscrever a pessoa, então aparece como sem inscrição, não conta para nenhuma regra de presença e não dá direito a convite pós-evento. Um evento aberto que aceita terminais também aparece no app de toda pessoa com login, para que ela possa mostrar um código para ele. Os caminhos são o QR code projetado e o terminal; um novo evento recebe os caminhos definidos em Agendamento → Configurações → Check-in, e um evento que já existia tem os dois ligados. Um caminho desligado recusa suas leituras: o código projetado não pode ser exibido nem lido, e um terminal não pode ter o evento nem registrar leitura para ele. Com só o terminal ligado, Abrir check-in ainda abre a janela de que os terminais precisam; com os dois desligados, o evento não aceita check-in e a presença é marcada manualmente."
 
@@ -36474,9 +36419,6 @@ msgstr "Abaixo da janela, a aba lista os terminais que têm o evento, com quanto
 
 msgid "A paired terminal at the entrance reads each participant's presence code. Turning it off stops terminals from taking new readings for this event."
 msgstr "Um terminal pareado na entrada lê o código de presença de cada participante. Desligá-lo impede que os terminais façam novas leituras para este evento."
-
-msgid "A paired terminal at the entrance reads each participant's presence code."
-msgstr "Um terminal pareado na entrada lê o código de presença de cada participante."
 
 msgctxt "who may check in"
 msgid "Open"
@@ -36972,9 +36914,6 @@ msgstr "No app, Parear terminal alterna entre Escolher eventos, marcando um a um
 msgid "A screenshot will not do: the code changes every 15 seconds."
 msgstr "Um print não serve: o código muda a cada 15 segundos."
 
-msgid "A presence code changes every 15 seconds and carries only the person's short name, never a CPF or RF."
-msgstr "Um código de presença muda a cada 15 segundos e leva só o nome curto da pessoa, nunca CPF ou RF."
-
 msgid "Once the phone is active, the Presence screen of the app shows a QR code for the chosen event, a countdown and what to do. A new code is drawn every 15 seconds, offline if need be, for as long as the activation lasts. The code carries the site's statement about the phone, the event, the moment and a signature made by the phone's key, so a photo or screenshot of it stops working within half a minute and a code from another phone does not pass. The app and the terminal each set their clock by the site's whenever they reach it, which is what lets a terminal accept a code only 15 seconds either side of its own clock; the terminal's operator menu says when its clock was more than 15 seconds off."
 msgstr "Com o celular ativo, a tela Presença do app mostra um QR code do evento escolhido, uma contagem regressiva e o que fazer. Um código novo é gerado a cada 15 segundos, mesmo sem internet, enquanto a ativação valer. O código leva a declaração do site sobre o celular, o evento, o momento e uma assinatura feita pela chave do celular, então uma foto ou captura de tela dele para de funcionar em até meio minuto, e um código de outro celular não passa. O app e o terminal acertam cada um o próprio relógio pelo do site sempre que o alcançam, o que permite ao terminal aceitar um código só até 15 segundos antes ou depois do próprio relógio; o menu do operador do terminal avisa quando o relógio dele estava mais de 15 segundos fora."
 
@@ -37056,3 +36995,75 @@ msgstr[1] "%d na fila"
 
 msgid "Scheduling → Terminals (Presence terminals) lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings in the queue. Each row shows the terminal's queue (one event, or how many, with the place when they all share one), the event it checks in now, who paired it and when, when it was last seen (now, minutes ago, or the date), its readings and how many it holds unsent, and its state as a pill: Online, Offline, Ended automatically, or Revoked by whoever ended it. Edit queue changes its events under the same rules as the app, and Revoke stops it after a confirmation on the screen, the next time it connects. Pair terminal, beside the title, pairs one from wp-admin as the app does: tick the events, name the terminal, choose when it ends by itself, and the one-time code appears as a QR code with the time it expires; it is shown once and never kept."
 msgstr "Agendamentos → Terminais (Terminais de presença) lista os terminais ativos, e os que terminaram nos últimos 7 dias, para quem tem ffc_manage_audiences_terminals: um operador vê os terminais que pareou, um administrador vê todos. Cartões contam os terminais online (vistos nos últimos dois minutos) e offline, as leituras de terminal de hoje e as leituras na fila. Cada linha mostra a fila do terminal (um evento, ou quantos, com o local quando todos compartilham um), o evento que ele registra agora, quem o pareou e quando, quando foi visto pela última vez (agora, há minutos ou a data), suas leituras e quantas guarda sem enviar, e seu estado numa pílula: Online, Offline, Encerrado automaticamente ou Revogado por quem o encerrou. Editar fila muda os eventos com as mesmas regras do app, e Revogar o interrompe após uma confirmação na tela, na próxima vez que ele se conectar. Parear terminal, ao lado do título, pareia um pelo wp-admin como o app faz: marque os eventos, dê um nome ao terminal, escolha quando ele se encerra sozinho, e o código de uso único aparece como QR code com o horário em que expira; ele é mostrado uma vez e nunca guardado."
+
+msgid "3 wrong codes in a row on the same device: a 15-minute wait."
+msgstr "3 códigos errados seguidos no mesmo aparelho: espera de 15 minutos."
+
+msgid "A correct pairing, or an hour without attempts, resets the count."
+msgstr "Um pareamento correto, ou 1 hora sem tentativas, zera a contagem."
+
+msgid "A device stays reserved to the same account for 30 days."
+msgstr "Um aparelho fica reservado à mesma conta por 30 dias."
+
+msgid "Active terminals on the site"
+msgstr "Terminais ativos no site"
+
+msgid "At most 3 device changes per user every 30 days."
+msgstr "No máximo 3 trocas de aparelho por usuário a cada 30 dias."
+
+msgid "Check-in settings saved."
+msgstr "Configurações de check-in salvas."
+
+msgid "Each event can change this on its own screen. Someone who checks in by both paths counts once."
+msgstr "Cada evento pode mudar isso na própria tela. Quem fizer check-in pelos dois caminhos conta uma vez."
+
+msgid "Each further wrong code after that: a 30-minute wait."
+msgstr "Cada novo erro depois disso: espera de 30 minutos."
+
+msgid "End by itself after the end (default)"
+msgstr "Encerrar sozinho após o fim (padrão)"
+
+msgid "For tablets without a USB reader. It needs HTTPS and the camera permission on the device."
+msgstr "Para tablets sem leitor USB. Exige HTTPS e a permissão da câmera no aparelho."
+
+msgid "One active device per user: activating a new one deactivates the previous one, with an e-mail."
+msgstr "Um aparelho ativo por usuário: ativar um novo desativa o anterior, com aviso por e-mail."
+
+msgid "Only active terminals count. A terminal downloads no list of participants: each QR code carries its own proof, signed by the site. It keeps only the readings of the people who passed it, until it syncs."
+msgstr "Contam só os terminais ativos. O terminal não baixa listas de inscritos: cada QR traz a própria prova, assinada pelo site. Ele guarda apenas as leituras de quem passou por ele, até sincronizar."
+
+msgid "Pairing lock"
+msgstr "Bloqueio de pareamento"
+
+msgid "Per event or fixed place"
+msgstr "Por evento ou local fixo"
+
+msgid "Per network address: at most 20 wrong codes an hour, across every device."
+msgstr "Por endereço de rede: no máximo 20 erros por hora, somando todos os aparelhos."
+
+msgid "QR code projected by the organiser"
+msgstr "QR projetado pelo operador"
+
+msgid "QR reading"
+msgstr "Leitura do QR"
+
+msgid "See devices and releases"
+msgstr "Ver aparelhos e liberações"
+
+msgid "The QR code works without internet for 7 days; after that the app needs to connect."
+msgstr "O QR funciona sem internet por 7 dias; depois o app precisa se conectar."
+
+msgid "The participant scans it with their phone. It needs no equipment."
+msgstr "O participante lê com o celular. Não precisa de equipamento."
+
+msgid "The participant shows the app's QR code. It only works while a terminal is paired."
+msgstr "O participante mostra o QR do app. Só fica ativo quando há um terminal pareado."
+
+msgid "Today: %1$d of %2$d."
+msgstr "Hoje: %1$d de %2$d."
+
+msgid "Scheduling → Settings → Check-in holds the check-in settings in five sections, saved together by Save changes, for whoever holds ffc_manage_audiences: the check-in paths a new event starts with; the terminals, with how many may be active on the site (1 to 100, default 10, beside how many are active today) and on one event or fixed place (1 to 20, default 3), and how long a terminal outlives the last of its events (1, 2 or 4 hours, default 2; it applies to terminals paired or changed afterwards); QR reading, with the camera; and the fixed rules of the pairing lock and of presence devices, with a link to the Presence devices screen. An emptied number keeps the value it had."
+msgstr "Agendamento → Configurações → Check-in reúne as configurações de check-in em cinco seções, salvas juntas por Salvar alterações, para quem tem ffc_manage_audiences: os caminhos de check-in com que um evento novo começa; os terminais, com quantos podem estar ativos no site (1 a 100, padrão 10, ao lado de quantos estão ativos hoje) e num evento ou local fixo (1 a 20, padrão 3), e por quanto tempo um terminal dura depois do último dos seus eventos (1, 2 ou 4 horas, padrão 2; vale para terminais pareados ou alterados depois); a leitura do QR, com a câmera; e as regras fixas do bloqueio de pareamento e dos aparelhos de presença, com um link para a tela Aparelhos de presença. Um número apagado mantém o valor que tinha."
+
+msgid "A terminal can also read codes with its own camera when Scheduling → Settings → Check-in has Allow the device camera on, which needs ffc_manage_audiences. The option is offered only where the browser can read QR codes by itself (the BarcodeDetector interface) and the site is served over HTTPS; elsewhere it shows as unavailable with its reason, and the decision is made from what the browser offers, never from its name. Use the camera opens a framed viewfinder with the front camera, after the browser asks for permission, and a code held in it is read exactly as the reader would type it. The same code held still is read once every five seconds. A reader connected to the device stays the recommended way: it works in every browser and in poor light. The camera is off by default."
+msgstr "Um terminal também pode ler códigos com a própria câmera quando Agendamento → Configurações → Check-in tem Permitir a câmera do aparelho ativado, o que exige ffc_manage_audiences. A opção só é oferecida onde o navegador consegue ler códigos QR sozinho (a interface BarcodeDetector) e o site é servido por HTTPS; nos demais casos aparece como indisponível, com o motivo, e a decisão vem do que o navegador oferece, nunca do nome dele. Usar a câmera abre um visor emoldurado com a câmera frontal, depois que o navegador pede permissão, e um código segurado nele é lido exatamente como o leitor o digitaria. O mesmo código parado é lido uma vez a cada cinco segundos. Um leitor conectado ao aparelho continua sendo a forma recomendada: funciona em todo navegador e com pouca luz. A câmera vem desligada."
