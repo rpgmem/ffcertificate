@@ -23,6 +23,13 @@
 	display: none;
 }
 
+/* The views and the facts set their own display, which would override the
+   `hidden` attribute and show the Activate card beside the code on a phone
+   already activated (#2826). */
+.ffc-presence [hidden] {
+	display: none;
+}
+
 .ffc-presence-activate,
 .ffc-presence-code {
 	display: flex;
