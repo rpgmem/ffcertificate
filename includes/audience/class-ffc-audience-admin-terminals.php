@@ -321,11 +321,6 @@ class AudienceAdminTerminals {
 		echo '<aside class="card ffc-terminals-install">';
 		echo '<h2 class="ffc-icon-download">' . esc_html__( 'Install on a tablet', 'ffcertificate' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Point the tablet\'s camera at the code, or open the address on it. The page shows the install button or the iPad steps.', 'ffcertificate' ) . '</p>';
-		// The terminal's manifest takes its icons from the site icon, and a
-		// browser offers no install without one (#2818).
-		if ( '' === (string) get_site_icon_url( 512 ) ) {
-			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'This site has no site icon, and browsers only offer to install an app that has one. Set a site icon in WordPress\'s general settings, at least 512 by 512 pixels.', 'ffcertificate' ) . '</p></div>';
-		}
 		echo '<div class="ffc-terminals-install-qr" role="img" aria-label="' . esc_attr__( 'QR code of the install page\'s address', 'ffcertificate' ) . '">' . $svg . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- QrSvgRenderer builds the SVG from module coordinates and literals.
 		echo '<label for="ffc-terminals-install-url">' . esc_html__( 'Address', 'ffcertificate' ) . '</label>';
 		echo '<input type="text" id="ffc-terminals-install-url" class="large-text" readonly value="' . esc_url( $url ) . '">';

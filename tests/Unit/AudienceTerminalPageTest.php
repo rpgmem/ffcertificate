@@ -164,7 +164,16 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( '/?ffc_terminal=1', $manifest['start_url'] );
 		$this->assertSame( '/', $manifest['scope'] );
 		$this->assertSame( 'Check-in terminal', $manifest['name'] );
-		$this->assertSame( array(), $manifest['icons'], 'no site icon, no icon entry' );
+		$this->assertSame(
+			array( FFC_PLUGIN_URL . 'assets/img/terminal/terminal-icon-192.png', FFC_PLUGIN_URL . 'assets/img/terminal/terminal-icon-512.png' ),
+			array_column( $manifest['icons'], 'src' ),
+			'no site icon: the plugin\'s own, since a browser installs no app without an icon (#2818)'
+		);
+		$this->assertSame( array( '192x192', '512x512' ), array_column( $manifest['icons'], 'sizes' ) );
+		foreach ( array( 192, 512 ) as $size ) {
+			$this->assertFileExists( dirname( __DIR__, 2 ) . '/assets/img/terminal/terminal-icon-' . $size . '.png' );
+			$this->assertSame( array( $size, $size ), array_slice( (array) getimagesize( dirname( __DIR__, 2 ) . '/assets/img/terminal/terminal-icon-' . $size . '.png' ), 0, 2 ) );
+		}
 	}
 
 	/**
