@@ -349,6 +349,13 @@
 
     App.prototype.start = function () {
         var self = this;
+        // Safari and the app installed on the home screen keep separate
+        // keys on an iPhone, so each counts as a phone (#2797).
+        var ios = self.part('ios-note');
+        var agent = root.navigator ? String(root.navigator.userAgent || '') : '';
+        if (ios) {
+            ios.hidden = !/iP(hone|ad|od)/.test(agent);
+        }
         if (!root.crypto || !root.crypto.subtle || !self.store) {
             self.show('unsupported');
             return Promise.resolve();
@@ -414,6 +421,17 @@
         }).then(function (answer) {
             var current = self.part('current');
             var device = answer && answer.current;
+            // Another phone holds the code: this one would take it over,
+            // which spends a change; otherwise it is a first activation.
+            var elsewhere = !!device && device.device_id !== self.state.deviceId;
+            var title = self.part('activate-title');
+            if (title) {
+                title.textContent = elsewhere ? strings.titleElsewhere : strings.titleFirst;
+            }
+            var button = self.part('activate');
+            if (button) {
+                button.textContent = elsewhere ? strings.moveHere : strings.activateHere;
+            }
             if (current) {
                 current.textContent = '';
                 current.hidden = !device || device.device_id === self.state.deviceId;
@@ -507,8 +525,12 @@
                 self.state.name = answer.name;
             });
         }
+        // The key rides with the list, so a phone another one replaced
+        // learns it here and stops drawing its code (#2797).
+        var sep = String(self.config.rest).indexOf('?') >= 0 ? '&' : '?';
+        var path = self.state.keyId ? 'events' + sep + 'key=' + encodeURIComponent(self.state.keyId) : 'events';
         return renew.then(function () {
-            return self.request('GET', 'events');
+            return self.request('GET', path);
         }).then(function (answer) {
             self.state.events = answer.events || [];
             self.state.pending = answer.pending || [];
@@ -520,9 +542,16 @@
             if (error && (error.code === 'ffc_presence_revoked' || error.code === 'ffc_presence_unknown_key')) {
                 self.state = { userId: self.config.userId, deviceId: self.state.deviceId };
                 self.stop();
+                var qr = self.part('qr');
+                if (qr) {
+                    qr.innerHTML = '';
+                }
+                self.drawn = '';
                 self.show('activate');
                 self.say(error.message);
-                return self.save();
+                return self.save().then(function () {
+                    return self.deviceStatus();
+                });
             }
             // Offline or the site did not answer: keep what the app has.
             return null;
@@ -696,7 +725,8 @@
             self.say(strings.expired);
             return Promise.resolve(null);
         }
-        self.drawn = event.target_id + '@' + windowStart;
+        var drawing = event.target_id + '@' + windowStart;
+        self.drawn = drawing;
         return buildCode({
             attestation: fromB64url(self.state.attestation),
             targetType: event.target_type,
@@ -704,6 +734,11 @@
             readAt: windowStart,
             ticket: fromB64url(event.ticket)
         }, self.state.key).then(function (text) {
+            // Signing takes a moment: a code the site withdrew meanwhile
+            // (this phone replaced, #2797) or a newer window is not painted.
+            if (self.drawn !== drawing || !self.state.attestation) {
+                return null;
+            }
             var drawn = text ? qrSvg(text) : null;
             if (drawn) {
                 // The SVG is built here from module coordinates and literals

@@ -231,13 +231,13 @@ final class AudiencePresenceEnrolment {
 	 * @return array{attestation: string, key_id: string, expires: int, name: string}|\WP_Error
 	 */
 	public static function renew( int $user_id, string $key_id, int $timestamp, string $proof, int $now ) {
-		$user   = get_userdata( $user_id );
-		$device = AudiencePresenceReader::by_key_id( $key_id );
-		if ( ! $user instanceof \WP_User || null === $device || $device['user_id'] !== $user_id ) {
+		$user = get_userdata( $user_id );
+		if ( ! $user instanceof \WP_User ) {
 			return self::error( 'ffc_presence_unknown_key', __( 'This device is not activated for your account. Activate it again.', 'ffcertificate' ), 404 );
 		}
-		if ( null !== $device['revoked_at'] ) {
-			return self::error( 'ffc_presence_revoked', __( 'This device was replaced or revoked. Activate it again to use it.', 'ffcertificate' ), 410 );
+		$device = self::active_device( $user_id, $key_id );
+		if ( is_wp_error( $device ) ) {
+			return $device;
 		}
 		$raw = SigningKeys::unb64( $device['public_key'] );
 		if ( ! self::proof_holds( self::RENEW_DOMAIN . $user_id . '|' . $key_id . '|' . $timestamp, $proof, $raw, $timestamp, $now ) ) {
@@ -279,6 +279,28 @@ final class AudiencePresenceEnrolment {
 			'window_days'  => (int) ( self::CHANGE_WINDOW / DAY_IN_SECONDS ),
 			'offline_days' => (int) ( AudiencePresenceAttestation::TTL / DAY_IN_SECONDS ),
 		);
+	}
+
+	/**
+	 * The user's device that holds this key, while it still holds the code.
+	 *
+	 * Renewing asks it, and so does the app's event list (#2797), so a phone
+	 * replaced by another stops drawing its code the next time it reaches the
+	 * site instead of when its attestation comes due.
+	 *
+	 * @param int    $user_id The user, taken from the session by the caller.
+	 * @param string $key_id  The device key's id.
+	 * @return array<string, mixed>|\WP_Error The device row, or why it no longer counts.
+	 */
+	public static function active_device( int $user_id, string $key_id ) {
+		$device = '' === $key_id ? null : AudiencePresenceReader::by_key_id( $key_id );
+		if ( null === $device || $device['user_id'] !== $user_id ) {
+			return self::error( 'ffc_presence_unknown_key', __( 'This device is not activated for your account. Activate it again.', 'ffcertificate' ), 404 );
+		}
+		if ( null !== $device['revoked_at'] ) {
+			return self::error( 'ffc_presence_revoked', __( 'Your presence is now active on another phone, so this one stopped making the code.', 'ffcertificate' ), 410 );
+		}
+		return $device;
 	}
 
 	/**

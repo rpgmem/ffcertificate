@@ -35551,8 +35551,6 @@ msgstr ""
 msgid "This device is not activated for your account. Activate it again."
 msgstr ""
 
-msgid "This device was replaced or revoked. Activate it again to use it."
-msgstr ""
 
 msgid "This key cannot be activated again. Reinstall the app and try again."
 msgstr ""
@@ -35575,8 +35573,6 @@ msgstr ""
 msgid "A participant who installs the app activates their phone once, while online, to show a presence code at a terminal. The phone creates a key that cannot be copied, and the site signs a statement binding that key to the account and to a short name, such as \"Maria S.\". The statement lasts 7 days and the app renews it whenever it is online. It never carries a CPF or RF."
 msgstr ""
 
-msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so."
-msgstr ""
 
 msgid "A phone stays reserved to its account for 30 days after it was last used there. Another account trying to activate it is refused until an administrator releases it."
 msgstr ""
@@ -36924,4 +36920,19 @@ msgid "Unlock a paired terminal"
 msgstr ""
 
 msgid "In the app, Pair terminal switches between Choose events, ticking them one by one, and By place, which ticks the events of one place, soonest first, up to 10. End by itself after the end sets how many hours after the last event the terminal ends (1, 2 or 4; the Check-in settings choose the one marked first), and the code appears beside a summary of what it pairs, with its countdown. My terminals has Change events on each terminal, which the terminal picks up within a minute and which keeps the hours chosen. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
+msgstr ""
+
+msgid "One active device per account: activating a new phone stops the old one from showing a valid code, and the participant receives an e-mail saying so. The old phone hides its code the next time it reaches the site and says the presence is active on another phone; offline it cannot know, and each terminal refuses its code from its next sync. A phone that is not active shows Activate on this phone when no phone holds the code, and Move it to this phone, with the phone that holds it, when another does. On an iPhone, Safari and the app installed on the home screen keep separate keys, so each counts as a phone, and the screen says so."
+msgstr ""
+
+msgid "Your presence is now active on another phone, so this one stopped making the code."
+msgstr ""
+
+msgid "Your presence is active on another phone"
+msgstr ""
+
+msgid "Move it to this phone"
+msgstr ""
+
+msgid "On an iPhone, always open Presence from the app on the home screen: Safari and the app keep separate keys, so each counts as a phone."
 msgstr ""
