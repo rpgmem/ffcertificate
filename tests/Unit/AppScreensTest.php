@@ -81,6 +81,7 @@ class AppScreensTest extends TestCase {
 		AudienceAppScreens::init();
 
 		$this->assertSame( 10, has_filter( 'site_pwa_profile_line', array( DashboardAppScreens::class, 'profile_line' ) ), 'the line under the name on More' );
+		$this->assertSame( 10, has_filter( 'map_meta_cap', array( AudienceAppScreens::class, 'map_app_caps' ) ), 'the operator screens wait for presence (#2828)' );
 		$this->assertSame(
 			array(
 				array( 'site_pwa_register_screens', array( DashboardAppScreens::class, 'register' ), 2 ),
@@ -247,9 +248,9 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'qr', $registry->added['presence']['icon'] );
 		$this->assertArrayNotHasKey( 'slot', $registry->added['operator-pair'], 'only Presence asks for the centre' );
 		$caps = array(
-			'operator-pair'       => 'ffc_manage_audiences_terminals',
-			'operator-terminals'  => 'ffc_manage_audiences_terminals',
-			'operator-qr'         => 'ffc_checkin_audiences',
+			'operator-pair'       => 'ffc_app_pair_terminals',
+			'operator-terminals'  => 'ffc_app_pair_terminals',
+			'operator-qr'         => 'ffc_app_checkin_audiences',
 			'operator-attendance' => 'ffc_checkin_audiences',
 		);
 		foreach ( $caps as $id => $cap ) {
@@ -271,6 +272,67 @@ class AppScreensTest extends TestCase {
 		$this->assertArrayNotHasKey( 'section', $registry->added['presence'], 'Presence is in the bar, not in a More group' );
 		$this->assertSame( array( AudienceAppScreens::class, 'terminals_badge' ), $registry->added['operator-terminals']['badge'] );
 		$this->assertArrayNotHasKey( 'badge', $registry->added['operator-pair'] );
+	}
+
+	public function test_the_operator_screens_need_the_capability_and_presence_active_on_a_phone(): void {
+		$devices = array();
+		$db      = new class( $devices ) extends \wpdb {
+			/** @var array<int, array<string, mixed>> */
+			public array $rows;
+			/** @param array<int, array<string, mixed>> $rows Rows. */
+			public function __construct( array &$rows ) {
+				$this->prefix = 'wp_';
+				$this->rows   = &$rows;
+			}
+			/**
+			 * @param string $query Query.
+			 * @param mixed  ...$args Arguments.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) {
+				return (string) $args[1];
+			}
+			/**
+			 * @param string $query The user id, as prepared above.
+			 * @param string $output Output shape.
+			 * @return array<int, array<string, mixed>>
+			 */
+			public function get_results( $query = null, $output = OBJECT ) {
+				return array_values( array_filter( $this->rows, static fn( array $row ): bool => (string) $row['user_id'] === $query ) );
+			}
+		};
+		$device = static fn( int $user, ?int $revoked ): array => array(
+			'id'           => 1,
+			'user_id'      => $user,
+			'device_id'    => 'd',
+			'key_id'       => 'k',
+			'public_key'   => 'p',
+			'is_change'    => 0,
+			'activated_at' => 100,
+			'revoked_at'   => $revoked,
+		);
+		$had    = array_key_exists( 'wpdb', $GLOBALS );
+		$backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = $db;
+		try {
+			$this->assertSame( array( 'edit_posts' ), AudienceAppScreens::map_app_caps( array( 'edit_posts' ), 'edit_posts', 7 ), 'other capabilities pass through' );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ), 'no phone activated' );
+
+			$devices[] = $device( 7, 500 );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_checkin_audiences', 7 ), 'only a revoked phone' );
+
+			$devices[] = $device( 7, null );
+			$this->assertSame( array( 'ffc_manage_audiences_terminals' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 7 ) );
+			$this->assertSame( array( 'ffc_checkin_audiences' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_checkin_audiences', 7 ) );
+			$this->assertSame( array( 'do_not_allow' ), AudienceAppScreens::map_app_caps( array(), 'ffc_app_pair_terminals', 8 ), 'another account' );
+			$this->assertFalse( AudienceAppScreens::has_active_presence( 0 ), 'signed out' );
+		} finally {
+			if ( $had ) {
+				$GLOBALS['wpdb'] = $backup;
+			} else {
+				unset( $GLOBALS['wpdb'] );
+			}
+		}
 	}
 
 	public function test_my_terminals_counts_the_operators_active_terminals_and_those_not_heard_from(): void {

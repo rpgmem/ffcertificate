@@ -63,6 +63,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The terminal fits a short screen and turns with the tablet** (#2822). The camera viewfinder follows the screen's height, the operator menu's device check moved beside the event queue and each menu column scrolls on its own, so an 8" tablet no longer scrolls; the installed terminal now follows the tablet's rotation instead of staying in landscape (reinstall it to apply at once).
 - **The terminal follows the visible height** (#2824). Its sizes read `dvh` instead of `vh`, so the Android navigation bar showing (pulled up, or when the camera opens) no longer pushes the screen into scrolling; the device check also shows the visible screen in CSS pixels and its density.
 - **Presence no longer offers activation on a phone already activated** (#2826). The Activate card and its facts set their own `display`, which overrode `hidden`, so the card showed above the code with empty boxes.
+- **The app's operator screens wait for presence** (#2828). Pair terminal, My terminals and Operator QR appear in More, and open, only for an account that holds their capability and has presence active on a phone.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 
