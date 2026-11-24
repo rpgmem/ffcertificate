@@ -340,13 +340,9 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 		<p class="ffc-terminal-label" data-ffc-terminal-part="label"></p>
 		<p class="ffc-terminal-note" data-ffc-terminal-part="events"></p>
 		<p class="ffc-terminal-note" data-ffc-terminal-part="until"></p>
-		<section class="ffc-terminal-check" aria-labelledby="ffc-terminal-check-title">
-			<h3 id="ffc-terminal-check-title" class="ffc-icon-monitor"><?php esc_html_e( 'Device check', 'ffcertificate' ); ?></h3>
-			<p class="ffc-terminal-note"><?php esc_html_e( 'What this browser offers the terminal. Note it, or take a picture of it, when trying a new tablet.', 'ffcertificate' ); ?></p>
-			<dl data-ffc-terminal-part="device-check"></dl>
-		</section>
 		</div>
-		<section class="ffc-terminal-menu-side ffc-terminal-queue" aria-labelledby="ffc-terminal-queue-title">
+		<div class="ffc-terminal-menu-side">
+		<section class="ffc-terminal-queue" aria-labelledby="ffc-terminal-queue-title">
 			<h3 id="ffc-terminal-queue-title" class="ffc-icon-calendar"><?php esc_html_e( 'Events on this terminal', 'ffcertificate' ); ?></h3>
 			<p class="ffc-terminal-note" data-ffc-terminal-part="queue-summary"></p>
 			<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="queue-list"></ul>
@@ -381,6 +377,12 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 				?>
 			</div>
 		</section>
+		<section class="ffc-terminal-check" aria-labelledby="ffc-terminal-check-title">
+			<h3 id="ffc-terminal-check-title" class="ffc-icon-monitor"><?php esc_html_e( 'Device check', 'ffcertificate' ); ?></h3>
+			<p class="ffc-terminal-note"><?php esc_html_e( 'What this browser offers the terminal. Note it, or take a picture of it, when trying a new tablet.', 'ffcertificate' ); ?></p>
+			<dl data-ffc-terminal-part="device-check"></dl>
+		</section>
+		</div>
 	</section>
 
 	<footer class="ffc-terminal-foot" data-ffc-terminal-part="foot" hidden>

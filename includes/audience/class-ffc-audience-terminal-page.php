@@ -350,7 +350,8 @@ final class AudienceTerminalPage {
 			'scope'                => '' === $scope ? '/' : $scope,
 			'display'              => 'fullscreen',
 			'display_override'     => array( 'fullscreen', 'standalone' ),
-			'orientation'          => 'landscape',
+			// Any orientation: every screen fits a tablet held either way (#2822).
+			'orientation'          => 'any',
 			'background_color'     => self::BACKGROUND,
 			'theme_color'          => self::BACKGROUND,
 			'lang'                 => (string) get_bloginfo( 'language' ),
