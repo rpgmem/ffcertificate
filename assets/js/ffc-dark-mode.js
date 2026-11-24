@@ -17,8 +17,15 @@
     var mq   = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
     var mode = (typeof ffcDarkMode !== 'undefined' && ffcDarkMode.mode) ? ffcDarkMode.mode : 'off';
 
+    // The installable app's More screen can turn dark on one device
+    // (site-pwa#23); its head script marks <html> before the first paint,
+    // and the site's setting must not undo that.
+    function deviceDark() {
+        return root.getAttribute('data-site-pwa-scheme') === 'dark';
+    }
+
     function paint(enable) {
-        if (enable) {
+        if (enable || deviceDark()) {
             root.classList.add('ffc-dark-mode');
         } else {
             root.classList.remove('ffc-dark-mode');

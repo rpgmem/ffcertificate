@@ -37159,3 +37159,27 @@ msgstr "No app, Agenda é uma tela própria, em vez das tabelas do painel: Minha
 
 msgid "The app's Home shows what the plugin knows is next for the person: \"Attendance confirmed at\" an event recorded in the last 7 days, as a line they can dismiss; their next booking in the coming 7 days, with Presence QR and Details; and, under Pending, each post-event form still open, each reregistration they can still submit with its deadline, and a certificate issued in the last 7 days. Each item opens the matching screen, and one the account cannot open is left out."
 msgstr "O Início do app mostra o que o plugin sabe que vem a seguir para a pessoa: \"Presença confirmada em\" um evento registrado nos últimos 7 dias, como uma linha que ela pode dispensar; a próxima reserva nos próximos 7 dias, com QR de presença e Detalhes; e, em Pendências, cada formulário pós-evento ainda aberto, cada recadastramento que ela ainda pode enviar, com o prazo, e um certificado emitido nos últimos 7 dias. Cada item abre a tela correspondente, e o que a conta não pode abrir fica de fora."
+
+msgid "Link a tablet to your events"
+msgstr "Vincule um tablet aos seus eventos"
+
+msgid "Check-in tablets you paired"
+msgstr "Tablets de check-in que você pareou"
+
+msgid "Unlock a terminal"
+msgstr "Desbloqueie um terminal"
+
+msgid "Mark attendance by hand"
+msgstr "Marque a presença manualmente"
+
+msgid "Keep your registration up to date"
+msgstr "Mantenha seu cadastro em dia"
+
+msgid "RF %s"
+msgstr "RF %s"
+
+msgid "%1$d active · %2$d offline"
+msgstr "%1$d ativos · %2$d offline"
+
+msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says."
+msgstr "A tela Mais do app abre na pessoa, com o RF mascarado e o setor sob o nome, e lista as telas de operador à parte, em Operador, cada uma com uma linha dizendo para que serve; Meus terminais mostra quantos dos terminais que o operador pareou estão ativos e quantos deles estão offline, e Recadastramento mostra Pendente enquanto uma campanha ainda está aberta para a pessoa. Ligar o tema escuro do app em um aparelho também escurece as telas do plugin dentro do app, seja qual for o Modo escuro."

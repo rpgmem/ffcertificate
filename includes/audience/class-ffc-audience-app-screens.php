@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Registers the attendance screens with Site PWA.
  *
- * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, capability: string, url?: string, slot?: string}
+ * @phpstan-type ScreenDef array{label: string, icon: string, place: string, position: int, capability: string, url?: string, slot?: string, section?: string, subtitle?: string, badge?: callable(): string}
  */
 final class AudienceAppScreens {
 
@@ -89,8 +89,11 @@ final class AudienceAppScreens {
 				'position'   => $screen['position'],
 				'capability' => $screen['capability'],
 			);
-			if ( isset( $screen['slot'] ) ) {
-				$args['slot'] = $screen['slot'];
+			// More's group, line and status (site-pwa#23); an older app ignores them.
+			foreach ( array( 'slot', 'section', 'subtitle', 'badge' ) as $key ) {
+				if ( isset( $screen[ $key ] ) ) {
+					$args[ $key ] = $screen[ $key ];
+				}
 			}
 			if ( isset( $screen['url'] ) ) {
 				$args['url'] = $screen['url'];
@@ -129,6 +132,8 @@ final class AudienceAppScreens {
 				'place'      => 'more',
 				'position'   => 40,
 				'capability' => AudienceTerminalPairing::CAP,
+				'section'    => 'operator',
+				'subtitle'   => __( 'Link a tablet to your events', 'ffcertificate' ),
 			),
 			'operator-terminals'  => array(
 				'label'      => __( 'My terminals', 'ffcertificate' ),
@@ -136,6 +141,9 @@ final class AudienceAppScreens {
 				'place'      => 'more',
 				'position'   => 41,
 				'capability' => AudienceTerminalPairing::CAP,
+				'section'    => 'operator',
+				'subtitle'   => __( 'Check-in tablets you paired', 'ffcertificate' ),
+				'badge'      => array( self::class, 'terminals_badge' ),
 			),
 			'operator-qr'         => array(
 				'label'      => __( 'Operator QR', 'ffcertificate' ),
@@ -143,6 +151,8 @@ final class AudienceAppScreens {
 				'place'      => 'more',
 				'position'   => 42,
 				'capability' => self::OPERATOR_CAPABILITY,
+				'section'    => 'operator',
+				'subtitle'   => __( 'Unlock a terminal', 'ffcertificate' ),
 			),
 			'operator-attendance' => array(
 				'label'      => __( 'Manual attendance', 'ffcertificate' ),
@@ -150,9 +160,38 @@ final class AudienceAppScreens {
 				'place'      => 'more',
 				'position'   => 43,
 				'capability' => self::OPERATOR_CAPABILITY,
+				'section'    => 'operator',
+				'subtitle'   => __( 'Mark attendance by hand', 'ffcertificate' ),
 				'url'        => admin_url( 'admin.php?page=ffc-scheduling-bookings' ),
 			),
 		);
+	}
+
+	/**
+	 * My terminals' status beside its name in More: how many of the
+	 * terminals this operator paired are active, and how many of those have
+	 * not been heard from lately, by the Terminals screen's own rule.
+	 * Evaluated only when More is drawn.
+	 *
+	 * @param int|null $now     Unix time; now when null.
+	 * @param int|null $user_id Operator; the current user when null.
+	 * @return string Empty when the operator has no active terminal.
+	 */
+	public static function terminals_badge( ?int $now = null, ?int $user_id = null ): string {
+		$now       = $now ?? time();
+		$user_id   = $user_id ?? get_current_user_id();
+		$terminals = $user_id > 0 ? AudienceTerminalReader::active_terminals( $now, $user_id ) : array();
+		if ( array() === $terminals ) {
+			return '';
+		}
+		$offline = 0;
+		foreach ( $terminals as $terminal ) {
+			if ( AudienceAdminTerminals::STATE_ONLINE !== AudienceAdminTerminals::state( $terminal, $now ) ) {
+				++$offline;
+			}
+		}
+		/* translators: 1: number of active terminals, 2: how many of them are offline */
+		return sprintf( __( '%1$d active · %2$d offline', 'ffcertificate' ), count( $terminals ), $offline );
 	}
 
 	/**

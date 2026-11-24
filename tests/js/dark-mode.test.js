@@ -24,6 +24,15 @@ describe('ffc-dark-mode', () => {
 		expect(document.documentElement.classList.contains('ffc-dark-mode')).toBe(false);
 	});
 
+	it("keeps the app's dark choice for this device even when the site says 'off' (site-pwa#23)", () => {
+		document.documentElement.setAttribute('data-site-pwa-scheme', 'dark');
+		document.documentElement.classList.add('ffc-dark-mode');
+		window.ffcDarkMode = { mode: 'off' };
+		loadScript('assets/js/ffc-dark-mode.js');
+		expect(document.documentElement.classList.contains('ffc-dark-mode')).toBe(true);
+		document.documentElement.removeAttribute('data-site-pwa-scheme');
+	});
+
 	it("adds the class when mode === 'on'", () => {
 		window.ffcDarkMode = { mode: 'on' };
 		loadScript('assets/js/ffc-dark-mode.js');
