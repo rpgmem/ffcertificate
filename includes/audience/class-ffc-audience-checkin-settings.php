@@ -84,6 +84,34 @@ final class AudienceCheckinSettings {
 	}
 
 	/**
+	 * The same, in hours: what a pairing screen marks first.
+	 *
+	 * @return int
+	 */
+	public static function auto_end_hours(): int {
+		return max( 1, intdiv( self::auto_end_seconds(), HOUR_IN_SECONDS ) );
+	}
+
+	/**
+	 * The hours a pairing screen offers for ending by itself (#2781): 1, 2
+	 * and 4, plus the settings' value when it is none of them, so what is
+	 * marked first is always one of the choices.
+	 *
+	 * @param int $default_hours The settings' value.
+	 * @return array<int, string> Hours => label.
+	 */
+	public static function auto_end_choices( int $default_hours ): array {
+		$hours = array_values( array_unique( array( 1, 2, 4, $default_hours ) ) );
+		sort( $hours );
+		$options = array();
+		foreach ( $hours as $h ) {
+			/* translators: %d: hours */
+			$options[ $h ] = sprintf( __( '%d h', 'ffcertificate' ), $h );
+		}
+		return $options;
+	}
+
+	/**
 	 * Whether a terminal may read codes with its own camera (#2747). Off
 	 * unless an administrator turned it on: the wedge reader is the
 	 * recommended mode.

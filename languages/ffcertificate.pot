@@ -36063,10 +36063,6 @@ msgstr ""
 msgid "The menu locks again after two minutes without use."
 msgstr ""
 
-
-msgid "End this terminal? It stops checking people in at once, and pairing it again needs a new code."
-msgstr ""
-
 msgid "The terminal opens at the site's address followed by /terminal/ (on a site without pretty permalinks, the home page with ?ffc_terminal=1 added), outside the theme and with no login, and waits for pairing. The browser can install it as an app of its own, full screen and in landscape, apart from the participants' app: the pairing QR code is what binds it, never an account. Search engines are told not to list either address, and no cache keeps them. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires."
 msgstr ""
 
@@ -36243,9 +36239,6 @@ msgstr ""
 msgid "Current event"
 msgstr ""
 
-msgid "Edit events"
-msgstr ""
-
 msgid "Ended automatically"
 msgstr ""
 
@@ -36253,18 +36246,6 @@ msgid "Ended by hand"
 msgstr ""
 
 msgid "Events of %s"
-msgstr ""
-
-msgid "Every active terminal on the site, and those that ended in the last %d days. Pair a terminal in the app, under More → Pair terminal."
-msgstr ""
-
-msgid "The active terminals you paired, and those that ended in the last %d days. Pair a terminal in the app, under More → Pair terminal."
-msgstr ""
-
-msgid "Last seen"
-msgstr ""
-
-msgid "No terminal is paired."
 msgstr ""
 
 msgid "None now"
@@ -36289,12 +36270,6 @@ msgid "Readings"
 msgstr ""
 
 msgid "Readings today"
-msgstr ""
-
-msgid "Readings waiting to be sent"
-msgstr ""
-
-msgid "Scheduling → Terminals lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings waiting to be sent. Each row shows the terminal's events, the event it checks in now, who paired it, when it was last seen, its readings and how many it holds unsent, and its state: Online, Offline, Ended automatically or Ended by hand. Edit events changes its events under the same rules as the app, and End stops it after a confirmation on the screen."
 msgstr ""
 
 msgid "Terminal ended. It stops checking people in at once."
@@ -36941,4 +36916,65 @@ msgid "Move it to this phone"
 msgstr ""
 
 msgid "On an iPhone, always open Presence from the app on the home screen: Safari and the app keep separate keys, so each counts as a phone."
+msgstr ""
+
+msgid "%s ago"
+msgstr ""
+
+msgid "Edit queue"
+msgstr ""
+
+msgid "Every active terminal on the site, and those that ended in the last %d days. Revoking takes effect the next time the terminal connects."
+msgstr ""
+
+msgid "Expires at %s · single use"
+msgstr ""
+
+msgid "In the queue (not sent)"
+msgstr ""
+
+msgid "No terminal is paired on the site."
+msgstr ""
+
+msgid "One event"
+msgstr ""
+
+msgid "Pairing code to hold to the terminal's reader"
+msgstr ""
+
+msgid "Presence terminals"
+msgstr ""
+
+msgid "Queue"
+msgstr ""
+
+msgid "Revoke"
+msgstr ""
+
+msgid "Revoke this terminal? It stops checking people in the next time it connects, and pairing it again needs a new code."
+msgstr ""
+
+msgid "Revoked by %s"
+msgstr ""
+
+msgid "Seen"
+msgstr ""
+
+msgid "The active terminals you paired, and those that ended in the last %d days. Revoking takes effect the next time the terminal connects."
+msgstr ""
+
+msgid "You have not paired a terminal."
+msgstr ""
+
+msgid "%d event"
+msgid_plural "%d events"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%d in the queue"
+msgid_plural "%d in the queue"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Scheduling → Terminals (Presence terminals) lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings in the queue. Each row shows the terminal's queue (one event, or how many, with the place when they all share one), the event it checks in now, who paired it and when, when it was last seen (now, minutes ago, or the date), its readings and how many it holds unsent, and its state as a pill: Online, Offline, Ended automatically, or Revoked by whoever ended it. Edit queue changes its events under the same rules as the app, and Revoke stops it after a confirmation on the screen, the next time it connects. Pair terminal, beside the title, pairs one from wp-admin as the app does: tick the events, name the terminal, choose when it ends by itself, and the one-time code appears as a QR code with the time it expires; it is shown once and never kept."
 msgstr ""

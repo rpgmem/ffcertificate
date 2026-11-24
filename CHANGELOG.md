@@ -36,6 +36,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The app's Calendar screen follows the approved screen** (#2781): *My bookings* / *Book*, the month, day cards with today highlighted, status and attendance chips, the presence code, post-event form and receipt inline, the past folded, a dashed *New booking*. It reads the dashboard's two routes; outside the app nothing changes.
 - **A terminal without events rests locked** (#2794). Unpaired, or paired with an empty queue, it shows *Terminal without events* with the lock; an operator QR opens setup or the menu, a participant code is refused, and the pairing-code field sits behind *I have a pairing code* on the unlock prompt.
 - **The app's operator screens follow the approved screens** (#2781): *Pair terminal* switches between *Choose events* and *By place*, chooses *End by itself after the end* (1 h / 2 h / 4 h, stored per pairing as `auto_end_hours`, schema revision 21) and shows the code beside a summary, *Expires in m:ss · single use*; *My terminals* and *Operator QR* take the same cards.
+- **Presence terminals follows the approved screen** (#2782): *Pair terminal* beside the title pairs one from wp-admin (events, name, when it ends by itself; the one-time code as a QR, shown once and never kept), the Queue column reads "One event" / "3 events · Room 3" with *Edit queue*, Seen reads "now" / "14 mins ago", every state is a pill with a dot, *End* becomes *Revoke* and a revoked terminal names who revoked it.
 
 ### Security
 
