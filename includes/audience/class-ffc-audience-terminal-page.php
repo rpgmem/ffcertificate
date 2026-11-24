@@ -449,6 +449,7 @@ final class AudienceTerminalPage {
 					/* translators: %s: date and time */
 					'until'           => __( 'Works until %s', 'ffcertificate' ),
 					'expired'         => __( 'This terminal\'s pairing has ended. Ask an operator for a new pairing code.', 'ffcertificate' ),
+					'revoked'         => __( 'This terminal was revoked. The readings it took before that were sent. Ask an operator for a new pairing code.', 'ffcertificate' ),
 					/* translators: %s: the operator's short name, such as Maria S. */
 					'operator'        => __( 'Unlocked by %s.', 'ffcertificate' ),
 					/* translators: %d: seconds between this terminal's clock and the site's */

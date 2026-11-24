@@ -462,9 +462,15 @@ class AudienceAdminTerminals {
 			echo '<td>' . esc_html( null === $terminal['paired_by'] ? '—' : AudienceAdminPresence::user_label( $terminal['paired_by'] ) . ' · ' . self::moment( $terminal['paired_at'], $now ) ) . '</td>';
 			echo '<td>' . esc_html( self::seen( $terminal['last_seen_at'], $now ) ) . '</td>';
 			echo '<td>' . esc_html( (string) $terminal['readings'] );
-			if ( $active && $terminal['queued'] > 0 ) {
+			// A revoked terminal still sends its queue (#2802), so what it
+			// holds stays worth showing until it does.
+			if ( ( $active || null !== $terminal['revoked_at'] ) && $terminal['queued'] > 0 ) {
 				/* translators: %d: number of readings waiting to be sent */
 				echo ' · <strong>' . esc_html( sprintf( _n( '%d in the queue', '%d in the queue', $terminal['queued'], 'ffcertificate' ), $terminal['queued'] ) ) . '</strong>';
+			}
+			if ( $terminal['refused_after_revocation'] > 0 ) {
+				/* translators: %d: number of readings refused because the terminal took them after it was revoked */
+				echo '<br>' . esc_html( sprintf( _n( '%d refused after revocation', '%d refused after revocation', $terminal['refused_after_revocation'], 'ffcertificate' ), $terminal['refused_after_revocation'] ) );
 			}
 			echo '</td>';
 			echo '<td><span class="ffc-terminal-state ffc-terminal-state-' . esc_attr( $state ) . '">' . esc_html( self::state_text( $terminal, $state ) ) . '</span></td>';
@@ -483,7 +489,7 @@ class AudienceAdminTerminals {
 				? sprintf( __( 'Every active terminal on the site, and those that ended in the last %d days. Revoking takes effect the next time the terminal connects.', 'ffcertificate' ), self::KEEP_DAYS )
 				/* translators: %d: number of days */
 				: sprintf( __( 'The active terminals you paired, and those that ended in the last %d days. Revoking takes effect the next time the terminal connects.', 'ffcertificate' ), self::KEEP_DAYS )
-		) . '</p>';
+		) . ' ' . esc_html__( 'Readings it took offline before the revocation are still recorded when it connects; later ones are refused, counted here and written to the activity log.', 'ffcertificate' ) . '</p>';
 	}
 
 	/**

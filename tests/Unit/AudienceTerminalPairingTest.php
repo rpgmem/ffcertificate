@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAdminTerminals;
 use FreeFormCertificate\Audience\AudienceOperatorCode;
+use FreeFormCertificate\Audience\AudiencePresenceAttestation;
 use FreeFormCertificate\Audience\AudienceTerminalLockout;
 use FreeFormCertificate\Audience\AudienceTerminalPairing;
 use FreeFormCertificate\Audience\AudienceTerminalReader;
@@ -331,6 +332,9 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 'ffc_terminal_missing', AudienceTerminalPairing::revoke( $paired['terminal_id'], 99, false, self::NOW )->get_error_code(), 'an operator ends only their own' );
 		$this->assertTrue( AudienceTerminalPairing::revoke( $paired['terminal_id'], self::OPERATOR, false, self::NOW + 200 ) );
 		$this->assertNull( AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 201 ) );
+		$this->assertSame( $paired['terminal_id'], AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 201, 3, true )['id'], 'a revoked terminal may still send its queue (#2802)' );
+		$this->assertSame( 3, $this->tables->terminals[ $paired['terminal_id'] ]['queued'] );
+		$this->assertNull( AudienceTerminalPairing::authenticate( $paired['token'], self::NOW + 200 + AudiencePresenceAttestation::TTL + 1, null, true ), 'not once nothing it read could be recorded' );
 		$this->assertSame( 'ffc_terminal_ended', AudienceTerminalPairing::revoke( $paired['terminal_id'], 1, true, self::NOW + 300 )->get_error_code() );
 		$this->assertSame( 'terminal_revoked', ActivityLogBuffer::contexts()[ count( ActivityLogBuffer::contexts() ) - 1 ]['action'] );
 	}
@@ -961,6 +965,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->tables->terminals[ $paired['terminal_id'] ]['last_seen_at'] = time() - 30;
 		$this->tables->terminals[ $paired['terminal_id'] ]['queued']       = 3;
 		$this->tables->terminals[ $paired['terminal_id'] ]['readings']     = 12;
+		$this->tables->terminals[ $paired['terminal_id'] ]['refused_after_revocation'] = 2;
 		$this->tables->terminals[ $paired['terminal_id'] ]['expires_at']   = time() + HOUR_IN_SECONDS;
 		$this->tables->attendance = array(
 			array( 'attendance_date' => gmdate( 'Y-m-d' ), 'method' => 'terminal' ),
@@ -991,6 +996,8 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertStringContainsString( 'Account #' . self::OPERATOR, $html, 'who paired it' );
 		$this->assertStringContainsString( 'ffc-terminal-state-online', $html );
 		$this->assertStringContainsString( '3 in the queue', $html );
+		$this->assertStringContainsString( '2 refused after revocation', $html, 'readings a revoked terminal took too late (#2802)' );
+		$this->assertStringContainsString( 'later ones are refused, counted here and written to the activity log', $html );
 		$this->assertStringContainsString( 'Presence terminals', $html );
 		$this->assertStringContainsString( 'pair=1', $html, 'Pair terminal in the header' );
 		$this->assertStringContainsString( 'Edit queue', $html );

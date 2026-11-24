@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '22';
+	public const SCHEMA_REVISION = '23';
 
 	/**
 	 * Option holding the revision last applied.
@@ -632,6 +632,7 @@ class AudienceActivator {
             queued int(10) unsigned NOT NULL DEFAULT 0,
             readings int(10) unsigned NOT NULL DEFAULT 0,
             auto_end_hours smallint(5) unsigned DEFAULT NULL,
+            refused_after_revocation int(10) unsigned NOT NULL DEFAULT 0,
             revoked_at bigint(20) unsigned DEFAULT NULL,
             revoked_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
@@ -1205,6 +1206,9 @@ class AudienceActivator {
 		// How long after its last event the terminal ends itself, chosen
 		// when it was paired (#2781); empty means the Check-in settings.
 		self::add_column_if_missing( $table_name, 'auto_end_hours', 'smallint(5) unsigned DEFAULT NULL', 'readings' );
+		// The queued readings a revoked terminal sent that it took after the
+		// revocation, refused and counted on the Terminals screen (#2802).
+		self::add_column_if_missing( $table_name, 'refused_after_revocation', 'int(10) unsigned NOT NULL DEFAULT 0', 'auto_end_hours' );
 		$pairings = $wpdb->prefix . 'ffc_audience_terminal_pairings';
 		if ( self::table_exists( $pairings ) ) {
 			self::add_column_if_missing( $pairings, 'auto_end_hours', 'smallint(5) unsigned DEFAULT NULL', 'terminal_id' );
@@ -1213,7 +1217,7 @@ class AudienceActivator {
 			}
 		}
 
-		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings', 'auto_end_hours' ) );
+		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings', 'auto_end_hours', 'refused_after_revocation' ) );
 	}
 
 	/**

@@ -295,17 +295,29 @@ final class AudienceTerminalPairing {
 	 * count of readings it holds unsent changed, so the Terminals screen
 	 * (#2748) can say which terminal still has readings to send.
 	 *
-	 * @param string   $token  The token the terminal holds.
-	 * @param int      $now    Unix time.
-	 * @param int|null $queued Readings the terminal says it holds unsent, or null when it did not say.
+	 * A revoked terminal is let in only to send the queue it kept offline
+	 * (#2802), and only while a reading taken before the revocation could
+	 * still be recorded: an attestation's lifetime after it.
+	 *
+	 * @param string   $token        The token the terminal holds.
+	 * @param int      $now          Unix time.
+	 * @param int|null $queued       Readings the terminal says it holds unsent, or null when it did not say.
+	 * @param bool     $to_send_queue Whether the request only sends the queue.
 	 * @return TerminalRow|null
 	 */
-	public static function authenticate( string $token, int $now, ?int $queued = null ): ?array {
+	public static function authenticate( string $token, int $now, ?int $queued = null, bool $to_send_queue = false ): ?array {
 		if ( 1 !== preg_match( '/^[a-f0-9]{64}$/', $token ) ) {
 			return null;
 		}
 		$terminal = AudienceTerminalReader::terminal_by_token_hash( self::token_hash( $token ) );
-		if ( null === $terminal || null !== $terminal['revoked_at'] || $terminal['expires_at'] <= $now ) {
+		if ( null === $terminal ) {
+			return null;
+		}
+		if ( null !== $terminal['revoked_at'] ) {
+			if ( ! $to_send_queue || $now - $terminal['revoked_at'] > AudiencePresenceAttestation::TTL ) {
+				return null;
+			}
+		} elseif ( $terminal['expires_at'] <= $now ) {
 			return null;
 		}
 		$queued  = null === $queued ? $terminal['queued'] : max( 0, $queued );

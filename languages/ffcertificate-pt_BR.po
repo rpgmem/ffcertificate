@@ -37183,3 +37183,20 @@ msgstr "%1$d ativos · %2$d offline"
 
 msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says."
 msgstr "A tela Mais do app abre na pessoa, com o RF mascarado e o setor sob o nome, e lista as telas de operador à parte, em Operador, cada uma com uma linha dizendo para que serve; Meus terminais mostra quantos dos terminais que o operador pareou estão ativos e quantos deles estão offline, e Recadastramento mostra Pendente enquanto uma campanha ainda está aberta para a pessoa. Ligar o tema escuro do app em um aparelho também escurece as telas do plugin dentro do app, seja qual for o Modo escuro."
+
+msgid "This terminal was revoked before this reading, so it was not recorded."
+msgstr "Este terminal foi revogado antes desta leitura, então ela não foi registrada."
+
+msgid "This terminal was revoked. The readings it took before that were sent. Ask an operator for a new pairing code."
+msgstr "Este terminal foi revogado. As leituras feitas antes disso foram enviadas. Peça a um operador um novo código de pareamento."
+
+msgid "Readings it took offline before the revocation are still recorded when it connects; later ones are refused, counted here and written to the activity log."
+msgstr "As leituras feitas offline antes da revogação ainda são registradas quando ele se conecta; as posteriores são recusadas, contadas aqui e gravadas no registro de atividades."
+
+msgid "A revoked terminal still sends the queue it kept offline when it next connects, for up to 7 days after the revocation: a reading it took before the revocation is judged as any other, and one it took later is refused, written to the activity log and counted on Presence terminals as refused after revocation. The terminal then says it was revoked and takes no more readings."
+msgstr "Um terminal revogado ainda envia a fila que guardou offline na próxima vez que se conecta, por até 7 dias após a revogação: uma leitura feita antes da revogação é avaliada como qualquer outra, e uma feita depois é recusada, gravada no registro de atividades e contada em Terminais de presença como recusada após revogação. O terminal então avisa que foi revogado e não faz mais leituras."
+
+msgid "%d refused after revocation"
+msgid_plural "%d refused after revocation"
+msgstr[0] "%d recusada após revogação"
+msgstr[1] "%d recusadas após revogação"
