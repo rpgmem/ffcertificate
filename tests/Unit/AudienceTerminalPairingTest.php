@@ -204,6 +204,23 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 'ffc_terminal_code_wrong', $again->get_error_code(), 'single use' );
 	}
 
+	public function test_an_operator_chooses_how_long_after_the_last_event_the_terminal_ends(): void {
+		$code   = AudienceTerminalPairing::create_code( self::OPERATOR, array( 11, 12 ), '', self::NOW, 4 )['code'];
+		$result = AudienceTerminalPairing::pair( $code, self::DEVICE, self::ADDRESS, self::NOW + 60 );
+
+		$this->assertSame( AudienceTerminalPairing::booking_end( 12 ) + 4 * HOUR_IN_SECONDS, $result['expires_at'] );
+		$this->assertSame( 4, array_values( $this->tables->pairings )[0]['auto_end_hours'] );
+		$this->assertSame( 4, AudienceTerminalReader::terminal( $result['terminal_id'] )['auto_end_hours'], 'kept for a later change of events' );
+
+		$this->assertNull( AudienceTerminalPairing::clean_auto_end( null ) );
+		$this->assertNull( AudienceTerminalPairing::clean_auto_end( 0 ), 'no choice follows the Check-in settings' );
+		$this->assertSame( \FreeFormCertificate\Audience\AudienceCheckinSettings::AUTO_END_HOURS_MAX, AudienceTerminalPairing::clean_auto_end( 99 ) );
+		$this->assertSame(
+			AudienceTerminalPairing::booking_end( 11 ) + \FreeFormCertificate\Audience\AudienceCheckinSettings::auto_end_seconds(),
+			AudienceTerminalPairing::expiry( array( 11 ), self::NOW, null )
+		);
+	}
+
 	public function test_an_expired_code_does_not_pair(): void {
 		$code = AudienceTerminalPairing::create_code( self::OPERATOR, array( 11 ), '', self::NOW )['code'];
 		$late = AudienceTerminalPairing::pair( $code, self::DEVICE, self::ADDRESS, self::NOW + AudienceTerminalPairing::CODE_TTL + 1 );

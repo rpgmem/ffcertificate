@@ -96,14 +96,15 @@ final class AudienceTerminalPairing {
 	/**
 	 * Generate a pairing code.
 	 *
-	 * @param int    $user_id  The operator.
-	 * @param int[]  $bookings Booking ids.
-	 * @param string $label    What to call the terminal.
-	 * @param int    $now      Unix time.
+	 * @param int      $user_id        The operator.
+	 * @param int[]    $bookings       Booking ids.
+	 * @param string   $label          What to call the terminal.
+	 * @param int      $now            Unix time.
+	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself (#2781); null for the Check-in settings.
 	 * @phpstan-param list<int> $bookings
 	 * @return array{code: string, expires_at: int, bookings: list<int>}|\WP_Error
 	 */
-	public static function create_code( int $user_id, array $bookings, string $label, int $now ) {
+	public static function create_code( int $user_id, array $bookings, string $label, int $now, ?int $auto_end_hours = null ) {
 		$bookings = self::clean_bookings( $bookings );
 		$invalid  = self::queue_error( $bookings, $now );
 		if ( null !== $invalid ) {
@@ -114,10 +115,11 @@ final class AudienceTerminalPairing {
 			return $limit;
 		}
 
-		$label = self::clean_label( $label );
+		$label          = self::clean_label( $label );
+		$auto_end_hours = self::clean_auto_end( $auto_end_hours );
 		for ( $attempt = 0; $attempt < 5; $attempt++ ) {
 			$code = self::PREFIX . '-' . AuthCodeService::generate_auth_code();
-			$id   = AudienceTerminalWriter::create_pairing( self::code_hash( $code ), $bookings, $label, $user_id, $now, $now + self::CODE_TTL );
+			$id   = AudienceTerminalWriter::create_pairing( self::code_hash( $code ), $bookings, $label, $user_id, $now, $now + self::CODE_TTL, $auto_end_hours );
 			if ( $id > 0 ) {
 				ActivityLog::log(
 					'terminal_pairing_created',
@@ -173,9 +175,9 @@ final class AudienceTerminalPairing {
 		if ( ! AudienceTerminalWriter::spend_pairing( $pairing['id'], $now ) ) {
 			return self::wrong_code( $device_hash, $address, $now );
 		}
-		$expires = self::expiry( $pairing['bookings'], $now );
+		$expires = self::expiry( $pairing['bookings'], $now, $pairing['auto_end_hours'] );
 		$token   = bin2hex( random_bytes( 32 ) );
-		$id      = AudienceTerminalWriter::create_terminal( self::token_hash( $token ), $device_hash, $pairing['label'], $pairing['bookings'], $pairing['created_by'], $now, $expires );
+		$id      = AudienceTerminalWriter::create_terminal( self::token_hash( $token ), $device_hash, $pairing['label'], $pairing['bookings'], $pairing['created_by'], $now, $expires, $pairing['auto_end_hours'] );
 		if ( $id <= 0 ) {
 			return new \WP_Error( 'ffc_terminal_save', __( 'The terminal could not be saved. Generate a new code and try again.', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
@@ -250,7 +252,7 @@ final class AudienceTerminalPairing {
 		foreach ( $added as $booking_id ) {
 			unset( $removed[ $booking_id ] );
 		}
-		$expires = self::expiry( $bookings, $now );
+		$expires = self::expiry( $bookings, $now, $terminal['auto_end_hours'] );
 		if ( ! AudienceTerminalWriter::set_bookings( $id, $bookings, $removed, $expires ) ) {
 			return new \WP_Error( 'ffc_terminal_save', __( 'The terminal could not be saved. Try again.', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
@@ -376,12 +378,13 @@ final class AudienceTerminalPairing {
 	 * When a terminal stops: the auto-end of the Check-in settings (two hours
 	 * by default) after the last of its bookings ends.
 	 *
-	 * @param int[] $bookings Booking ids.
-	 * @param int   $now      Unix time.
+	 * @param int[]    $bookings       Booking ids.
+	 * @param int      $now            Unix time.
+	 * @param int|null $auto_end_hours Hours chosen when the terminal was paired (#2781); null for the Check-in settings.
 	 * @phpstan-param list<int> $bookings
 	 * @return int
 	 */
-	public static function expiry( array $bookings, int $now ): int {
+	public static function expiry( array $bookings, int $now, ?int $auto_end_hours = null ): int {
 		$last = $now;
 		foreach ( $bookings as $booking_id ) {
 			$end = self::booking_end( $booking_id );
@@ -389,7 +392,22 @@ final class AudienceTerminalPairing {
 				$last = $end;
 			}
 		}
-		return $last + AudienceCheckinSettings::auto_end_seconds();
+		$hours = self::clean_auto_end( $auto_end_hours );
+		return $last + ( null === $hours ? AudienceCheckinSettings::auto_end_seconds() : $hours * HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * The hours an operator chose for the terminal to end itself after its
+	 * last event (#2781), within the Check-in settings' bounds.
+	 *
+	 * @param int|null $hours Hours, or null for the Check-in settings.
+	 * @return int|null
+	 */
+	public static function clean_auto_end( ?int $hours ): ?int {
+		if ( null === $hours || $hours < 1 ) {
+			return null;
+		}
+		return min( $hours, AudienceCheckinSettings::AUTO_END_HOURS_MAX );
 	}
 
 	/**
