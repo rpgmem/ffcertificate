@@ -798,7 +798,7 @@ class SubmissionReader extends AbstractRepository {
 			return null;
 		}
 		$hidden = \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE;
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The interpolated part is one %s placeholder per hidden status, filled by prepare().
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One %s placeholder per hidden status, filled by prepare(); Interpolated* is file-disabled above.
 		$row = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				'SELECT s.id, s.submission_date, p.post_title AS form_title FROM %i s LEFT JOIN %i p ON s.form_id = p.ID'
@@ -812,7 +812,7 @@ class SubmissionReader extends AbstractRepository {
 			),
 			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 		if ( ! is_array( $row ) || ! is_numeric( $row['id'] ?? null ) ) {
 			return null;
 		}
