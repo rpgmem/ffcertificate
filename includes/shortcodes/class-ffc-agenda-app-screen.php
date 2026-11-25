@@ -126,6 +126,10 @@ final class AgendaAppScreen {
 		$out = array();
 		foreach ( $ids as $id ) {
 			$url = ShortcodePage::url( 'ffc_self_scheduling', (int) $id );
+			// The app's own address for the page when Site PWA can draw it, so
+			// booking stays inside the app instead of the theme; unchanged
+			// without Site PWA (#2846).
+			$url = '' === $url ? '' : (string) apply_filters( 'site_pwa_app_url', $url );
 			if ( '' !== $url ) {
 				$out[] = array(
 					'title' => get_the_title( (int) $id ),

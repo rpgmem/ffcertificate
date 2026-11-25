@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Audience\AudienceAppScreens;
 use FreeFormCertificate\Audience\AudiencePresenceDeviceCookie;
@@ -220,6 +221,34 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( array(), $config['book'], 'no personal calendars without the appointments tab' );
 		$this->assertSame( '2026-11-21', $config['today'] );
 		$this->assertStringContainsString( '%d', $config['strings']['past'] );
+	}
+
+	public function test_the_book_links_take_the_apps_address_when_site_pwa_gives_one(): void {
+		Functions\when( 'get_posts' )->justReturn( array( 11, 12 ) );
+		Functions\when( 'get_the_title' )->alias( static fn( $id ) => 'Calendar ' . $id );
+		Functions\when( 'get_transient' )->justReturn( array( 'ffc_self_scheduling:11' => 101, 'ffc_self_scheduling:12' => 102 ) );
+		Functions\when( 'get_post_status' )->justReturn( 'publish' );
+		Functions\when( 'get_post_field' )->alias( static fn( $field, $page ) => '[ffc_self_scheduling id="' . ( $page - 90 ) . '"]' );
+		Functions\when( 'get_permalink' )->alias( static fn( $page ) => 'https://example.com/page-' . $page . '/' );
+
+		$this->assertSame(
+			array(
+				array( 'title' => 'Calendar 11', 'url' => 'https://example.com/page-101/' ),
+				array( 'title' => 'Calendar 12', 'url' => 'https://example.com/page-102/' ),
+			),
+			AgendaAppScreen::bookable(),
+			'without Site PWA the permalink stays'
+		);
+
+		Filters\expectApplied( 'site_pwa_app_url' )->twice()->andReturnUsing(
+			static fn( $url ) => 'https://example.com/page-101/' === $url ? 'https://example.com/app/?p=101' : $url
+		);
+
+		$this->assertSame(
+			array( 'https://example.com/app/?p=101', 'https://example.com/page-102/' ),
+			array_column( AgendaAppScreen::bookable(), 'url' ),
+			'the app address where Site PWA can draw the page, the permalink where it cannot (#2846)'
+		);
 	}
 
 	public function test_a_signed_out_request_registers_nothing(): void {
