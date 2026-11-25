@@ -1181,9 +1181,6 @@
         flex-direction: column;
     }
 
-    .ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
-        width: 100%;
-    }
 }
 
 @media screen and (max-width: 480px) {
@@ -1293,6 +1290,14 @@
    calendar's height, so the list gets a height of its own. Declared after
    the rule above because it has the same specificity. */
 @media screen and (max-width: 768px) {
+    /* Stacked, the panel takes the content's width (#2843). Declared after
+       the 500px above, which has the same specificity and won while this
+       rule sat earlier in the sheet: the panel widened the page past a
+       phone's screen. */
+    .ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
+        width: 100%;
+    }
+
     .ffc-shortcode.ffc-event-list-side .ffc-event-list-content {
         flex: none;
         max-height: 260px;
