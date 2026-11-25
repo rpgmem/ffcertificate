@@ -597,12 +597,15 @@ class AudienceTerminalRestController {
 	private static function when( object $booking ): string {
 		$first = (string) ( $booking->booking_date ?? '' );
 		$last  = is_string( $booking->end_date ?? null ) && '' !== $booking->end_date ? $booking->end_date : $first;
-		$days  = $first === $last
-			? DateFormatter::format_date( $first )
+		// The days and hours are wall-clock values (CLAUDE.md "Date / time
+		// storage convention"): read through the site's timezone they moved
+		// a day and three hours back on a UTC-3 site (#2836).
+		$days = $first === $last
+			? DateFormatter::format_wallclock_date( $first )
 			/* translators: 1: first day, 2: last day */
-			: sprintf( __( '%1$s to %2$s', 'ffcertificate' ), DateFormatter::format_date( $first ), DateFormatter::format_date( $last ) );
+			: sprintf( __( '%1$s to %2$s', 'ffcertificate' ), DateFormatter::format_wallclock_date( $first ), DateFormatter::format_wallclock_date( $last ) );
 		/* translators: 1: day or days, 2: start time, 3: end time */
-		return sprintf( __( '%1$s, %2$s–%3$s', 'ffcertificate' ), $days, DateFormatter::format_time( (string) ( $booking->start_time ?? '' ) ), DateFormatter::format_time( (string) ( $booking->end_time ?? '' ) ) );
+		return sprintf( __( '%1$s, %2$s–%3$s', 'ffcertificate' ), $days, DateFormatter::format_wallclock_time( (string) ( $booking->start_time ?? '' ) ), DateFormatter::format_wallclock_time( (string) ( $booking->end_time ?? '' ) ) );
 	}
 
 	/**
