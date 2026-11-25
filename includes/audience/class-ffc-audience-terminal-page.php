@@ -684,6 +684,7 @@ final class AudienceTerminalPage {
 						'unsupported' => __( 'This browser cannot read QR codes with the camera. Use a reader connected to the device.', 'ffcertificate' ),
 						'denied'      => __( 'The camera was not allowed. Allow it in the browser\'s site settings, or use a reader connected to the device.', 'ffcertificate' ),
 						'failed'      => __( 'The camera could not be started. Use a reader connected to the device.', 'ffcertificate' ),
+						'asleep'      => __( 'The camera is resting after a minute without a code. Tap Use the camera to read again; a connected reader keeps working.', 'ffcertificate' ),
 					),
 					'offline'         => array(
 						'invalid'                          => __( 'This is not a valid presence code. Show the code on the phone again.', 'ffcertificate' ),
