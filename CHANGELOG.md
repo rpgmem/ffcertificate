@@ -74,6 +74,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **An installed terminal no longer runs an old script** (#2834). Its service worker asks the server to confirm each sheet and script (`cache: 'no-cache'`) before using or keeping it, so a deploy that keeps the same `?ver=` cannot leave the terminal on the previous version.
 - **The audience calendar fits a phone's screen** (#2840). Its week grids use `minmax(0, 1fr)`, so a day's badge no longer widens a column past the screen, and on screens up to 480 px the grid's padding and gaps are smaller.
 - **Event days and hours no longer shift back west of UTC** (#2836). The terminal's event list (Pair terminal, My terminals, Terminals, Add events) read the booking's wall-clock day and hours through the site's timezone, so on UTC-3 24/11 09:00 showed as 23/11 06:00; the presence device's activation date had the same slip.
+- **An audience calendar's event list stacks under it on a phone** (#2843). The panel kept its 500 px width beside the calendar, because the phone rule came before the rule it overrides, and widened the page past the screen; at 412 px the page was 510 px wide.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 
