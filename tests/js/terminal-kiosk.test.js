@@ -1417,6 +1417,18 @@ describe('camera', () => {
 		expect(document.activeElement).toBe(node('reading'));
 	});
 
+	it('turns the camera off on a screen that reads nothing with it (#2838)', async () => {
+		const feed = stream();
+		const { e, controls } = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.resolve(feed) } });
+		await controls.camera.ready;
+		await settle();
+		expect(feed.tracks[0].stopped).toBe(false);
+		e.clock.now = (NOW + 3601) * 1000;
+		e.timers.forEach((tick) => tick());
+		expect(controls.screen()).toBe('idle');
+		expect(feed.tracks[0].stopped).toBe(true);
+	});
+
 	it('keeps reading while codes keep coming', async () => {
 		const frames = [];
 		const feed = stream();
