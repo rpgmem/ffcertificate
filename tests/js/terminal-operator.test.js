@@ -95,6 +95,12 @@ function screen(mode) {
 	return document.querySelector('[data-ffc-terminal-operator]');
 }
 
+// GETs carry a unique `_ffc` stamp so no cache between the app and the site
+// can answer them; the routes match the address without it (#2832).
+function unstamp(url) {
+	return url.replace(/[?&]_ffc=\d+$/, '');
+}
+
 function env(routes) {
 	const clock = { now: NOW * 1000 };
 	const calls = [];
@@ -105,7 +111,8 @@ function env(routes) {
 		timeouts,
 		now: () => clock.now,
 		fetch: (url, options) => {
-			const path = url.replace(CONFIG.rest, '');
+			calls.raw = (calls.raw || []).concat([url]);
+			const path = unstamp(url).replace(CONFIG.rest, '');
 			calls.push([options.method, path, options]);
 			const answer = routes[options.method + ' ' + path];
 			if (!answer) {
@@ -154,6 +161,15 @@ describe('Pair terminal', () => {
 		expect(part(el, 'events').textContent).toContain('full');
 		expect(e.calls[0][2].headers['X-WP-Nonce']).toBe('nonce');
 		expect(e.calls[0][2].credentials).toBe('same-origin');
+	});
+
+	it('asks the site itself for the events, never a cached answer', async () => {
+		const e = env({ 'GET bookings': BOOKINGS });
+		await O().start(el, CONFIG, e).ready;
+		expect(e.calls[0][2].cache).toBe('no-store');
+		expect(e.calls.raw[0]).toBe(CONFIG.rest + 'bookings?_ffc=' + NOW * 1000);
+		expect(O().fresh('https://x/a?b=1', 'GET', 5)).toBe('https://x/a?b=1&_ffc=5');
+		expect(O().fresh('https://x/a', 'POST', 5)).toBe('https://x/a');
 	});
 
 	it('asks for an event, and for no more than the limit', async () => {

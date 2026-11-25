@@ -360,6 +360,8 @@
         var options = {
             method: method,
             credentials: 'same-origin',
+            // Never a stored answer (#2832): see fresh().
+            cache: 'no-store',
             headers: { 'X-WP-Nonce': this.config.nonce }
         };
         if (body) {
@@ -368,7 +370,13 @@
         }
         var self = this;
         var sent = self.now();
-        return this.fetch(this.config.rest + path, options).then(function (response) {
+        var address = this.config.rest + path;
+        if ('GET' === method) {
+            // A unique query argument, which a host cache in front of the
+            // REST API keys on even when it ignores no-store (#2832).
+            address += (address.indexOf('?') >= 0 ? '&' : '?') + '_ffc=' + sent;
+        }
+        return this.fetch(address, options).then(function (response) {
             var offset = clockOffset(response, sent, self.now());
             if (null !== offset) {
                 self.offset = Math.abs(offset) < CLOCK_NOISE ? 0 : offset;

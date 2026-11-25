@@ -45,6 +45,23 @@
      * @param {Array} values Values.
      * @return {string}
      */
+    /**
+     * A GET address no cache can have stored: a unique query argument,
+     * which a cache in front of the REST API that ignores
+     * `Cache-Control: no-store` still keys on (#2832).
+     *
+     * @param {string} url    Address.
+     * @param {string} method HTTP method.
+     * @param {number} stamp  Milliseconds.
+     * @return {string}
+     */
+    function fresh(url, method, stamp) {
+        if ('GET' !== method) {
+            return url;
+        }
+        return url + (url.indexOf('?') >= 0 ? '&' : '?') + '_ffc=' + stamp;
+    }
+
     function fill(text, values) {
         var i = 0;
         return String(text || '').replace(/%(?:(\d+)\$)?[sd]/g, function (match, position) {
@@ -88,13 +105,16 @@
             var options = {
                 method: method,
                 credentials: 'same-origin',
+                // Never a stored answer: a host cache in front of the REST
+                // API once served yesterday's event list (#2832).
+                cache: 'no-store',
                 headers: { 'X-WP-Nonce': config.nonce }
             };
             if (undefined !== body) {
                 options.headers['Content-Type'] = 'application/json';
                 options.body = JSON.stringify(body);
             }
-            return env.fetch(config.rest + path, options).then(function (response) {
+            return env.fetch(fresh(config.rest + path, method, env.now()), options).then(function (response) {
                 return response.json().catch(function () { return {}; }).then(function (data) {
                     return { ok: response.ok, status: response.status, body: data || {} };
                 });
@@ -521,6 +541,7 @@
     root.FFCTerminalOperator = {
         clock: clock,
         fill: fill,
+        fresh: fresh,
         start: start
     };
 

@@ -670,13 +670,22 @@
                 // The queue's size rides on every request, so the site can
                 // say which terminal still has readings to send (#2748).
                 headers: { 'X-FFC-Terminal': state.token, 'X-FFC-Terminal-Queue': String(queue().length) },
-                credentials: 'omit'
+                credentials: 'omit',
+                // Never a stored answer (#2832).
+                cache: 'no-store'
             };
             if (undefined !== body) {
                 options.headers['Content-Type'] = 'application/json';
                 options.body = JSON.stringify(body);
             }
-            return fetchClock(url(path), options).then(function (response) {
+            var address = url(path);
+            if ('GET' === method) {
+                // Sent with no cookie, a GET is what a host cache in front of
+                // the REST API stores first: a unique argument keeps the
+                // revocation list and the schedule live (#2832).
+                address += (address.indexOf('?') >= 0 ? '&' : '?') + '_ffc=' + env.now();
+            }
+            return fetchClock(address, options).then(function (response) {
                 return response.json().catch(function () { return {}; }).then(function (data) {
                     if (401 === response.status) {
                         // A revoked terminal may still send what it read

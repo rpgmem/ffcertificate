@@ -216,10 +216,12 @@ function env(overrides = {}) {
 	const clock = { now: NOW * 1000 };
 	const timers = [];
 	const timeouts = [];
+	const sent = [];
 	return {
 		clock,
 		timers,
 		timeouts,
+		sent,
 		now: () => clock.now,
 		storage: memoryStorage(),
 		crypto: webcrypto,
@@ -229,6 +231,9 @@ function env(overrides = {}) {
 		setTimeout: (fn, ms) => { timeouts.push([fn, ms]); return timeouts.length; },
 		clearTimeout: () => {},
 		...overrides,
+		// GETs carry a unique `_ffc` stamp so no cache can answer them
+		// (#2832); the doubles see the address without it.
+		fetch: (url, options) => (sent.push([String(url), options]), overrides.fetch || (() => Promise.reject(new Error('no network'))))(String(url).replace(/[?&]_ffc=\d+$/, ''), options),
 	};
 }
 
@@ -941,6 +946,17 @@ describe('offline queue', () => {
 		await settle();
 		expect(el.querySelector('[data-ffc-terminal-part="status"]').textContent).toBe('sent 1');
 		expect(el.querySelector('[data-ffc-terminal-part="queue"]').textContent).toBe('waiting 0');
+	});
+
+	it('asks the site itself for the revocation list, never a cached answer', async () => {
+		const { controls, e } = offline({
+			online: true,
+			routes: { 'GET revocations': [200, { keys: {}, revoked: [], generated: NOW }] },
+		});
+		await controls.refreshRevocations();
+		const [address, options] = e.sent.find((s) => s[0].includes('revocations'));
+		expect(address).toMatch(/revocations\?_ffc=\d+$/);
+		expect(options.cache).toBe('no-store');
 	});
 
 	it('refreshes the revocation list and the site keys with the terminal token', async () => {
