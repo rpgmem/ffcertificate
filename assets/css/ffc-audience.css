@@ -238,7 +238,10 @@
 
 .ffc-shortcode .ffc-calendar-weekdays {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    /* minmax(0, 1fr): a plain 1fr never shrinks below its content, so a
+       day's badge widened its column and pushed the month past a phone's
+       screen (#2840). */
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: var(--ffc-spacing-xs);
     margin-bottom: var(--ffc-spacing-md);
 }
@@ -253,13 +256,17 @@
 
 .ffc-shortcode .ffc-calendar-days {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    /* minmax(0, 1fr): a plain 1fr never shrinks below its content, so a
+       day's badge widened its column and pushed the month past a phone's
+       screen (#2840). */
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: var(--ffc-spacing-xs);
 }
 
 /* Calendar Day */
 .ffc-shortcode .ffc-day {
     aspect-ratio: 1;
+    min-width: 0;
     min-height: 0;
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
@@ -1180,6 +1187,15 @@
 }
 
 @media screen and (max-width: 480px) {
+    .ffc-shortcode .ffc-calendar-grid {
+        padding: var(--ffc-spacing-sm);
+    }
+
+    .ffc-shortcode .ffc-calendar-weekdays,
+    .ffc-shortcode .ffc-calendar-days {
+        gap: var(--ffc-spacing-3xs);
+    }
+
     .ffc-shortcode .ffc-day-number {
         font-size: var(--ffc-font-size-xs);
     }
