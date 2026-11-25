@@ -69,6 +69,7 @@ final class ClassNamingIdiomTest extends TestCase {
 		'button'      => 'core button (`button`, `button-primary`, `button-secondary`)',
 		'mce-'        => 'TinyMCE, the editor `wp_editor()` loads',
 		'switch-'     => 'core editor tabs (`switch-tmce`, `switch-html`)',
+		'site-pwa-'   => 'the Site PWA plugin prints `site-pwa-app` on the app frame; the screens read it to take the app look (#2848)',
 	);
 
 	/**
