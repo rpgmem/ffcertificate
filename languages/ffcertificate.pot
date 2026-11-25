@@ -37105,7 +37105,7 @@ msgstr ""
 msgid "%1$d active · %2$d offline"
 msgstr ""
 
-msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says."
+msgid "The app's More screen opens on the person, with their RF masked and their department under their name, and lists the operator screens apart, under Operator, each with a line saying what it is for; My terminals shows how many of the terminals the operator paired are active and how many of those are offline, and Reregistration shows Pending while a campaign is still open for them. Turning the app's dark theme on for one device also turns the plugin's screens inside the app dark, whatever Dark Mode says. In the light theme the plugin's screens inside the app take the app's accent colour and corners, set in the Site PWA plugin, with the text on the accent in the contrasting colour the app computes."
 msgstr ""
 
 msgid "This terminal was revoked before this reading, so it was not recorded."

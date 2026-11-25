@@ -415,6 +415,37 @@
 }
 
 /* ==========================================================================
+   INSIDE THE INSTALLABLE APP — the screens take the app's look (#2848)
+   ==========================================================================
+
+   Site PWA draws its frame in the look set under Settings → Site PWA and
+   publishes it as custom properties on `:root`. The plugin's screens inside
+   the frame (`body.site-pwa-app`) read those, so a purple app does not carry
+   blue buttons. Site PWA computes the contrast itself: `--site-pwa-on-accent`
+   is the text that reads on the accent, `--site-pwa-accent-text` the shade of
+   the accent that reads on a light surface, so links and focus take that one.
+
+   Light theme only, like the app's accent; the dark palette stays this
+   sheet's. One class more than Public Design's rule, so the app wins inside
+   it, and when the app takes its look from Public Design the values agree.
+   Outside the app `.site-pwa-app` never matches, and nothing here applies. */
+:root:not(.ffc-dark-mode) .site-pwa-app .ffc-shortcode {
+    --ffc-primary: var(--site-pwa-accent);
+    --ffc-primary-hover: var(--site-pwa-accent-text);
+    --ffc-primary-light: var(--site-pwa-info-bg);
+    --ffc-text-on-primary: var(--site-pwa-on-accent);
+    --ffc-link: var(--site-pwa-accent-text);
+    --ffc-link-hover: var(--site-pwa-accent-text);
+    --ffc-border-focus: var(--site-pwa-accent-text);
+}
+
+.site-pwa-app .ffc-shortcode {
+    --ffc-radius-sm: var(--site-pwa-control-radius);
+    --ffc-radius-md: var(--site-pwa-control-radius);
+    --ffc-radius-lg: var(--site-pwa-radius);
+}
+
+/* ==========================================================================
    DARK MODE - WordPress core chrome (#1126)
    ==========================================================================
 

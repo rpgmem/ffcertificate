@@ -215,14 +215,16 @@
 }
 
 .ffc-presence-empty {
-	color: var(--ffc-text-muted);
+	/* On the accent stage: the stage's own text colour, never a tone meant
+	   for a light surface (#2848). */
+	color: inherit;
 	font-size: var(--ffc-font-size-sm);
 }
 
 /* No code today, or none left to show (#2842). */
 .ffc-presence-upcoming,
 .ffc-presence-also {
-	color: var(--ffc-text-muted);
+	color: inherit;
 	font-size: var(--ffc-font-size-sm);
 	text-align: center;
 }
@@ -235,7 +237,7 @@
 	padding: 0;
 	list-style: none;
 	font-weight: 600;
-	color: var(--ffc-success-text);
+	color: inherit;
 }
 
 /* What waits for the person (#2749). */
@@ -274,5 +276,5 @@
 
 .ffc-presence-attendance {
 	font-weight: 600;
-	color: var(--ffc-success-text);
+	color: inherit;
 }
