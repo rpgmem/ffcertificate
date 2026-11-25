@@ -51,6 +51,11 @@
     var QUEUE_MAX = 2000;
     var CAMERA_SCAN_MS = 250;
     var CAMERA_REPEAT_MS = 5000;
+    // A camera left reading for hours heats a tablet and can hang it
+    // (#2838): on the reading screen it rests after this long without a
+    // code, until someone taps Use the camera. A connected reader keeps
+    // working while it rests.
+    var CAMERA_IDLE_MS = 60000;
     // How long the captured frame stays on screen, with the flash, before
     // the code is handled (#2786): long enough to be seen as a capture.
     var CAPTURE_MS = 450;
@@ -332,6 +337,7 @@
                 focusReading();
             }
             if (cameraReady) {
+                restCamera(view);
                 placeCamera();
                 autoCamera();
             }
@@ -1529,7 +1535,7 @@
         // in a secure context, and where the site allows it. The decision is
         // made from what the browser offers, never from its name.
 
-        var camera = { stream: null, detector: null, timer: null, last: '', lastAt: 0, tried: false, flip: null };
+        var camera = { stream: null, detector: null, timer: null, last: '', lastAt: 0, tried: false, flip: null, activeAt: 0, asleep: false, resume: false };
         var cameraStrings = strings.camera || {};
 
         function cameraNote(text) {
@@ -1683,6 +1689,7 @@
                 if (raw && 'locked' !== screen && (raw !== camera.last || at - camera.lastAt >= CAMERA_REPEAT_MS)) {
                     camera.last = raw;
                     camera.lastAt = at;
+                    camera.activeAt = at;
                     return capture().then(function () {
                         return handle(raw);
                     });
@@ -1691,11 +1698,38 @@
             }, function () {
                 return null;
             }).then(function (taken) {
-                if (camera.stream) {
+                if (camera.stream && 'ready' === screen && env.now() - camera.activeAt >= CAMERA_IDLE_MS) {
+                    sleepCamera();
+                } else if (camera.stream) {
                     camera.timer = env.setTimeout(scan, CAMERA_SCAN_MS);
                 }
                 return taken;
             });
+        }
+
+        // A minute without a code on the reading screen: the camera rests and
+        // the button brings it back (#2838).
+        function sleepCamera() {
+            stopCamera();
+            camera.asleep = true;
+            cameraNote(cameraStrings.asleep || cameraStrings.ready);
+            focusReading();
+        }
+
+        // A screen that reads nothing with the camera turns it off; it comes
+        // back by itself on the next screen that does (#2838).
+        function restCamera(view) {
+            if (CAMERA_SCREENS.indexOf(view) >= 0 || 'result' === view) {
+                return;
+            }
+            if (camera.stream) {
+                stopCamera();
+                camera.resume = true;
+            }
+            if (camera.asleep) {
+                camera.asleep = false;
+                camera.resume = true;
+            }
         }
 
         function startCamera() {
@@ -1703,6 +1737,9 @@
             return env.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }).then(function (stream) {
                 camera.stream = stream;
                 camera.detector = new env.BarcodeDetector({ formats: ['qr_code'] });
+                camera.activeAt = env.now();
+                camera.asleep = false;
+                camera.resume = false;
                 var video = part('camera-video');
                 video.srcObject = stream;
                 cameraLayout(true);
@@ -1712,6 +1749,11 @@
                 cameraNote(cameraStrings.reading);
                 return Promise.resolve(video.play ? video.play() : null).catch(function () { return null; }).then(function () {
                     camera.timer = env.setTimeout(scan, CAMERA_SCAN_MS);
+                    if ('ready' === screen) {
+                        // A tap on the button took the focus: the reader types
+                        // into the reading field again.
+                        focusReading();
+                    }
                     return true;
                 });
             }, function (error) {
@@ -1725,14 +1767,15 @@
         // it from the start (#2780); the button stays for a refused or failed
         // start, which the browser only retries on a gesture.
         function autoCamera() {
-            if (!config.camera || camera.stream || camera.tried) {
+            if (!config.camera || camera.stream || camera.asleep || (camera.tried && !camera.resume)) {
                 return Promise.resolve(false);
             }
             return cameraReady.then(function (support) {
-                if ('ok' !== support || camera.stream || camera.tried || CAMERA_SCREENS.indexOf(screen) < 0) {
+                if ('ok' !== support || camera.stream || camera.asleep || (camera.tried && !camera.resume) || CAMERA_SCREENS.indexOf(screen) < 0) {
                     return false;
                 }
                 camera.tried = true;
+                camera.resume = false;
                 return startCamera();
             });
         }

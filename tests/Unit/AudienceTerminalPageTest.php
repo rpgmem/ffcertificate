@@ -287,7 +287,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertFalse( $config['camera'], 'the camera is off until an administrator allows it' );
 		$this->assertSame( '', $config['worker'], 'the query form registers no worker, which would claim the whole site (#2783)' );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="offline"', $html );
-		$this->assertSame( array( 'ready', 'reading', 'insecure', 'unsupported', 'denied', 'failed' ), array_keys( $config['strings']['camera'] ) );
+		$this->assertSame( array( 'ready', 'reading', 'insecure', 'unsupported', 'denied', 'failed', 'asleep' ), array_keys( $config['strings']['camera'] ) );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="camera-start"', $html );
 		$this->assertMatchesRegularExpression( '/<video[^>]*playsinline[^>]*muted/', $html, 'the viewfinder plays inline and silent' );
 		$this->assertSame( array( 'offlinePairing', 'storage', 'pairing', 'paired', 'failed', 'events', 'until', 'expired', 'revoked', 'operator', 'clockOff', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'idleRefused', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'setup', 'queueEdit', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );

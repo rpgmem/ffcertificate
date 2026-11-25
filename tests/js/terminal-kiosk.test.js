@@ -1223,6 +1223,7 @@ describe('camera', () => {
 		unsupported: 'cannot read qr',
 		denied: 'not allowed',
 		failed: 'could not start',
+		asleep: 'camera resting',
 	};
 	const config = (camera = true) => ({ ...CONFIG, camera, strings: { ...CONFIG.strings, camera: CAMERA } });
 	const text = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]').textContent;
@@ -1347,22 +1348,91 @@ describe('camera', () => {
 		expect(await controls.camera.scan()).toBe(null);
 	});
 
-	it('sends an operator code to the unlock, and keeps scanning when a frame fails', async () => {
+	it('sends an operator code to the unlock, and rests the camera in the operator menu (#2838)', async () => {
 		const frames = [[{ rawValue: 'FFO1XYZ' }]];
-		const Detector = detectorClass(Promise.resolve(['qr_code']), frames);
-		Detector.prototype.detect = function () { return frames.length ? Promise.resolve(frames.shift()) : Promise.reject(new Error('blur')); };
+		const feed = stream();
+		let starts = 0;
 		const { e, calls, controls } = paired(
-			{ BarcodeDetector: Detector, mediaDevices: { getUserMedia: () => Promise.resolve(stream()) } },
+			{ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), frames), mediaDevices: { getUserMedia: () => { starts += 1; return Promise.resolve(starts > 1 ? stream() : feed); } } },
 			{ 'POST unlock': [200, { name: 'Ana L.', expires: NOW + 120 }] }
 		);
 		await controls.camera.ready;
-		await controls.camera.start();
+		await settle();
+		expect(starts).toBe(1);
 		await scanned(e, controls);
 		await settle();
 		expect(calls.some((c) => c[1] === 'unlock')).toBe(true);
+		expect(controls.screen()).toBe('menu');
+		expect(feed.tracks[0].stopped).toBe(true);
+		const before = e.timeouts.length;
+		expect(await controls.camera.scan()).toBe(null);
+		expect(e.timeouts.length).toBe(before);
+
+		controls.closeMenu();
+		await settle();
+		expect(starts).toBe(2);
+	});
+
+	it('keeps scanning when a frame fails', async () => {
+		const Detector = detectorClass(Promise.resolve(['qr_code']), []);
+		Detector.prototype.detect = () => Promise.reject(new Error('blur'));
+		const { e, controls } = paired({ BarcodeDetector: Detector, mediaDevices: { getUserMedia: () => Promise.resolve(stream()) } });
+		await controls.camera.ready;
+		await settle();
 		const before = e.timeouts.length;
 		expect(await controls.camera.scan()).toBe(null);
 		expect(e.timeouts.length).toBeGreaterThan(before);
+	});
+
+	it('rests the camera after a minute without a code, and the button wakes it (#2838)', async () => {
+		const feed = stream();
+		let starts = 0;
+		const frames = [];
+		const { e, controls } = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), frames), mediaDevices: { getUserMedia: () => { starts += 1; return Promise.resolve(starts > 1 ? stream() : feed); } } });
+		await controls.camera.ready;
+		await settle();
+		expect(starts).toBe(1);
+
+		e.clock.now += 59000;
+		await controls.camera.scan();
+		expect(feed.tracks[0].stopped).toBe(false);
+
+		e.clock.now += 2000;
+		const before = e.timeouts.length;
+		await controls.camera.scan();
+		expect(feed.tracks[0].stopped).toBe(true);
+		expect(e.timeouts.length).toBe(before);
+		expect(node('camera-start').hidden).toBe(false);
+		expect(text('camera-note')).toBe('camera resting');
+		expect(document.activeElement).toBe(node('reading'));
+
+		controls.closeMenu();
+		await settle();
+		expect(starts).toBe(1);
+
+		node('camera-start').click();
+		await settle();
+		expect(starts).toBe(2);
+		expect(node('camera-stop').hidden).toBe(false);
+		expect(document.activeElement).toBe(node('reading'));
+	});
+
+	it('keeps reading while codes keep coming', async () => {
+		const frames = [];
+		const feed = stream();
+		const { e, controls } = paired(
+			{ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), frames), mediaDevices: { getUserMedia: () => Promise.resolve(feed) } },
+			{ 'POST readings': [200, { status: 'recorded', message: 'Recorded.', name: 'Maria S.' }] }
+		);
+		await controls.camera.ready;
+		await settle();
+		e.clock.now += 50000;
+		frames.push([{ rawValue: 'FFP1ABC' }]);
+		await scanned(e, controls);
+		await settle();
+		e.clock.now += 50000;
+		await controls.camera.scan();
+		expect(feed.tracks[0].stopped).toBe(false);
 	});
 
 	it('reads a frame the camera hands over mirrored by flipping it back', async () => {
