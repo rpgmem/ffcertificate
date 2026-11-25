@@ -43,7 +43,7 @@ beforeAll(() => {
 	window.skipWaiting = () => Promise.resolve();
 	window.clients = { claim: () => Promise.resolve('claimed') };
 	window.caches = memoryCaches();
-	window.fetch = (request) => network(request);
+	window.fetch = (request, init) => network(request, init);
 	const add = window.addEventListener.bind(window);
 	window.addEventListener = (type, fn) => {
 		if (['install', 'activate', 'message', 'fetch'].includes(type)) {
@@ -104,6 +104,23 @@ describe('the terminal shell worker', () => {
 		it('serves an error, not a blank answer, when nothing was kept yet', async () => {
 		const event = fetchEvent({ method: 'GET', mode: 'navigate', url: SCOPE });
 		expect(await event.answer).toEqual({ error: true });
+	});
+
+	it('asks the server to confirm every sheet and script, kept or served (#2834)', async () => {
+		const modes = [];
+		network = (address, init) => {
+			modes.push(init && init.cache);
+			return Promise.resolve(ok('file'));
+		};
+		const kept = [];
+		listeners.message({
+			origin: ORIGIN,
+			data: { type: 'ffc-terminal-keep', urls: [ORIGIN + '/wp-content/plugins/ffcertificate/assets/css/ffc-terminal-kiosk.min.css?ver=1'] },
+			waitUntil(p) { kept.push(p); },
+		});
+		await Promise.all(kept);
+		await fetchEvent({ method: 'GET', mode: 'no-cors', url: ORIGIN + '/wp-content/plugins/ffcertificate/assets/js/ffc-terminal-kiosk.min.js?ver=1' }).answer;
+		expect(modes).toEqual(['no-cache', 'no-cache']);
 	});
 
 	it('keeps the addresses the page sends, and only same-origin ones that are not REST', async () => {
