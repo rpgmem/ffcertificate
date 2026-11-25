@@ -776,6 +776,30 @@ describe('failures and the page boot', () => {
 		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('15:00');
 	});
 
+	it('hands the worker the page\'s own stylesheets and scripts when it boots', async () => {
+		const posted = [];
+		const worker = { postMessage: (message) => posted.push(message) };
+		const container = { register: () => Promise.resolve(), ready: Promise.resolve({ active: worker }) };
+		const link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.href = 'https://example.com/k.css';
+		document.head.appendChild(link);
+		Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+		Object.defineProperty(window.navigator, 'serviceWorker', { value: container, configurable: true });
+		window.ffcTerminal = { ...CONFIG, worker: '/terminal-sw.js' };
+		try {
+			loadScript('assets/js/ffc-terminal-kiosk.js');
+			await settle();
+			expect(posted[0].type).toBe('ffc-terminal-keep');
+			expect(posted[0].urls).toContain('https://example.com/k.css');
+		} finally {
+			delete window.ffcTerminal;
+			delete window.isSecureContext;
+			delete window.navigator.serviceWorker;
+			link.remove();
+		}
+	});
+
 	it('boots from the localized config', () => {
 		window.ffcTerminal = CONFIG;
 		try {
