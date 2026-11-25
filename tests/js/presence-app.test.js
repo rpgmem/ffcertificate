@@ -263,7 +263,13 @@ describe('presence app screen', () => {
 		document.body.innerHTML = '';
 	});
 
-	const boot = (store, fetch) => P().boot({ store, fetch, now: () => clock });
+	// GETs carry a unique `_ffc` stamp so no cache can answer them (#2832);
+	// the doubles see the address without it.
+	const boot = (store, fetch) => P().boot({
+		store,
+		fetch: fetch ? (url, options) => fetch(url.replace(/[?&]_ffc=\d+$/, ''), options) : fetch,
+		now: () => clock,
+	});
 
 	it('does nothing without its configuration', () => {
 		delete window.ffcPresence;
@@ -379,6 +385,18 @@ describe('presence app screen', () => {
 		expect(store.data.get('device').expires).toBe(NOW + 7 * 86400);
 		expect(store.data.get('device').events.length).toBe(2);
 		app.stop();
+	});
+
+	it('asks the site itself, never a cached answer', async () => {
+		const { state } = await deviceState();
+		markup();
+		const raw = vi.fn(() => reply(410, { code: 'ffc_presence_revoked', message: 'replaced' }));
+		P().boot({ store: memoryStore(state), fetch: raw, now: () => clock });
+		await settle();
+		expect(raw.mock.calls[0][0]).toBe(rest('events?key=kid&_ffc=' + clock));
+		expect(raw.mock.calls[0][1].cache).toBe('no-store');
+		const posts = raw.mock.calls.filter((call) => 'POST' === call[1].method);
+		posts.forEach((call) => expect(call[0]).not.toContain('_ffc='));
 	});
 
 	it('hides the code and offers to move it here once another phone took it (#2797)', async () => {

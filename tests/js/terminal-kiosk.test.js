@@ -216,10 +216,12 @@ function env(overrides = {}) {
 	const clock = { now: NOW * 1000 };
 	const timers = [];
 	const timeouts = [];
+	const sent = [];
 	return {
 		clock,
 		timers,
 		timeouts,
+		sent,
 		now: () => clock.now,
 		storage: memoryStorage(),
 		crypto: webcrypto,
@@ -229,6 +231,9 @@ function env(overrides = {}) {
 		setTimeout: (fn, ms) => { timeouts.push([fn, ms]); return timeouts.length; },
 		clearTimeout: () => {},
 		...overrides,
+		// GETs carry a unique `_ffc` stamp so no cache can answer them
+		// (#2832); the doubles see the address without it.
+		fetch: (url, options) => (sent.push([String(url), options]), overrides.fetch || (() => Promise.reject(new Error('no network'))))(String(url).replace(/[?&]_ffc=\d+$/, ''), options),
 	};
 }
 
@@ -771,6 +776,30 @@ describe('failures and the page boot', () => {
 		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('15:00');
 	});
 
+	it('hands the worker the page\'s own stylesheets and scripts when it boots', async () => {
+		const posted = [];
+		const worker = { postMessage: (message) => posted.push(message) };
+		const container = { register: () => Promise.resolve(), ready: Promise.resolve({ active: worker }) };
+		const link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.href = 'https://example.com/k.css';
+		document.head.appendChild(link);
+		Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+		Object.defineProperty(window.navigator, 'serviceWorker', { value: container, configurable: true });
+		window.ffcTerminal = { ...CONFIG, worker: '/terminal-sw.js' };
+		try {
+			loadScript('assets/js/ffc-terminal-kiosk.js');
+			await settle();
+			expect(posted[0].type).toBe('ffc-terminal-keep');
+			expect(posted[0].urls).toContain('https://example.com/k.css');
+		} finally {
+			delete window.ffcTerminal;
+			delete window.isSecureContext;
+			delete window.navigator.serviceWorker;
+			link.remove();
+		}
+	});
+
 	it('boots from the localized config', () => {
 		window.ffcTerminal = CONFIG;
 		try {
@@ -941,6 +970,17 @@ describe('offline queue', () => {
 		await settle();
 		expect(el.querySelector('[data-ffc-terminal-part="status"]').textContent).toBe('sent 1');
 		expect(el.querySelector('[data-ffc-terminal-part="queue"]').textContent).toBe('waiting 0');
+	});
+
+	it('asks the site itself for the revocation list, never a cached answer', async () => {
+		const { controls, e } = offline({
+			online: true,
+			routes: { 'GET revocations': [200, { keys: {}, revoked: [], generated: NOW }] },
+		});
+		await controls.refreshRevocations();
+		const [address, options] = e.sent.find((s) => s[0].includes('revocations'));
+		expect(address).toMatch(/revocations\?_ffc=\d+$/);
+		expect(options.cache).toBe('no-store');
 	});
 
 	it('refreshes the revocation list and the site keys with the terminal token', async () => {
