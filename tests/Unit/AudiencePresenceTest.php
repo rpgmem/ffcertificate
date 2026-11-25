@@ -11,6 +11,7 @@ use FreeFormCertificate\Audience\AudiencePresenceEnrolment;
 use FreeFormCertificate\Audience\AudiencePresenceKeys;
 use FreeFormCertificate\Audience\AudiencePresenceRestController;
 use FreeFormCertificate\Audience\AudiencePresenceWriter;
+use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\EcdsaP256;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SigningKeys;
@@ -475,6 +476,23 @@ class AudiencePresenceTest extends TestCase {
 		$this->assertSame( 3, $status['max_changes'] );
 		$this->assertSame( 30, $status['window_days'] );
 		$this->assertSame( 7, $status['offline_days'] );
+	}
+
+	public function test_the_active_device_is_dated_on_its_own_day_on_a_site_west_of_utc(): void {
+		// #2836: the activation day was turned into a 'Y-m-d' string and read
+		// back through the site's timezone, so on UTC-3 it read a day early.
+		$west = new \DateTimeZone( '-03:00' );
+		Functions\when( 'wp_timezone' )->justReturn( $west );
+		Functions\when( 'wp_date' )->alias(
+			static function ( $format, $ts = null, $tz = null ) use ( $west ) {
+				$date = new \DateTimeImmutable( '@' . ( $ts ?? time() ) );
+				return $date->setTimezone( $tz instanceof \DateTimeZone ? $tz : $west )->format( $format );
+			}
+		);
+		$this->enrol( 7, 'device-aaaaaaaaaaaa', EcdsaP256::generate() );
+
+		$day = ( new \DateTimeImmutable( '@' . self::NOW ) )->setTimezone( $west )->format( 'Y-m-d' );
+		$this->assertSame( DateFormatter::format_wallclock_date( $day ), AudiencePresenceEnrolment::status( 7, self::NOW + 60 )['current']['since'] );
 	}
 
 	public function test_the_app_routes_need_a_login_the_rest_nonce_and_the_participant_capability(): void {

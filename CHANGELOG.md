@@ -67,6 +67,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Operators must lock the app** (#2830). With Site PWA's app lock (site-pwa#38), holders of `ffc_checkin_audiences` or `ffc_manage_audiences_terminals` see nothing in the app until the phone's screen lock guards it; everyone else is invited to turn it on.
 - **The app's reads are never answered from a cache** (#2832). The Pair terminal list, the presence app and the terminal send their GETs with `cache: 'no-store'` and a unique `_ffc` argument, so a host cache in front of the REST API can no longer show yesterday's events.
 - **An installed terminal no longer runs an old script** (#2834). Its service worker asks the server to confirm each sheet and script (`cache: 'no-cache'`) before using or keeping it, so a deploy that keeps the same `?ver=` cannot leave the terminal on the previous version.
+- **Event days and hours no longer shift back west of UTC** (#2836). The terminal's event list (Pair terminal, My terminals, Terminals, Add events) read the booking's wall-clock day and hours through the site's timezone, so on UTC-3 24/11 09:00 showed as 23/11 06:00; the presence device's activation date had the same slip.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 
