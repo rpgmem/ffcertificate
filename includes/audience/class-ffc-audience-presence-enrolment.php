@@ -269,7 +269,7 @@ final class AudiencePresenceEnrolment {
 				$current = array(
 					'device_id' => $device['device_id'],
 					'label'     => AudiencePresenceAgent::label( $device['platform'], $device['browser'] ),
-					'since'     => DateFormatter::format_date( (string) wp_date( 'Y-m-d', $device['activated_at'] ) ),
+					'since'     => DateFormatter::format_date( (int) $device['activated_at'] ),
 				);
 				break;
 			}

@@ -14,6 +14,7 @@ use FreeFormCertificate\Audience\AudienceTerminalReader;
 use FreeFormCertificate\Audience\AudienceTerminalRestController;
 use FreeFormCertificate\Audience\AudienceTerminalWriter;
 use FreeFormCertificate\Core\Base45;
+use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\FakeCredentials;
 use FreeFormCertificate\Tests\Support\FakeTerminalTables;
@@ -450,6 +451,33 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 0, $data['bookings'][0]['terminals'] );
 		$this->assertFalse( $data['bookings'][0]['full'] );
 		$this->assertNotSame( '', $data['bookings'][0]['when'] );
+	}
+
+	public function test_the_event_list_shows_the_stored_day_and_hours_on_a_site_west_of_utc(): void {
+		// #2836: on UTC-3 a wall-clock day read through the site's timezone
+		// came out one day early, and 09:00 as 06:00.
+		$west = new \DateTimeZone( '-03:00' );
+		Functions\when( 'wp_timezone' )->justReturn( $west );
+		Functions\when( 'wp_date' )->alias(
+			static function ( $format, $ts = null, $tz = null ) use ( $west ) {
+				$date = new \DateTimeImmutable( '@' . ( $ts ?? time() ) );
+				return $date->setTimezone( $tz instanceof \DateTimeZone ? $tz : $west )->format( $format );
+			}
+		);
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		$day = ( new \DateTimeImmutable( 'now', $west ) )->modify( '+1 day' )->format( 'Y-m-d' );
+		$this->booking( 31, $day );
+		$this->tables->booking_list = array(
+			(object) array( 'id' => 31, 'description' => 'Workshop', 'environment_name' => 'Room 1', 'booking_date' => $day, 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '17:00:00' ),
+		);
+
+		$when = ( new AudienceTerminalRestController() )->list_bookings()->get_data()['bookings'][0]['when'];
+
+		$before = ( new \DateTimeImmutable( $day ) )->modify( '-1 day' )->format( 'Y-m-d' );
+		$this->assertStringContainsString( DateFormatter::format_wallclock_date( $day ), $when, 'the stored day' );
+		$this->assertStringNotContainsString( DateFormatter::format_wallclock_date( $before ), $when, 'not the day before' );
+		$this->assertStringContainsString( DateFormatter::format_wallclock_time( '09:00:00' ), $when, 'the stored start' );
+		$this->assertStringNotContainsString( DateFormatter::format_wallclock_time( '06:00:00' ), $when, 'not three hours earlier' );
 	}
 
 	public function test_the_list_carries_its_dates_formatted_by_the_site(): void {
