@@ -65,6 +65,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Presence no longer offers activation on a phone already activated** (#2826). The Activate card and its facts set their own `display`, which overrode `hidden`, so the card showed above the code with empty boxes.
 - **The app's operator screens live on the presence phone** (#2828). Pair terminal, My terminals and Operator QR appear in More, and open, only for an account that holds their capability, and only on the phone where its presence is active, recognised by a signed cookie the app's presence calls write.
 - **Operators must lock the app** (#2830). With Site PWA's app lock (site-pwa#38), holders of `ffc_checkin_audiences` or `ffc_manage_audiences_terminals` see nothing in the app until the phone's screen lock guards it; everyone else is invited to turn it on.
+- **An installed terminal no longer runs an old script** (#2834). Its service worker asks the server to confirm each sheet and script (`cache: 'no-cache'`) before using or keeping it, so a deploy that keeps the same `?ver=` cannot leave the terminal on the previous version.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 

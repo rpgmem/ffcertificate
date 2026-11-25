@@ -16,7 +16,10 @@
  *   the cache only when the network fails. Any other page under the scope,
  *   such as the install page (#2813), is left to the network.
  * - The sheets and scripts the page loaded are kept when the page sends their
- *   addresses, and served from the cache only when the network fails.
+ *   addresses, and served from the cache only when the network fails. Both
+ *   ask the server to confirm the file (`cache: 'no-cache'`), never the
+ *   browser's HTTP cache, which can hold an older file under the same
+ *   `?ver=` (#2834).
  * - REST calls are never touched: they go to the network and fail as they
  *   would without a worker, which is what the page's own queue expects.
  * - Only the site's own pages may ask it to keep anything, and what it
@@ -78,7 +81,7 @@
         });
         return sw.caches.open(CACHE).then(function (cache) {
             return Promise.all(list.map(function (address) {
-                return sw.fetch(address, { credentials: 'same-origin' }).then(function (response) {
+                return sw.fetch(address, { credentials: 'same-origin', cache: 'no-cache' }).then(function (response) {
                     return response && response.ok ? cache.put(address, response) : null;
                 }).catch(function () {
                     return null;
@@ -118,8 +121,12 @@
         });
     }
 
+    // A sheet or script: the server confirms it first (`no-cache`, a 304 when
+    // it did not change), because on a site whose version does not move
+    // between deploys the browser's own cache would hand back the old file
+    // under the same address (#2834). The kept copy answers only offline.
     function asset(request) {
-        return sw.fetch(request).catch(function () {
+        return sw.fetch(request, { cache: 'no-cache' }).catch(function () {
             return sw.caches.open(CACHE).then(function (cache) {
                 return cache.match(request);
             }).then(function (cached) {
