@@ -51,6 +51,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **The presence code shows only on the event day and leaves once attendance is recorded** (#2842). With no event today the app's Presence screen shows no code, countdown or timer and names the next day; a recorded day shows "Attendance recorded" with the time; the list refreshes on return to the app, at most every 30 s.
 
+### Changed
+
+- **The app's Agenda opens a calendar inside the app** (#2846). The *Book* links go through Site PWA's `site_pwa_app_url`, so a calendar page the app can draw opens in its frame instead of the theme in a browser tab; without Site PWA nothing changes.
+
 ### Security
 
 - **Verification refuses a code whose prefix names no document**, before any lookup and with the answer a wrong code gets, on the page, without JavaScript and in the REST `verify` route. Only C, R and A are looked up, so a `P-` terminal pairing code, which is a credential, never reaches the verification lookups (#2739).
