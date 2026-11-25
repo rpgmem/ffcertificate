@@ -37226,3 +37226,16 @@ msgstr ""
 
 msgid "The app locks with the phone's own screen lock (fingerprint, face or the phone's PIN) when it opens and when it comes back after a few seconds away; for holders of ffc_checkin_audiences or ffc_manage_audiences_terminals the lock is mandatory, so the app shows nothing until it is turned on, and everyone else is invited to turn it on."
 msgstr ""
+
+#. translators: %s: titles of today's events whose attendance is recorded
+#, php-format
+msgid "Attendance already recorded: %s"
+msgstr ""
+
+#. translators: %1$s: the event's next day; %2$s: the event's title
+#, php-format
+msgid "Your code appears on the event day: %1$s · %2$s"
+msgstr ""
+
+msgid "The code shows only on a day the event counts. With no event today the screen shows no code and no countdown, and names the next day one appears. Once today's attendance is recorded the code leaves and the screen says \"Attendance recorded\" with the event and the time; with several events in one day the code stays for those still waiting, and the recorded ones are named under it. The screen reads its list again when the app comes back on screen, at most once every 30 seconds, and never polls the site while it stays open."
+msgstr ""

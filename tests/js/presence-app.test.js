@@ -43,6 +43,9 @@ const STRINGS = {
 	changes: '%1$d of %2$d / %3$d',
 	dayOne: '1 day',
 	days: '%d days',
+	recorded: 'Recorded',
+	alsoRecorded: 'Also: %s',
+	upcoming: 'On %1$s: %2$s',
 };
 
 function markup() {
@@ -63,9 +66,15 @@ function markup() {
 				<div data-ffc-presence-part="picker" hidden><select data-ffc-presence-part="event"></select></div>
 				<p data-ffc-presence-part="attendance" hidden></p>
 				<p data-ffc-presence-part="empty" hidden></p>
+				<p data-ffc-presence-part="upcoming" hidden></p>
 				<div data-ffc-presence-part="card"><div data-ffc-presence-part="qr"></div></div>
-				<progress data-ffc-presence-part="progress"></progress>
-				<p data-ffc-presence-part="countdown"></p>
+				<p data-ffc-presence-part="also" hidden></p>
+				<ul data-ffc-presence-part="recorded" hidden></ul>
+				<div data-ffc-presence-part="rotation">
+					<progress data-ffc-presence-part="progress"></progress>
+					<p data-ffc-presence-part="countdown"></p>
+				</div>
+				<ul data-ffc-presence-part="tips"></ul>
 			</div>
 		</div>`;
 	return document.querySelector('[data-ffc-presence]');
@@ -720,3 +729,160 @@ describe('presence app attendance (#2749)', () => {
 	});
 });
 
+
+describe('presence app: the code on the event day only (#2842)', () => {
+	let clock;
+
+	beforeEach(() => {
+		clock = NOW * 1000;
+		window.ffcPresence = { rest: rest(''), nonce: 'n', userId: USER, strings: STRINGS };
+	});
+
+	afterEach(() => {
+		delete window.ffcPresence;
+		document.body.innerHTML = '';
+	});
+
+	const ymd = (ms) => {
+		const d = new Date(ms);
+		const two = (n) => String(n).padStart(2, '0');
+		return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+	};
+	const day = (offset) => ymd(clock + offset * 86400000);
+	const event = (id, days, recorded) => ({
+		target_type: 'audience_booking',
+		target_id: id,
+		title: 'Event ' + id,
+		date: days[0],
+		time: '',
+		ticket: '',
+		days: days.map((date) => ({ date, label: 'L' + date })),
+		recorded: recorded || [],
+	});
+	const part = (el, name) => el.querySelector('[data-ffc-presence-part="' + name + '"]');
+	const start = async (events, fetch) => {
+		const { state } = await deviceState({ events });
+		const el = markup();
+		const [app] = P().boot({
+			store: memoryStore(state),
+			fetch: fetch || vi.fn(() => Promise.reject(new Error('offline'))),
+			now: () => clock,
+		});
+		await settle();
+		return { el, app };
+	};
+
+	it('draws nothing and runs no timer without an event today, naming the next day', async () => {
+		const intervals = vi.spyOn(window, 'setInterval');
+		const { el, app } = await start([event(42, [day(3)]), event(43, [day(1), day(2)])]);
+		expect(intervals).not.toHaveBeenCalled();
+		intervals.mockRestore();
+		expect(app.timer).toBeNull();
+		expect(app.midnight).not.toBeNull();
+		expect(part(el, 'card').hidden).toBe(true);
+		expect(part(el, 'rotation').hidden).toBe(true);
+		expect(part(el, 'tips').hidden).toBe(true);
+		expect(part(el, 'qr').innerHTML).toBe('');
+		expect(part(el, 'title').hidden).toBe(true);
+		expect(part(el, 'upcoming').hidden).toBe(false);
+		expect(part(el, 'upcoming').textContent).toBe('On L' + day(1) + ': Event 43');
+		expect(part(el, 'empty').hidden).toBe(true);
+		app.stop();
+	});
+
+	it('leaves the code once today is recorded and says so', async () => {
+		const { el, app } = await start([event(42, [day(0), day(1)], [{ date: day(0), time: '09:12' }])]);
+		expect(app.timer).toBeNull();
+		expect(part(el, 'card').hidden).toBe(true);
+		expect(part(el, 'recorded').hidden).toBe(false);
+		expect(part(el, 'recorded').textContent).toBe('Recorded · Event 42 · 09:12');
+		expect(part(el, 'upcoming').hidden).toBe(true, 'an event today is not an upcoming one');
+		app.stop();
+	});
+
+	it('keeps the code for the events still waiting today, and names the recorded ones under it', async () => {
+		const { el, app } = await start([
+			event(41, [day(0)], [{ date: day(0), time: '08:00' }]),
+			event(42, [day(0)]),
+			event(43, [day(0)]),
+			event(44, [day(1)]),
+		]);
+		expect(app.timer).not.toBeNull();
+		expect(app.drawn.startsWith('42@')).toBe(true);
+		expect(Array.from(el.querySelectorAll('option')).map((o) => o.value)).toEqual(['42', '43']);
+		expect(part(el, 'picker').hidden).toBe(false);
+		expect(part(el, 'also').textContent).toBe('Also: Event 41');
+		expect(part(el, 'recorded').hidden).toBe(true);
+		app.stop();
+	});
+
+	it('takes the code away at midnight without a reload', async () => {
+		const { el, app } = await start([event(42, [day(0)])]);
+		expect(part(el, 'card').hidden).toBe(false);
+		clock += 86400000;
+		await app.draw();
+		expect(part(el, 'card').hidden).toBe(true);
+		expect(app.timer).toBeNull();
+		expect(app.midnight).not.toBeNull();
+		app.stop();
+	});
+
+	it('brings the code back when the day of an event begins', async () => {
+		const timeouts = vi.spyOn(window, 'setTimeout');
+		const { el, app } = await start([event(42, [day(1)])]);
+		expect(part(el, 'card').hidden).toBe(true);
+		const midnight = timeouts.mock.calls.find((call) => call[1] > 60000);
+		timeouts.mockRestore();
+		const next = new Date(clock);
+		const wait = new Date(next.getFullYear(), next.getMonth(), next.getDate() + 1).getTime() - clock + 1000;
+		expect(midnight[1]).toBe(wait, 'it waits for one second past midnight');
+		clock += wait;
+		midnight[0]();
+		await settle();
+		expect(part(el, 'card').hidden).toBe(false);
+		expect(app.timer).not.toBeNull();
+		app.stop();
+	});
+
+	it('reads the list again on coming back to the app, at most every 30 seconds', async () => {
+		const fetch = vi.fn(() => reply(200, { events: [event(42, [day(0)], [{ date: day(0), time: '09:00' }])], pending: [] }));
+		const { el, app } = await start([event(42, [day(0)])], fetch);
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(part(el, 'recorded').hidden).toBe(false, 'the reading made at the terminal arrived');
+
+		const visible = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
+		let state = 'visible';
+		Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
+		try {
+			document.dispatchEvent(new Event('visibilitychange'));
+			await settle();
+			expect(fetch).toHaveBeenCalledTimes(1, 'within 30 s of the last read');
+
+			clock += 30000;
+			state = 'hidden';
+			document.dispatchEvent(new Event('visibilitychange'));
+			await settle();
+			expect(fetch).toHaveBeenCalledTimes(1, 'going away reads nothing');
+
+			state = 'visible';
+			document.dispatchEvent(new Event('visibilitychange'));
+			await settle();
+			expect(fetch).toHaveBeenCalledTimes(2);
+		} finally {
+			delete document.visibilityState;
+			if (visible) {
+				Object.defineProperty(Document.prototype, 'visibilityState', visible);
+			}
+		}
+		app.stop();
+	});
+
+	it('reads the day from the first and last dates of a list kept before the site sent days', async () => {
+		const kept = { target_type: 'audience_booking', target_id: 42, title: 'Kept', ticket: '', first_date: day(-1), last_date: day(1) };
+		const old = { target_type: 'audience_booking', target_id: 43, title: 'Old', ticket: '', first_date: day(2) };
+		const { el, app } = await start([old, kept]);
+		expect(app.current().target_id).toBe(42);
+		expect(Array.from(el.querySelectorAll('option')).map((o) => o.value)).toEqual(['42']);
+		app.stop();
+	});
+});

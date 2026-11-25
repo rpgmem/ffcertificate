@@ -319,6 +319,11 @@ final class AudienceAppScreens {
 					'qrLabel'        => __( 'Your presence code. Hold it up to the terminal\'s reader.', 'ffcertificate' ),
 					'dismiss'        => __( 'Dismiss', 'ffcertificate' ),
 					'fillForm'       => __( 'Fill in the form', 'ffcertificate' ),
+					'recorded'       => __( 'Attendance recorded', 'ffcertificate' ),
+					/* translators: %s: titles of today's events whose attendance is recorded */
+					'alsoRecorded'   => __( 'Attendance already recorded: %s', 'ffcertificate' ),
+					/* translators: %1$s: the event's next day; %2$s: the event's title */
+					'upcoming'       => __( 'Your code appears on the event day: %1$s · %2$s', 'ffcertificate' ),
 					/* translators: %1$s: the phone's platform and browser, e.g. "Android · Chrome"; %2$s: the date it was activated */
 					'current'        => __( 'Current phone: %1$s, active since %2$s. It stops making the code as soon as you activate this one.', 'ffcertificate' ),
 					'otherPhone'     => __( 'another phone', 'ffcertificate' ),

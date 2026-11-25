@@ -219,6 +219,25 @@
 	font-size: var(--ffc-font-size-sm);
 }
 
+/* No code today, or none left to show (#2842). */
+.ffc-presence-upcoming,
+.ffc-presence-also {
+	color: var(--ffc-text-muted);
+	font-size: var(--ffc-font-size-sm);
+	text-align: center;
+}
+
+.ffc-presence-recorded {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-xs);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-weight: 600;
+	color: var(--ffc-success-text);
+}
+
 /* What waits for the person (#2749). */
 .ffc-presence-pending {
 	display: flex;

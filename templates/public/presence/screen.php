@@ -80,14 +80,17 @@ use FreeFormCertificate\Core\Notice;
 			</div>
 			<p class="ffc-presence-attendance ffc-icon-checkmark" data-ffc-presence-part="attendance" hidden></p>
 			<p class="ffc-presence-empty" data-ffc-presence-part="empty" hidden><?php esc_html_e( 'You have no event in the next 7 days. Open this screen while online to update the list.', 'ffcertificate' ); ?></p>
+			<p class="ffc-presence-upcoming ffc-icon-calendar" data-ffc-presence-part="upcoming" hidden></p>
 			<div class="ffc-presence-card" data-ffc-presence-part="card">
 				<div class="ffc-presence-qr" data-ffc-presence-part="qr"></div>
 			</div>
-			<div class="ffc-presence-rotation">
+			<p class="ffc-presence-also" data-ffc-presence-part="also" hidden></p>
+			<ul class="ffc-presence-recorded" data-ffc-presence-part="recorded" hidden></ul>
+			<div class="ffc-presence-rotation" data-ffc-presence-part="rotation">
 				<progress class="ffc-presence-progress" max="30" value="30" data-ffc-presence-part="progress" aria-hidden="true"></progress>
 				<p class="ffc-presence-countdown" data-ffc-presence-part="countdown"></p>
 			</div>
-			<ul class="ffc-presence-tips">
+			<ul class="ffc-presence-tips" data-ffc-presence-part="tips">
 				<li class="ffc-icon-qr"><?php esc_html_e( 'Hold the screen up to the terminal\'s reader at the entrance.', 'ffcertificate' ); ?></li>
 				<li class="ffc-icon-shield"><?php esc_html_e( 'Works without internet: the code is made and signed on this phone.', 'ffcertificate' ); ?></li>
 				<li class="ffc-icon-clock"><?php esc_html_e( 'A screenshot will not do: the code changes every 15 seconds.', 'ffcertificate' ); ?></li>

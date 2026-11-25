@@ -47,6 +47,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The check-in terminal installs in one tap** (#2813). A banner on `/terminal/` (hidden for 30 days after *Not now*) leads to the public install page `/terminal/install/`, which shows the browser's install dialog, the Share steps on iPad and iPhone, *Open the terminal* once installed, or the address to open elsewhere; Scheduling → Terminals shows that address as a QR code. The terminal's worker now keeps only `/terminal/` itself as its shell.
 - **The terminal's camera rests when it is not reading** (#2838). On the presence screen it turns off after a minute without a code and Use the camera brings it back; screens that read nothing with it turn it off. A connected reader keeps working throughout, so a tablet left on all day no longer heats up or hangs.
 
+### Changed
+
+- **The presence code shows only on the event day and leaves once attendance is recorded** (#2842). With no event today the app's Presence screen shows no code, countdown or timer and names the next day; a recorded day shows "Attendance recorded" with the time; the list refreshes on return to the app, at most every 30 s.
+
 ### Security
 
 - **Verification refuses a code whose prefix names no document**, before any lookup and with the answer a wrong code gets, on the page, without JavaScript and in the REST `verify` route. Only C, R and A are looked up, so a `P-` terminal pairing code, which is a credential, never reaches the verification lookups (#2739).

@@ -28,7 +28,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type AttendanceConfirmation from AudienceAttendanceStatus
  * @phpstan-type PresencePending array{type: string, key: string, title: string, text: string, detail: string, url?: string, closes?: string}
- * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, expires: int, ticket: string, attendance: string}
+ * @phpstan-type PresenceDay array{date: string, label: string}
+ * @phpstan-type PresenceRecorded array{date: string, time: string}
+ * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, days: list<PresenceDay>, recorded: list<PresenceRecorded>, expires: int, ticket: string, attendance: string}
  */
 final class AudiencePresenceEvents {
 
@@ -59,10 +61,19 @@ final class AudiencePresenceEvents {
 			$bookings[] = $open;
 		}
 
-		// The attendance each event already has (#2749), from one query.
-		$attendance = AudienceAttendanceStatus::for_bookings( $user_id, $bookings );
-		$events     = array();
-		$seen       = array();
+		// The attendance each event already has (#2749), from one query: the
+		// label, and the days recorded, so the app hides the code of a day
+		// already done (#2842).
+		$ids = array();
+		foreach ( $bookings as $booking ) {
+			$id = (int) ( $booking['id'] ?? 0 );
+			if ( $id > 0 ) {
+				$ids[ $id ] = true;
+			}
+		}
+		$rows   = array() === $ids ? array() : AudienceAttendanceReader::for_user( $user_id, array_keys( $ids ) );
+		$events = array();
+		$seen   = array();
 		foreach ( $bookings as $booking ) {
 			$id = (int) ( $booking['id'] ?? 0 );
 			if ( isset( $seen[ $id ] ) ) {
@@ -70,10 +81,14 @@ final class AudiencePresenceEvents {
 			}
 			$seen[ $id ] = true;
 			$event       = self::event( $booking, $user_id, $now );
-			if ( null !== $event ) {
-				$event['attendance'] = isset( $attendance[ $id ] ) ? $attendance[ $id ]['label'] : '';
-				$events[]            = $event;
+			if ( null === $event ) {
+				continue;
 			}
+			$lines               = $rows[ $id ] ?? array();
+			$status              = AudienceAttendanceStatus::of( (object) $booking, $lines );
+			$event['attendance'] = null === $status ? '' : $status['label'];
+			$event['recorded']   = self::recorded( $lines );
+			$events[]            = $event;
 		}
 		usort(
 			$events,
@@ -127,6 +142,28 @@ final class AudiencePresenceEvents {
 	}
 
 	/**
+	 * The days a person was recorded on, each once, with the time of the
+	 * first reading that day in the site's format.
+	 *
+	 * @param list<array{date: string, checked_at: int, method: string}> $lines The person's rows, oldest first.
+	 * @return list<PresenceRecorded>
+	 */
+	private static function recorded( array $lines ): array {
+		$days = array();
+		foreach ( $lines as $line ) {
+			$date = (string) $line['date'];
+			if ( '' === $date || isset( $days[ $date ] ) ) {
+				continue;
+			}
+			$days[ $date ] = array(
+				'date' => $date,
+				'time' => DateFormatter::format_time( (int) $line['checked_at'] ),
+			);
+		}
+		return array_values( $days );
+	}
+
+	/**
 	 * One booking as the app shows it, or null when no ticket can be signed
 	 * for it or it has already ended.
 	 *
@@ -177,6 +214,16 @@ final class AudiencePresenceEvents {
 			),
 			'first_date'  => $first,
 			'last_date'   => $last,
+			// The days the event counts, so the app shows the code on those
+			// days only (#2842).
+			'days'        => array_map(
+				static fn( string $day ): array => array(
+					'date'  => $day,
+					'label' => $wallclock( $day ),
+				),
+				AudienceAttendanceRule::counted_days( $row )
+			),
+			'recorded'    => array(),
 			'expires'     => $expires,
 			'ticket'      => SigningKeys::b64( $ticket ),
 			'attendance'  => '',
