@@ -319,6 +319,60 @@ class AudiencePresenceCodeTest extends TestCase {
 		$this->assertSame( array( 42, 43 ), array_column( $events, 'target_id' ), 'The open event joins the list once, beside the person\'s own.' );
 	}
 
+	public function test_an_event_carries_its_days_and_the_days_already_recorded(): void {
+		$row  = array(
+			'id'               => '42',
+			'booking_date'     => '2027-01-15',
+			'end_date'         => '2027-01-17',
+			'skipped_dates'    => '["2027-01-16"]',
+			'is_all_day'       => '1',
+			'description'      => 'Workshop',
+			'schedule_name'    => '',
+			'environment_name' => 'Hall',
+		);
+		$wpdb = \Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql );
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( string $sql ) use ( $row ): array {
+				if ( false !== strpos( $sql, 'SELECT booking_id, attendance_date' ) ) {
+					return array(
+						array( 'booking_id' => '42', 'attendance_date' => '2027-01-15', 'checked_at' => (string) ( self::NOW - 3600 ), 'method' => 'terminal' ),
+						array( 'booking_id' => '42', 'attendance_date' => '2027-01-15', 'checked_at' => (string) self::NOW, 'method' => 'manual' ),
+					);
+				}
+				if ( false !== strpos( $sql, 'bu.user_id = %d OR am.user_id = %d' ) ) {
+					return array( $row );
+				}
+				return array();
+			}
+		);
+		$backup          = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = $wpdb;
+
+		try {
+			$events = AudiencePresenceEvents::for_user( 7, self::NOW );
+		} finally {
+			$GLOBALS['wpdb'] = $backup;
+		}
+
+		$this->assertCount( 1, $events );
+		$this->assertSame(
+			array(
+				array( 'date' => '2027-01-15', 'label' => '2027-01-15' ),
+				array( 'date' => '2027-01-17', 'label' => '2027-01-17' ),
+			),
+			$events[0]['days'],
+			'The counted days, a skipped day left out.'
+		);
+		$this->assertSame(
+			array( array( 'date' => '2027-01-15', 'time' => gmdate( 'H:i', self::NOW - 3600 ) ) ),
+			$events[0]['recorded'],
+			'One entry per day, at the first reading.'
+		);
+		$this->assertSame( 'Present: 1 of 2 days', $events[0]['attendance'] );
+	}
+
 	// ---- Helpers ----------------------------------------------------------
 
 	/**

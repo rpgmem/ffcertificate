@@ -488,7 +488,7 @@ class AppScreensTest extends TestCase {
 		$config = $localized['ffc-presence-app'][1];
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/presence/', $config['rest'] );
 		$this->assertSame( 7, $config['userId'] );
-		$this->assertSame( array( 'storage', 'activating', 'activated', 'failed', 'next', 'expired', 'qrLabel', 'dismiss', 'fillForm', 'current', 'otherPhone', 'titleFirst', 'titleElsewhere', 'activateHere', 'moveHere', 'changes', 'dayOne', 'days' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'storage', 'activating', 'activated', 'failed', 'next', 'expired', 'qrLabel', 'dismiss', 'fillForm', 'recorded', 'alsoRecorded', 'upcoming', 'current', 'otherPhone', 'titleFirst', 'titleElsewhere', 'activateHere', 'moveHere', 'changes', 'dayOne', 'days' ), array_keys( $config['strings'] ) );
 		$this->assertStringContainsString( '%d', $config['strings']['next'] );
 	}
 

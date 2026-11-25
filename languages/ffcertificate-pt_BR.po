@@ -37305,3 +37305,16 @@ msgstr "Tela visível"
 
 msgid "The app locks with the phone's own screen lock (fingerprint, face or the phone's PIN) when it opens and when it comes back after a few seconds away; for holders of ffc_checkin_audiences or ffc_manage_audiences_terminals the lock is mandatory, so the app shows nothing until it is turned on, and everyone else is invited to turn it on."
 msgstr "O app trava com o próprio bloqueio de tela do celular (digital, rosto ou PIN do celular) quando abre e quando volta após alguns segundos fora; para quem tem ffc_checkin_audiences ou ffc_manage_audiences_terminals a trava é obrigatória, então o app não mostra nada até ela ser ativada, e os demais são convidados a ativá-la."
+
+#. translators: %s: titles of today's events whose attendance is recorded
+#, php-format
+msgid "Attendance already recorded: %s"
+msgstr "Presença já registrada: %s"
+
+#. translators: %1$s: the event's next day; %2$s: the event's title
+#, php-format
+msgid "Your code appears on the event day: %1$s · %2$s"
+msgstr "Seu código aparece no dia do evento: %1$s · %2$s"
+
+msgid "The code shows only on a day the event counts. With no event today the screen shows no code and no countdown, and names the next day one appears. Once today's attendance is recorded the code leaves and the screen says \"Attendance recorded\" with the event and the time; with several events in one day the code stays for those still waiting, and the recorded ones are named under it. The screen reads its list again when the app comes back on screen, at most once every 30 seconds, and never polls the site while it stays open."
+msgstr "O código aparece só num dia que o evento conta. Sem evento hoje a tela não mostra código nem contagem regressiva, e diz o próximo dia em que um aparece. Depois que a presença de hoje é registrada o código sai e a tela diz \"Presença registrada\" com o evento e o horário; com vários eventos no mesmo dia o código fica para os que ainda esperam, e os registrados aparecem nomeados abaixo dele. A tela lê a lista de novo quando o app volta à tela, no máximo uma vez a cada 30 segundos, e nunca consulta o site enquanto fica aberta."

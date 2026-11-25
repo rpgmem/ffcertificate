@@ -19,6 +19,8 @@
 
     var PREFIX = 'FFP1';
     var ROTATION = 15;
+    // The least time between two reads of the list on returning to the app.
+    var REFRESH_GAP = 30000;
     /** A clock gap the app does not bother to correct, in milliseconds. */
     var CLOCK_NOISE = 1000;
     var ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
@@ -324,6 +326,8 @@
         this.now = deps.now;
         this.state = {};
         this.timer = null;
+        this.midnight = null;
+        this.refreshed = 0;
         this.offset = 0;
     }
 
@@ -425,6 +429,19 @@
                 self.draw();
             });
         }
+        // Back on screen, the list is read again, at most once every 30 s:
+        // the screen never polls, so this is how a reading made at the
+        // terminal reaches it (#2842).
+        document.addEventListener('visibilitychange', function () {
+            if ('visible' !== document.visibilityState || !self.state.attestation) {
+                return;
+            }
+            self.listEvents();
+            self.schedule();
+            if (self.now() - self.refreshed >= REFRESH_GAP) {
+                self.refresh();
+            }
+        });
         return self.load();
     };
 
@@ -451,7 +468,7 @@
             self.listEvents();
             self.listPending();
             self.draw();
-            self.timer = root.setInterval(function () { self.draw(); }, 1000);
+            self.schedule();
             return self.refresh();
         }).catch(function () {
             self.say(strings.storage);
@@ -582,6 +599,7 @@
         // learns it here and stops drawing its code (#2797).
         var sep = String(self.config.rest).indexOf('?') >= 0 ? '&' : '?';
         var path = self.state.keyId ? 'events' + sep + 'key=' + encodeURIComponent(self.state.keyId) : 'events';
+        self.refreshed = self.now();
         return renew.then(function () {
             return self.request('GET', path);
         }).then(function (answer) {
@@ -590,6 +608,7 @@
             self.listEvents();
             self.listPending();
             self.draw();
+            self.schedule();
             return self.save();
         }).catch(function (error) {
             if (error && (error.code === 'ffc_presence_revoked' || error.code === 'ffc_presence_unknown_key')) {
@@ -616,10 +635,112 @@
             root.clearInterval(this.timer);
             this.timer = null;
         }
+        if (this.midnight) {
+            root.clearTimeout(this.midnight);
+            this.midnight = null;
+        }
+    };
+
+    /**
+     * Run the one-second draw only while a code is on screen, and otherwise
+     * wait for midnight, when the day's list changes (#2842).
+     */
+    App.prototype.schedule = function () {
+        var self = this;
+        self.stop();
+        if (!self.state.attestation) {
+            return;
+        }
+        if (self.waiting().length > 0) {
+            self.timer = root.setInterval(function () { self.draw(); }, 1000);
+            return;
+        }
+        var now = new Date(self.clock());
+        var next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+        self.midnight = root.setTimeout(function () {
+            self.midnight = null;
+            self.listEvents();
+            self.draw();
+            self.schedule();
+        }, next - now.getTime() + 1000);
+    };
+
+    /**
+     * Today by this phone's calendar, read on the site clock, as Y-m-d.
+     *
+     * @return {string}
+     */
+    App.prototype.today = function () {
+        var date = new Date(this.clock());
+        var two = function (n) { return (n < 10 ? '0' : '') + n; };
+        return date.getFullYear() + '-' + two(date.getMonth() + 1) + '-' + two(date.getDate());
+    };
+
+    /**
+     * Whether an event counts a day. A list kept before the site sent its
+     * days falls back to the first and last dates, and to "yes" without them.
+     *
+     * @param {Object} event
+     * @param {string} day Y-m-d.
+     * @return {boolean}
+     */
+    function counts(event, day) {
+        if (Array.isArray(event.days)) {
+            return event.days.some(function (item) { return item && item.date === day; });
+        }
+        if (!event.first_date) {
+            return true;
+        }
+        return event.first_date <= day && day <= (event.last_date || event.first_date);
+    }
+
+    /**
+     * The reading an event has on a day, or null.
+     *
+     * @param {Object} event
+     * @param {string} day Y-m-d.
+     * @return {Object|null}
+     */
+    function recordedOn(event, day) {
+        var list = Array.isArray(event.recorded) ? event.recorded : [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].date === day) {
+                return list[i];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Today's events, each with whether today is recorded already.
+     *
+     * @return {Array<{event: Object, recorded: Object|null}>}
+     */
+    App.prototype.todays = function () {
+        var day = this.today();
+        return (this.state.events || []).filter(function (event) {
+            return counts(event, day);
+        }).map(function (event) {
+            return { event: event, recorded: recordedOn(event, day) };
+        });
+    };
+
+    /**
+     * Today's events still waiting for a reading: the only ones the code
+     * is drawn for.
+     *
+     * @return {Array<Object>}
+     */
+    App.prototype.waiting = function () {
+        return this.todays().filter(function (item) {
+            return !item.recorded;
+        }).map(function (item) {
+            return item.event;
+        });
     };
 
     App.prototype.current = function () {
-        var events = this.state.events || [];
+        var events = this.waiting();
         var chosen = this.state.chosen;
         for (var i = 0; i < events.length; i++) {
             if (String(events[i].target_id) === String(chosen)) {
@@ -629,34 +750,88 @@
         return events[0] || null;
     };
 
-    App.prototype.listEvents = function () {
-        var select = this.part('event');
-        if (!select) {
-            return;
-        }
-        var events = this.state.events || [];
-        var current = this.current();
-        select.textContent = '';
-        events.forEach(function (event) {
-            var option = document.createElement('option');
-            option.value = String(event.target_id);
-            option.textContent = [event.title, event.date, event.time].filter(Boolean).join(' · ');
-            option.selected = current && current.target_id === event.target_id;
-            select.appendChild(option);
+    /**
+     * The first day after today an event counts, with the event, or null.
+     *
+     * @return {{label: string, event: Object}|null}
+     */
+    App.prototype.upcoming = function () {
+        var day = this.today();
+        var best = null;
+        (this.state.events || []).forEach(function (event) {
+            (Array.isArray(event.days) ? event.days : []).forEach(function (item) {
+                if (item && item.date > day && (!best || item.date < best.date)) {
+                    best = { date: item.date, label: item.label || item.date, event: event };
+                }
+            });
         });
+        return best;
+    };
+
+    App.prototype.listEvents = function () {
+        var strings = this.config.strings;
+        var events = this.state.events || [];
+        var todays = this.todays();
+        var waiting = this.waiting();
+        var done = todays.filter(function (item) { return !!item.recorded; });
+        var current = this.current();
+        var select = this.part('event');
+        if (select) {
+            select.textContent = '';
+            waiting.forEach(function (event) {
+                var option = document.createElement('option');
+                option.value = String(event.target_id);
+                option.textContent = [event.title, event.date, event.time].filter(Boolean).join(' · ');
+                option.selected = current && current.target_id === event.target_id;
+                select.appendChild(option);
+            });
+            select.hidden = waiting.length === 0;
+        }
         var empty = this.part('empty');
         if (empty) {
             empty.hidden = events.length > 0;
         }
-        select.hidden = events.length === 0;
         // The picker shows only when there is a choice to make (#2781).
         var picker = this.part('picker');
         if (picker) {
-            picker.hidden = events.length < 2;
+            picker.hidden = waiting.length < 2;
         }
-        var card = this.part('card');
-        if (card) {
-            card.hidden = events.length === 0;
+        // No code to show today, so no card, bar, countdown or tips (#2842).
+        ['card', 'rotation', 'tips'].forEach(function (name) {
+            var part = this.part(name);
+            if (part) {
+                part.hidden = waiting.length === 0;
+            }
+        }, this);
+
+        // Every event of the day recorded: one line each in the code's place.
+        var recorded = this.part('recorded');
+        if (recorded) {
+            recorded.textContent = '';
+            if (waiting.length === 0) {
+                done.forEach(function (item) {
+                    var li = document.createElement('li');
+                    li.className = 'ffc-icon-checkmark';
+                    li.textContent = [strings.recorded, item.event.title, item.recorded.time].filter(Boolean).join(' · ');
+                    recorded.appendChild(li);
+                });
+            }
+            recorded.hidden = waiting.length > 0 || done.length === 0;
+        }
+        // Some still waiting: the recorded ones in one quiet line.
+        var also = this.part('also');
+        if (also) {
+            also.textContent = waiting.length > 0 && done.length > 0
+                ? format(strings.alsoRecorded, done.map(function (item) { return item.event.title; }).join(', '))
+                : '';
+            also.hidden = '' === also.textContent;
+        }
+        // Nothing today: name the day the code next appears.
+        var next = this.part('upcoming');
+        if (next) {
+            var coming = todays.length === 0 ? this.upcoming() : null;
+            next.textContent = coming ? format(strings.upcoming, coming.label, coming.event.title || '') : '';
+            next.hidden = !coming;
         }
         this.heading();
     };
@@ -743,6 +918,14 @@
     App.prototype.draw = function () {
         var self = this;
         var strings = self.config.strings;
+        // The day turned while the code was up: today's list decides again.
+        var day = self.today();
+        if (self.day && self.day !== day) {
+            self.day = day;
+            self.listEvents();
+            self.schedule();
+        }
+        self.day = day;
         var nowSeconds = Math.floor(self.clock() / 1000);
         var windowStart = nowSeconds - (nowSeconds % ROTATION);
         var left = ROTATION - (nowSeconds % ROTATION);
@@ -768,6 +951,7 @@
             if (holder) {
                 holder.textContent = '';
             }
+            self.drawn = '';
             return Promise.resolve(null);
         }
         if (self.drawn === event.target_id + '@' + windowStart) {
