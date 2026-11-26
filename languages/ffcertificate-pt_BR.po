@@ -37468,10 +37468,10 @@ msgid "Who may receive at the terminal"
 msgstr "Quem pode receber pelo terminal"
 
 msgid "Any account, or only the people on the Security tab's allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline."
-msgstr "Qualquer conta, ou só quem está na lista de permitidos da aba Segurança. A lista de bloqueados, os limites de envio e o ingresso valem na leitura; a senha e a área de GPS não, porque estar diante do terminal comprova as duas. Com o ingresso ligado, o terminal pede o código depois do QR, cada código uma vez, e pausa a leitura enquanto estiver offline."
+msgstr "Qualquer conta, ou só quem está na lista de permitidos da aba Segurança. A lista de bloqueados, os limites de submissões e o ingresso valem na leitura; a senha e a área de GPS não, porque estar diante do terminal comprova as duas. Com o ingresso ligado, o terminal pede o código depois do QR, cada código uma vez, e pausa a leitura enquanto estiver offline."
 
 msgid "From the Security tab, the deny list, the submission limits and the ticket apply to a reading: with the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline. The password and the GPS area do not apply: standing at the terminal proves both."
-msgstr "Da aba Segurança, valem na leitura a lista de bloqueados, os limites de envio e o ingresso: com o ingresso ligado, o terminal pede o código depois do QR, cada código uma vez, e pausa a leitura enquanto estiver offline. A senha e a área de GPS não se aplicam: estar diante do terminal já comprova as duas."
+msgstr "Da aba Segurança, valem na leitura a lista de bloqueados, os limites de submissões e o ingresso: com o ingresso ligado, o terminal pede o código depois do QR, cada código uma vez, e pausa a leitura enquanto estiver offline. A senha e a área de GPS não se aplicam: estar diante do terminal já comprova as duas."
 
 msgid "Required with no profile source: %s. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\"."
 msgstr "Obrigatório sem fonte no perfil: %s. Quem não tiver esse dado tem a presença registrada e recebe \"Complete seu certificado\"."

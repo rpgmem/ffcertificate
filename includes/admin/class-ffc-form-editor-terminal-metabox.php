@@ -90,7 +90,7 @@ final class FormEditorTerminalMetabox {
 		);
 		?>
 
-		<p class="description"><?php esc_html_e( 'From the Security tab, the deny list, the submission limits and the ticket apply to a reading: with the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline. The password and the GPS area do not apply: standing at the terminal proves both.', 'ffcertificate' ); ?></p>
+		<p class="description ffc-mt-md"><?php esc_html_e( 'From the Security tab, the deny list, the submission limits and the ticket apply to a reading: with the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline. The password and the GPS area do not apply: standing at the terminal proves both.', 'ffcertificate' ); ?></p>
 
 		<?php
 		if ( array() !== $unfilled ) {
