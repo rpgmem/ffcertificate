@@ -9,6 +9,13 @@
  * repository fails. This test pins the names Site PWA depends on, read from
  * the source as text, so it loads no class and stubs nothing.
  *
+ * Two directions are pinned while they coexist. This plugin offers its look
+ * through Site PWA's source filters (`Shortcodes\AppLook`, #2873), and the
+ * source id `ffc` is a value Site PWA stores, so it is pinned too. Until
+ * rpgmem/site-pwa#48 ships, Site PWA also reads `PublicDesign`,
+ * `SettingsReader::get( 'dark_mode' )` and `ffc-dark-mode` by name; those
+ * pins go when both plugins have shipped the change.
+ *
  * It pins this side only. It cannot see the other repository, so a name that
  * still exists here but that Site PWA stopped reading passes, and so does a
  * change made in Site PWA alone. The contract is written down in
@@ -96,6 +103,9 @@ final class SitePwaContractTest extends TestCase {
 			'profile line'                => array( 'includes/shortcodes/class-ffc-dashboard-app-screens.php', 'site_pwa_profile_line', 2 ),
 			'home'                        => array( 'includes/shortcodes/class-ffc-app-home.php', 'site_pwa_home', 3 ),
 			'lock required'               => array( 'includes/audience/class-ffc-audience-app-screens.php', 'site_pwa_lock_required', 2 ),
+			'identity sources'            => array( 'includes/shortcodes/class-ffc-app-look.php', 'site_pwa_identity_sources', 1 ),
+			'scheme sources'              => array( 'includes/shortcodes/class-ffc-app-look.php', 'site_pwa_scheme_sources', 1 ),
+			'dark root classes'           => array( 'includes/shortcodes/class-ffc-app-look.php', 'site_pwa_dark_root_classes', 1 ),
 		);
 	}
 
@@ -109,11 +119,24 @@ final class SitePwaContractTest extends TestCase {
 	 * @param int    $arity The arguments Site PWA passes.
 	 */
 	public function test_each_consumer_registers_its_hook( string $path, string $hook, int $arity ): void {
+		$tail = 1 === $arity ? '(?:,\s*10\s*,\s*1\s*)?\)\s*;' : ',\s*10\s*,\s*' . $arity . '\s*\)';
 		$this->assertMatchesRegularExpression(
-			'/add_(?:action|filter)\(\s*\'' . preg_quote( $hook, '/' ) . '\'\s*,[^;]*,\s*10\s*,\s*' . $arity . '\s*\)/',
+			'/add_(?:action|filter)\(\s*\'' . preg_quote( $hook, '/' ) . '\'\s*,\s*array\(\s*self::class\s*,\s*\'[a-z_]+\'\s*\)\s*' . $tail . '/',
 			self::source( $path ),
 			$hook . ' is no longer registered with ' . $arity . ' arguments in ' . $path . '.'
 		);
+	}
+
+	/**
+	 * The source id is stored in Site PWA's settings, and the root class names this plugin's palette.
+	 */
+	public function test_the_look_keeps_its_stored_source_id_and_root_class(): void {
+		$src = self::source( 'includes/shortcodes/class-ffc-app-look.php' );
+		$this->assertMatchesRegularExpression( "/public const SOURCE_ID = 'ffc';/", $src, 'Site PWA stores this id as the chosen source; renaming it drops every site back to the app defaults.' );
+		$this->assertMatchesRegularExpression( "/public const DARK_ROOT_CLASS = 'ffc-dark-mode';/", $src );
+		foreach ( array( "'accent'", "'radius'", "'control_radius'", "'light'", "'dark'", "'auto'" ) as $key ) {
+			$this->assertStringContainsString( $key, $src, 'AppLook answers in Site PWA\'s shapes; ' . $key . ' is one of their keys or values.' );
+		}
 	}
 
 	/**

@@ -37250,3 +37250,11 @@ msgstr ""
 
 msgid "The user sees the same fields on the dashboard's Profile tab, on the site and in the app, one section per audience, and edits them under Edit Profile with the reregistration form's controls. A sensitive value is masked until revealed, an invalid value refuses the save with a message under the field, and an empty required field keeps its stored value. CPF and RF are shown but changed only by an administrator, and a field mapped to the name, phone, department, organization, notes or birth date is edited with the profile fields above it."
 msgstr ""
+
+#: includes/shortcodes/class-ffc-app-look.php
+msgid "Free Form Certificate: Public Design"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-app-look.php
+msgid "Free Form Certificate: Dark Mode"
+msgstr ""
