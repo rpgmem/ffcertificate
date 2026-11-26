@@ -18,6 +18,8 @@ use FreeFormCertificate\Core\ClientIpResolver;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\IpAddress;
 use FreeFormCertificate\Core\TerminalTargetKey;
+use FreeFormCertificate\Frontend\CertificateFormTarget;
+use FreeFormCertificate\Security\GeofenceLocationRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -559,7 +561,11 @@ class AudienceTerminalRestController {
 	 * Terminals screen list them (#2748).
 	 *
 	 * @param int $now Unix time.
-	 * @return list<array{id: int, description: string, place: string, place_id: int, when: string, terminals: int, full: bool}>
+	 * Certificate forms with the terminal on join the list (#2900), so the
+	 * same choice reaches both kinds of item; like the events, only what is
+	 * open today or later, within the same days, ever shows.
+	 *
+	 * @return list<array{id: int|string, kind: string, description: string, place: string, place_id: int, when: string, starts: int, terminals: int, full: bool}>
 	 */
 	public static function offered_bookings( int $now ): array {
 		$today  = wp_date( 'Y-m-d', $now );
@@ -586,15 +592,52 @@ class AudienceTerminalRestController {
 			$held     = AudienceTerminalReader::count_active_for_target( $id, $now );
 			$events[] = array(
 				'id'          => $id,
+				'kind'        => 'event',
 				'description' => (string) $booking->description,
 				'place'       => (string) ( $booking->environment_name ?? '' ),
 				'place_id'    => (int) ( $booking->environment_id ?? 0 ),
 				'when'        => self::when( $booking ),
+				'starts'      => self::starts( $booking ),
 				'terminals'   => $held,
 				'full'        => $held >= $limit,
 			);
 		}
+		foreach ( CertificateFormTarget::offered( $now, AudienceTerminalPairing::DAYS_AHEAD ) as $form ) {
+			$key      = TerminalTargetKey::of( CertificateFormTarget::TYPE, $form['id'] );
+			$held     = AudienceTerminalReader::count_active_for_target( $key, $now );
+			$names    = array_map( static fn( array $location ): string => (string) ( $location['name'] ?? '' ), GeofenceLocationRegistry::get_by_ids( $form['location_ids'] ) );
+			$events[] = array(
+				'id'          => $key,
+				'kind'        => 'form',
+				'description' => $form['title'],
+				'place'       => implode( ', ', array_filter( $names ) ),
+				'place_id'    => 0,
+				/* translators: 1: day, 2: opening time, 3: closing time */
+				'when'        => sprintf( __( '%1$s, %2$s–%3$s', 'ffcertificate' ), DateFormatter::format_date( $form['opens'] ), DateFormatter::format_time( $form['opens'] ), DateFormatter::format_time( $form['closes'] ) ),
+				'starts'      => $form['opens'],
+				'terminals'   => $held,
+				'full'        => $held >= $limit,
+			);
+		}
+		usort( $events, static fn( array $a, array $b ): int => $a['starts'] <=> $b['starts'] );
 		return $events;
+	}
+
+	/**
+	 * When a booking starts, as a moment, for ordering the list.
+	 *
+	 * @param object $booking Booking row.
+	 * @return int Unix time; 0 when the row carries no usable date.
+	 */
+	private static function starts( object $booking ): int {
+		$day  = is_string( $booking->booking_date ?? null ) ? $booking->booking_date : '';
+		$time = is_string( $booking->start_time ?? null ) && '' !== $booking->start_time ? $booking->start_time : '00:00:00';
+		try {
+			return ( new \DateTimeImmutable( $day . ' ' . $time, wp_timezone() ) )->getTimestamp();
+		} catch ( \Exception $e ) {
+			unset( $e );
+			return 0;
+		}
 	}
 
 	/**

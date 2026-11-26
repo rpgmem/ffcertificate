@@ -81,6 +81,8 @@ class AudienceTerminalPairingTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->alias( static fn( $s ) => trim( strip_tags( (string) $s ) ) );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
+		// No certificate form takes the terminal unless a test adds one (#2900).
+		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
@@ -456,6 +458,46 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 0, $data['bookings'][0]['terminals'] );
 		$this->assertFalse( $data['bookings'][0]['full'] );
 		$this->assertNotSame( '', $data['bookings'][0]['when'] );
+	}
+
+	public function test_the_list_offers_certificate_forms_beside_events_in_time_order(): void {
+		$now = time();
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		$day = gmdate( 'Y-m-d', $now + 2 * DAY_IN_SECONDS );
+		$this->booking( 21, $day );
+		$this->tables->booking_list = array(
+			(object) array( 'id' => 21, 'description' => 'Workshop', 'environment_name' => 'Room 1', 'booking_date' => $day, 'end_date' => null, 'start_time' => '14:00:00', 'end_time' => '17:00:00' ),
+		);
+		Functions\when( 'get_posts' )->justReturn( array( 900 ) );
+		Functions\when( 'get_the_title' )->justReturn( 'Inclusive Education Seminar' );
+		Functions\when( 'get_post' )->alias(
+			static function ( $id ) {
+				$post              = new \WP_Post();
+				$post->ID          = (int) $id;
+				$post->post_type   = 'ffc_form';
+				$post->post_status = 'publish';
+				return $post;
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key = '' ) => '_ffc_geofence_config' === $key
+				? array(
+					'datetime_enabled'      => '1',
+					'date_start'            => $day,
+					'date_end'              => $day,
+					'time_start'            => '09:00',
+					'time_end'              => '12:00',
+					'geo_area_source'       => 'locations',
+					'geo_area_location_ids' => array( 'loc_a' ),
+				)
+				: ''
+		);
+
+		$data = ( new AudienceTerminalRestController() )->list_bookings()->get_data();
+
+		$this->assertSame( array( 'certificate_form:900', 21 ), array_column( $data['bookings'], 'id' ), 'the form opens first, so it is listed first' );
+		$this->assertSame( array( 'form', 'event' ), array_column( $data['bookings'], 'kind' ) );
+		$this->assertSame( 'Inclusive Education Seminar', $data['bookings'][0]['description'] );
 	}
 
 	public function test_the_event_list_shows_the_stored_day_and_hours_on_a_site_west_of_utc(): void {

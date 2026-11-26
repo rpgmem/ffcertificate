@@ -53,6 +53,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Terminal tab in the form editor.** Turns the terminal on for a one-day form without a quiz (it refuses, with the reason, otherwise), shows the Time tab's hours, chooses who may receive, names each required field with no profile source, and adds a side box with reading hours, paired terminals and certificates issued. (#2892)
 - **Terminal readings in the activity log, and a consent with its proof.** The log records each certificate issued at the terminal and each reading left waiting on data; a consent the reading accepts keeps the reading's time and terminal beside the answers, shown on the edit screen (#2891).
 - **An environment names its GPS location.** The environment's edit screen links it to a location of Settings → Geolocation, the side column names the location's environments and forms, and a location an environment uses cannot be deleted (#2900).
+- **Certificate forms at pairing, on by default.** A form takes the terminal unless its switch is turned off, and pairing lists the forms that qualify beside the events, soonest first, only what is open today or later within 7 days (#2900).
 
 ### Changed
 

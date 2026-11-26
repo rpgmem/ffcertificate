@@ -101,7 +101,7 @@ class FormEditorTerminalMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'A form with a quiz cannot issue at the terminal', $this->render() );
 	}
 
-	public function test_a_terminal_already_on_stays_editable_to_be_turned_off(): void {
+	public function test_a_form_that_cannot_take_the_terminal_shows_it_off_whatever_was_stored(): void {
 		$this->meta['_ffc_form_config'] = array(
 			'quiz_enabled'                    => '1',
 			CertificateFormTarget::CONFIG_KEY => array( 'enabled' => '1' ),
@@ -109,7 +109,17 @@ class FormEditorTerminalMetaboxTest extends TestCase {
 
 		$html = $this->render();
 
-		$this->assertDoesNotMatchRegularExpression( '/id="' . FormEditorTerminalMetabox::TOGGLE_ID . '"[^>]*disabled/', $html );
+		$this->assertMatchesRegularExpression( '/id="' . FormEditorTerminalMetabox::TOGGLE_ID . '"[^>]*disabled/', $html );
+		$this->assertDoesNotMatchRegularExpression( '/id="' . FormEditorTerminalMetabox::TOGGLE_ID . '"[^>]*checked/', $html, 'it does not take the terminal, so the switch is off' );
+	}
+
+	public function test_a_form_that_never_set_the_switch_takes_the_terminal(): void {
+		unset( $this->meta['_ffc_form_config'] );
+
+		$this->assertMatchesRegularExpression( '/id="' . FormEditorTerminalMetabox::TOGGLE_ID . '"[^>]*checked/', $this->render(), 'on by default' );
+
+		$this->meta['_ffc_form_config'] = array( CertificateFormTarget::CONFIG_KEY => array( 'enabled' => '' ) );
+		$this->assertDoesNotMatchRegularExpression( '/id="' . FormEditorTerminalMetabox::TOGGLE_ID . '"[^>]*checked/', $this->render(), 'an explicit off stays off' );
 	}
 
 	public function test_each_required_field_without_a_profile_source_is_named(): void {

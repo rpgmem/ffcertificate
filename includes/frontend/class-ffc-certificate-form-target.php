@@ -221,7 +221,9 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 		$terminal = is_array( $config ) && isset( $config[ self::CONFIG_KEY ] ) && is_array( $config[ self::CONFIG_KEY ] ) ? $config[ self::CONFIG_KEY ] : array();
 		$who      = isset( $terminal['who'] ) && self::WHO_ALLOWLIST === $terminal['who'] ? self::WHO_ALLOWLIST : self::WHO_ANY;
 		return array(
-			'enabled' => isset( $terminal['enabled'] ) && '1' === (string) $terminal['enabled'],
+			// On by default (#2900): a form that never set the switch takes
+			// the terminal whenever it can; only an explicit off keeps it out.
+			'enabled' => ! isset( $terminal['enabled'] ) || '1' === (string) $terminal['enabled'],
 			'who'     => $who,
 		);
 	}
@@ -272,6 +274,63 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			return new \WP_Error( 'ffc_terminal_form_off', __( 'This certificate form does not take the terminal. Turn it on in the form\'s Terminal tab.', 'ffcertificate' ), array( 'status' => 400 ) );
 		}
 		return self::cannot_enable( $form_id );
+	}
+
+	/**
+	 * The forms a terminal may take, for the pairing and queue screens:
+	 * published, with the terminal on, and open today or on one of the next
+	 * days, never one that already closed (#2900). Soonest first.
+	 *
+	 * @param int $now  Unix time.
+	 * @param int $days How many days ahead.
+	 * @return list<array{id: int, title: string, location_ids: list<string>, opens: int, closes: int}>
+	 */
+	public static function offered( int $now, int $days ): array {
+		$ids  = get_posts(
+			array(
+				'post_type'      => 'ffc_form',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			)
+		);
+		$last = $now + ( $days + 1 ) * DAY_IN_SECONDS;
+		$out  = array();
+		foreach ( (array) $ids as $id ) {
+			$id = (int) $id;
+			if ( null !== self::unavailable( $id ) ) {
+				continue;
+			}
+			$window = self::window( $id );
+			if ( null === $window || $window['closes'] <= $now || $window['opens'] > $last ) {
+				continue;
+			}
+			$out[] = array(
+				'id'           => $id,
+				'title'        => ( new self() )->terminal_title( $id ),
+				'location_ids' => self::location_ids( $id ),
+				'opens'        => $window['opens'],
+				'closes'       => $window['closes'],
+			);
+		}
+		usort( $out, static fn( array $a, array $b ): int => array( $a['opens'], $a['id'] ) <=> array( $b['opens'], $b['id'] ) );
+		return $out;
+	}
+
+	/**
+	 * The GPS locations a form's geolocation names, when its GPS area reads
+	 * from Settings → Geolocation.
+	 *
+	 * @param int $form_id Form id.
+	 * @return list<string>
+	 */
+	public static function location_ids( int $form_id ): array {
+		$config = get_post_meta( $form_id, '_ffc_geofence_config', true );
+		if ( ! is_array( $config ) || 'locations' !== ( $config['geo_area_source'] ?? '' ) ) {
+			return array();
+		}
+		return array_values( array_filter( array_map( 'strval', (array) ( $config['geo_area_location_ids'] ?? array() ) ), static fn( string $id ): bool => '' !== $id ) );
 	}
 
 	/**

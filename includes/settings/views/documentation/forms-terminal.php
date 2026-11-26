@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'When it can be turned on', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The terminal reads while the form is open: the date and hours are the Time tab\'s, with no window of their own, and the opening and closing must fall on the same day. A form with a quiz cannot take the terminal, because the certificate needs the answers. The switch refuses to turn on and says why; a form that stops qualifying when it is saved has the terminal turned off, with a notice.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The switch is on by default: a form that never set it takes the terminal whenever it qualifies. Turn it off to keep a form out of every terminal. Pairing a terminal lists these forms beside the events, and only what is open today or later, within the next 7 days, ever shows.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Who may receive at the terminal', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Any account, or only the people on the Security tab\'s allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline.', 'ffcertificate' ); ?></p>

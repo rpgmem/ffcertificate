@@ -37486,3 +37486,6 @@ msgstr ""
 
 msgid "A consent accepted by the reading keeps, beside the answers, the time of the reading and the terminal that read it, shown on the submission's edit screen. The activity log records each certificate issued at the terminal and each reading left waiting on data, under Certificates."
 msgstr ""
+
+msgid "The switch is on by default: a form that never set it takes the terminal whenever it qualifies. Turn it off to keep a form out of every terminal. Pairing a terminal lists these forms beside the events, and only what is open today or later, within the next 7 days, ever shows."
+msgstr ""
