@@ -55,6 +55,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - `CLAUDE.md` no longer states facts the tree contradicts: the stylesheet count, the loader list, the PHPUnit config name, a deleted test and the vendored-bundle count now read the invariant or the current fact, and the permission states are in English (#2858)
 - `CLAUDE.md` keeps each guard's rule, failure conditions and traps, and the history behind them moves to `docs/engineering/guards.md` and `docs/engineering/schema-and-migrations.md`, quoted verbatim (#2860)
 - `CLAUDE.md` keeps the rules, reasons and traps of its opening rules, the workflow, the stylesheets and the legacy log, and their history moves verbatim to five files under `docs/engineering/` (#2860)
+- `CLAUDE.md` corrects four statements the tree contradicts (the capability qualifiers, the captcha retry paths, the BEM islands, the Dependabot retarget step), and the history left in the testing, architecture and domain sections moves verbatim to `docs/engineering/` (#2863)
 
 ### Security
 
