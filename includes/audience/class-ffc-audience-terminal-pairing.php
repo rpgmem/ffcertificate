@@ -14,8 +14,10 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\ActivityLog;
+use FreeFormCertificate\Core\AttendanceTargetRegistry;
 use FreeFormCertificate\Core\AuthCodeService;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\TerminalTargetKey;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -97,15 +99,15 @@ final class AudienceTerminalPairing {
 	 * Generate a pairing code.
 	 *
 	 * @param int      $user_id        The operator.
-	 * @param int[]    $bookings       Booking ids.
+	 * @param array    $bookings       Target keys ({@see TerminalTargetKey}); a booking id is one.
 	 * @param string   $label          What to call the terminal.
 	 * @param int      $now            Unix time.
 	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself (#2781); null for the Check-in settings.
-	 * @phpstan-param list<int> $bookings
-	 * @return array{code: string, expires_at: int, bookings: list<int>}|\WP_Error
+	 * @phpstan-param array<mixed> $bookings
+	 * @return array{code: string, expires_at: int, bookings: list<int|string>}|\WP_Error
 	 */
 	public static function create_code( int $user_id, array $bookings, string $label, int $now, ?int $auto_end_hours = null ) {
-		$bookings = self::clean_bookings( $bookings );
+		$bookings = TerminalTargetKey::clean( $bookings );
 		$invalid  = self::queue_error( $bookings, $now );
 		if ( null !== $invalid ) {
 			return $invalid;
@@ -147,7 +149,7 @@ final class AudienceTerminalPairing {
 	 * @param string $device_id The id the terminal generated for itself.
 	 * @param string $address   Keyed fingerprint of the caller's address.
 	 * @param int    $now       Unix time.
-	 * @return array{token: string, terminal_id: int, label: string, bookings: list<int>, expires_at: int}|\WP_Error
+	 * @return array{token: string, terminal_id: int, label: string, bookings: list<int|string>, expires_at: int}|\WP_Error
 	 */
 	public static function pair( string $code, string $device_id, string $address, int $now ) {
 		$device_id = self::clean_device( $device_id );
@@ -168,16 +170,16 @@ final class AudienceTerminalPairing {
 		}
 		// A full site or event refuses before the code is spent, so the
 		// operator can end a terminal and the same code still works.
-		$limit = self::limit_error( $pairing['bookings'], $now );
+		$limit = self::limit_error( $pairing['targets'], $now );
 		if ( null !== $limit ) {
 			return $limit;
 		}
 		if ( ! AudienceTerminalWriter::spend_pairing( $pairing['id'], $now ) ) {
 			return self::wrong_code( $device_hash, $address, $now );
 		}
-		$expires = self::expiry( $pairing['bookings'], $now, $pairing['auto_end_hours'] );
+		$expires = self::expiry( $pairing['targets'], $now, $pairing['auto_end_hours'] );
 		$token   = bin2hex( random_bytes( 32 ) );
-		$id      = AudienceTerminalWriter::create_terminal( self::token_hash( $token ), $device_hash, $pairing['label'], $pairing['bookings'], $pairing['created_by'], $now, $expires, $pairing['auto_end_hours'] );
+		$id      = AudienceTerminalWriter::create_terminal( self::token_hash( $token ), $device_hash, $pairing['label'], $pairing['targets'], $pairing['created_by'], $now, $expires, $pairing['auto_end_hours'] );
 		if ( $id <= 0 ) {
 			return new \WP_Error( 'ffc_terminal_save', __( 'The terminal could not be saved. Generate a new code and try again.', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
@@ -189,7 +191,7 @@ final class AudienceTerminalPairing {
 			ActivityLog::LEVEL_INFO,
 			array(
 				'terminal_id' => $id,
-				'bookings'    => $pairing['bookings'],
+				'bookings'    => $pairing['targets'],
 				'expires_at'  => $expires,
 			),
 			(int) $pairing['created_by']
@@ -199,7 +201,7 @@ final class AudienceTerminalPairing {
 			'token'       => $token,
 			'terminal_id' => $id,
 			'label'       => $pairing['label'],
-			'bookings'    => $pairing['bookings'],
+			'bookings'    => $pairing['targets'],
 			'expires_at'  => $expires,
 		);
 	}
@@ -218,11 +220,11 @@ final class AudienceTerminalPairing {
 	 * still recorded when it syncs.
 	 *
 	 * @param int   $id       Terminal id.
-	 * @param int[] $bookings The events it should hold.
+	 * @param array $bookings The target keys it should hold ({@see TerminalTargetKey}).
 	 * @param int   $by       Who changes it.
 	 * @param bool  $any      Whether they may change a terminal someone else paired.
 	 * @param int   $now      Unix time.
-	 * @phpstan-param list<int> $bookings
+	 * @phpstan-param array<mixed> $bookings
 	 * @return TerminalRow|\WP_Error The terminal as it is now.
 	 */
 	public static function update_bookings( int $id, array $bookings, int $by, bool $any, int $now ) {
@@ -230,13 +232,13 @@ final class AudienceTerminalPairing {
 		if ( null === $terminal || ( ! $any && $terminal['paired_by'] !== $by ) || null !== $terminal['revoked_at'] || $terminal['expires_at'] <= $now ) {
 			return new \WP_Error( 'ffc_terminal_missing', __( 'There is no such terminal.', 'ffcertificate' ), array( 'status' => 404 ) );
 		}
-		$bookings = self::clean_bookings( $bookings );
+		$bookings = TerminalTargetKey::clean( $bookings );
 		$invalid  = self::queue_error( $bookings, $now );
 		if ( null !== $invalid ) {
 			return $invalid;
 		}
-		$added   = array_values( array_diff( $bookings, $terminal['bookings'] ) );
-		$dropped = array_values( array_diff( $terminal['bookings'], $bookings ) );
+		$added   = array_values( array_diff( $bookings, $terminal['targets'] ) );
+		$dropped = array_values( array_diff( $terminal['targets'], $bookings ) );
 		if ( array() === $added && array() === $dropped ) {
 			return $terminal;
 		}
@@ -246,11 +248,11 @@ final class AudienceTerminalPairing {
 		}
 
 		$removed = $terminal['removed'];
-		foreach ( $dropped as $booking_id ) {
-			$removed[ $booking_id ] = $now;
+		foreach ( $dropped as $key ) {
+			$removed[ $key ] = $now;
 		}
-		foreach ( $added as $booking_id ) {
-			unset( $removed[ $booking_id ] );
+		foreach ( $added as $key ) {
+			unset( $removed[ $key ] );
 		}
 		$expires = self::expiry( $bookings, $now, $terminal['auto_end_hours'] );
 		if ( ! AudienceTerminalWriter::set_bookings( $id, $bookings, $removed, $expires ) ) {
@@ -267,7 +269,7 @@ final class AudienceTerminalPairing {
 			$by
 		);
 
-		$terminal['bookings']   = $bookings;
+		$terminal['targets']    = $bookings;
 		$terminal['removed']    = $removed;
 		$terminal['expires_at'] = $expires;
 		return $terminal;
@@ -277,15 +279,19 @@ final class AudienceTerminalPairing {
 	 * Whether a terminal held an event at a moment: it holds it now, or it
 	 * left the queue after that moment (#2746).
 	 *
-	 * @param array $terminal   Terminal row.
-	 * @param int   $booking_id Booking.
-	 * @param int   $at         Unix time.
+	 * @param array      $terminal Terminal row.
+	 * @param int|string $key      A {@see TerminalTargetKey}; a booking id is one.
+	 * @param int        $at       Unix time.
 	 * @phpstan-param TerminalRow $terminal
 	 * @return bool
 	 */
-	public static function held_at( array $terminal, int $booking_id, int $at ): bool {
-		return in_array( $booking_id, $terminal['bookings'], true )
-			|| ( isset( $terminal['removed'][ $booking_id ] ) && $at < $terminal['removed'][ $booking_id ] );
+	public static function held_at( array $terminal, $key, int $at ): bool {
+		$key = TerminalTargetKey::normalize( $key );
+		if ( null === $key ) {
+			return false;
+		}
+		return in_array( $key, $terminal['targets'], true )
+			|| ( isset( $terminal['removed'][ $key ] ) && $at < $terminal['removed'][ $key ] );
 	}
 
 	/**
@@ -390,16 +396,16 @@ final class AudienceTerminalPairing {
 	 * When a terminal stops: the auto-end of the Check-in settings (two hours
 	 * by default) after the last of its bookings ends.
 	 *
-	 * @param int[]    $bookings       Booking ids.
+	 * @param array    $bookings       Target keys ({@see TerminalTargetKey}).
 	 * @param int      $now            Unix time.
 	 * @param int|null $auto_end_hours Hours chosen when the terminal was paired (#2781); null for the Check-in settings.
-	 * @phpstan-param list<int> $bookings
+	 * @phpstan-param list<int|string> $bookings
 	 * @return int
 	 */
 	public static function expiry( array $bookings, int $now, ?int $auto_end_hours = null ): int {
 		$last = $now;
-		foreach ( $bookings as $booking_id ) {
-			$end = self::booking_end( $booking_id );
+		foreach ( $bookings as $key ) {
+			$end = self::target_end( $key );
 			if ( null !== $end && $end > $last ) {
 				$last = $end;
 			}
@@ -444,21 +450,22 @@ final class AudienceTerminalPairing {
 	}
 
 	/**
-	 * Positive, unique booking ids.
+	 * When a queued target ends, through the target its key names (#2890).
 	 *
-	 * @param int[] $bookings Booking ids.
-	 * @return list<int>
+	 * @param int|string $key A {@see TerminalTargetKey}.
+	 * @return int|null Unix time, or null when no target answers or it is inactive.
 	 */
-	private static function clean_bookings( array $bookings ): array {
-		return array_values( array_unique( array_filter( array_map( 'intval', $bookings ), static fn( int $id ): bool => $id > 0 ) ) );
+	public static function target_end( $key ): ?int {
+		$found = AttendanceTargetRegistry::terminal( $key );
+		return null === $found ? null : $found['target']->terminal_ends_at( $found['id'] );
 	}
 
 	/**
 	 * The refusal a queue of events gives, or null when it may be held.
 	 *
-	 * @param int[] $bookings Booking ids.
+	 * @param array $bookings Target keys ({@see TerminalTargetKey}).
 	 * @param int   $now      Unix time.
-	 * @phpstan-param list<int> $bookings
+	 * @phpstan-param list<int|string> $bookings
 	 * @return \WP_Error|null
 	 */
 	private static function queue_error( array $bookings, int $now ): ?\WP_Error {
@@ -469,15 +476,16 @@ final class AudienceTerminalPairing {
 			/* translators: %d: maximum number of events */
 			return new \WP_Error( 'ffc_terminal_too_many', sprintf( __( 'A terminal holds at most %d events.', 'ffcertificate' ), self::MAX_BOOKINGS ), array( 'status' => 400 ) );
 		}
-		foreach ( $bookings as $booking_id ) {
-			$end = self::booking_end( $booking_id );
-			if ( null === $end || $end < $now || $end > $now + self::DAYS_AHEAD * DAY_IN_SECONDS + DAY_IN_SECONDS ) {
+		foreach ( $bookings as $key ) {
+			$found = AttendanceTargetRegistry::terminal( $key );
+			$end   = null === $found ? null : $found['target']->terminal_ends_at( $found['id'] );
+			if ( null === $found || null === $end || $end < $now || $end > $now + self::DAYS_AHEAD * DAY_IN_SECONDS + DAY_IN_SECONDS ) {
 				/* translators: %d: number of days */
 				return new \WP_Error( 'ffc_terminal_booking', sprintf( __( 'Every event must be active and end within the next %d days.', 'ffcertificate' ), self::DAYS_AHEAD ), array( 'status' => 400 ) );
 			}
-			$booking = AudienceBookingReader::get_by_id( $booking_id );
-			if ( null !== $booking && ! AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
-				return new \WP_Error( 'ffc_terminal_path_off', __( 'One of these events does not take check-in at a terminal. Turn the terminal path on in its Check-in tab, or leave it out.', 'ffcertificate' ), array( 'status' => 400 ) );
+			$refusal = $found['target']->terminal_queue_error( $found['id'] );
+			if ( null !== $refusal ) {
+				return $refusal;
 			}
 		}
 		return AudienceTerminalSchedule::collision_error( $bookings, $now );
@@ -486,9 +494,9 @@ final class AudienceTerminalPairing {
 	/**
 	 * The refusal a limit gives, or null when there is room.
 	 *
-	 * @param int[] $bookings Booking ids.
+	 * @param array $bookings Target keys ({@see TerminalTargetKey}).
 	 * @param int   $now      Unix time.
-	 * @phpstan-param list<int> $bookings
+	 * @phpstan-param list<int|string> $bookings
 	 * @return \WP_Error|null
 	 */
 	private static function limit_error( array $bookings, int $now ): ?\WP_Error {
@@ -503,15 +511,15 @@ final class AudienceTerminalPairing {
 	/**
 	 * The refusal the per-event limit gives, or null when every event has room.
 	 *
-	 * @param int[] $bookings Booking ids.
+	 * @param array $bookings Target keys ({@see TerminalTargetKey}).
 	 * @param int   $now      Unix time.
-	 * @phpstan-param list<int> $bookings
+	 * @phpstan-param list<int|string> $bookings
 	 * @return \WP_Error|null
 	 */
 	private static function booking_limit_error( array $bookings, int $now ): ?\WP_Error {
 		$limit = self::limits()['booking'];
-		foreach ( $bookings as $booking_id ) {
-			if ( AudienceTerminalReader::count_active_for_booking( $booking_id, $now ) >= $limit ) {
+		foreach ( $bookings as $key ) {
+			if ( AudienceTerminalReader::count_active_for_target( $key, $now ) >= $limit ) {
 				/* translators: %d: maximum number of terminals */
 				return new \WP_Error( 'ffc_terminal_booking_limit', sprintf( __( 'One of these events already has %d active terminals. End one before pairing another.', 'ffcertificate' ), $limit ), array( 'status' => 409 ) );
 			}

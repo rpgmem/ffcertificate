@@ -254,6 +254,13 @@ describe('helpers', () => {
 		expect(T().cleanReading('  ffp1ab $%*+-./:\r\n')).toBe('FFP1AB $%*+-./:');
 	});
 
+	it('names a target as the site does: a booking by its bare id, anything else as type:id (#2890)', () => {
+		expect(T().targetKey('audience_booking', 11)).toBe(11);
+		expect(T().targetKey('certificate_form', 12)).toBe('certificate_form:12');
+		expect(T().cleanTargetKey('11')).toBe(11);
+		expect(T().cleanTargetKey('certificate_form:12')).toBe('certificate_form:12');
+	});
+
 	it('writes seconds as m:ss', () => {
 		expect(T().clock(899.2)).toBe('15:00');
 		expect(T().clock(61)).toBe('1:01');

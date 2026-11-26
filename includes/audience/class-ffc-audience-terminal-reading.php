@@ -13,7 +13,9 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\ActivityLog;
-use FreeFormCertificate\Core\DateFormatter;
+use FreeFormCertificate\Core\AttendanceTargetRegistry;
+use FreeFormCertificate\Core\TerminalTargetKey;
+use FreeFormCertificate\Core\TerminalVerdict;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -24,39 +26,37 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The code is checked by its one verifier ({@see AudiencePresenceCode}), with
  * the revocation list, and then against what the terminal was paired for:
- *
- * 1. the event is one of the terminal's, or was when the code was read;
- * 2. the event runs today and its check-in window is open;
- * 3. the person is on the booking, or carries the site's ticket for it;
- * 4. nobody recorded them today already.
- *
- * The window's geofence does not apply: the terminal stands at the entrance,
- * and that is the point of it. Attendance is recorded with the `terminal`
- * method, at the moment of the reading: when the site receives it online,
- * or the moment the terminal read it when it sends a queue it kept offline.
+ * the target is one of the terminal's, or was when the code was read. What
+ * the reading then means is the target's to say
+ * ({@see \FreeFormCertificate\Core\TerminalTargetInterface::terminal_read()}),
+ * whichever module it belongs to (#2890); for an audience booking the rules
+ * are in {@see AudienceAttendanceTarget}. A reading is judged at the moment
+ * it was taken: when the site receives it online, or the moment the terminal
+ * read it when it sends a queue it kept offline.
  *
  * What a result shows is the person's short name ("Maria S.") and nothing
  * else; a refusal shows no name at all, so a terminal never says who tried.
  *
  * @phpstan-import-type TerminalRow from AudienceTerminalReader
- * @phpstan-type ReadingResult array{status: string, code: string, message: string, name: string, open?: bool, time?: string}
+ * @phpstan-import-type Verdict from \FreeFormCertificate\Core\TerminalVerdict
+ * @phpstan-type ReadingResult Verdict
  */
 final class AudienceTerminalReading {
 
 	/**
 	 * Attendance was recorded.
 	 */
-	public const RECORDED = 'recorded';
+	public const RECORDED = TerminalVerdict::RECORDED;
 
 	/**
 	 * The person was already recorded today.
 	 */
-	public const ALREADY = 'already';
+	public const ALREADY = TerminalVerdict::ALREADY;
 
 	/**
 	 * The reading was refused.
 	 */
-	public const REFUSED = 'refused';
+	public const REFUSED = TerminalVerdict::REFUSED;
 
 	/**
 	 * The refusal of a queued reading a revoked terminal took after its
@@ -172,62 +172,20 @@ final class AudienceTerminalReading {
 			return self::refused( (string) $reading->get_error_code(), $reading->get_error_message() );
 		}
 
-		$booking_id = $reading['target_id'];
-		if ( AudienceAttendanceTarget::TYPE !== $reading['target_type'] || ! AudienceTerminalPairing::held_at( $terminal, $booking_id, $at ) ) {
+		$key = TerminalTargetKey::of( $reading['target_type'], $reading['target_id'] );
+		if ( ! AudienceTerminalPairing::held_at( $terminal, $key, $at ) ) {
+			return self::refused( 'ffc_terminal_other_event', __( 'This code is for an event this terminal does not check in. Choose this event on the phone, or use the terminal at its entrance.', 'ffcertificate' ) );
+		}
+		$found = AttendanceTargetRegistry::terminal( $key );
+		if ( null === $found ) {
 			return self::refused( 'ffc_terminal_other_event', __( 'This code is for an event this terminal does not check in. Choose this event on the phone, or use the terminal at its entrance.', 'ffcertificate' ) );
 		}
 
-		$booking = AudienceBookingReader::get_by_id( $booking_id );
-		$day     = (string) wp_date( 'Y-m-d', $at );
-		if ( null === $booking || 'active' !== ( $booking->status ?? '' ) || ! in_array( $day, AudienceAttendanceRule::counted_days( $booking ), true ) ) {
-			return self::refused( 'ffc_terminal_not_today', __( 'This event has no check-in today.', 'ffcertificate' ) );
-		}
-
-		if ( ! AudienceCheckinPolicy::terminal_allowed( $booking ) ) {
-			return self::refused( 'ffc_terminal_path_off', __( 'This event does not take check-in at a terminal. Speak to the organiser.', 'ffcertificate' ) );
-		}
-
-		if ( null === AudienceCheckinWindowReader::covering( $booking_id, $day, $at ) ) {
-			return ! AudienceCheckinWindowReader::opened_by( $booking_id, $day, $at )
-				? self::refused( 'ffc_terminal_window_not_open', __( 'Check-in for this event has not opened yet. Wait for the organiser to open it.', 'ffcertificate' ) )
-				: self::refused( 'ffc_terminal_window_closed', __( 'Check-in for this event has closed. Speak to the organiser.', 'ffcertificate' ) );
-		}
-
-		$user_id = $reading['user_id'];
-		if ( ! $reading['ticket'] && ! AudienceCheckinPolicy::may_check_in( $booking, $user_id ) ) {
-			return self::refused( 'ffc_terminal_not_enrolled', __( 'This person is not enrolled in this event. Speak to the organiser.', 'ffcertificate' ) );
-		}
-
-		foreach ( AudienceAttendanceReader::for_day( $booking_id, $day ) as $row ) {
-			if ( $row['user_id'] === $user_id ) {
-				return array(
-					'status'  => self::ALREADY,
-					'code'    => 'ffc_terminal_already',
-					/* translators: %s: the time attendance was recorded */
-					'message' => sprintf( __( 'Attendance already recorded at %s.', 'ffcertificate' ), DateFormatter::format_time( (int) $row['checked_at'] ) ),
-					'name'    => $reading['name'],
-				);
-			}
-		}
-
-		$status = AudienceAttendanceWriter::record( $booking_id, $user_id, $day, AudienceAttendanceWriter::METHOD_TERMINAL, null, $at );
-		if ( AudienceAttendanceWriter::FAILED === $status ) {
-			return self::refused( 'ffc_terminal_failed', __( 'The attendance could not be saved. Show the code again.', 'ffcertificate' ) );
-		}
-
-		if ( AudienceAttendanceWriter::ALREADY !== $status ) {
+		$result = $found['target']->terminal_read( $found['id'], $reading['user_id'], $reading['name'], $reading['ticket'], $at );
+		if ( self::RECORDED === $result['status'] ) {
 			AudienceTerminalWriter::count_reading( $terminal['id'] );
 		}
-		return array(
-			'status'  => AudienceAttendanceWriter::ALREADY === $status ? self::ALREADY : self::RECORDED,
-			'code'    => AudienceAttendanceWriter::ALREADY === $status ? 'ffc_terminal_already' : 'ffc_terminal_recorded',
-			'message' => AudienceAttendanceWriter::ALREADY === $status ? __( 'Attendance already recorded.', 'ffcertificate' ) : __( 'Attendance recorded.', 'ffcertificate' ),
-			'name'    => $reading['name'],
-			// Recorded only because the event is open to everyone (#2748):
-			// the terminal says so, as the organiser's list does (#2780).
-			'open'    => AudienceCheckinPolicy::is_open( $booking ) && ! in_array( $user_id, AudiencePostEventForm::participants( $booking_id ), true ),
-			'time'    => DateFormatter::format_time( $at ),
-		);
+		return $result;
 	}
 
 	/**
@@ -238,11 +196,6 @@ final class AudienceTerminalReading {
 	 * @return ReadingResult
 	 */
 	private static function refused( string $code, string $message ): array {
-		return array(
-			'status'  => self::REFUSED,
-			'code'    => $code,
-			'message' => $message,
-			'name'    => '',
-		);
+		return TerminalVerdict::refused( $code, $message );
 	}
 }

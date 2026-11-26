@@ -2,7 +2,7 @@
 /**
  * Audience Terminal Schedule
  *
- * The check-in windows of the events a terminal holds (#2746).
+ * The check-in windows of the targets a terminal holds (#2746, #2890).
  *
  * @package FreeFormCertificate\Audience
  * @since 6.50.0
@@ -12,49 +12,57 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\AttendanceTargetRegistry;
 use FreeFormCertificate\Core\DateFormatter;
+use FreeFormCertificate\Core\TerminalTargetKey;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * When each event of a terminal's queue takes readings.
+ * When each target of a terminal's queue takes readings.
  *
- * An event's planned check-in window on one of its days runs from the moment
- * check-in may open ({@see AudienceCheckinWindowWriter::planned_open_at()})
- * to the automatic close an operator's window would get
- * ({@see AudienceCheckinWindowWriter::auto_close_at()}): the event's own
- * times, or the day's hours plus the grace. An all-day event's window starts
- * at midnight. A
- * terminal reads for one event at a time, so two events whose windows cross
- * cannot share a terminal; windows that only touch, one closing at the
- * moment the next opens, can.
+ * A target's planned window on one of its days comes from the target itself
+ * ({@see TerminalTargetInterface::terminal_windows()}); for an audience
+ * booking it runs from the moment check-in may open to the automatic close an
+ * operator's window would get. A terminal reads for one target at a time, so
+ * two targets whose windows cross cannot share a terminal; windows that only
+ * touch, one closing at the moment the next opens, can.
  *
  * The planned window is what the queue is checked against. Whether a window
- * is actually open is the operator's: an operator opens check-in when the
- * event starts, and the terminal shows the window as open only then.
+ * is actually open is the target's to say: an audience operator opens
+ * check-in when the event starts, and the terminal shows it as open only then.
+ *
+ * Queues hold {@see TerminalTargetKey} values. The class name keeps the
+ * module it was born in; the queue is no longer the audience's alone (#2890).
  *
  * @phpstan-import-type TerminalRow from AudienceTerminalReader
- * @phpstan-type PlannedWindow array{booking_id: int, date: string, opens: int, closes: int}
- * @phpstan-type PlanEntry array{booking_id: int, title: string, place: string, date: string, opens: int, closes: int, opens_label: string, opens_time: string, closes_label: string, hours: string, open: bool, present: int, enrolled: int}
+ * @phpstan-import-type TerminalWindow from \FreeFormCertificate\Core\TerminalTargetInterface
+ * @phpstan-type PlannedWindow array{target: int|string, date: string, opens: int, closes: int}
+ * @phpstan-type PlanEntry array{target: int|string, booking_id: int|string, title: string, place: string, date: string, opens: int, closes: int, opens_label: string, opens_time: string, closes_label: string, hours: string, open: bool, present: int, enrolled: int}
  */
 final class AudienceTerminalSchedule {
 
 	/**
-	 * The planned check-in windows of a booking, one per day it is counted.
+	 * The planned check-in windows of one queued target.
 	 *
-	 * @param object $booking Booking row.
-	 * @return list<PlannedWindow>
+	 * @param int|string $key A {@see TerminalTargetKey}.
+	 * @return list<PlannedWindow> Empty for a key no terminal target answers.
 	 */
-	public static function windows( object $booking ): array {
+	public static function windows( $key ): array {
+		$found = AttendanceTargetRegistry::terminal( $key );
+		if ( null === $found ) {
+			return array();
+		}
+		$key = TerminalTargetKey::of( $found['target']->type(), $found['id'] );
 		$out = array();
-		foreach ( AudienceAttendanceRule::counted_days( $booking ) as $date ) {
+		foreach ( $found['target']->terminal_windows( $found['id'] ) as $window ) {
 			$out[] = array(
-				'booking_id' => (int) ( $booking->id ?? 0 ),
-				'date'       => $date,
-				'opens'      => AudienceCheckinWindowWriter::planned_open_at( $booking, $date ),
-				'closes'     => AudienceCheckinWindowWriter::auto_close_at( $booking, $date ),
+				'target' => $key,
+				'date'   => $window['date'],
+				'opens'  => $window['opens'],
+				'closes' => $window['closes'],
 			);
 		}
 		return $out;
@@ -74,38 +82,33 @@ final class AudienceTerminalSchedule {
 	}
 
 	/**
-	 * The first two bookings of a list whose windows cross, among the windows
-	 * that have not closed yet.
+	 * The first two targets of a queue whose windows still to come cross.
 	 *
-	 * @param int[] $bookings Booking ids.
-	 * @param int   $now      Unix time.
-	 * @phpstan-param list<int> $bookings
-	 * @return array{0: object, 1: object}|null The two booking rows, in list order.
+	 * @param array $keys Queued {@see TerminalTargetKey} values.
+	 * @param int   $now  Unix time.
+	 * @phpstan-param list<int|string> $keys
+	 * @return array{0: int|string, 1: int|string}|null The two keys, in queue order.
 	 */
-	public static function collision( array $bookings, int $now ): ?array {
-		$rows    = array();
+	public static function collision( array $keys, int $now ): ?array {
 		$windows = array();
-		foreach ( $bookings as $booking_id ) {
-			$booking = AudienceBookingReader::get_by_id( $booking_id );
-			if ( null === $booking ) {
-				continue;
-			}
-			$rows[ $booking_id ]    = $booking;
-			$windows[ $booking_id ] = array_values(
-				array_filter(
-					self::windows( $booking ),
-					static fn( array $w ): bool => $w['closes'] > $now
-				)
+		foreach ( $keys as $key ) {
+			$windows[] = array(
+				'key'     => $key,
+				'windows' => array_values(
+					array_filter(
+						self::windows( $key ),
+						static fn( array $w ): bool => $w['closes'] > $now
+					)
+				),
 			);
 		}
-		$ids   = array_keys( $windows );
-		$count = count( $ids );
+		$count = count( $windows );
 		for ( $i = 0; $i < $count; $i++ ) {
 			for ( $j = $i + 1; $j < $count; $j++ ) {
-				foreach ( $windows[ $ids[ $i ] ] as $a ) {
-					foreach ( $windows[ $ids[ $j ] ] as $b ) {
+				foreach ( $windows[ $i ]['windows'] as $a ) {
+					foreach ( $windows[ $j ]['windows'] as $b ) {
 						if ( self::cross( $a, $b ) ) {
-							return array( $rows[ $ids[ $i ] ], $rows[ $ids[ $j ] ] );
+							return array( $windows[ $i ]['key'], $windows[ $j ]['key'] );
 						}
 					}
 				}
@@ -115,15 +118,15 @@ final class AudienceTerminalSchedule {
 	}
 
 	/**
-	 * The refusal a collision gives, naming both events, or null.
+	 * The refusal a crossing queue gives, naming both targets.
 	 *
-	 * @param int[] $bookings Booking ids.
-	 * @param int   $now      Unix time.
-	 * @phpstan-param list<int> $bookings
+	 * @param array $keys Queued {@see TerminalTargetKey} values.
+	 * @param int   $now  Unix time.
+	 * @phpstan-param list<int|string> $keys
 	 * @return \WP_Error|null
 	 */
-	public static function collision_error( array $bookings, int $now ): ?\WP_Error {
-		$pair = self::collision( $bookings, $now );
+	public static function collision_error( array $keys, int $now ): ?\WP_Error {
+		$pair = self::collision( $keys, $now );
 		if ( null === $pair ) {
 			return null;
 		}
@@ -140,8 +143,8 @@ final class AudienceTerminalSchedule {
 	}
 
 	/**
-	 * What the terminal shows: every window of its events that has not
-	 * closed, soonest first, with whether an operator has opened it.
+	 * What a terminal shows: every window of its queue still to close, in
+	 * the order they open (#2746).
 	 *
 	 * @param array $terminal Terminal row.
 	 * @param int   $now      Unix time.
@@ -149,72 +152,54 @@ final class AudienceTerminalSchedule {
 	 * @return list<PlanEntry>
 	 */
 	public static function plan( array $terminal, int $now ): array {
-		$out   = array();
-		$today = (string) wp_date( 'Y-m-d', $now );
-		foreach ( $terminal['bookings'] as $booking_id ) {
-			$booking = AudienceBookingReader::get_by_id( $booking_id );
-			if ( null === $booking || 'active' !== ( $booking->status ?? '' ) ) {
+		$out = array();
+		foreach ( $terminal['targets'] as $key ) {
+			$found = AttendanceTargetRegistry::terminal( $key );
+			if ( null === $found ) {
 				continue;
 			}
-			foreach ( self::windows( $booking ) as $window ) {
+			foreach ( $found['target']->terminal_windows( $found['id'] ) as $window ) {
 				if ( $window['closes'] <= $now ) {
 					continue;
 				}
-				$open = null;
-				if ( $window['date'] === $today ) {
-					$open = AudienceCheckinWindowReader::covering( $booking_id, $today, $now );
-				}
-				$closes = null === $open ? $window['closes'] : ( null === $open['closed_at'] ? $open['closes_at'] : min( $open['closed_at'], $open['closes_at'] ) );
-				// Today's entries carry how many came and how many were
-				// expected, for the counter in the terminal's header (#2780).
-				$today_entry = $window['date'] === $today;
-				$out[]       = array(
-					'booking_id'   => $booking_id,
-					'title'        => self::title( $booking ),
-					'place'        => (string) ( $booking->environment_name ?? '' ),
+				$entry = $found['target']->terminal_entry( $found['id'], $window, $now );
+				$out[] = array(
+					'target'       => $key,
+					// The name the kiosk script read before #2890; a script
+					// cached from then still finds the entry by it.
+					'booking_id'   => $key,
+					'title'        => $entry['title'],
+					'place'        => $entry['place'],
 					'date'         => $window['date'],
 					'opens'        => $window['opens'],
-					'closes'       => $closes,
+					'closes'       => $entry['closes'],
 					'opens_label'  => DateFormatter::format_datetime( $window['opens'] ),
 					'opens_time'   => DateFormatter::format_time( $window['opens'] ),
-					'closes_label' => DateFormatter::format_time( $closes ),
-					'hours'        => self::hours( $booking, $window['date'] ),
-					'open'         => null !== $open,
-					'present'      => $today_entry ? count( array_unique( array_column( AudienceAttendanceReader::for_day( $booking_id, $window['date'] ), 'user_id' ) ) ) : 0,
-					'enrolled'     => $today_entry ? count( AudiencePostEventForm::participants( $booking_id ) ) : 0,
+					'closes_label' => DateFormatter::format_time( $entry['closes'] ),
+					'hours'        => $entry['hours'],
+					'open'         => $entry['open'],
+					'present'      => $entry['present'],
+					'enrolled'     => $entry['enrolled'],
 				);
 			}
 		}
-		usort( $out, static fn( array $a, array $b ): int => array( $a['opens'], $a['booking_id'] ) <=> array( $b['opens'], $b['booking_id'] ) );
+		usort( $out, static fn( array $a, array $b ): int => array( $a['opens'], is_int( $a['target'] ) ? 0 : 1, $a['target'] ) <=> array( $b['opens'], is_int( $b['target'] ) ? 0 : 1, $b['target'] ) );
 		return $out;
 	}
 
 	/**
-	 * An event's hours on one day, as the terminal shows them.
+	 * A queued target's name, or "Event #id" when no target answers the key.
 	 *
-	 * @param object $booking Booking row.
-	 * @param string $date    Y-m-d.
+	 * @param int|string $key A {@see TerminalTargetKey}.
 	 * @return string
 	 */
-	private static function hours( object $booking, string $date ): string {
-		if ( ! empty( $booking->is_all_day ) ) {
-			return __( 'All day', 'ffcertificate' );
+	public static function title( $key ): string {
+		$found = AttendanceTargetRegistry::terminal( $key );
+		if ( null !== $found ) {
+			return $found['target']->terminal_title( $found['id'] );
 		}
-		$times = AudienceBookingRules::stored_day_times( $booking, $date );
-		$start = DateFormatter::format_wallclock_time( $times['start_time'] . ':00' );
-		$end   = DateFormatter::format_wallclock_time( $times['end_time'] . ':00' );
-		return '' === $start ? '' : ( '' === $end ? $start : $start . '–' . $end );
-	}
-
-	/**
-	 * What an event is called.
-	 *
-	 * @param object $booking Booking row.
-	 * @return string
-	 */
-	private static function title( object $booking ): string {
-		$title = trim( (string) ( $booking->description ?? '' ) );
+		$parts = TerminalTargetKey::parse( $key );
 		/* translators: %d: event id */
-		return '' !== $title ? $title : sprintf( __( 'Event #%d', 'ffcertificate' ), (int) ( $booking->id ?? 0 ) );
+		return sprintf( __( 'Event #%d', 'ffcertificate' ), null === $parts ? 0 : $parts['id'] );
 	}
 }

@@ -72,7 +72,7 @@ class AudienceAdminTerminals {
 	 * response to the POST that made it, and never stored, because the site
 	 * keeps a code only as a keyed hash.
 	 *
-	 * @var array{code: string, expires_at: int, bookings: list<int>}|null
+	 * @var array{code: string, expires_at: int, bookings: list<int|string>}|null
 	 */
 	private ?array $paired = null;
 
@@ -129,8 +129,8 @@ class AudienceAdminTerminals {
 			wp_die( esc_html__( 'This page has expired. Reload it and try again.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitize_ids() casts every entry to a positive int.
-		$bookings = isset( $_POST['bookings'] ) && is_array( $_POST['bookings'] ) ? AudienceTerminalRestController::sanitize_ids( wp_unslash( $_POST['bookings'] ) ) : array();
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; sanitize_targets() keeps only well-formed target keys.
+		$bookings = isset( $_POST['bookings'] ) && is_array( $_POST['bookings'] ) ? AudienceTerminalRestController::sanitize_targets( wp_unslash( $_POST['bookings'] ) ) : array();
 
 		// Pairing answers on this very response: the code is shown once and
 		// never kept, so there is no redirect to carry it (#2782).
@@ -175,11 +175,11 @@ class AudienceAdminTerminals {
 	 *
 	 * @param string $op       `events` or `end`.
 	 * @param int    $id       Terminal id.
-	 * @param int[]  $bookings The events, for `events`.
+	 * @param array  $bookings The target keys, for `events`.
 	 * @param int    $by       Who acts.
 	 * @param bool   $any      Whether they may act on a terminal someone else paired.
 	 * @param int    $now      Unix time.
-	 * @phpstan-param list<int> $bookings
+	 * @phpstan-param list<int|string> $bookings
 	 * @return array{code: string, error: string} The result code the redirect names, and the refusal's own code.
 	 */
 	public function run( string $op, int $id, array $bookings, int $by, bool $any, int $now ): array {
@@ -500,7 +500,7 @@ class AudienceAdminTerminals {
 			echo '<tr>';
 			/* translators: %d: terminal number */
 			echo '<td>' . esc_html( '' !== $terminal['label'] ? $terminal['label'] : sprintf( __( 'Terminal %d', 'ffcertificate' ), $terminal['id'] ) ) . '</td>';
-			echo '<td>' . esc_html( self::queue_label( $terminal['bookings'] ) );
+			echo '<td>' . esc_html( self::queue_label( $terminal['targets'] ) );
 			if ( $active ) {
 				echo '<br><a href="' . esc_url( $this->url( array( 'edit' => $terminal['id'] ) ) ) . '">' . esc_html__( 'Edit queue', 'ffcertificate' ) . '</a>';
 			}
@@ -544,14 +544,15 @@ class AudienceAdminTerminals {
 	 * event", or "3 events", with the place when every event is at the same
 	 * one.
 	 *
-	 * @param int[] $bookings Booking ids.
-	 * @phpstan-param list<int> $bookings
+	 * @param array $bookings Target keys ({@see \FreeFormCertificate\Core\TerminalTargetKey}).
+	 * @phpstan-param list<int|string> $bookings
 	 * @return string
 	 */
 	public static function queue_label( array $bookings ): string {
 		$places = array();
-		foreach ( $bookings as $id ) {
-			$booking  = AudienceBookingReader::get_by_id( $id );
+		foreach ( $bookings as $key ) {
+			// Only a booking has a place; any other target names none.
+			$booking  = is_int( $key ) ? AudienceBookingReader::get_by_id( $key ) : null;
 			$places[] = null === $booking ? '' : trim( (string) ( $booking->environment_name ?? '' ) );
 		}
 		$places = array_values( array_unique( $places ) );
@@ -668,7 +669,7 @@ class AudienceAdminTerminals {
 	 *
 	 * @param array $paired What create_code() returned.
 	 * @param int   $now    Unix time.
-	 * @phpstan-param array{code: string, expires_at: int, bookings: list<int>} $paired
+	 * @phpstan-param array{code: string, expires_at: int, bookings: list<int|string>} $paired
 	 * @return void
 	 */
 	private function render_pair_code( array $paired, int $now ): void {
@@ -729,7 +730,7 @@ class AudienceAdminTerminals {
 		echo '<input type="hidden" name="ffc_action" value="terminals_admin">';
 		echo '<input type="hidden" name="op" value="events">';
 		echo '<input type="hidden" name="terminal" value="' . esc_attr( (string) $terminal['id'] ) . '">';
-		$this->render_event_choices( $events, $terminal['bookings'] );
+		$this->render_event_choices( $events, $terminal['targets'] );
 		AdminUI::render_button(
 			array(
 				'label'    => __( 'Save events', 'ffcertificate' ),
@@ -745,9 +746,9 @@ class AudienceAdminTerminals {
 	 * One checkbox per event a terminal may take.
 	 *
 	 * @param array $events   Events from offered_bookings().
-	 * @param int[] $held_ids Events already held: ticked, and open even when full.
+	 * @param array $held_ids Target keys already held: ticked, and open even when full.
 	 * @phpstan-param list<array{id: int, description: string, place: string, place_id: int, when: string, terminals: int, full: bool}> $events
-	 * @phpstan-param list<int> $held_ids
+	 * @phpstan-param list<int|string> $held_ids
 	 * @return void
 	 */
 	private function render_event_choices( array $events, array $held_ids ): void {
@@ -773,19 +774,6 @@ class AudienceAdminTerminals {
 			) . '</span></span></label>';
 		}
 		echo '</fieldset>';
-	}
-
-	/**
-	 * What an event is called.
-	 *
-	 * @param int $booking_id Booking.
-	 * @return string
-	 */
-	public static function event_title( int $booking_id ): string {
-		$booking = AudienceBookingReader::get_by_id( $booking_id );
-		$title   = null === $booking ? '' : trim( (string) ( $booking->description ?? '' ) );
-		/* translators: %d: event id */
-		return '' !== $title ? $title : sprintf( __( 'Event #%d', 'ffcertificate' ), $booking_id );
 	}
 
 	/**

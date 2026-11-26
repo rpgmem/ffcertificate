@@ -124,6 +124,31 @@
     }
 
     /**
+     * The key a queue names a target by (#2890), as the site writes it
+     * (`TerminalTargetKey`): an audience booking is its bare id, which is
+     * what every queue held before; any other target is `type:id`.
+     *
+     * @param {string} type Attendance target type.
+     * @param {number} id   Id within the type.
+     * @return {number|string}
+     */
+    function targetKey(type, id) {
+        return 'audience_booking' === type ? id : type + ':' + id;
+    }
+
+    /**
+     * A key as the queue spells it: a value made only of digits is a
+     * booking id, so a form's checkbox value matches the site's queue.
+     *
+     * @param {*} value Raw value.
+     * @return {number|string}
+     */
+    function cleanTargetKey(value) {
+        var text = String(value);
+        return /^\d+$/.test(text) ? Number(text) : text;
+    }
+
+    /**
      * Whether a reading is shaped like a pairing code, P-XXXX-XXXX-XXXX.
      *
      * @param {string} code Cleaned code.
@@ -790,11 +815,12 @@
                 if (!reading.ok) {
                     return done(refusal(reading.code));
                 }
-                if ('audience_booking' !== reading.targetType || (state.bookings || []).indexOf(reading.targetId) < 0) {
+                var target = targetKey(reading.targetType, reading.targetId);
+                if ((state.bookings || []).indexOf(target) < 0) {
                     return done(refusal('ffc_terminal_other_event'));
                 }
                 var list = queue();
-                var key = reading.userId + ':' + reading.targetId + ':' + day(at);
+                var key = reading.userId + ':' + target + ':' + day(at);
                 for (var i = 0; i < list.length; i++) {
                     if (list[i].key === key) {
                         return done({ status: 'already', name: reading.name, message: strings.alreadyQueued });
@@ -990,7 +1016,8 @@
                 }
                 if (menuMayEdit) {
                     var remove = queueButton(queueEdit.remove || '', 'danger', 'cross');
-                    remove.setAttribute('data-ffc-terminal-remove', String(entry.booking_id));
+                    var held = undefined !== entry.target ? entry.target : entry.booking_id;
+                    remove.setAttribute('data-ffc-terminal-remove', String(held));
                     remove.addEventListener('click', function () {
                         armMenu();
                         if (!remove.classList.contains('is-confirming')) {
@@ -998,7 +1025,7 @@
                             remove.textContent = queueEdit.confirmRemove || '';
                             return;
                         }
-                        saveEvents(bookings.filter(function (id) { return id !== entry.booking_id; }));
+                        saveEvents(bookings.filter(function (id) { return id !== held; }));
                     });
                     item.appendChild(remove);
                 }
@@ -1450,7 +1477,7 @@
                 setupError(strings.storage);
                 return Promise.resolve(null);
             }
-            var bookings = setupChecks().filter(function (box) { return box.checked; }).map(function (box) { return Number(box.value); });
+            var bookings = setupChecks().filter(function (box) { return box.checked; }).map(function (box) { return cleanTargetKey(box.value); });
             setupError('');
             part('setup-submit').disabled = true;
             return publicRequest('setup', { code: setupCode, device: id, bookings: bookings, label: part('setup-label').value }).then(function (result) {
@@ -1924,6 +1951,7 @@
         registerShell: registerShell,
         cleanCode: cleanCode,
         cleanReading: cleanReading,
+        cleanTargetKey: cleanTargetKey,
         clock: clock,
         duration: duration,
         fill: fill,
@@ -1931,6 +1959,7 @@
         wallClock: wallClock,
         readState: readState,
         start: start,
+        targetKey: targetKey,
         whatNow: whatNow
     };
 

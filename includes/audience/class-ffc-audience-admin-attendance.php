@@ -797,7 +797,7 @@ class AudienceAdminAttendance {
 	 * @return void
 	 */
 	public function render_terminals( object $booking, int $now ): void {
-		$terminals = AudienceTerminalReader::active_for_booking( (int) ( $booking->id ?? 0 ), $now );
+		$terminals = AudienceTerminalReader::active_for_target( (int) ( $booking->id ?? 0 ), $now );
 		$limit     = AudienceTerminalPairing::limits()['booking'];
 		$list_url  = admin_url( 'admin.php?page=' . $this->menu_slug . AudienceAdminTerminals::SLUG_SUFFIX );
 
@@ -904,7 +904,7 @@ class AudienceAdminAttendance {
 	public static function render_unsent_warning( object $booking, int $now, string $attrs = '' ): void {
 		$unsent = array_values(
 			array_filter(
-				AudienceTerminalReader::active_for_booking( (int) ( $booking->id ?? 0 ), $now ),
+				AudienceTerminalReader::active_for_target( (int) ( $booking->id ?? 0 ), $now ),
 				static fn( array $terminal ): bool => $terminal['queued'] > 0
 			)
 		);

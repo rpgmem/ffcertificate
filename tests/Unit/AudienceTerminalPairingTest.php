@@ -68,6 +68,8 @@ class AudienceTerminalPairingTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The terminal reads a booking through its attendance target (#2890).
+		\FreeFormCertificate\Core\AttendanceTargetRegistry::register( \FreeFormCertificate\Audience\AudienceAttendanceTarget::TYPE, static fn() => new \FreeFormCertificate\Audience\AudienceAttendanceTarget() );
 
 		$this->tables  = new FakeTerminalTables();
 		$this->options = array( 'ffc_settings' => ActivityLogBuffer::ENABLED_SETTINGS );
@@ -128,6 +130,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		} else {
 			unset( $GLOBALS['wpdb'] );
 		}
+		\FreeFormCertificate\Core\AttendanceTargetRegistry::reset();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -423,7 +426,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$shown    = AudienceTerminalRestController::present( $terminal );
 		$this->assertArrayNotHasKey( 'token_hash', $shown );
 		$this->assertArrayNotHasKey( 'device_hash', $shown );
-		$this->assertSame( array( 3, 7 ), AudienceTerminalRestController::sanitize_ids( array( '3', 7, 'x', -1, 3 ) ) );
+		$this->assertSame( array( 3, 7, 'certificate_form:5' ), AudienceTerminalRestController::sanitize_targets( array( '3', 7, 'x', -1, 3, 'certificate_form:5', 'certificate_form:0', 'Bad:1' ) ) );
 		$this->assertSame( 'P-AB12-CD34script', AudienceTerminalRestController::sanitize_code( 'P-AB12-CD34<script>' ) );
 		$this->assertSame( '', AudienceTerminalRestController::sanitize_code( array( 'P' ) ) );
 	}
@@ -562,7 +565,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->bookings[37]->is_all_day = 1;
 		$this->booking( 38, '2027-01-16', 'active', '15:00:00', '16:00:00' );
 
-		$windows = \FreeFormCertificate\Audience\AudienceTerminalSchedule::windows( $this->bookings[37] );
+		$windows = \FreeFormCertificate\Audience\AudienceTerminalSchedule::windows( 37 );
 		$this->assertSame( gmmktime( 0, 0, 0, 1, 16, 2027 ), $windows[0]['opens'] );
 		$this->assertSame( gmmktime( 0, 29, 0, 1, 17, 2027 ), $windows[0]['closes'], '23:59 plus the grace' );
 		$this->assertSame( 'ffc_terminal_overlap', AudienceTerminalPairing::create_code( self::OPERATOR, array( 37, 38 ), '', self::NOW )->get_error_code() );
@@ -573,7 +576,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->bookings[39]->checkin_opens_before = 30;
 		$this->bookings[39]->checkin_closes_after = 0;
 
-		$windows = \FreeFormCertificate\Audience\AudienceTerminalSchedule::windows( $this->bookings[39] );
+		$windows = \FreeFormCertificate\Audience\AudienceTerminalSchedule::windows( 39 );
 		$this->assertSame( gmmktime( 9, 30, 0, 1, 16, 2027 ), $windows[0]['opens'] );
 		$this->assertSame( gmmktime( 11, 0, 0, 1, 16, 2027 ), $windows[0]['closes'] );
 	}
@@ -584,11 +587,11 @@ class AudienceTerminalPairingTest extends TestCase {
 
 		$changed = AudienceTerminalPairing::update_bookings( $id, array( 12 ), self::OPERATOR, false, self::NOW + 100 );
 		$this->assertIsArray( $changed );
-		$this->assertSame( array( 12 ), $changed['bookings'] );
+		$this->assertSame( array( 12 ), $changed['targets'] );
 		$this->assertSame( array( 11 => self::NOW + 100 ), $changed['removed'], 'when the event left the queue' );
 		$this->assertSame( AudienceTerminalPairing::booking_end( 12 ) + \FreeFormCertificate\Audience\AudienceCheckinSettings::auto_end_seconds(), $changed['expires_at'], 'the end follows the new last event' );
 		$stored = AudienceTerminalReader::terminal( $id );
-		$this->assertSame( array( 12 ), $stored['bookings'] );
+		$this->assertSame( array( 12 ), $stored['targets'] );
 		$this->assertSame( array( 11 => self::NOW + 100 ), $stored['removed'] );
 
 		$last = ActivityLogBuffer::contexts()[ count( ActivityLogBuffer::contexts() ) - 1 ];
@@ -598,7 +601,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( array(), $back['removed'], 'an event put back is held again' );
 
 		$writes = count( ActivityLogBuffer::contexts() );
-		$this->assertSame( array( 11, 12 ), AudienceTerminalPairing::update_bookings( $id, array( 12, 11 ), self::OPERATOR, false, self::NOW + 300 )['bookings'], 'the same events in another order change nothing' );
+		$this->assertSame( array( 11, 12 ), AudienceTerminalPairing::update_bookings( $id, array( 12, 11 ), self::OPERATOR, false, self::NOW + 300 )['targets'], 'the same events in another order change nothing' );
 		$this->assertCount( $writes, ActivityLogBuffer::contexts() );
 	}
 
@@ -649,7 +652,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->booking( 39, '2027-01-15', 'cancelled', '13:00:00', '14:00:00' );
 		$this->bookings[32]->environment_name = 'Hall';
 		$terminal = AudienceTerminalReader::terminal( $this->paired( array( 31, 32, 12 ), self::DEVICE )['terminal_id'] );
-		$terminal['bookings'][] = 39;
+		$terminal['targets'][] = 39;
 		$this->tables->windows[] = array(
 			'id'                 => 1,
 			'booking_id'         => 32,
@@ -691,6 +694,79 @@ class AudienceTerminalPairingTest extends TestCase {
 
 		$later = \FreeFormCertificate\Audience\AudienceTerminalSchedule::plan( $terminal, gmmktime( 12, 0, 0, 1, 15, 2027 ) );
 		$this->assertSame( array( 12 ), array_column( $later, 'booking_id' ), 'a window past its close leaves the schedule' );
+	}
+
+	public function test_a_target_of_another_type_shares_the_queue_the_schedule_and_the_overlap_rule(): void {
+		// A second target type, as a certificate form will be (#2890): the
+		// terminal code reads it only through the interface.
+		$demo = new class() implements \FreeFormCertificate\Core\TerminalTargetInterface {
+			/** @var array<int, array{opens: int, closes: int}> */
+			public array $windows = array();
+			public function type(): string {
+				return 'demo_form';
+			}
+			public function record( int $target_id, int $user_id, int $checked_at, string $method, ?int $marked_by ): string {
+				return 'recorded';
+			}
+			public function terminal_windows( int $target_id ): array {
+				return isset( $this->windows[ $target_id ] ) ? array( array( 'date' => '2027-01-15' ) + $this->windows[ $target_id ] ) : array();
+			}
+			public function terminal_ends_at( int $target_id ): ?int {
+				return isset( $this->windows[ $target_id ] ) ? $this->windows[ $target_id ]['closes'] : null;
+			}
+			public function terminal_queue_error( int $target_id ): ?\WP_Error {
+				return 9 === $target_id ? new \WP_Error( 'demo_refused', 'no' ) : null;
+			}
+			public function terminal_title( int $target_id ): string {
+				return 'Form ' . $target_id;
+			}
+			public function terminal_entry( int $target_id, array $window, int $now ): array {
+				return array(
+					'title'    => 'Form ' . $target_id,
+					'place'    => '',
+					'hours'    => '',
+					'open'     => true,
+					'closes'   => $window['closes'],
+					'present'  => 0,
+					'enrolled' => 0,
+				);
+			}
+			public function terminal_read( int $target_id, int $user_id, string $name, bool $ticket, int $at ): array {
+				return \FreeFormCertificate\Core\TerminalVerdict::refused( 'demo', 'demo' );
+			}
+		};
+		$demo->windows[5] = array(
+			'opens'  => gmmktime( 13, 0, 0, 1, 15, 2027 ),
+			'closes' => gmmktime( 14, 0, 0, 1, 15, 2027 ),
+		);
+		$demo->windows[6] = array(
+			'opens'  => gmmktime( 9, 30, 0, 1, 15, 2027 ),
+			'closes' => gmmktime( 10, 30, 0, 1, 15, 2027 ),
+		);
+		$demo->windows[9] = $demo->windows[5];
+		\FreeFormCertificate\Core\AttendanceTargetRegistry::register( 'demo_form', static fn() => $demo );
+		$this->booking( 31, '2027-01-15', 'active', '09:00:00', '11:00:00' );
+
+		$paired = $this->paired( array( 31, 'demo_form:5' ), self::DEVICE );
+		$this->assertSame( array( 31, 'demo_form:5' ), $paired['bookings'], 'a booking stays a bare id; another target is type:id' );
+		$terminal = AudienceTerminalReader::terminal( $paired['terminal_id'] );
+		$this->assertSame( array( 31, 'demo_form:5' ), $terminal['targets'], 'the stored queue reads back in the same spelling' );
+		$this->assertSame( gmmktime( 14, 0, 0, 1, 15, 2027 ) + \FreeFormCertificate\Audience\AudienceCheckinSettings::auto_end_seconds(), $terminal['expires_at'], 'the terminal ends after the last target of any type' );
+		$this->assertTrue( AudienceTerminalPairing::held_at( $terminal, 'demo_form:5', self::NOW ) );
+		$this->assertFalse( AudienceTerminalPairing::held_at( $terminal, 5, self::NOW ), 'a booking with the same id is another target' );
+
+		$plan = \FreeFormCertificate\Audience\AudienceTerminalSchedule::plan( $terminal, self::NOW );
+		$this->assertSame( array( 31, 'demo_form:5' ), array_column( $plan, 'target' ) );
+		$this->assertSame( 'Form 5', $plan[1]['title'] );
+
+		$overlap = AudienceTerminalPairing::create_code( self::OPERATOR, array( 31, 'demo_form:6' ), '', self::NOW );
+		$this->assertInstanceOf( \WP_Error::class, $overlap );
+		$this->assertSame( 'ffc_terminal_overlap', $overlap->get_error_code() );
+		$this->assertStringContainsString( 'Form 6', $overlap->get_error_message(), 'the refusal names the target by its own title' );
+
+		$this->assertSame( 'demo_refused', AudienceTerminalPairing::create_code( self::OPERATOR, array( 'demo_form:9' ), '', self::NOW )->get_error_code(), 'the target says why it may not be queued' );
+		$this->assertSame( 'ffc_terminal_booking', AudienceTerminalPairing::create_code( self::OPERATOR, array( 'demo_form:7' ), '', self::NOW )->get_error_code(), 'a target with no window is not active' );
+		$this->assertSame( 'ffc_terminal_booking', AudienceTerminalPairing::create_code( self::OPERATOR, array( 'unknown_type:1' ), '', self::NOW )->get_error_code(), 'a type no module registered cannot be queued' );
 	}
 
 	public function test_the_routes_change_a_terminal_and_hand_it_its_schedule(): void {
@@ -768,7 +844,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$params['bookings'] = array( 41, 42 );
 		$refused            = $controller->update_self( $request );
 		$this->assertSame( 403, $refused->get_error_data()['status'] );
-		$this->assertSame( array( 11 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['bookings'] );
+		$this->assertSame( array( 11 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['targets'] );
 
 		$caps[] = AudienceTerminalPairing::CAP;
 		$this->assertTrue( $controller->unlock( $request )->get_data()['may_edit'] );
@@ -780,7 +856,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertInstanceOf( \WP_REST_Response::class, $response, is_wp_error( $response ) ? $response->get_error_code() : '' );
 		$this->assertSame( array( 41, 42 ), $response->get_data()['bookings'] );
 		$this->assertSame( array( 41, 42 ), array_column( $response->get_data()['schedule'], 'booking_id' ), 'the menu redraws from the new plan' );
-		$this->assertSame( array( 41, 42 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['bookings'], 'an operator who did not pair it may change it at the terminal' );
+		$this->assertSame( array( 41, 42 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['targets'], 'an operator who did not pair it may change it at the terminal' );
 
 		$params['bookings'] = array();
 		$this->assertSame( 'ffc_terminal_no_bookings', $controller->update_self( $request )->get_error_code(), 'the rules of a pairing still hold' );
@@ -903,7 +979,7 @@ class AudienceTerminalPairingTest extends TestCase {
 			),
 			$screen->run( 'events', $paired['terminal_id'], array( 12 ), self::OPERATOR, false, self::NOW + 10 )
 		);
-		$this->assertSame( array( 12 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['bookings'] );
+		$this->assertSame( array( 12 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['targets'] );
 		$this->assertSame(
 			array(
 				'code'  => 'events_failed',
