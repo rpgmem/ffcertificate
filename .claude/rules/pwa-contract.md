@@ -54,24 +54,6 @@ The one script runs in three places:
 
 The workflows are not required checks: a red run can be the other repository's `develop`, which no PR here fixes. A red run is a contract that moved. Fix the side that moved, or keep the old shape working until the other side ships ("Changing any of it", below). When the contract grows, the script grows with it in the same PR.
 
-## Checked with both plugins running (#2875)
-
-`SitePwaContractTest` reads this side's source and cannot see the other repository. What crosses the boundary is checked by `.github/scripts/site-pwa-integration-check.php`. It boots a WordPress with both plugins active and asks Site PWA's own classes what this plugin gave them:
-- the `$api` each consumer here speaks against the one Site PWA sends;
-- the screens registered for an administrator, with none refused;
-- both look sources under `ffc` and the dark root class;
-- with `--write`, Public Design and Dark Mode read back through `Identity::current()` and `Scheme::current()`, with the options restored afterwards.
-
-The one script runs in three places:
-
-| Where | Against | Mode |
-| --- | --- | --- |
-| `site-pwa-integration.yml` here: pull requests, `develop`, daily | Site PWA's `develop` | `--write` |
-| Site PWA's `ffc-integration.yml` | this repository's `develop` | `--write` |
-| Both testes deploys, after the smoke | the real site | `--read-only`, skipped where Site PWA is not active |
-
-The workflows are not required checks: a red run can be the other repository's `develop`, which no PR here fixes. A red run is a contract that moved. Fix the side that moved, or keep the old shape working until the other side ships ("Changing any of it", below). When the contract grows, the script grows with it in the same PR.
-
 ## Changing any of it
 
 A rename, a removed property, a new `dark_mode` value or a changed hook signature on this side ships **together with** the matching change in Site PWA, or stays backward-compatible until it does: keep the old name working, or keep accepting the old shape. Say so in the PR, link the Site PWA issue, and update `SitePwaContractTest` in the same PR — a red test there means the contract moved, not that the test is stale. The app is installed on people's phones from a release, so the two plugins can run at different versions on the same site; never assume they ship together.
