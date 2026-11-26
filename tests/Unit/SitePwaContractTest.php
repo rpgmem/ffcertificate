@@ -82,6 +82,7 @@ final class SitePwaContractTest extends TestCase {
 			'register screens, dashboard' => array( 'includes/shortcodes/class-ffc-dashboard-app-screens.php', 'site_pwa_register_screens', 2 ),
 			'register screens, audience'  => array( 'includes/audience/class-ffc-audience-app-screens.php', 'site_pwa_register_screens', 2 ),
 			'profile line'                => array( 'includes/shortcodes/class-ffc-dashboard-app-screens.php', 'site_pwa_profile_line', 2 ),
+			'details screen'              => array( 'includes/shortcodes/class-ffc-dashboard-app-screens.php', 'site_pwa_details_screen', 1 ),
 			'home'                        => array( 'includes/shortcodes/class-ffc-app-home.php', 'site_pwa_home', 3 ),
 			'lock required'               => array( 'includes/audience/class-ffc-audience-app-screens.php', 'site_pwa_lock_required', 2 ),
 			'identity sources'            => array( 'includes/shortcodes/class-ffc-app-look.php', 'site_pwa_identity_sources', 1 ),

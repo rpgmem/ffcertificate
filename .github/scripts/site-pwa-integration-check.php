@@ -30,7 +30,8 @@
  *      refuses the call and the app shows none of this plugin's screens.
  *   3. As an administrator, Site PWA's registry holds at least one screen and
  *      refused none (`Screens::add()` reports a refusal through
- *      `_doing_it_wrong()`).
+ *      `_doing_it_wrong()`), and More's "My details" opens the Profile
+ *      screen where the app has that link.
  *   4. Both look sources are offered under the id `ffc`, and their readers
  *      answer in Site PWA's shapes; the dark root class is in Site PWA's list.
  *   5. With `--write` only: set this plugin's Public Design and Dark Mode, point
@@ -168,6 +169,17 @@ if ( array() !== $ffc_pwa_admins ) {
 	$ffc_pwa_screens = array_keys( \SitePwa\App\Screens::all() );
 	ffc_pwa_report( array() !== $ffc_pwa_screens, 'screens registered', array() === $ffc_pwa_screens ? 'none' : implode( ', ', $ffc_pwa_screens ) );
 	ffc_pwa_report( array() === $ffc_pwa_refused, 'no registration refused', implode( ' | ', $ffc_pwa_refused ) );
+	// More's "My details" opens Profile (site-pwa#56); an older app has no
+	// such link to check.
+	if ( method_exists( '\\SitePwa\\App\\Frame', 'detailsUrl' ) ) {
+		$ffc_pwa_profile = \SitePwa\App\Screens::find( \FreeFormCertificate\Shortcodes\DashboardAppScreens::PROFILE_SCREEN );
+		$ffc_pwa_details = \SitePwa\App\Frame::detailsUrl( wp_get_current_user() );
+		ffc_pwa_report(
+			null !== $ffc_pwa_profile && \SitePwa\App\Screens::link( $ffc_pwa_profile ) === $ffc_pwa_details,
+			'My details opens the Profile screen',
+			$ffc_pwa_details
+		);
+	}
 	wp_set_current_user( 0 );
 }
 
