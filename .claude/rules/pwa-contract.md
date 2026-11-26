@@ -34,7 +34,7 @@ Site PWA (`rpgmem/site-pwa`, epic #2738) turns the site into an installable app,
 
 This plugin offers the app its look through the three filters `AppLook` hooks: Public Design's accent and corners as an identity source, Dark Mode as a scheme source, and `ffc-dark-mode` as a class the app adds to `<html>` when it turns dark, so the screens drawn here follow it. Both sources carry the id **`ffc`, which is a stored value** — Site PWA keeps it in its settings as the source an administrator chose (`identity_source`, `color_scheme`, whose default it is) — so it never renames. The readers return Site PWA's shapes: `accent` / `radius` (cards) / `control_radius` (buttons and fields), or null while Public Design is off; `light` / `dark` / `auto`, or null for a Dark Mode value the app does not know.
 
-**Until rpgmem/site-pwa#48 ships, Site PWA also reads this plugin by name**, the direction this replaces: `Core\PublicDesign::from_settings()` with its `enabled`, `accent`, `radius` and `card_radius` properties, `Settings\SettingsReader::get( 'dark_mode' )` with `off` / `on` / `auto`, and a hard-coded `ffc-dark-mode`. It writes the same `ffc` key this plugin's filter writes, so the two agree. Keep those names working until both plugins have shipped the change, then delete this paragraph and its pins in `SitePwaContractTest`.
+Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above.
 
 ## Checked with both plugins running (#2875)
 
