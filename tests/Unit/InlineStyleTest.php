@@ -207,6 +207,7 @@ final class InlineStyleTest extends TestCase {
 		),
 		'assets/js/ffc-user-dashboard-profile.js' => array(
 			'style=: style="display: none;' => array( 1, self::INITIAL_STATE ),
+			'style=: style="--ffc-color:'   => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'includes/admin/class-ffc-admin-menu-icons.php' => array(
 			'wp_add_inline_style: wp_add_inline_style( "admin-menu"' => array( 1, self::GENERATED ),
@@ -402,6 +403,9 @@ final class InlineStyleTest extends TestCase {
 		),
 		'templates/signed-qr-verifier.php' => array(
 			'<style>: <style' => array( 1, self::OFFLINE_VERIFIER ),
+		),
+		'templates/user-dashboard/profile-custom-fields-section.php' => array(
+			'style=: style="--ffc-color: <?php echo esc_attr( $section[' => array( 1, self::OPERATOR_COLOUR ),
 		),
 	);
 
