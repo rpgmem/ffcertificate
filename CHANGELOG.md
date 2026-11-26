@@ -54,6 +54,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The app's Agenda opens a calendar inside the app** (#2846). The *Book* links go through Site PWA's `site_pwa_app_url`, so a calendar page the app can draw opens in its frame instead of the theme in a browser tab; without Site PWA nothing changes.
 - `CLAUDE.md` no longer states facts the tree contradicts: the stylesheet count, the loader list, the PHPUnit config name, a deleted test and the vendored-bundle count now read the invariant or the current fact, and the permission states are in English (#2858)
 - `CLAUDE.md` keeps each guard's rule, failure conditions and traps, and the history behind them moves to `docs/engineering/guards.md` and `docs/engineering/schema-and-migrations.md`, quoted verbatim (#2860)
+- `CLAUDE.md` keeps the rules, reasons and traps of its opening rules, the workflow, the stylesheets and the legacy log, and their history moves verbatim to five files under `docs/engineering/` (#2860)
 
 ### Security
 
