@@ -62,6 +62,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - The contract with Site PWA is written down in `.claude/rules/pwa-contract.md` (the `site_pwa_*` hooks this plugin uses, what the app reads from it, and what a change on this side requires), and `SitePwaContractTest` pins this side so a rename can no longer break the app in silence (#2871)
 - The installable app now takes this plugin's look (Public Design's accent and corners, Dark Mode and the dark root class) through Site PWA's source filters, which `AppLook` hooks, instead of Site PWA reading this plugin by class name; the source id stays `ffc` (#2873)
 - The contract with Site PWA is now checked with both plugins running (#2875): a script boots WordPress with both active and asks Site PWA's own classes for the `$api` versions, the registered screens and the look sources; it runs in both repositories' CI and, read-only, after both testes deploys.
+- The contract with Site PWA no longer pins this plugin's classes for a by-name read (#2877), since no Site PWA reads them any more; `SitePwaContractTest` now holds the Dark Mode values to what `AppLook` maps, and the dark palette to the class it offers.
 
 ### Security
 

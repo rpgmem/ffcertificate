@@ -9,16 +9,13 @@
  * repository fails. This test pins the names Site PWA depends on, read from
  * the source as text, so it loads no class and stubs nothing.
  *
- * Two directions are pinned while they coexist. This plugin offers its look
- * through Site PWA's source filters (`Shortcodes\AppLook`, #2873), and the
- * source id `ffc` is a value Site PWA stores, so it is pinned too. Until
- * rpgmem/site-pwa#48 ships, Site PWA also reads `PublicDesign`,
- * `SettingsReader::get( 'dark_mode' )` and `ffc-dark-mode` by name; those
- * pins go when both plugins have shipped the change.
+ * This plugin offers its look through Site PWA's source filters
+ * (`Shortcodes\AppLook`, #2873), and the source id `ffc` is a value Site PWA
+ * stores, so it is pinned too. Site PWA no longer reads any class of this
+ * plugin by name (rpgmem/site-pwa#49, #2877).
  *
- * It pins this side only. It cannot see the other repository, so a name that
- * still exists here but that Site PWA stopped reading passes, and so does a
- * change made in Site PWA alone. The contract is written down in
+ * It pins this side only and cannot see the other repository; the two run
+ * together in `.github/scripts/site-pwa-integration-check.php` (#2875). The contract is written down in
  * `.claude/rules/pwa-contract.md`; a red test here means the contract moved,
  * so change both sides together, never just the expectation.
  *
@@ -49,44 +46,28 @@ final class SitePwaContractTest extends TestCase {
 	}
 
 	/**
-	 * The look Site PWA reads: `PublicDesign::from_settings()` and four public properties.
+	 * Every Dark Mode value the settings accept is one `AppLook` maps to the
+	 * app's words, and the other way round. A value added to one list and not
+	 * the other reaches the app as null, and the app falls back to `auto` in
+	 * silence.
 	 */
-	public function test_public_design_keeps_what_the_app_reads(): void {
-		$src = self::source( 'includes/core/class-ffc-public-design.php' );
-
-		$this->assertMatchesRegularExpression( '/namespace\s+FreeFormCertificate\\\\Core\s*;/', $src );
-		$this->assertMatchesRegularExpression( '/\bclass\s+PublicDesign\b/', $src );
-		$this->assertMatchesRegularExpression( '/public\s+static\s+function\s+from_settings\s*\(\s*\)/', $src );
-		foreach ( array( 'enabled', 'accent', 'radius', 'card_radius' ) as $property ) {
-			$this->assertMatchesRegularExpression(
-				'/public\s+(?:readonly\s+)?[a-z?]+\s+\$' . $property . '\s*;/',
-				$src,
-				'Site PWA reads PublicDesign::$' . $property . ' for the app\'s look.'
-			);
-		}
-	}
-
-	/**
-	 * The scheme Site PWA reads: `SettingsReader::get( 'dark_mode' )` and its three values.
-	 */
-	public function test_dark_mode_keeps_its_reader_and_its_three_values(): void {
-		$reader = self::source( 'includes/settings/class-ffc-settings-reader.php' );
-		$this->assertMatchesRegularExpression( '/namespace\s+FreeFormCertificate\\\\Settings\s*;/', $reader );
-		$this->assertMatchesRegularExpression( '/\bclass\s+SettingsReader\b/', $reader );
-		$this->assertMatchesRegularExpression( '/public\s+static\s+function\s+get\s*\(\s*string\s+\$key/', $reader );
-
+	public function test_dark_mode_values_and_the_look_map_agree(): void {
 		$save = self::source( 'includes/admin/class-ffc-settings-save-handler.php' );
-		$this->assertSame(
-			1,
-			preg_match( '/\$allowed_modes\s*=\s*array\(\s*\'off\',\s*\'on\',\s*\'auto\'\s*\)/', $save ),
-			'Site PWA maps dark_mode off / on / auto to its own light / dark / auto; a value it does not know is ignored there.'
-		);
+		$this->assertSame( 1, preg_match( '/\$allowed_modes\s*=\s*array\(([^)]*)\)/', $save, $m ), 'The save handler no longer lists the Dark Mode values.' );
+		preg_match_all( "/'([a-z]+)'/", $m[1], $allowed );
+
+		$look = self::source( 'includes/shortcodes/class-ffc-app-look.php' );
+		$this->assertSame( 1, preg_match( '/private const SCHEMES = array\((.*?)\);/s', $look, $n ), 'AppLook no longer maps the Dark Mode values.' );
+		preg_match_all( "/'([a-z]+)'\s*=>/", $n[1], $mapped );
+
+		$this->assertSame( $allowed[1], $mapped[1], 'AppLook::SCHEMES must map exactly the Dark Mode values the settings accept.' );
 	}
 
 	/**
-	 * The root class the app's frame sets so this plugin's dark palette applies.
+	 * The root class `AppLook` offers the app is the one this plugin's dark palette hangs off.
 	 */
-	public function test_the_dark_palette_still_hangs_off_ffc_dark_mode_on_the_root(): void {
+	public function test_the_dark_palette_hangs_off_the_class_the_look_offers(): void {
+		$this->assertMatchesRegularExpression( "/public const DARK_ROOT_CLASS = 'ffc-dark-mode';/", self::source( 'includes/shortcodes/class-ffc-app-look.php' ) );
 		$this->assertStringContainsString( "classList.add('ffc-dark-mode')", self::source( 'assets/js/ffc-dark-mode.js' ) );
 		$this->assertMatchesRegularExpression( '/:root\.ffc-dark-mode\s*\{/', self::source( 'assets/css/ffc-common.css' ) );
 	}
