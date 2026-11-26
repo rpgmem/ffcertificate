@@ -96,6 +96,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Profile shows working hours one day per line** (#2854), and a day without a break as one span (08:00–12:00); a long value wraps inside its cell instead of running past it.
 - **A calendar day's name stays inside its box** (#2856): the holiday, booking or available name under a day's number no longer runs past the day and gets clipped on a phone.
 - **Inside the app, a device's Light choice keeps this plugin's screens light** (#2883): Dark Mode treats the app's `data-site-pwa-scheme="light"` mark as off, as it already treated `"dark"` as on.
+- On a phone, a calendar day's badge (holiday, bookings, closed) stays inside the day's square instead of running into the next row; the day is a column that never spills, with tighter lines for the number and the badge (#2887).
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 
