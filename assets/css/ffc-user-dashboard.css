@@ -1427,6 +1427,11 @@
    audience in the edit form, its controls styled by the reregistration
    sheet (`.ffc-rereg-field`). */
 .ffc-profile-cf-section {
+    /* A fieldset will not shrink below its content by default, so the
+       working-hours grid pushed the section, and every select in it, past
+       the phone's width (#2852); the grid scrolls in its own region. */
+    min-width: 0;
+    max-width: 100%;
     margin: var(--ffc-spacing-xl) 0 0;
     padding: var(--ffc-spacing-lg) 0 0;
     border: 0;
