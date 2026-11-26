@@ -11,6 +11,7 @@ namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\ColorValidator;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Security\GeofenceLocationRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -480,6 +481,10 @@ class AudienceAdminEnvironment {
 			}
 		}
 
+		$locations   = GeofenceLocationRegistry::get_all();
+		$location_id = (string) ( $environment->location_id ?? '' );
+		$location    = '' !== $location_id ? GeofenceLocationRegistry::get_by_id( $location_id ) : null;
+
 		// Parse working hours.
 		$working_hours = array();
 		if ( $environment && $environment->working_hours ) {
@@ -558,6 +563,22 @@ class AudienceAdminEnvironment {
 					</th>
 					<td>
 						<textarea name="environment_description" id="environment_description" rows="3" class="large-text"><?php echo esc_textarea( $environment->description ?? '' ); ?></textarea>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="environment_location"><?php esc_html_e( 'GPS location', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<select name="environment_location" id="environment_location">
+							<option value=""><?php esc_html_e( 'None', 'ffcertificate' ); ?></option>
+							<?php foreach ( $locations as $option ) : ?>
+								<option value="<?php echo esc_attr( (string) $option['id'] ); ?>" <?php selected( $location_id, (string) $option['id'] ); ?>><?php echo esc_html( (string) ( $option['name'] ?? $option['id'] ) ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'The locations of Settings → Geolocation. One location can have several environments. A terminal paired to this location reads the events of this environment and the certificate forms of the same location.', 'ffcertificate' ); ?>
+						</p>
 					</td>
 				</tr>
 				<tr>
@@ -665,12 +686,49 @@ class AudienceAdminEnvironment {
 				?>
 			</div>
 			<?php endif; ?>
+			<?php if ( null !== $location ) : ?>
+				<?php self::render_location_card( $location ); ?>
+			<?php endif; ?>
 		</div>
 		</div>
 
 		<!-- Styles in ffc-audience-admin.css -->
 		<!-- Scripts in ffc-audience-admin.js -->
 		<?php
+	}
+
+	/**
+	 * The side card of the environment's GPS location (#2900): its
+	 * environments and the forms that name it.
+	 *
+	 * @param array<string, mixed> $location Location.
+	 * @return void
+	 */
+	private static function render_location_card( array $location ): void {
+		$id           = (string) ( $location['id'] ?? '' );
+		$environments = array_map( static fn( $env ) => (string) $env->name, AudienceEnvironmentRepository::get_by_location( $id ) );
+		$forms        = GeofenceLocationRegistry::forms_using( $id );
+		?>
+		<div class="card">
+			<h2 class="ffc-icon-map-pin"><?php echo esc_html( (string) ( $location['name'] ?? $id ) ); ?></h2>
+			<dl class="ffc-facts">
+				<dt class="ffc-facts__label"><?php esc_html_e( 'Environments', 'ffcertificate' ); ?></dt>
+				<dd class="ffc-facts__value"><?php echo esc_html( array() === $environments ? '—' : implode( ', ', $environments ) ); ?></dd>
+				<dt class="ffc-facts__label"><?php esc_html_e( 'Certificate forms', 'ffcertificate' ); ?></dt>
+				<dd class="ffc-facts__value"><?php echo esc_html( (string) count( $forms ) ); ?></dd>
+			</dl>
+		</div>
+		<?php
+	}
+
+	/**
+	 * The posted GPS location, kept only when the registry knows it.
+	 *
+	 * @return string Location id, or '' for none.
+	 */
+	private static function posted_location(): string {
+		$id = sanitize_text_field( RequestInput::get_post_string( 'environment_location' ) );
+		return '' !== $id && null !== GeofenceLocationRegistry::get_by_id( $id ) ? $id : '';
 	}
 
 	/**
@@ -793,6 +851,7 @@ class AudienceAdminEnvironment {
 				'description'   => isset( $_POST['environment_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['environment_description'] ) ) : '',
 				'working_hours' => $working_hours,
 				'status'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'environment_status', 'active' ),
+				'location_id'   => self::posted_location(),
 			);
 
 			if ( $id > 0 ) {

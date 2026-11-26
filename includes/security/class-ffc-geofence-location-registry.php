@@ -241,6 +241,27 @@ class GeofenceLocationRegistry {
 			);
 		}
 
+		/**
+		 * Other things that name a GPS location (#2900), as display names;
+		 * a module that links its records to a location answers here, so
+		 * deleting the location cannot leave them pointing at nothing.
+		 *
+		 * @param array<int, string> $names Names of what uses the location.
+		 * @param string             $id    Location ID.
+		 */
+		$others = array_filter( array_map( 'strval', (array) apply_filters( 'ffcertificate_geofence_location_users', array(), $id ) ) );
+		if ( ! empty( $others ) ) {
+			return new \WP_Error(
+				'ffc_location_in_use',
+				sprintf(
+					/* translators: %s: comma-separated list of what uses the location, e.g. rooms */
+					__( 'This location is used by: %s. Link them to another location first.', 'ffcertificate' ),
+					implode( ', ', $others )
+				),
+				array( 'users' => array_values( $others ) )
+			);
+		}
+
 		if ( ! self::delete( $id ) ) {
 			return new \WP_Error( 'ffc_location_not_found', __( 'Location not found.', 'ffcertificate' ) );
 		}

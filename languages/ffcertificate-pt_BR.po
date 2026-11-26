@@ -37522,3 +37522,26 @@ msgstr "Seu certificado já foi emitido. Abra o app, em Certificados, para baix�
 
 msgid "A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail, which opens the form in the app when Site PWA is active. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply."
 msgstr "Um campo obrigatório que fica sem valor é completado pelo participante no celular, por um link pessoal enviado por e-mail, que abre o formulário no app quando o Site PWA está ativo. Ele abre o formulário por sete dias depois da leitura, seja qual for o horário, sem a área de GPS nem a senha, que o terminal já comprovou; o ingresso, as listas e os limites continuam valendo."
+
+msgid "GPS location"
+msgstr "Local de GPS"
+
+msgid "Certificate forms"
+msgstr "Formulários de certificado"
+
+msgid "The locations of Settings → Geolocation. One location can have several environments. A terminal paired to this location reads the events of this environment and the certificate forms of the same location."
+msgstr "Os locais de Configurações → Geolocalização. Um local pode ter vários ambientes. Um terminal pareado a este local lê os eventos deste ambiente e os formulários de certificado do mesmo local."
+
+#. translators: %s: comma-separated list of what uses the location, e.g. rooms
+#, php-format
+msgid "This location is used by: %s. Link them to another location first."
+msgstr "Este local é usado por: %s. Ligue-os a outro local primeiro."
+
+msgid "Other things that name a GPS location, as display names, so the location cannot be deleted under them — args ( names, location_id ). Audience Calendars answers with the environments linked to the location."
+msgstr "Outros itens que citam um local de GPS, pelos nomes de exibição, para que o local não seja excluído debaixo deles — args ( names, location_id ). As Agendas de público respondem com os ambientes ligados ao local."
+
+msgid "A location an environment of Audience Calendars is linked to cannot be deleted either: the screen names those environments, so you can link them to another location first."
+msgstr "Um local ao qual um ambiente das Agendas de público está ligado também não pode ser excluído: a tela cita esses ambientes, para que você os ligue a outro local primeiro."
+
+msgid "An environment can be linked to a GPS location of Settings → Geolocation, on its edit screen. One location can have several environments. The side column then names the location, its environments and how many certificate forms use it, and the location cannot be deleted while an environment is linked to it."
+msgstr "Um ambiente pode ser ligado a um local de GPS de Configurações → Geolocalização, na sua tela de edição. Um local pode ter vários ambientes. A coluna lateral então mostra o local, seus ambientes e quantos formulários de certificado o usam, e o local não pode ser excluído enquanto um ambiente estiver ligado a ele."

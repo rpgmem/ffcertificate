@@ -37443,3 +37443,26 @@ msgstr ""
 
 msgid "A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail, which opens the form in the app when Site PWA is active. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply."
 msgstr ""
+
+msgid "GPS location"
+msgstr ""
+
+msgid "Certificate forms"
+msgstr ""
+
+msgid "The locations of Settings → Geolocation. One location can have several environments. A terminal paired to this location reads the events of this environment and the certificate forms of the same location."
+msgstr ""
+
+#. translators: %s: comma-separated list of what uses the location, e.g. rooms
+#, php-format
+msgid "This location is used by: %s. Link them to another location first."
+msgstr ""
+
+msgid "Other things that name a GPS location, as display names, so the location cannot be deleted under them — args ( names, location_id ). Audience Calendars answers with the environments linked to the location."
+msgstr ""
+
+msgid "A location an environment of Audience Calendars is linked to cannot be deleted either: the screen names those environments, so you can link them to another location first."
+msgstr ""
+
+msgid "An environment can be linked to a GPS location of Settings → Geolocation, on its edit screen. One location can have several environments. The side column then names the location, its environments and how many certificate forms use it, and the location cannot be deleted while an environment is linked to it."
+msgstr ""

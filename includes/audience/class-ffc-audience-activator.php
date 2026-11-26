@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '23';
+	public const SCHEMA_REVISION = '24';
 
 	/**
 	 * Option holding the revision last applied.
@@ -229,6 +229,7 @@ class AudienceActivator {
             description text DEFAULT NULL,
             working_hours longtext DEFAULT NULL COMMENT 'JSON: {mon: {start, end, closed}, ...}',
             status enum('active','inactive') DEFAULT 'active',
+            location_id varchar(64) NOT NULL DEFAULT '',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -1126,6 +1127,7 @@ class AudienceActivator {
 		$healed = self::migrate_holiday_kind_column() && $healed;
 		$healed = self::migrate_schedule_appearance_names_column() && $healed;
 		$healed = self::migrate_schedule_booking_shape_columns() && $healed;
+		$healed = self::migrate_environment_location_column() && $healed;
 
 		// The attendance tables of #1947 and the invitations of #1948 reach
 		// upgraded installs here: the version-gated chain below never creates
@@ -1525,6 +1527,26 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'checkin_closes_after', 'smallint(6) DEFAULT NULL', 'checkin_opens_before' );
 
 		return self::has_columns( $table_name, array( 'checkin_opens_before', 'checkin_closes_after' ) );
+	}
+
+	/**
+	 * Link an environment to a GPS location of Settings → Geolocation
+	 * (#2900), so a terminal paired to that location reads its events. An
+	 * empty id means no location.
+	 *
+	 * @return bool Whether the table now has the column, or does not exist yet.
+	 */
+	private static function migrate_environment_location_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_environments';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'location_id', "varchar(64) NOT NULL DEFAULT ''", 'status' );
+
+		return self::has_columns( $table_name, array( 'location_id' ) );
 	}
 
 	/**

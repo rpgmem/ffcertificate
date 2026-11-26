@@ -131,6 +131,11 @@ class AudienceLoader {
 		// Record autosave for the calendar and audience edit screens (#1757).
 		AudienceRecordAutosave::register();
 
+		// A GPS location an environment names cannot be deleted under it
+		// (#2900). Only admin screens delete a location, so the filter is
+		// needed on admin requests only.
+		add_filter( 'ffcertificate_geofence_location_users', array( AudienceEnvironmentRepository::class, 'location_users' ), 10, 2 );
+
 		// Load admin page handler.
 		if ( class_exists( '\FreeFormCertificate\Audience\AudienceAdminPage' ) ) {
 			$this->admin_page = new AudienceAdminPage();

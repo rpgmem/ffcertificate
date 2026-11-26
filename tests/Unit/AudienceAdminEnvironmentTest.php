@@ -641,6 +641,76 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertSame( 'Edited', $updates[0][2]['name'] );
 	}
 
+	public function test_handle_actions_saves_a_known_gps_location_and_drops_an_unknown_one(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'add_settings_error' )->justReturn( true );
+		$this->gps_locations();
+
+		foreach ( array( 'loc_a' => 'loc_a', 'loc_gone' => '' ) as $posted => $stored ) {
+			$this->writes = array();
+			$_POST        = array(
+				'ffc_action'            => 'save_environment',
+				'ffc_environment_nonce' => 'n',
+				'environment_id'        => '5',
+				'environment_schedule'  => '2',
+				'environment_name'      => 'Room 3',
+				'environment_location'  => $posted,
+			);
+
+			( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+
+			$updates = $this->writes_of( 'update' );
+			$this->assertSame( $stored, $updates[0][2]['location_id'], $posted );
+		}
+	}
+
+	public function test_render_form_offers_the_gps_locations_and_names_the_chosen_one(): void {
+		$_GET['action'] = 'edit';
+		$_GET['id']     = '7';
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'get_posts' )->justReturn( array() );
+		// selected() echoes, as in WordPress.
+		Functions\when( 'selected' )->alias(
+			static function ( $a, $b ) {
+				echo (string) $a === (string) $b ? ' selected' : '';
+			}
+		);
+		$this->gps_locations();
+		$this->environment(
+			array(
+				'id'          => 7,
+				'schedule_id' => 2,
+				'name'        => 'Room 3',
+				'status'      => 'active',
+				'location_id' => 'loc_a',
+			)
+		);
+		$this->schedule( array( 'id' => 2, 'name' => 'Cal', 'environment_label' => 'Room' ) );
+
+		ob_start();
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="environment_location"', $output );
+		$this->assertStringContainsString( '<option value="loc_a"  selected>EMEF Paulo Freire</option>', $output );
+		$this->assertStringContainsString( '<option value="loc_b" >Library</option>', $output );
+		$this->assertMatchesRegularExpression( '/<h2 class="ffc-icon-map-pin">EMEF Paulo Freire<\/h2>.*Room 3/s', $output, 'the side card lists the location\'s environments' );
+	}
+
+	/**
+	 * Two GPS locations in Settings → Geolocation.
+	 */
+	private function gps_locations(): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_geofence_locations' === $key
+				? array(
+					array( 'id' => 'loc_a', 'name' => 'EMEF Paulo Freire' ),
+					array( 'id' => 'loc_b', 'name' => 'Library' ),
+				)
+				: $default
+		);
+	}
+
 	public function test_render_form_keeps_an_inactive_calendar_selected(): void {
 		// The select listed active calendars only, so an environment on a
 		// deactivated calendar showed "Select a calendar" and could not be
