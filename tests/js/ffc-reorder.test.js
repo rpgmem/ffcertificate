@@ -29,7 +29,13 @@ function btn(id, n, dir) {
 }
 
 // The observer runs after a microtask and then a 0 ms timer: wait past both.
-const tick = () => new Promise((r) => setTimeout(r, 5));
+// Await the microtask first, so this timer is queued after the observer's and
+// fires after it. A timer queued before the observer's (a bare 5 ms wait) loses
+// the race on a slow runner, where both have expired by the next turn.
+const tick = async () => {
+	await Promise.resolve();
+	await new Promise((r) => setTimeout(r, 0));
+};
 
 describe('FFC.reorder', () => {
 	beforeEach(() => {
