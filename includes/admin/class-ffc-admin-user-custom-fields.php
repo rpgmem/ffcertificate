@@ -14,9 +14,8 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Reregistration\CustomFieldReader;
-use FreeFormCertificate\Reregistration\CustomFieldWriter;
+use FreeFormCertificate\Reregistration\ProfileCustomFields;
 use FreeFormCertificate\Audience\AudienceReader;
-use FreeFormCertificate\UserDashboard\UserManager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -40,12 +39,6 @@ class AdminUserCustomFields {
 	 * The `ffc_reveal_pii` record type the Reveal buttons name.
 	 */
 	public const REVEAL_TYPE = 'user_profile';
-
-	/**
-	 * Field types whose stored value is free text a mask can stand in for.
-	 * A select, a checkbox or the working-hours grid carry no identifier.
-	 */
-	private const MASKABLE_TYPES = array( 'text', 'textarea', 'number', 'date' );
 
 	/**
 	 * Initialize hooks.
@@ -297,7 +290,7 @@ class AdminUserCustomFields {
 	 * @return bool
 	 */
 	private static function is_maskable( object $field ): bool {
-		return ! empty( $field->is_sensitive ) && in_array( (string) $field->field_type, self::MASKABLE_TYPES, true );
+		return ProfileCustomFields::is_maskable( $field );
 	}
 
 	/**
@@ -337,23 +330,7 @@ class AdminUserCustomFields {
 	 * @return array<int, string> Field ID => clear value; empty values left out.
 	 */
 	public static function sensitive_values( int $user_id ): array {
-		$fields    = CustomFieldReader::get_all_for_user( $user_id, true );
-		$user_data = CustomFieldReader::get_user_data( $user_id );
-		$profile   = self::profile_values( $user_id, $fields );
-
-		$values = array();
-		foreach ( $fields as $field ) {
-			if ( empty( $field->is_sensitive ) || ! in_array( (string) $field->field_type, self::MASKABLE_TYPES, true ) ) {
-				continue;
-			}
-			$value = empty( $field->field_profile_key )
-				? ( $user_data[ 'field_' . $field->id ] ?? '' )
-				: ( $profile[ (string) $field->field_profile_key ] ?? '' );
-			if ( is_scalar( $value ) && '' !== (string) $value ) {
-				$values[ (int) $field->id ] = (string) $value;
-			}
-		}
-		return $values;
+		return ProfileCustomFields::sensitive_values( $user_id );
 	}
 
 	/**
@@ -514,12 +491,7 @@ class AdminUserCustomFields {
 	 * @return string Mask name, or '' for none.
 	 */
 	public static function mask_for( object $field ): string {
-		$mask = isset( $field->field_mask ) ? (string) $field->field_mask : '';
-		if ( '' === $mask ) {
-			$rules = self::decode_json( $field->validation_rules ?? null );
-			$mask  = is_string( $rules['format'] ?? null ) ? $rules['format'] : '';
-		}
-		return $mask;
+		return ProfileCustomFields::mask_for( $field );
 	}
 
 	/**
@@ -573,24 +545,7 @@ class AdminUserCustomFields {
 	 * @return string|null Canonical JSON, '' when both halves are empty, null when invalid.
 	 */
 	public static function clean_dependent_select( object $field, string $raw ): ?string {
-		$decoded = self::decode_json( trim( $raw ) );
-		$parent  = is_string( $decoded['parent'] ?? null ) ? sanitize_text_field( $decoded['parent'] ) : '';
-		$child   = is_string( $decoded['child'] ?? null ) ? sanitize_text_field( $decoded['child'] ) : '';
-
-		if ( '' === $parent && '' === $child ) {
-			return '';
-		}
-
-		$pair = array(
-			'parent' => $parent,
-			'child'  => $child,
-		);
-		if ( true !== \FreeFormCertificate\Reregistration\CustomFieldValidator::validate( $field, $pair ) ) {
-			return null;
-		}
-
-		$json = wp_json_encode( $pair );
-		return false === $json ? null : $json;
+		return ProfileCustomFields::clean_dependent_select( $field, $raw );
 	}
 
 	/**
@@ -610,150 +565,27 @@ class AdminUserCustomFields {
 			return;
 		}
 
-		// Get all fields for this user.
-		$fields = CustomFieldReader::get_all_for_user( $user_id, true );
-		if ( empty( $fields ) ) {
-			return;
-		}
-
-		$data           = array();
-		$seen_ids       = array();
-		$existing       = CustomFieldReader::get_user_data( $user_id );
-		$profile        = self::profile_values( $user_id, $fields );
-		$profile_patch  = array();
-		$sensitive_keys = array();
-		$kept           = array();
-		$incomplete     = array();
-
-		foreach ( $fields as $field ) {
-			// Avoid processing same field twice.
-			if ( isset( $seen_ids[ (int) $field->id ] ) ) {
-				continue;
-			}
-			$seen_ids[ (int) $field->id ] = true;
-
+		// The form posts `ffc_cf_<id>`; the shared save reads values by field
+		// id and applies the HTML-form rules (#2850): an absent checkbox is
+		// off, an absent masked field keeps its value.
+		$posted = array();
+		foreach ( ProfileCustomFields::fields( $user_id ) as $field ) {
 			$input_name = 'ffc_cf_' . $field->id;
-			$field_key  = 'field_' . $field->id;
-
-			if ( 'checkbox' === $field->field_type ) {
-				$data[ $field_key ] = isset( $_POST[ $input_name ] ) ? 1 : 0;
-			} elseif ( 'working_hours' === $field->field_type ) {
-				/*
-				 * The old guard here was `isset( $entry['entry1'], $entry['exit2'] )`,
-				 * and `isset( '' )` is true — so a row with an empty time passed it
-				 * and was stored (#1128). `WorkingHours::sanitize()` is now the one
-				 * place that decides, shared with the reregistration form so the two
-				 * cannot drift apart again.
-				 */
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized inside WorkingHours::sanitize().
-				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '[]';
-				$result    = \FreeFormCertificate\Core\WorkingHours::sanitize( is_string( $raw_value ) ? $raw_value : '[]' );
-
-				$data[ $field_key ] = $result['json'];
-
-				foreach ( $result['incomplete'] as $ffc_row ) {
-					$incomplete[] = array(
-						'label'   => (string) $field->field_label,
-						'day'     => $ffc_row['day'],
-						'missing' => $ffc_row['missing'],
-					);
-				}
-			} elseif ( 'dependent_select' === $field->field_type ) {
-				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Decoded, validated and re-encoded in clean_dependent_select().
-				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '';
-				$clean     = self::clean_dependent_select( $field, is_string( $raw_value ) ? $raw_value : '' );
-
-				$pkey   = empty( $field->field_profile_key ) ? '' : (string) $field->field_profile_key;
-				$stored = '' === $pkey ? ( $existing[ $field_key ] ?? '' ) : ( $profile[ $pkey ] ?? '' );
-				$stored = is_scalar( $stored ) ? (string) $stored : '';
-
-				// A pair outside the field's choices, or a required field
-				// arriving empty, keeps what was stored rather than erasing it.
-				if ( null === $clean || ( '' === $clean && ! empty( $field->is_required ) && '' !== $stored ) ) {
-					if ( '' === $pkey && '' !== $stored ) {
-						$data[ $field_key ] = $stored;
-					}
-					$kept[] = (string) $field->field_label;
-					continue;
-				}
-
-				// `divisao_setor` lives on the profile, like any other
-				// profile-mapped field (#1538).
-				if ( '' !== $pkey ) {
-					$profile_patch[ $pkey ] = $clean;
-					if ( ! empty( $field->is_sensitive ) ) {
-						$sensitive_keys[] = $pkey;
-					}
-					continue;
-				}
-
-				$data[ $field_key ] = $clean;
-			} elseif ( self::is_maskable( $field ) && ! isset( $_POST[ $input_name ] )
-				&& self::is_masked_for( $field, \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAP, $user_id ) ) ) {
-				// A masked sensitive field nobody revealed was disabled, so it
-				// did not post (#1863): keep what is stored. A profile-mapped
-				// one is simply left out of the patch.
-				if ( empty( $field->field_profile_key ) && isset( $existing[ $field_key ] ) ) {
-					$data[ $field_key ] = $existing[ $field_key ];
-				}
-				continue;
-			} else {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Checked via isset; sanitized via sanitize_text_field/sanitize_textarea_field below.
-				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '';
-				$clean     = 'textarea' === $field->field_type
-					? sanitize_textarea_field( $raw_value )
-					: sanitize_text_field( $raw_value );
-
-				/*
-				 * An empty value on a required field is "not supplied", never
-				 * "clear it" (#1120, the shape #1114 fixed on the Rate Limit
-				 * tab). The `required` attribute stops this in the browser,
-				 * but the browser is not the guard: a direct POST, a client
-				 * with JS off, or a field the markup cannot mark required all
-				 * reach here. Keeping the stored value means the worst case is
-				 * an edit that did not take, announced below — not a value
-				 * silently erased.
-				 */
-				// A profile-mapped field lives on the profile, not in the
-				// snapshot (#1538): the reregistration form reads it from
-				// there and `store_user_snapshot()` never writes it, so
-				// saving it into the snapshot stored a copy nothing read --
-				// in plaintext, for the sensitive ones.
-				if ( ! empty( $field->field_profile_key ) ) {
-					$pkey = (string) $field->field_profile_key;
-					if ( '' === $clean && ! empty( $field->is_required ) && '' !== (string) ( $profile[ $pkey ] ?? '' ) ) {
-						$kept[] = (string) $field->field_label;
-						continue;
-					}
-					$profile_patch[ $pkey ] = $clean;
-					if ( ! empty( $field->is_sensitive ) ) {
-						$sensitive_keys[] = $pkey;
-					}
-					continue;
-				}
-
-				if ( '' === $clean && ! empty( $field->is_required ) && '' !== (string) ( $existing[ $field_key ] ?? '' ) ) {
-					$data[ $field_key ] = (string) $existing[ $field_key ];
-					$kept[]             = (string) $field->field_label;
-					continue;
-				}
-
-				$data[ $field_key ] = $clean;
+			if ( isset( $_POST[ $input_name ] ) ) {
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized per field type inside ProfileCustomFields::save().
+				$raw                        = wp_unslash( $_POST[ $input_name ] );
+				$posted[ (int) $field->id ] = is_string( $raw ) ? $raw : '';
 			}
 		}
 
-		CustomFieldWriter::save_user_data( $user_id, $data );
+		$result = ProfileCustomFields::save( $user_id, $posted, true );
 
-		if ( ! empty( $profile_patch ) ) {
-			UserManager::update_extended_profile( $user_id, $profile_patch, $sensitive_keys );
+		if ( ! empty( $result['kept'] ) ) {
+			set_transient( 'ffc_cf_required_kept_' . get_current_user_id(), $result['kept'], MINUTE_IN_SECONDS );
 		}
 
-		if ( ! empty( $kept ) ) {
-			set_transient( 'ffc_cf_required_kept_' . get_current_user_id(), $kept, MINUTE_IN_SECONDS );
-		}
-
-		if ( ! empty( $incomplete ) ) {
-			set_transient( 'ffc_cf_wh_incomplete_' . get_current_user_id(), $incomplete, MINUTE_IN_SECONDS );
+		if ( ! empty( $result['incomplete'] ) ) {
+			set_transient( 'ffc_cf_wh_incomplete_' . get_current_user_id(), $result['incomplete'], MINUTE_IN_SECONDS );
 		}
 	}
 
@@ -769,23 +601,7 @@ class AdminUserCustomFields {
 	 * @return array<string, mixed> profile_key => value.
 	 */
 	private static function profile_values( int $user_id, array $fields ): array {
-		$keys      = array();
-		$sensitive = array();
-		foreach ( $fields as $field ) {
-			if ( empty( $field->field_profile_key ) ) {
-				continue;
-			}
-			$keys[] = (string) $field->field_profile_key;
-			if ( ! empty( $field->is_sensitive ) ) {
-				$sensitive[] = (string) $field->field_profile_key;
-			}
-		}
-
-		if ( empty( $keys ) ) {
-			return array();
-		}
-
-		return UserManager::get_extended_profile( $user_id, array_values( array_unique( $keys ) ), $sensitive );
+		return ProfileCustomFields::profile_values( $user_id, $fields );
 	}
 
 	/**

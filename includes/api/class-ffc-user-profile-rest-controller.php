@@ -239,6 +239,11 @@ class UserProfileRestController {
 					'member_since'       => $member_since,
 					'roles'              => $full_profile['roles'] ?? array(),
 					'audience_groups'    => $audience_groups,
+					// The custom fields of the user's audiences (#2850): the
+					// read view as data, the edit form as HTML drawn by the
+					// reregistration form's own renderer.
+					'audience_fields'    => \FreeFormCertificate\Reregistration\ProfileCustomFields::sections( $user_id ),
+					'audience_form'      => \FreeFormCertificate\Reregistration\ProfileCustomFields::form_html( $user_id ),
 				)
 			);
 
@@ -323,6 +328,37 @@ class UserProfileRestController {
 				return $birth_date;
 			}
 
+			// The audience custom fields (#2850), by field id. Validated first,
+			// so an invalid value refuses the whole save before anything is
+			// written; read-only fields are never written.
+			$custom = $request->get_param( 'custom_fields' );
+			if ( is_array( $custom ) && ! empty( $custom ) ) {
+				$posted = array();
+				foreach ( $custom as $field_id => $value ) {
+					if ( absint( $field_id ) > 0 && ( is_scalar( $value ) || null === $value ) ) {
+						$posted[ absint( $field_id ) ] = \wp_unslash( (string) $value );
+					}
+				}
+				$saved = \FreeFormCertificate\Reregistration\ProfileCustomFields::save(
+					$user_id,
+					$posted,
+					false,
+					true,
+					\FreeFormCertificate\Reregistration\ProfileCustomFields::dashboard_read_only_ids( $user_id )
+				);
+				if ( ! empty( $saved['errors'] ) ) {
+					return new \WP_Error(
+						'ffc_profile_fields_invalid',
+						implode( ' ', $saved['errors'] ),
+						array(
+							'status' => 400,
+							'fields' => $saved['errors'],
+						)
+					);
+				}
+				$data['custom_fields'] = true;
+			}
+
 			if ( empty( $data ) && null === $birth_date ) {
 				return new \WP_Error(
 					'no_data',
@@ -331,9 +367,10 @@ class UserProfileRestController {
 				);
 			}
 
-			$result = true;
-			if ( ! empty( $data ) ) {
-				$result = \FreeFormCertificate\UserDashboard\UserManager::update_profile( $user_id, $data );
+			$result  = true;
+			$profile = array_diff_key( $data, array( 'custom_fields' => true ) );
+			if ( ! empty( $profile ) ) {
+				$result = \FreeFormCertificate\UserDashboard\UserManager::update_profile( $user_id, $profile );
 			}
 
 			if ( null !== $birth_date ) {
@@ -411,6 +448,12 @@ class UserProfileRestController {
 		}
 
 		$field = (string) $request->get_param( 'field' );
+
+		// A sensitive audience custom field (#2850): `cf_<id>`.
+		if ( 1 === preg_match( '/^cf_(\d+)$/', $field, $match ) ) {
+			return $this->reveal_custom_field( $user_id, (int) $match[1], $field, $view_as );
+		}
+
 		if ( ! in_array( $field, array( 'email', 'phone', 'birth_date', 'cpf_rf' ), true ) ) {
 			return new \WP_Error( 'ffc_reveal_unsupported', __( 'Unsupported field.', 'ffcertificate' ), array( 'status' => 400 ) );
 		}
@@ -458,6 +501,50 @@ class UserProfileRestController {
 			get_current_user_id(),
 			0
 		);
+
+		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Reveal one sensitive audience custom field (#2850): its clear value,
+	 * how it reads, and the edit form's control holding it. The owner reads
+	 * it without an audit row; in "view as user" every reveal is logged.
+	 *
+	 * @param int    $user_id  The profile's user.
+	 * @param int    $field_id Custom field ID.
+	 * @param string $field    The requested field name, echoed back.
+	 * @param bool   $view_as  Whether an administrator is viewing as the user.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	private function reveal_custom_field( int $user_id, int $field_id, string $field, bool $view_as ) {
+		$values = \FreeFormCertificate\Reregistration\ProfileCustomFields::sensitive_values( $user_id );
+		$row    = isset( $values[ $field_id ] ) ? \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_id( $field_id ) : null;
+		if ( null === $row ) {
+			return new \WP_Error( 'ffc_reveal_unsupported', __( 'Unsupported field.', 'ffcertificate' ), array( 'status' => 400 ) );
+		}
+
+		$value    = $values[ $field_id ];
+		$editable = '' === \FreeFormCertificate\Reregistration\ProfileCustomFields::read_only_reason( $row );
+		$response = array(
+			'field'   => $field,
+			'value'   => $value,
+			'display' => \FreeFormCertificate\Reregistration\ProfileCustomFields::display_value( $row, $value ),
+			'html'    => $editable ? \FreeFormCertificate\Reregistration\ProfileCustomFields::field_html( $row, $value ) : '',
+		);
+
+		if ( $view_as ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'user_profile_pii_revealed',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'field_key'       => $field,
+					'view_as'         => true,
+					'subject_user_id' => $user_id,
+				),
+				get_current_user_id(),
+				0
+			);
+		}
 
 		return rest_ensure_response( $response );
 	}

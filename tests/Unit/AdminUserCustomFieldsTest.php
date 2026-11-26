@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminUserCustomFields;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Reregistration\CustomFieldReader;
+use FreeFormCertificate\Reregistration\ProfileCustomFields;
 use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
@@ -27,6 +28,7 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * what was stored rather than on which method was called.
  *
  * @covers \FreeFormCertificate\Admin\AdminUserCustomFields
+ * @covers \FreeFormCertificate\Reregistration\ProfileCustomFields
  */
 class AdminUserCustomFieldsTest extends TestCase {
 
@@ -1508,4 +1510,118 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$this->assertSame('', $html);
 		$this->assertSame(array( 'ffc_cf_wh_incomplete_3' ), $deleted, 'the unreadable notice is still consumed');
 	}
+
+	// ==================================================================
+	// ProfileCustomFields: the dashboard's Profile tab (#2850)
+	// ==================================================================
+
+	/**
+	 * A dashboard save writes what it was sent and leaves an absent field as
+	 * stored, where the form save would have cleared it.
+	 */
+	public function test_dashboard_save_writes_sent_fields_and_keeps_absent_ones(): void {
+		$this->audience( 10, 'Teachers' );
+		$this->member( 7, 10 );
+		$this->field( 10, array( 'id' => 1 ) );
+		$this->field( 10, array( 'id' => 2 ) );
+		$this->meta[7][ CustomFieldReader::USER_META_KEY ] = array( 'field_2' => 'kept' );
+
+		$result = ProfileCustomFields::save( 7, array( 1 => 'new' ), false, true );
+
+		$this->assertSame( array(), $result['errors'] );
+		$snapshot = $this->snapshot( 7 );
+		$this->assertSame( 'new', $snapshot['field_1'] );
+		$this->assertSame( 'kept', $snapshot['field_2'] );
+	}
+
+	/**
+	 * An invalid value refuses the whole save, naming the field, and writes
+	 * nothing -- not even the valid field sent beside it.
+	 */
+	public function test_dashboard_save_refuses_an_invalid_value_and_writes_nothing(): void {
+		Functions\when( 'is_wp_error' )->alias( static fn( $thing ) => $thing instanceof \WP_Error );
+		$this->audience( 10, 'Teachers' );
+		$this->member( 7, 10 );
+		$this->field( 10, array( 'id' => 1 ) );
+		$this->field( 10, array( 'id' => 2, 'field_type' => 'number', 'field_label' => 'Hours' ) );
+
+		$result = ProfileCustomFields::save( 7, array( 1 => 'fine', 2 => 'ten' ), false, true );
+
+		$this->assertSame( array( 2 ), array_keys( $result['errors'] ) );
+		$this->assertStringContainsString( 'Hours', $result['errors'][2] );
+		$this->assertSame( array(), $this->snapshots( 7 ), 'nothing is written when a value is refused' );
+	}
+
+	/**
+	 * A read-only field is never written, and a sensitive value posted back
+	 * still masked is the mask, not a new value.
+	 */
+	public function test_dashboard_save_skips_read_only_fields_and_masks(): void {
+		$this->audience( 10, 'Teachers' );
+		$this->member( 7, 10 );
+		$this->field( 10, array( 'id' => 1 ) );
+		$this->field( 10, array( 'id' => 2, 'is_sensitive' => 1 ) );
+		$this->meta[7][ CustomFieldReader::USER_META_KEY ] = array( 'field_1' => 'old', 'field_2' => 'secret' );
+
+		ProfileCustomFields::save( 7, array( 1 => 'changed', 2 => '***ret' ), false, true, array( 1 => true ) );
+
+		$this->assertSame( array(), $this->snapshots( 7 ), 'neither the read-only field nor the mask is written' );
+	}
+
+	public function test_read_only_reason_covers_identity_and_dashboard_owned_keys(): void {
+		$identity = $this->field( 10, array( 'id' => 1, 'field_profile_key' => 'rf' ) );
+		$owned    = $this->field( 10, array( 'id' => 2, 'field_profile_key' => 'phone' ) );
+		$other    = $this->field( 10, array( 'id' => 3, 'field_profile_key' => 'rg' ) );
+		$plain    = $this->field( 10, array( 'id' => 4 ) );
+
+		$this->assertSame( ProfileCustomFields::READ_ONLY_IDENTITY, ProfileCustomFields::read_only_reason( $identity ) );
+		$this->assertSame( ProfileCustomFields::READ_ONLY_OWNED, ProfileCustomFields::read_only_reason( $owned ) );
+		$this->assertSame( '', ProfileCustomFields::read_only_reason( $other ) );
+		$this->assertSame( '', ProfileCustomFields::read_only_reason( $plain ) );
+	}
+
+	/**
+	 * The read view: one section per audience, a field shared through a
+	 * parent shown once, the display-only block left out, a sensitive value
+	 * masked and a checkbox and a dependent select read as words.
+	 */
+	public function test_sections_list_each_field_once_with_readable_values(): void {
+		$this->audience( 1, 'School' );
+		$this->audience( 10, 'Teachers', 1 );
+		$this->audience( 11, 'Coordinators', 1 );
+		$this->member( 7, 10, 11 );
+		$this->field( 1, array( 'id' => 1, 'field_label' => 'Shared' ) );
+		$this->field( 10, array( 'id' => 2, 'field_label' => 'Secret', 'is_sensitive' => 1 ) );
+		$this->field( 10, array( 'id' => 3, 'field_type' => 'checkbox' ) );
+		$this->field( 10, array( 'id' => 4, 'field_type' => 'dependent_select' ) );
+		$this->field( 10, array( 'id' => 5, 'field_type' => 'acknowledgment' ) );
+		$this->field( 11, array( 'id' => 6, 'field_label' => 'Own' ) );
+		$this->meta[7][ CustomFieldReader::USER_META_KEY ] = array(
+			'field_1' => 'common',
+			'field_2' => 'confidential',
+			'field_3' => 1,
+			'field_4' => '{"parent":"North","child":"East"}',
+		);
+
+		$sections = ProfileCustomFields::sections( 7 );
+
+		$this->assertCount( 2, $sections, 'a section per audience that has fields' );
+		$ids = array();
+		$by  = array();
+		foreach ( $sections as $section ) {
+			foreach ( $section['fields'] as $view ) {
+				$ids[]             = $view['id'];
+				$by[ $view['id'] ] = $view;
+			}
+		}
+		sort( $ids );
+		$this->assertSame( array( 1, 2, 3, 4, 6 ), $ids, 'the shared field once, the acknowledgment never' );
+		$this->assertTrue( $by[2]['masked'] );
+		$this->assertStringNotContainsString( 'confidential', $by[2]['display'] );
+		$this->assertSame( 'Yes', $by[3]['display'] );
+		$this->assertSame( 'North / East', $by[4]['display'] );
+		$this->assertFalse( $by[1]['masked'] );
+		$this->assertSame( 'common', $by[1]['display'] );
+	}
+
 }

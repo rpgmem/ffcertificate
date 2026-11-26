@@ -46,6 +46,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A revoked terminal still sends what it read before the revocation** (#2802). For up to 7 days after it, a revoked terminal's queue is judged reading by reading: what it took before is recorded, what it took later is refused, logged and counted as "refused after revocation" on Presence terminals; the terminal then says it was revoked.
 - **The check-in terminal installs in one tap** (#2813). A banner on `/terminal/` (hidden for 30 days after *Not now*) leads to the public install page `/terminal/install/`, which shows the browser's install dialog, the Share steps on iPad and iPhone, *Open the terminal* once installed, or the address to open elsewhere; Scheduling → Terminals shows that address as a QR code. The terminal's worker now keeps only `/terminal/` itself as its shell.
 - **The terminal's camera rests when it is not reading** (#2838). On the presence screen it turns off after a minute without a code and Use the camera brings it back; screens that read nothing with it turn it off. A connected reader keeps working throughout, so a tablet left on all day no longer heats up or hangs.
+- **The dashboard's Profile shows and edits the custom fields of the user's audiences** (#2850), on the site and in the app: one section per audience, edited with the reregistration form's controls, sensitive values masked until revealed, invalid values refused under the field. CPF and RF stay read-only. The WordPress user screen now saves through the same shared method.
 
 ### Changed
 

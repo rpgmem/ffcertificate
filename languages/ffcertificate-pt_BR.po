@@ -37318,3 +37318,14 @@ msgstr "Seu código aparece no dia do evento: %1$s · %2$s"
 
 msgid "The code shows only on a day the event counts. With no event today the screen shows no code and no countdown, and names the next day one appears. Once today's attendance is recorded the code leaves and the screen says \"Attendance recorded\" with the event and the time; with several events in one day the code stays for those still waiting, and the recorded ones are named under it. The screen reads its list again when the app comes back on screen, at most once every 30 seconds, and never polls the site while it stays open."
 msgstr "O código aparece só num dia que o evento conta. Sem evento hoje a tela não mostra código nem contagem regressiva, e diz o próximo dia em que um aparece. Depois que a presença de hoje é registrada o código sai e a tela diz \"Presença registrada\" com o evento e o horário; com vários eventos no mesmo dia o código fica para os que ainda esperam, e os registrados aparecem nomeados abaixo dele. A tela lê a lista de novo quando o app volta à tela, no máximo uma vez a cada 30 segundos, e nunca consulta o site enquanto fica aberta."
+
+#. translators: %s: field label
+#, php-format
+msgid "%s has an invalid choice."
+msgstr "%s tem uma opção inválida."
+
+msgid "Edited with the profile fields above."
+msgstr "Editado com os campos do perfil acima."
+
+msgid "The user sees the same fields on the dashboard's Profile tab, on the site and in the app, one section per audience, and edits them under Edit Profile with the reregistration form's controls. A sensitive value is masked until revealed, an invalid value refuses the save with a message under the field, and an empty required field keeps its stored value. CPF and RF are shown but changed only by an administrator, and a field mapped to the name, phone, department, organization, notes or birth date is edited with the profile fields above it."
+msgstr "O usuário vê os mesmos campos na aba Perfil do painel, no site e no app, uma seção por público-alvo, e os edita em Editar Perfil com os controles do formulário de recadastramento. Um valor sensível fica mascarado até ser revelado, um valor inválido recusa o salvamento com uma mensagem abaixo do campo, e um campo obrigatório vazio mantém o valor guardado. CPF e RF aparecem, mas só um administrador os altera, e um campo ligado ao nome, telefone, departamento, organização, observações ou data de nascimento é editado com os campos do perfil acima dele."

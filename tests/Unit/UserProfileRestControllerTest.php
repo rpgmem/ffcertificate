@@ -254,6 +254,11 @@ class UserProfileRestControllerTest extends TestCase {
 				if ( false !== strpos( $sql, 'SELECT a.name, a.color' ) ) {
 					return $this->audience_rows;
 				}
+				// The audiences whose custom fields the profile lists (#2850):
+				// none here, so there are no fields to read.
+				if ( false !== strpos( $sql, 'INNER JOIN %i m ON a.id = m.audience_id' ) ) {
+					return array();
+				}
 				$this->unexpected[] = 'get_results(): ' . $sql;
 				return array();
 			}
@@ -691,6 +696,19 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertSame( array(), $this->reveal_audits() );
 	}
 
+	/**
+	 * A custom field holding no sensitive value has nothing to reveal (#2850),
+	 * and the refusal writes no audit row.
+	 */
+	public function test_reveal_refuses_a_custom_field_with_no_sensitive_value(): void {
+		$this->view_as_user_five();
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->reveal_profile_field( $this->make_request( array( 'viewAsUserId' => 5, 'field' => 'cf_99' ) ) );
+
+		$this->assertSame( 'ffc_reveal_unsupported', $result->get_error_code() );
+		$this->assertSame( array(), $this->reveal_audits() );
+	}
+
 	public function test_reveal_serves_the_formatted_cpf_rf_list_and_audits_it(): void {
 		$this->view_as_user_five();
 		$this->identifier_rows = array(
@@ -841,6 +859,24 @@ class UserProfileRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'no_data', $result->get_error_code() );
 		$this->assertSame( array(), $this->profile_writes );
+	}
+
+	/**
+	 * Custom fields alone are a profile update (#2850): the request is not
+	 * refused as empty, and the fixed profile is not written.
+	 */
+	public function test_update_user_profile_accepts_custom_fields_alone(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$user = $this->make_user( 5 );
+		Functions\when( 'get_user_by' )->justReturn( $user );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		$ctrl   = new UserProfileRestController( 'ffc/v1' );
+		$result = $ctrl->update_user_profile( $this->make_request( array( 'custom_fields' => array( 12 => 'value' ) ) ) );
+
+		$this->assertNotInstanceOf( \WP_Error::class, $result, is_wp_error( $result ) ? $result->get_error_code() : '' );
+		$this->assertSame( array(), $this->profile_writes, 'the fixed profile is left alone' );
 	}
 
 	public function test_update_user_profile_returns_error_when_update_fails(): void {

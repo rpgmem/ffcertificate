@@ -37239,3 +37239,14 @@ msgstr ""
 
 msgid "The code shows only on a day the event counts. With no event today the screen shows no code and no countdown, and names the next day one appears. Once today's attendance is recorded the code leaves and the screen says \"Attendance recorded\" with the event and the time; with several events in one day the code stays for those still waiting, and the recorded ones are named under it. The screen reads its list again when the app comes back on screen, at most once every 30 seconds, and never polls the site while it stays open."
 msgstr ""
+
+#. translators: %s: field label
+#, php-format
+msgid "%s has an invalid choice."
+msgstr ""
+
+msgid "Edited with the profile fields above."
+msgstr ""
+
+msgid "The user sees the same fields on the dashboard's Profile tab, on the site and in the app, one section per audience, and edits them under Edit Profile with the reregistration form's controls. A sensitive value is masked until revealed, an invalid value refuses the save with a message under the field, and an empty required field keeps its stored value. CPF and RF are shown but changed only by an administrator, and a field mapped to the name, phone, department, organization, notes or birth date is edited with the profile fields above it."
+msgstr ""
