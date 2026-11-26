@@ -1455,6 +1455,17 @@
     color: var(--ffc-text);
 }
 
+/* A value keeps its line breaks (working hours: one day per line) and
+   wraps inside its cell instead of running past it (#2854). */
+.ffc-profile-cf-view .ffc-profile-field {
+    min-width: 0;
+}
+
+.ffc-profile-cf-view .ffc-field-value {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
 .ffc-profile-cf-view h3 {
     display: flex;
     align-items: center;
