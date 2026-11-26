@@ -261,6 +261,46 @@ jobs:
           fi
           exit "$STATUS"
 
+      # The contract with Site PWA on the real site (#2875), an alarm like the
+      # smoke: `site-pwa-integration-check.php --read-only` writes nothing and
+      # judges only shapes, because the site's settings are the
+      # administrator's. Where Site PWA is not active it says SKIPPED and
+      # exits 0. Site PWA's own deploy runs the same script, so a deploy of
+      # either plugin re-checks the pair as it now stands on the host.
+      - name: Check the Site PWA contract on the deployed site
+        env:
+          SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
+          SSH_USER: ${{ secrets.TESTES_SSH_USER }}
+          SSH_PORT: ${{ secrets.TESTES_SSH_PORT }}
+          REMOTE_PATH: ${{ secrets.TESTES_REMOTE_PATH }}
+        run: |
+          PORT="${SSH_PORT:-22}"
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30"
+          # REMOTE_PATH ends in /wp-content/plugins/ffcertificate (checked before
+          # the rsync), so three levels up is the WordPress root.
+          WP_ROOT=$(dirname "$(dirname "$(dirname "${REMOTE_PATH%/}")")")
+          REMOTE_DIR="/tmp/ffc-pwa-check-${GITHUB_RUN_ID}"
+          $SSH_CMD "${SSH_USER}@${SSH_HOST}" "mkdir -p ${REMOTE_DIR}"
+          scp -i ~/.ssh/deploy_key -P "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            .github/scripts/site-pwa-integration-check.php "${SSH_USER}@${SSH_HOST}:${REMOTE_DIR}/"
+
+          set +e
+          timeout 120 $SSH_CMD "${SSH_USER}@${SSH_HOST}" \
+            "php ${REMOTE_DIR}/site-pwa-integration-check.php '${WP_ROOT}' --read-only"
+          STATUS=$?
+          set -e
+
+          $SSH_CMD "${SSH_USER}@${SSH_HOST}" "rm -rf ${REMOTE_DIR}" || true
+
+          if [ "$STATUS" -eq 124 ]; then
+            echo "::warning::the Site PWA contract check timed out after 120s; the deploy itself succeeded."
+            exit 0
+          fi
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::the Site PWA contract check failed on the testes host (exit ${STATUS}). See the report above."
+          fi
+          exit "$STATUS"
+
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key

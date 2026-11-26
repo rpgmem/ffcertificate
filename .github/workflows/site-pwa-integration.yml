@@ -1,0 +1,119 @@
+name: Site PWA integration
+
+# Both plugins in one WordPress, checked through Site PWA's own classes (#2875).
+#
+# The contract with Site PWA is defensive on both sides, so a break is silent:
+# no error, and no failing test in either repository's own suite. This job
+# installs a throwaway WordPress, activates this checkout beside Site PWA's
+# `develop`, and runs `.github/scripts/site-pwa-integration-check.php`, which
+# asks Site PWA what it received from this plugin. Site PWA's
+# `ffc-integration.yml` runs the same script against this repository's
+# `develop`, so a change on either side is checked against the other.
+#
+# It is not a required check: a red run here can be Site PWA's `develop`, which
+# no pull request in this repository can fix. It runs on pull requests so the
+# author sees it, on `develop`, and daily, so a change in Site PWA shows up
+# within a day even when nothing moves here.
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+  schedule:
+    # 06:41 UTC: off the hour, before the working day in Brazil.
+    - cron: '41 6 * * *'
+  workflow_dispatch:
+    inputs:
+      site_pwa_ref:
+        description: Site PWA branch, tag or commit to check against
+        required: false
+        default: develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    name: Site PWA integration (PHP 8.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      # The same pin as the fresh-install job in ci.yml, for the same reason:
+      # it is the line the testes host runs.
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: fake-db-password
+          MARIADB_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: ffcertificate
+      - uses: actions/checkout@v7
+        with:
+          repository: rpgmem/site-pwa
+          ref: ${{ github.event.inputs.site_pwa_ref || 'develop' }}
+          path: site-pwa
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, zip, gd
+          coverage: none
+      - name: Install WP-CLI
+        run: |
+          for attempt in 1 2 3; do
+            if curl -fsSL --connect-timeout 20 -o wp-cli.phar \
+              https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::could not download the wp-cli phar after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::wp-cli download attempt $attempt failed; retrying in 10s"
+            sleep 10
+          done
+          chmod +x wp-cli.phar
+          sudo mv wp-cli.phar /usr/local/bin/wp
+      - name: Install a throwaway WordPress
+        run: |
+          for attempt in 1 2 3; do
+            rm -rf "$HOME/wp"
+            if wp core download --path="$HOME/wp"; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::could not download WordPress core after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::WordPress download attempt $attempt failed; retrying in 10s"
+            sleep 10
+          done
+          wp config create --path="$HOME/wp" \
+            --dbname=wordpress --dbuser=root --dbpass=fake-db-password --dbhost=127.0.0.1
+          wp core install --path="$HOME/wp" \
+            --url=http://localhost --title="Site PWA integration" \
+            --admin_user=admin --admin_password=fake-admin-password \
+            --admin_email=ci@example.invalid --skip-email
+      - name: Activate both plugins
+        run: |
+          for plugin in ffcertificate site-pwa; do
+            mkdir -p "$HOME/wp/wp-content/plugins/$plugin"
+            rsync -a --exclude '.git' "$plugin/" "$HOME/wp/wp-content/plugins/$plugin/"
+          done
+          wp plugin activate ffcertificate site-pwa --path="$HOME/wp"
+          echo "Site PWA at $(git -C site-pwa rev-parse --short HEAD)"
+      - name: Check the contract through Site PWA's classes
+        run: php ffcertificate/.github/scripts/site-pwa-integration-check.php "$HOME/wp" --write
