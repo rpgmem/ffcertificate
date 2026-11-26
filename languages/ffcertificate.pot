@@ -37465,4 +37465,23 @@ msgid "A location an environment of Audience Calendars is linked to cannot be de
 msgstr ""
 
 msgid "An environment can be linked to a GPS location of Settings → Geolocation, on its edit screen. One location can have several environments. The side column then names the location, its environments and how many certificate forms use it, and the location cannot be deleted while an environment is linked to it."
+
+msgid "Consent accepted at the terminal"
+msgstr ""
+
+msgid "Terminal that read the consent"
+msgstr ""
+
+#. translators: %s: terminal id
+#, php-format
+msgid "Terminal #%s"
+msgstr ""
+
+msgid "Certificate Issued at the Terminal"
+msgstr ""
+
+msgid "Terminal Certificate Awaiting Data"
+msgstr ""
+
+msgid "A consent accepted by the reading keeps, beside the answers, the time of the reading and the terminal that read it, shown on the submission's edit screen. The activity log records each certificate issued at the terminal and each reading left waiting on data, under Certificates."
 msgstr ""
