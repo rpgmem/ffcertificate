@@ -228,13 +228,22 @@ final class CertificateCompletionLink {
 	/**
 	 * The link for a person, or '' when no published page embeds the form.
 	 *
+	 * It opens the form inside the app when Site PWA can draw the page, so
+	 * the person finishes where they showed the QR; without Site PWA it is
+	 * the form's own page. The app's address keeps a fragment but not a
+	 * query string, so the code is added after the app has answered.
+	 *
 	 * @param int $form_id Form id.
 	 * @param int $user_id Account id.
 	 * @return string
 	 */
 	public static function link( int $form_id, int $user_id ): string {
 		$page = ScheduleExceptionAction::find_form_page_url( $form_id );
-		return '' === $page ? '' : add_query_arg( FormInvite::QUERY_VAR, self::code( $form_id, $user_id ), $page );
+		if ( '' === $page ) {
+			return '';
+		}
+		$url = apply_filters( 'site_pwa_app_url', $page );
+		return add_query_arg( FormInvite::QUERY_VAR, self::code( $form_id, $user_id ), is_string( $url ) && '' !== $url ? $url : $page );
 	}
 
 	/**

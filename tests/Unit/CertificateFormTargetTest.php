@@ -482,6 +482,17 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, CertificateCompletionLink::resolve( self::FORM, CertificateCompletionLink::code( self::FORM, self::USER ), self::NOW ) );
 	}
 
+	public function test_the_completion_link_opens_the_form_in_the_app_when_the_app_can_draw_it(): void {
+		Functions\when( 'add_query_arg' )->alias( static fn( $k, $v, $url ) => $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . $k . '=' . $v );
+		\Brain\Monkey\Filters\expectApplied( 'ffc_schedule_exception_form_url' )->andReturn( 'https://example.test/seminar/' );
+		\Brain\Monkey\Filters\expectApplied( 'site_pwa_app_url' )->with( 'https://example.test/seminar/' )->andReturn( 'https://example.test/app/?p=12' );
+
+		$this->assertSame(
+			'https://example.test/app/?p=12&ffc_invite=' . CertificateCompletionLink::code( self::FORM, self::USER ),
+			CertificateCompletionLink::link( self::FORM, self::USER )
+		);
+	}
+
 	public function test_the_filter_answers_only_its_own_codes(): void {
 		$this->assertNull( CertificateCompletionLink::filter( null, self::FORM, '5.7.abcdefghijklmnopqrstuv' ), 'an audience invitation is left to its resolver' );
 		$this->assertSame( array( 'user_id' => 3 ), CertificateCompletionLink::filter( array( 'user_id' => 3 ), self::FORM, 'c.7.x' ), 'an earlier answer stands' );

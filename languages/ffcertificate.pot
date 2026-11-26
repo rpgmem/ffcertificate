@@ -37364,5 +37364,5 @@ msgstr ""
 msgid "Your certificate was already issued. Open the app, under Certificates, to download it."
 msgstr ""
 
-msgid "A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply."
+msgid "A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail, which opens the form in the app when Site PWA is active. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply."
 msgstr ""
