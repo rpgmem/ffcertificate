@@ -398,8 +398,10 @@ class Shortcodes {
 				<?php
 				$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
 
-				// Password field (if active).
-				if ( ! empty( $restrictions['password'] ) && '1' === $restrictions['password'] ) {
+				// Password field (if active). A terminal's completion link
+				// skips it: the terminal already proved it (#2891).
+				$by_terminal = null !== $invite && ! empty( $invite['completion'] );
+				if ( ! $by_terminal && ! empty( $restrictions['password'] ) && '1' === $restrictions['password'] ) {
 					?>
 					<div class="ffc-form-field ffc-restriction-field">
 						<label for="ffc_password">

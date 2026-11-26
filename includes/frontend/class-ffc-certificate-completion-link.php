@@ -1,0 +1,260 @@
+<?php
+/**
+ * CertificateCompletionLink
+ *
+ * The personal link a participant gets when a terminal recorded their
+ * attendance but the profile could not fill every required field of the
+ * certificate form (#2891).
+ *
+ * @package FreeFormCertificate\Frontend
+ * @since 6.52.0
+ */
+
+declare(strict_types=1);
+
+namespace FreeFormCertificate\Frontend;
+
+use FreeFormCertificate\Core\EmailHelperTrait;
+use FreeFormCertificate\Core\EmailSource;
+use FreeFormCertificate\Core\EmailTemplates;
+use FreeFormCertificate\Core\TokenResolver;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Issues, resolves and spends the "complete your certificate" link.
+ *
+ * The link is the form's page with `?ffc_invite=c.<user>.<signature>`, the
+ * same query variable a personal invitation uses, so the form fills in the
+ * person's name and e-mail and locks them through {@see FormInvite}. It
+ * answers that filter for codes it recognises and leaves every other code
+ * to the next callback.
+ *
+ * The code holds no expiry: the reading does. It opens for seven days
+ * after the terminal last read the person, and only while that reading
+ * still waits on data, so a link is spent by the certificate it issues.
+ *
+ * Opened, it lifts the form's opening hours, its GPS area and its password,
+ * which the terminal already proved, and nothing else: a ticket, the
+ * deny and allow lists and the per-person limits still apply.
+ */
+final class CertificateCompletionLink {
+
+	use EmailHelperTrait;
+
+	/** How long a link stays open after the reading. */
+	public const TTL = 7 * DAY_IN_SECONDS;
+
+	/** Prefix that marks a completion code among invitation codes. */
+	public const PREFIX = 'c.';
+
+	/** Length of the signature, in base64url characters. */
+	private const SIGNATURE_LENGTH = 22;
+
+	/** Separates this signature from every other HMAC under the same salt. */
+	private const CONTEXT = 'ffc_certificate_completion_v1';
+
+	/** Template key of the e-mail. */
+	public const TEMPLATE = 'certificate-complete';
+
+	/**
+	 * Hook the resolver.
+	 *
+	 * Priority 5, before the audience invitation's resolver at 10, because
+	 * it answers only its own prefix and the audience one refuses any code
+	 * it cannot parse.
+	 *
+	 * @return void
+	 */
+	public static function register(): void {
+		add_filter( FormInvite::FILTER, array( self::class, 'filter' ), 5, 4 );
+	}
+
+	/**
+	 * The code for a person and a form.
+	 *
+	 * @param int $form_id Form id.
+	 * @param int $user_id Account id.
+	 * @return string
+	 */
+	public static function code( int $form_id, int $user_id ): string {
+		return self::PREFIX . $user_id . '.' . self::signature( $form_id, $user_id );
+	}
+
+	/**
+	 * The person a code is for, or null when it is not a valid completion
+	 * code for this form.
+	 *
+	 * @param string $code    Code from the request.
+	 * @param int    $form_id Form id.
+	 * @return int|null Account id.
+	 */
+	public static function user_of( string $code, int $form_id ): ?int {
+		if ( $form_id <= 0 || 1 !== preg_match( '/^c\.([1-9]\d{0,19})\.([A-Za-z0-9_-]{' . self::SIGNATURE_LENGTH . '})$/', $code, $m ) ) {
+			return null;
+		}
+		$user_id = (int) $m[1];
+		return hash_equals( self::signature( $form_id, $user_id ), $m[2] ) ? $user_id : null;
+	}
+
+	/**
+	 * The `ffcertificate_form_invite` callback.
+	 *
+	 * @param mixed $answer  What an earlier callback answered.
+	 * @param mixed $form_id Form post ID.
+	 * @param mixed $code    Code from the request.
+	 * @param mixed $cpf_rf  The CPF/RF typed, if any; not used.
+	 * @return mixed
+	 */
+	public static function filter( $answer, $form_id, $code, $cpf_rf = null ) {
+		unset( $cpf_rf );
+		if ( null !== $answer || ! is_string( $code ) || 0 !== strpos( $code, self::PREFIX ) ) {
+			return $answer;
+		}
+		return self::resolve( is_numeric( $form_id ) ? (int) $form_id : 0, $code, time() );
+	}
+
+	/**
+	 * Who a completion code is for, or why it is refused.
+	 *
+	 * @param int    $form_id Form id.
+	 * @param string $code    Code.
+	 * @param int    $now     Unix time.
+	 * @return array<string, mixed>|\WP_Error
+	 */
+	public static function resolve( int $form_id, string $code, int $now ) {
+		$user_id = self::user_of( $code, $form_id );
+		if ( null === $user_id ) {
+			return new \WP_Error( 'invalid', __( 'This link is not valid.', 'ffcertificate' ) );
+		}
+		$reading = CertificateTerminalReadingRepository::for_person( $form_id, $user_id );
+		if ( null !== $reading && CertificateTerminalReadingRepository::ISSUED === $reading['result'] ) {
+			return new \WP_Error( 'used', __( 'Your certificate was already issued. Open the app, under Certificates, to download it.', 'ffcertificate' ) );
+		}
+		if ( null === $reading || CertificateTerminalReadingRepository::AWAITING_DATA !== $reading['result'] ) {
+			return new \WP_Error( 'invalid', __( 'This link is not valid.', 'ffcertificate' ) );
+		}
+		if ( $now > self::expires_at( $reading['read_at'] ) ) {
+			return new \WP_Error( 'expired', __( 'This link has expired. Ask the event organisers for help.', 'ffcertificate' ) );
+		}
+		$user = get_userdata( $user_id );
+		if ( ! $user instanceof \WP_User || ! is_email( (string) $user->user_email ) ) {
+			return new \WP_Error( 'invalid', __( 'This link is not valid.', 'ffcertificate' ) );
+		}
+		return array(
+			'booking_id' => 0,
+			'user_id'    => $user_id,
+			'name'       => trim( (string) $user->display_name ),
+			'email'      => (string) $user->user_email,
+			'event'      => get_the_title( $form_id ),
+			'completion' => true,
+		);
+	}
+
+	/**
+	 * When a link opened by a reading at `$read_at` closes.
+	 *
+	 * @param int $read_at Moment of the reading.
+	 * @return int
+	 */
+	public static function expires_at( int $read_at ): int {
+		return $read_at + self::TTL;
+	}
+
+	/**
+	 * Whether the current request opens this form through a valid
+	 * completion link, which lifts the form's hours and GPS area in the
+	 * browser as well.
+	 *
+	 * @param int $form_id Form id.
+	 * @return bool
+	 */
+	public static function opens( int $form_id ): bool {
+		$code = \FreeFormCertificate\Core\RequestInput::get_get_string( FormInvite::QUERY_VAR );
+		if ( '' === $code || 0 !== strpos( $code, self::PREFIX ) ) {
+			return false;
+		}
+		return is_array( self::resolve( $form_id, $code, time() ) );
+	}
+
+	/**
+	 * Mark the reading issued once the certificate the link led to is saved.
+	 *
+	 * @param int $form_id       Form id.
+	 * @param int $user_id       Account id.
+	 * @param int $submission_id The certificate.
+	 * @return void
+	 */
+	public static function complete( int $form_id, int $user_id, int $submission_id ): void {
+		$reading = CertificateTerminalReadingRepository::for_person( $form_id, $user_id );
+		if ( null === $reading ) {
+			return;
+		}
+		CertificateTerminalReadingRepository::record( $form_id, $user_id, $reading['terminal_id'], $reading['read_at'], CertificateTerminalReadingRepository::ISSUED, '', array(), $submission_id, time() );
+	}
+
+	/**
+	 * The link for a person, or '' when no published page embeds the form.
+	 *
+	 * @param int $form_id Form id.
+	 * @param int $user_id Account id.
+	 * @return string
+	 */
+	public static function link( int $form_id, int $user_id ): string {
+		$page = ScheduleExceptionAction::find_form_page_url( $form_id );
+		return '' === $page ? '' : add_query_arg( FormInvite::QUERY_VAR, self::code( $form_id, $user_id ), $page );
+	}
+
+	/**
+	 * Send the "complete your certificate" e-mail.
+	 *
+	 * @param int   $form_id Form id.
+	 * @param int   $user_id Account id.
+	 * @param array $missing Labels of the fields still to fill.
+	 * @param int   $read_at Moment of the reading.
+	 * @phpstan-param list<string> $missing
+	 * @return bool Whether it was sent.
+	 */
+	public static function send( int $form_id, int $user_id, array $missing, int $read_at ): bool {
+		$user = get_userdata( $user_id );
+		$link = self::link( $form_id, $user_id );
+		if ( ! $user instanceof \WP_User || ! is_email( (string) $user->user_email ) || '' === $link ) {
+			return false;
+		}
+
+		$plain = array(
+			'user_name'  => (string) $user->display_name,
+			'form_title' => get_the_title( $form_id ),
+			'form_link'  => $link,
+			'missing'    => implode( ', ', $missing ),
+			'closes_at'  => \FreeFormCertificate\Core\DateFormatter::format_datetime( self::expires_at( $read_at ) ),
+			'site_name'  => (string) get_bloginfo( 'name' ),
+		);
+		$html  = array_map( 'esc_html', $plain );
+
+		$html['form_link'] = esc_url( $link );
+
+		return self::ffc_send_mail(
+			(string) $user->user_email,
+			TokenResolver::resolve( EmailTemplates::effective_body( self::TEMPLATE, 'subject' ), $plain ),
+			self::ffc_email_document( TokenResolver::resolve( EmailTemplates::effective_body( self::TEMPLATE ), $html ), array( 'recipient' => (string) $user->user_email ) ),
+			array(),
+			EmailSource::CERTIFICATE
+		);
+	}
+
+	/**
+	 * The signature of a person and a form.
+	 *
+	 * @param int $form_id Form id.
+	 * @param int $user_id Account id.
+	 * @return string
+	 */
+	private static function signature( int $form_id, int $user_id ): string {
+		$key = hash_hmac( 'sha256', self::CONTEXT, wp_salt( 'nonce' ) );
+		$raw = hash_hmac( 'sha256', $form_id . '|' . $user_id, $key, true );
+		return substr( rtrim( strtr( base64_encode( $raw ), '+/', '-_' ), '=' ), 0, self::SIGNATURE_LENGTH ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- base64url of an HMAC digest, not obfuscation.
+	}
+}

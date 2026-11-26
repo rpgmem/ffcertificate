@@ -62,6 +62,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class CertificateFormTarget implements TerminalTargetInterface {
 
 	/**
+	 * Sends the "complete your certificate" e-mail.
+	 *
+	 * @var callable
+	 */
+	private $notify;
+
+	/**
+	 * The labels of the missing fields, as the person reads them.
+	 *
+	 * @param list<array<string, mixed>> $fields  Form fields.
+	 * @param array                      $missing Missing field names.
+	 * @phpstan-param list<string> $missing
+	 * @return list<string>
+	 */
+	public static function missing_labels( array $fields, array $missing ): array {
+		$labels = array();
+		foreach ( $missing as $name ) {
+			$label = 'cpf_rf' === $name ? __( 'CPF/RF', 'ffcertificate' ) : $name;
+			foreach ( $fields as $field ) {
+				if ( ( $field['name'] ?? '' ) === $name && isset( $field['label'] ) && is_string( $field['label'] ) && '' !== trim( $field['label'] ) ) {
+					$label = trim( $field['label'] );
+					break;
+				}
+			}
+			$labels[] = $label;
+		}
+		return $labels;
+	}
+
+	/**
 	 * Target type id.
 	 */
 	public const TYPE = 'certificate_form';
@@ -131,8 +161,9 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 	 * @param callable|null $restrict Checks the form's restrictions.
 	 * @param callable|null $limit    Checks the per-person limits.
 	 * @param callable|null $existing Finds an existing certificate.
+	 * @param callable|null $notify   Sends the "complete your certificate" e-mail.
 	 */
-	public function __construct( ?callable $save = null, ?callable $link = null, ?callable $restrict = null, ?callable $limit = null, ?callable $existing = null ) {
+	public function __construct( ?callable $save = null, ?callable $link = null, ?callable $restrict = null, ?callable $limit = null, ?callable $existing = null, ?callable $notify = null ) {
 		$handler        = null;
 		$handler_of     = static function () use ( &$handler ): SubmissionHandler {
 			$handler = $handler ?? new SubmissionHandler();
@@ -143,6 +174,7 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 		$this->restrict = $restrict ?? array( AccessRestrictionChecker::class, 'check' );
 		$this->limit    = $limit ?? array( self::class, 'person_limit' );
 		$this->existing = $existing ?? array( ReprintDetector::class, 'detect' );
+		$this->notify   = $notify ?? array( CertificateCompletionLink::class, 'send' );
 	}
 
 	/**
@@ -360,6 +392,11 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 		}
 		if ( array() !== $missing ) {
 			CertificateTerminalReadingRepository::record( $form_id, $user_id, $reading['terminal_id'], $at, CertificateTerminalReadingRepository::AWAITING_DATA, '', $missing, null, time() );
+			// The link goes out once per wait: a second reading of the same
+			// person reopens the link for seven days without a second e-mail.
+			if ( null === $previous || CertificateTerminalReadingRepository::AWAITING_DATA !== $previous['result'] ) {
+				( $this->notify )( $form_id, $user_id, self::missing_labels( $fields, $missing ), $at );
+			}
 			return array(
 				'status'  => TerminalVerdict::PENDING,
 				'code'    => 'ffc_terminal_awaiting_data',

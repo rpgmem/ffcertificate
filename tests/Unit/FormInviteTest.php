@@ -27,6 +27,7 @@ class FormInviteTest extends TestCase {
 		'name'       => 'ana souza',
 		'email'      => 'Ana@Example.org',
 		'event'      => 'Workshop',
+		'completion' => false,
 	);
 
 	protected function setUp(): void {

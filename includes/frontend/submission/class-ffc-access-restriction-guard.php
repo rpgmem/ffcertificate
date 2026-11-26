@@ -31,8 +31,14 @@ class AccessRestrictionGuard {
 	public function apply( SubmissionContext $ctx ): void {
 		// A spent ticket is checked against the submission's single lookup
 		// (#2241); the ticket it is keyed on is the one checked here.
+		// A terminal's completion link (#2891) skips the password the
+		// terminal already proved; every other restriction still applies.
+		$form_config = $ctx->form_config;
+		if ( ! empty( $ctx->invite['completion'] ) && isset( $form_config['restrictions'] ) && is_array( $form_config['restrictions'] ) ) {
+			unset( $form_config['restrictions']['password'] );
+		}
 		$restriction_result = \FreeFormCertificate\Frontend\AccessRestrictionChecker::check(
-			$ctx->form_config,
+			$form_config,
 			$ctx->val_cpf,
 			$ctx->val_ticket,
 			$ctx->form_id,

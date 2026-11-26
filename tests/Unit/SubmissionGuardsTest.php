@@ -710,6 +710,29 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertNull( ( new GeofenceGuard() )->apply( $this->ctx() ) );
 	}
 
+	public function test_geofence_guard_lets_a_terminal_completion_link_through(): void {
+		$this->gps_form_with_reading( '0', '0' );
+		$ctx         = $this->ctx();
+		$ctx->invite = self::completion_invite();
+		$this->assertNull( ( new GeofenceGuard() )->apply( $ctx ), 'The terminal that read the person proved the place (#2891).' );
+	}
+
+	/**
+	 * A terminal's completion link, as FormInvite resolves it.
+	 *
+	 * @return array{booking_id: int, user_id: int, name: string, email: string, event: string, completion: bool}
+	 */
+	private static function completion_invite(): array {
+		return array(
+			'booking_id' => 0,
+			'user_id'    => 7,
+			'name'       => 'Ana Souza',
+			'email'      => 'ana@example.org',
+			'event'      => 'Seminar',
+			'completion' => true,
+		);
+	}
+
 	// ===================== RateLimitGuard =====================
 
 	public function test_rate_limit_guard_throws_when_blocked(): void {
@@ -767,5 +790,13 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertTrue( $ctx->ticket_claim_open, 'The persister settles the claim.' );
 		$this->assertCount( 1, $this->queries, 'The ticket was claimed once.' );
 		$this->assertSame( array(), $this->meta_writes, 'The ticket stays listed until a submission is saved (#2341).' );
+	}
+
+	public function test_access_restriction_guard_skips_the_password_for_a_terminal_completion_link(): void {
+		$ctx              = $this->ctx();
+		$ctx->invite      = self::completion_invite();
+		$ctx->form_config = array( 'restrictions' => array( 'password' => '1' ), 'validation_code' => FakeCredentials::FORM_PASSWORD );
+		( new AccessRestrictionGuard() )->apply( $ctx );
+		$this->assertTrue( $ctx->restriction_result['allowed'], 'The terminal proved the password (#2891).' );
 	}
 }

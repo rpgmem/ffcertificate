@@ -81,4 +81,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Fill from profile at the terminal', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'When an event terminal reads the participant\'s QR, the certificate is issued from the profile. Name, email and CPF/RF are always taken from it. Any other field may name a field of the global profile list under "Fill from profile at the terminal", and a checkbox may be "Accepted by showing the QR". A choice takes the profile value only when it is one of its options. A required field left without a value is completed by the participant on the phone.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply.', 'ffcertificate' ); ?></p>
 </div>

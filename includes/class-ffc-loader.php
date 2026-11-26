@@ -159,6 +159,8 @@ class Loader {
 			\FreeFormCertificate\Frontend\CertificateFormTarget::TYPE,
 			static fn(): \FreeFormCertificate\Frontend\CertificateFormTarget => new \FreeFormCertificate\Frontend\CertificateFormTarget()
 		);
+		// The link that completes a certificate a terminal could not issue.
+		\FreeFormCertificate\Frontend\CertificateCompletionLink::register();
 
 		// Ensure activity_log schema is healed. Installs created in a
 		// pre-`action`-column plugin version skipped dbDelta on every

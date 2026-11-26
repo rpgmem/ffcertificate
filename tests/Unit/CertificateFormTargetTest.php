@@ -6,6 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\TerminalVerdict;
+use FreeFormCertificate\Frontend\CertificateCompletionLink;
 use FreeFormCertificate\Frontend\CertificateFormTarget;
 use FreeFormCertificate\Frontend\CertificateTerminalReadingRepository;
 use FreeFormCertificate\Tests\Support\FakeCredentials;
@@ -23,6 +24,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @covers \FreeFormCertificate\Frontend\CertificateFormTarget
  * @covers \FreeFormCertificate\Frontend\CertificateTerminalReadingRepository
+ * @covers \FreeFormCertificate\Frontend\CertificateCompletionLink
  */
 class CertificateFormTargetTest extends TestCase {
 
@@ -48,6 +50,9 @@ class CertificateFormTargetTest extends TestCase {
 
 	/** @var list<array<string, mixed>> */
 	private array $checked = array();
+
+	/** @var list<array<string, mixed>> */
+	private array $notified = array();
 
 	/** @var object */
 	private $db;
@@ -257,6 +262,24 @@ class CertificateFormTargetTest extends TestCase {
 		$row = CertificateTerminalReadingRepository::for_person( self::FORM, self::USER );
 		$this->assertSame( CertificateTerminalReadingRepository::AWAITING_DATA, $row['result'] );
 		$this->assertSame( array( 'school' ), $row['missing'], 'only the required field, not the optional one' );
+		$this->assertCount( 1, $this->notified, 'the person is sent the link to complete it' );
+		$this->assertSame( array( 'school' ), $this->notified[0]['missing'] );
+	}
+
+	public function test_a_second_reading_that_still_waits_sends_no_second_email(): void {
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array(
+			'name'     => 'school',
+			'label'    => 'School',
+			'type'     => 'text',
+			'required' => '1',
+		);
+
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+		$this->target()->terminal_read( self::FORM, array( 'at' => self::NOW + 60 ) + $this->reading() );
+
+		$this->assertCount( 1, $this->notified );
+		$this->assertSame( array( 'School' ), $this->notified[0]['missing'], 'the e-mail names the field by its label' );
+		$this->assertSame( self::NOW + 60, CertificateTerminalReadingRepository::for_person( self::FORM, self::USER )['read_at'], 'the later reading reopens the link' );
 	}
 
 	public function test_no_cpf_anywhere_waits_on_the_cpf(): void {
@@ -371,6 +394,59 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( CertificateTerminalReadingRepository::ISSUED, CertificateTerminalReadingRepository::for_person( self::FORM, self::USER )['result'] );
 	}
 
+	// ---- The completion link -----------------------------------------
+
+	public function test_a_completion_code_names_its_person_for_its_form_only(): void {
+		$code = CertificateCompletionLink::code( self::FORM, self::USER );
+
+		$this->assertStringStartsWith( CertificateCompletionLink::PREFIX, $code );
+		$this->assertSame( self::USER, CertificateCompletionLink::user_of( $code, self::FORM ) );
+		$this->assertNull( CertificateCompletionLink::user_of( $code, self::FORM + 1 ), 'another form' );
+		$this->assertNull( CertificateCompletionLink::user_of( 'c.8.' . substr( $code, -22 ), self::FORM ), 'another person' );
+		$this->assertNull( CertificateCompletionLink::user_of( 'c.7.short', self::FORM ) );
+	}
+
+	public function test_a_completion_link_opens_while_the_reading_waits_and_closes_after_seven_days(): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		$code = CertificateCompletionLink::code( self::FORM, self::USER );
+
+		$this->assertInstanceOf( \WP_Error::class, CertificateCompletionLink::resolve( self::FORM, $code, self::NOW ), 'no reading, no link' );
+
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'type' => 'text', 'required' => '1' );
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+
+		$invite = CertificateCompletionLink::resolve( self::FORM, $code, self::NOW + 3600 );
+		$this->assertIsArray( $invite );
+		$this->assertTrue( $invite['completion'] );
+		$this->assertSame( self::USER, $invite['user_id'] );
+		$this->assertSame( 'Maria@Example.test', $invite['email'] );
+
+		$expired = CertificateCompletionLink::resolve( self::FORM, $code, self::NOW + CertificateCompletionLink::TTL + 1 );
+		$this->assertInstanceOf( \WP_Error::class, $expired );
+		$this->assertSame( 'expired', $expired->get_error_code() );
+	}
+
+	public function test_the_certificate_it_issues_spends_the_link(): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'type' => 'text', 'required' => '1' );
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+
+		CertificateCompletionLink::complete( self::FORM, self::USER, 901 );
+
+		$row = CertificateTerminalReadingRepository::for_person( self::FORM, self::USER );
+		$this->assertSame( CertificateTerminalReadingRepository::ISSUED, $row['result'] );
+		$this->assertSame( 901, $row['submission_id'] );
+		$used = CertificateCompletionLink::resolve( self::FORM, CertificateCompletionLink::code( self::FORM, self::USER ), self::NOW );
+		$this->assertInstanceOf( \WP_Error::class, $used );
+		$this->assertSame( 'used', $used->get_error_code() );
+	}
+
+	public function test_the_filter_answers_only_its_own_codes(): void {
+		$this->assertNull( CertificateCompletionLink::filter( null, self::FORM, '5.7.abcdefghijklmnopqrstuv' ), 'an audience invitation is left to its resolver' );
+		$this->assertSame( array( 'user_id' => 3 ), CertificateCompletionLink::filter( array( 'user_id' => 3 ), self::FORM, 'c.7.x' ), 'an earlier answer stands' );
+		$this->assertInstanceOf( \WP_Error::class, CertificateCompletionLink::filter( null, self::FORM, 'c.7.x' ) );
+	}
+
 	// ---- Helpers -----------------------------------------------------
 
 	/**
@@ -401,7 +477,11 @@ class CertificateFormTargetTest extends TestCase {
 			$with['existing'] ?? static fn() => array(
 				'is_reprint' => false,
 				'id'         => 0,
-			)
+			),
+			function ( int $form_id, int $user_id, array $missing, int $read_at ): bool {
+				$this->notified[] = compact( 'form_id', 'user_id', 'missing', 'read_at' );
+				return true;
+			}
 		);
 	}
 
