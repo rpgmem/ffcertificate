@@ -623,19 +623,24 @@ class AppScreensTest extends TestCase {
 	public function test_preference_sections_skip_a_person_without_the_messages_tab(): void {
 		$this->settings['module_date_messages_enabled'] = false;
 
-		$this->assertSame( array( array( 'id' => 'other' ) ), DashboardAppScreens::preference_sections( array( array( 'id' => 'other' ) ), $this->user( 7 ) ) );
+		$this->assertSame( array( 'other' => array( 'label' => 'Other' ) ), DashboardAppScreens::preference_sections( array( 'other' => array( 'label' => 'Other' ) ), $this->user( 7 ) ) );
 	}
 
 	public function test_preference_sections_add_messages_after_what_was_there(): void {
 		$this->settings['module_date_messages_enabled'] = true;
 
-		$sections = DashboardAppScreens::preference_sections( array( array( 'id' => 'other' ) ), $this->user( 7 ) );
+		$sections = DashboardAppScreens::preference_sections( array( 'other' => array( 'label' => 'Other' ) ), $this->user( 7 ) );
 
-		$this->assertCount( 2, $sections );
-		$this->assertSame( 'other', $sections[0]['id'] );
-		$this->assertSame( 'messages', $sections[1]['id'] );
-		$this->assertSame( 'Messages', $sections[1]['label'] );
-		$this->assertIsCallable( $sections[1]['render'] );
+		$this->assertSame( array( 'other', 'messages' ), array_keys( $sections ) );
+		$this->assertSame( 'Messages', $sections['messages']['label'] );
+		$this->assertIsCallable( $sections['messages']['render'] );
+	}
+
+	public function test_preference_sections_keep_a_messages_section_another_plugin_set(): void {
+		$this->settings['module_date_messages_enabled'] = true;
+		$theirs = array( 'messages' => array( 'label' => 'Theirs' ) );
+
+		$this->assertSame( $theirs, DashboardAppScreens::preference_sections( $theirs, $this->user( 7 ) ) );
 	}
 
 	public function test_the_message_toggles_read_the_stored_choice_and_save_through_the_profile_route(): void {

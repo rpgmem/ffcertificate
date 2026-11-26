@@ -72,11 +72,13 @@ final class DashboardAppScreens {
 		if ( empty( DashboardAssetManager::tab_permissions( $user_id )['messages'] ) ) {
 			return $sections;
 		}
-		$sections[] = array(
-			'id'     => 'messages',
-			'label'  => __( 'Messages', 'ffcertificate' ),
-			'render' => static fn(): string => self::message_preferences( $user_id ),
-		);
+		// Sections are keyed by id; one another plugin named `messages` is kept.
+		if ( ! isset( $sections['messages'] ) ) {
+			$sections['messages'] = array(
+				'label'  => __( 'Messages', 'ffcertificate' ),
+				'render' => static fn(): string => self::message_preferences( $user_id ),
+			);
+		}
 		return $sections;
 	}
 
