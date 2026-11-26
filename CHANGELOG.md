@@ -57,6 +57,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - `CLAUDE.md` keeps the rules, reasons and traps of its opening rules, the workflow, the stylesheets and the legacy log, and their history moves verbatim to five files under `docs/engineering/` (#2860)
 - `CLAUDE.md` corrects four statements the tree contradicts (the capability qualifiers, the captcha retry paths, the BEM islands, the Dependabot retarget step), and the history left in the testing, architecture and domain sections moves verbatim to `docs/engineering/` (#2863)
 - The stylesheet rules (sheet architecture, naming, page scope, theme) and the release, hotfix, sync and deploy recipe move from `CLAUDE.md` to path-scoped `.claude/rules/` files, so an agent session loads them only when it works in `assets/css/` or `.github/`; `CLAUDE.md` keeps a pointer to each (#2865)
+- The test-writing rules and the audited lint-config verdicts move from `CLAUDE.md` to path-scoped `.claude/rules/` files, loaded when an agent session works in `tests/` or edits a lint config, and four references the stylesheet split left stale name their new home (#2867)
 
 ### Security
 

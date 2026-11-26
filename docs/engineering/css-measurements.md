@@ -1,6 +1,6 @@
 # Stylesheets and theme — history and measurements
 
-This file is the record behind `CLAUDE.md` "Stylesheets and theme": the measurements and renders behind each standing decision about sheets, naming, page scope, scales and the palette.
+This file is the record behind `CLAUDE.md` "Stylesheets and theme" and `.claude/rules/stylesheets.md`, which holds its CSS-only half since #2866: the measurements and renders behind each standing decision about sheets, naming, page scope, scales and the palette.
 
 Each section is the `CLAUDE.md` text as it stood when it moved here (#2860), so its present tense describes that moment. Read `CLAUDE.md` and the code for what is true now.
 

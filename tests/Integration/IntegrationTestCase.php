@@ -109,7 +109,7 @@ abstract class IntegrationTestCase extends TestCase {
 	 * the branch instead of inheriting it, so no chain reaches a `CREATE`.
 	 * `dbDelta` is deliberately NOT stubbed here: a stub stays defined for the
 	 * rest of the process, which is the order-dependence being fixed
-	 * (CLAUDE.md "Quality gates and testing" → "Test infrastructure").
+	 * (`.claude/rules/tests.md`).
 	 *
 	 * Not the default: PluginActivationSmokeTest needs the empty database so
 	 * that activation issues its `CREATE`s.

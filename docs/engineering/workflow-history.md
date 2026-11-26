@@ -1,6 +1,6 @@
 # Contributing workflow — history and measurements
 
-This file is the record behind `CLAUDE.md` "Contributing workflow": the release and tag incidents, the Dependabot and credential findings, the branch-protection reading, how the post-deploy smoke became blocking, and the CHANGELOG measurements.
+This file is the record behind `CLAUDE.md` "Contributing workflow" and `.claude/rules/release-and-deploy.md`, which holds its release, sync and deploy recipe since #2866: the release and tag incidents, the Dependabot and credential findings, the branch-protection reading, how the post-deploy smoke became blocking, and the CHANGELOG measurements.
 
 Each section is the `CLAUDE.md` text as it stood when it moved here (#2860), so its present tense describes that moment. Read `CLAUDE.md` and the code for what is true now.
 
