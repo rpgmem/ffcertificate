@@ -37366,3 +37366,23 @@ msgstr ""
 
 msgid "A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail, which opens the form in the app when Site PWA is active. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply."
 msgstr ""
+
+msgid "Consent accepted at the terminal"
+msgstr ""
+
+msgid "Terminal that read the consent"
+msgstr ""
+
+#. translators: %s: terminal id
+#, php-format
+msgid "Terminal #%s"
+msgstr ""
+
+msgid "Certificate Issued at the Terminal"
+msgstr ""
+
+msgid "Terminal Certificate Awaiting Data"
+msgstr ""
+
+msgid "A consent accepted by the reading keeps, beside the answers, the time of the reading and the terminal that read it, shown on the submission's edit screen. The activity log records each certificate issued at the terminal and each reading left waiting on data, under Certificates."
+msgstr ""

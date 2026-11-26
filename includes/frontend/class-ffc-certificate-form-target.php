@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\Attendance;
 use FreeFormCertificate\Core\DataSanitizer;
 use FreeFormCertificate\Core\DateFormatter;
@@ -111,6 +112,12 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 	 * Only the people on the form's allow list may.
 	 */
 	public const WHO_ALLOWLIST = 'allowlist';
+
+	/** Data key: when the reading accepted the form's consent (Unix UTC). */
+	public const CONSENT_AT_KEY = '_terminal_consent_at';
+
+	/** Data key: the terminal whose reading accepted the consent. */
+	public const CONSENT_TERMINAL_KEY = '_terminal_consent_terminal';
 
 	/**
 	 * Field types that hold no answer.
@@ -407,6 +414,16 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			// person reopens the link for seven days without a second e-mail.
 			if ( null === $previous || CertificateTerminalReadingRepository::AWAITING_DATA !== $previous['result'] ) {
 				( $this->notify )( $form_id, $user_id, self::missing_labels( $fields, $missing ), $at );
+				ActivityLog::log(
+					'terminal_certificate_awaiting_data',
+					ActivityLog::LEVEL_INFO,
+					array(
+						'form_id'     => $form_id,
+						'terminal_id' => $reading['terminal_id'],
+						'missing'     => $missing,
+					),
+					$user_id
+				);
 			}
 			return array(
 				'status'  => TerminalVerdict::PENDING,
@@ -475,6 +492,7 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			if ( '' !== $ticket ) {
 				$data['ticket'] = $ticket;
 			}
+			$data         += self::consent_record( $fields, $reading['at'], $reading['terminal_id'] );
 			$submission_id = ( $this->save )(
 				$form_id,
 				(string) get_the_title( $form_id ),
@@ -500,6 +518,16 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 				AccessRestrictionChecker::consume_ticket( $form_id, $ticket );
 			}
 			CertificateTerminalReadingRepository::record( $form_id, $reading['user_id'], $reading['terminal_id'], $reading['at'], CertificateTerminalReadingRepository::ISSUED, '', array(), $submission_id, time() );
+			ActivityLog::log(
+				'terminal_certificate_issued',
+				ActivityLog::LEVEL_INFO,
+				array(
+					'form_id'     => $form_id,
+					'terminal_id' => $reading['terminal_id'],
+				),
+				$reading['user_id'],
+				(int) $submission_id
+			);
 		} finally {
 			$lock->release();
 		}
@@ -511,6 +539,28 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			'name'    => $reading['name'],
 			'time'    => DateFormatter::format_time( $reading['at'] ),
 		);
+	}
+
+	/**
+	 * When and where a consent field was accepted by the reading: the
+	 * reading's time and the terminal that read it, kept beside the answers
+	 * as internal keys, so the acceptance carries its own proof.
+	 *
+	 * @param list<array<string, mixed>> $fields      Form fields.
+	 * @param int                        $at          Reading time (Unix UTC).
+	 * @param int                        $terminal_id Terminal id.
+	 * @return array<string, int> Empty when no field is accepted by the reading.
+	 */
+	public static function consent_record( array $fields, int $at, int $terminal_id ): array {
+		foreach ( $fields as $field ) {
+			if ( CertificateProfileSource::CONSENT === CertificateProfileSource::of( $field ) ) {
+				return array(
+					self::CONSENT_AT_KEY       => $at,
+					self::CONSENT_TERMINAL_KEY => $terminal_id,
+				);
+			}
+		}
+		return array();
 	}
 
 	/**

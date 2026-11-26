@@ -828,6 +828,29 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-edit-answers', $html, 'None of these is an answer.' );
 	}
 
+	public function test_render_names_the_consent_a_terminal_reading_accepted(): void {
+		$row = $this->submission_row(
+			array(
+				'data' => self::json(
+					array(
+						\FreeFormCertificate\Frontend\CertificateFormTarget::CONSENT_AT_KEY => 1800000000,
+						\FreeFormCertificate\Frontend\CertificateFormTarget::CONSENT_TERMINAL_KEY => 3,
+					)
+				),
+			)
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Consent accepted at the terminal</dt>', $html );
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Terminal that read the consent</dt>', $html );
+		$this->assertStringContainsString( '<dd class="ffc-facts__value">Terminal #3<', $html );
+		$this->assertStringNotContainsString( '<dd class="ffc-facts__value">1800000000<', $html, 'The time reads as a date, not a number.' );
+	}
+
 	public function test_render_says_no_when_the_quiz_was_failed(): void {
 		$row = $this->submission_row( array( 'data' => self::json( array( '_quiz_passed' => '0' ) ) ) );
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
