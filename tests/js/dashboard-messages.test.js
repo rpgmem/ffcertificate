@@ -89,13 +89,13 @@ describe('Messages panel', () => {
 	});
 
 	it('leaves the preferences out where the app shows them in Preferences', () => {
-		window.ffcDashboard.messagePreferences = false;
+		window.ffcDashboard.notificationPreferences = false;
 		panel().state = state([message(1)], []);
 		panel().render(panel().state);
 
 		expect(document.querySelector('.ffc-messages').classList.contains('ffc-messages-list-only')).toBe(true);
 		expect(document.querySelectorAll('.ffc-message-pref-toggle')).toHaveLength(0);
-		delete window.ffcDashboard.messagePreferences;
+		delete window.ffcDashboard.notificationPreferences;
 	});
 
 	it('draws each preference as stored, on unless turned off', () => {

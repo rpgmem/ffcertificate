@@ -56,9 +56,10 @@ final class DashboardAppScreens {
 	}
 
 	/**
-	 * The Messages section of the app's Preferences (site-pwa#66): the two
-	 * e-mail toggles the Messages tab carries on the site, for a person who
-	 * sees that tab. The app's Messages screen then shows only the list.
+	 * The Notifications section of the app's Preferences (site-pwa#66): the
+	 * e-mail toggles the dashboard keeps on its Profile and Messages tabs.
+	 * The appointment reminder is everyone's, as on Profile; the two
+	 * date-message toggles join it for a person who sees the Messages tab.
 	 *
 	 * @param mixed $sections What the app or another plugin handed.
 	 * @param mixed $user     The signed-in user.
@@ -68,48 +69,45 @@ final class DashboardAppScreens {
 		if ( ! is_array( $sections ) || ! $user instanceof \WP_User || $user->ID <= 0 ) {
 			return $sections;
 		}
-		$user_id = (int) $user->ID;
-		if ( empty( DashboardAssetManager::tab_permissions( $user_id )['messages'] ) ) {
-			return $sections;
-		}
-		// Sections are keyed by id; one another plugin named `messages` is kept.
-		if ( ! isset( $sections['messages'] ) ) {
-			$sections['messages'] = array(
-				'label'  => __( 'Messages', 'ffcertificate' ),
-				'render' => static fn(): string => self::message_preferences( $user_id ),
+		// Sections are keyed by id; one another plugin named `notifications` is kept.
+		if ( ! isset( $sections['notifications'] ) ) {
+			$user_id                   = (int) $user->ID;
+			$sections['notifications'] = array(
+				'label'  => __( 'Notifications', 'ffcertificate' ),
+				'render' => static fn(): string => self::notification_preferences( $user_id ),
 			);
 		}
 		return $sections;
 	}
 
 	/**
-	 * The two message toggles, with the script that saves them through the
+	 * The notification toggles, with the script that saves them through the
 	 * same `user/profile` route the dashboard uses.
 	 *
 	 * @param int $user_id Person.
 	 * @return string
 	 */
-	public static function message_preferences( int $user_id ): string {
+	public static function notification_preferences( int $user_id ): string {
 		AssetHelper::enqueue_common_style();
 		AssetHelper::enqueue_dark_mode();
 		AssetRegistry::enqueue_scripts( 'ffc-core' );
 		$suffix = AssetHelper::asset_suffix();
 		wp_enqueue_style(
-			'ffc-app-message-preferences-css',
-			FFC_PLUGIN_URL . "assets/css/ffc-app-message-preferences{$suffix}.css",
+			'ffc-app-notification-preferences-css',
+			FFC_PLUGIN_URL . "assets/css/ffc-app-notification-preferences{$suffix}.css",
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 		wp_enqueue_script(
-			'ffc-app-message-preferences',
-			FFC_PLUGIN_URL . "assets/js/ffc-app-message-preferences{$suffix}.js",
+			'ffc-app-notification-preferences',
+			FFC_PLUGIN_URL . "assets/js/ffc-app-notification-preferences{$suffix}.js",
 			array( 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
 		wp_localize_script(
-			'ffc-app-message-preferences',
-			'ffcAppMessagePreferences',
+			'ffc-app-notification-preferences',
+			'ffcAppNotificationPreferences',
 			array(
 				'rest'    => esc_url_raw( rest_url( 'ffc/v1/user/profile' ) ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),
@@ -120,22 +118,28 @@ final class DashboardAppScreens {
 			)
 		);
 
-		$toggles = array(
-			'notify_date_messages'      => array( __( 'Date messages', 'ffcertificate' ), __( 'Such as birthday greetings.', 'ffcertificate' ) ),
-			'notify_date_announcements' => array( __( 'Announcements from this site', 'ffcertificate' ), '' ),
+		$toggles  = array(
+			UserManager::NOTIFY_APPOINTMENT_REMINDER => array( __( 'Appointment reminder', 'ffcertificate' ), '' ),
 		);
-		$html    = '<div class="ffc-shortcode ffc-app-message-preferences">';
+		$messages = ! empty( DashboardAssetManager::tab_permissions( $user_id )['messages'] );
+		if ( $messages ) {
+			$toggles['notify_date_messages']      = array( __( 'Date messages', 'ffcertificate' ), __( 'Such as birthday greetings.', 'ffcertificate' ) );
+			$toggles['notify_date_announcements'] = array( __( 'Announcements from this site', 'ffcertificate' ), '' );
+		}
+		$html = '<div class="ffc-shortcode ffc-app-notification-preferences">';
 		foreach ( $toggles as $key => $text ) {
-			$html .= '<label class="ffc-control-toggle ffc-control-toggle-mark ffc-message-pref">'
-				. '<input type="checkbox" class="ffc-message-pref-toggle" data-key="' . esc_attr( $key ) . '"'
+			$html .= '<label class="ffc-control-toggle ffc-control-toggle-mark">'
+				. '<input type="checkbox" class="ffc-app-notification-toggle" data-key="' . esc_attr( $key ) . '"'
 				. checked( UserManager::wants_notification( $user_id, $key ), true, false ) . ' />'
 				. '<span class="ffc-control-toggle-track" aria-hidden="true"></span>'
 				. '<span class="ffc-control-toggle-label">' . esc_html( $text[0] )
-				. ( '' === $text[1] ? '' : '<small class="ffc-message-pref-desc">' . esc_html( $text[1] ) . '</small>' )
+				. ( '' === $text[1] ? '' : '<small class="ffc-app-notification-desc">' . esc_html( $text[1] ) . '</small>' )
 				. '</span></label>';
 		}
-		$html .= '<p class="ffc-notif-hint">' . esc_html__( 'The unsubscribe link at the end of these e-mails turns off the same preference.', 'ffcertificate' ) . '</p>';
-		$html .= '<span class="ffc-message-pref-status ffc-status" role="status" aria-live="polite" hidden></span>';
+		if ( $messages ) {
+			$html .= '<p class="ffc-app-notification-hint">' . esc_html__( 'The unsubscribe link at the end of these e-mails turns off the same preference.', 'ffcertificate' ) . '</p>';
+		}
+		$html .= '<span class="ffc-app-notification-status ffc-status" role="status" aria-live="polite" hidden></span>';
 		return $html . '</div>';
 	}
 
@@ -276,6 +280,8 @@ final class DashboardAppScreens {
 				'place'    => 'more',
 				'position' => 20,
 				'tabs'     => array( 'messages' ),
+				// The toggles live in the app's Preferences (site-pwa#66).
+				'render'   => array( self::class, 'render_without_preferences' ),
 			),
 			'reregistration'     => array(
 				'label'    => __( 'Reregistration', 'ffcertificate' ),
@@ -299,21 +305,23 @@ final class DashboardAppScreens {
 				'place'    => 'more',
 				'position' => 30,
 				'tabs'     => array( 'profile' ),
+				// The toggles live in the app's Preferences (site-pwa#66).
+				'render'   => array( self::class, 'render_without_preferences' ),
 			),
 		);
 	}
 
 	/**
-	 * The app's Messages screen: the dashboard's Messages tab, without its
-	 * two toggles where the app shows them in Preferences instead.
+	 * The app's Messages and Profile screens: their dashboard tab, without
+	 * the notification toggles where the app shows them in Preferences.
 	 *
 	 * @param array<int, string> $tabs The tabs this person sees.
 	 * @return string
 	 */
-	public static function render_messages( array $tabs ): string {
+	public static function render_without_preferences( array $tabs ): string {
 		$html = DashboardShortcode::render( array( 'tabs' => implode( ',', $tabs ) ) );
 		if ( self::app_has_preference_sections() ) {
-			wp_add_inline_script( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.messagePreferences = false);', 'after' );
+			wp_add_inline_script( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.notificationPreferences = false);', 'after' );
 		}
 		return $html;
 	}
@@ -321,8 +329,8 @@ final class DashboardAppScreens {
 	/**
 	 * Whether the running Site PWA draws plugin sections in Preferences
 	 * (site-pwa#66). The two plugins update apart, and an app without them
-	 * would leave the toggles nowhere, so the Messages screen keeps them
-	 * there until it has. The one Site PWA name this plugin reads.
+	 * would leave the toggles nowhere, so Messages and Profile keep them
+	 * until it has. The one Site PWA name this plugin reads.
 	 *
 	 * @param string $frame The app's frame class; a test names its own.
 	 * @return bool

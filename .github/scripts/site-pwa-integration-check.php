@@ -31,9 +31,9 @@
  *   3. As an administrator, Site PWA's registry holds at least one screen and
  *      refused none (`Screens::add()` reports a refusal through
  *      `_doing_it_wrong()`), More's "My details" opens the Profile screen
- *      where the app has that link, and Preferences carries the Messages
- *      section exactly while the Messages tab shows, where the app has
- *      sections.
+ *      where the app has that link, and Preferences carries the
+ *      Notifications section, with the date-message toggles exactly while
+ *      the Messages tab shows, where the app has sections.
  *   4. Both look sources are offered under the id `ffc`, and their readers
  *      answer in Site PWA's shapes; the dark root class is in Site PWA's list.
  *   5. With `--write` only: set this plugin's Public Design and Dark Mode, point
@@ -182,21 +182,28 @@ if ( array() !== $ffc_pwa_admins ) {
 			$ffc_pwa_details
 		);
 	}
-	// The message toggles in Preferences (site-pwa#66), while the person
-	// sees the Messages tab; an older app has no such sections.
+	// The notification toggles in Preferences (site-pwa#66); an older app
+	// has no such sections.
 	if ( method_exists( '\\SitePwa\\App\\Frame', 'preferenceSections' ) ) {
 		$ffc_pwa_messages_tab = ! empty( \FreeFormCertificate\Shortcodes\DashboardAssetManager::tab_permissions( get_current_user_id() )['messages'] );
-		$ffc_pwa_pref_ids     = array_column( \SitePwa\App\Frame::preferenceSections( wp_get_current_user() ), 'id' );
+		$ffc_pwa_sections     = \SitePwa\App\Frame::preferenceSections( wp_get_current_user() );
+		$ffc_pwa_pref_ids     = array_column( $ffc_pwa_sections, 'id' );
+		$ffc_pwa_pref_html    = (string) ( array_column( $ffc_pwa_sections, 'html', 'id' )['notifications'] ?? '' );
 		ffc_pwa_report(
-			$ffc_pwa_messages_tab === in_array( 'messages', $ffc_pwa_pref_ids, true ),
-			'Preferences carries the Messages section exactly while the Messages tab shows',
+			in_array( 'notifications', $ffc_pwa_pref_ids, true ) && false !== strpos( $ffc_pwa_pref_html, 'data-key="notify_appointment_reminder"' ),
+			'Preferences carries the Notifications section with the appointment reminder',
 			implode( ', ', $ffc_pwa_pref_ids )
 		);
+		ffc_pwa_report(
+			$ffc_pwa_messages_tab === ( false !== strpos( $ffc_pwa_pref_html, 'data-key="notify_date_messages"' ) ),
+			'the date-message toggles join it exactly while the Messages tab shows',
+			$ffc_pwa_messages_tab ? 'Messages tab shown' : 'Messages tab hidden'
+		);
 		// The one Site PWA name this plugin reads: a rename there would put
-		// the toggles back on Messages without anything failing.
+		// the toggles back on Messages and Profile without anything failing.
 		ffc_pwa_report(
 			\FreeFormCertificate\Shortcodes\DashboardAppScreens::app_has_preference_sections(),
-			'Messages leaves its toggles to Preferences',
+			'Messages and Profile leave their toggles to Preferences',
 			''
 		);
 	}

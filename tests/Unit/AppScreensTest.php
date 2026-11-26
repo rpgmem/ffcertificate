@@ -620,30 +620,22 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( array(), DashboardAppScreens::preference_sections( array(), $this->user( 0 ) ) );
 	}
 
-	public function test_preference_sections_skip_a_person_without_the_messages_tab(): void {
-		$this->settings['module_date_messages_enabled'] = false;
-
-		$this->assertSame( array( 'other' => array( 'label' => 'Other' ) ), DashboardAppScreens::preference_sections( array( 'other' => array( 'label' => 'Other' ) ), $this->user( 7 ) ) );
-	}
-
-	public function test_preference_sections_add_messages_after_what_was_there(): void {
-		$this->settings['module_date_messages_enabled'] = true;
-
+	public function test_preference_sections_add_notifications_after_what_was_there(): void {
 		$sections = DashboardAppScreens::preference_sections( array( 'other' => array( 'label' => 'Other' ) ), $this->user( 7 ) );
 
-		$this->assertSame( array( 'other', 'messages' ), array_keys( $sections ) );
-		$this->assertSame( 'Messages', $sections['messages']['label'] );
-		$this->assertIsCallable( $sections['messages']['render'] );
+		$this->assertSame( array( 'other', 'notifications' ), array_keys( $sections ) );
+		$this->assertSame( 'Notifications', $sections['notifications']['label'] );
+		$this->assertIsCallable( $sections['notifications']['render'] );
 	}
 
-	public function test_preference_sections_keep_a_messages_section_another_plugin_set(): void {
-		$this->settings['module_date_messages_enabled'] = true;
-		$theirs = array( 'messages' => array( 'label' => 'Theirs' ) );
+	public function test_preference_sections_keep_a_notifications_section_another_plugin_set(): void {
+		$theirs = array( 'notifications' => array( 'label' => 'Theirs' ) );
 
 		$this->assertSame( $theirs, DashboardAppScreens::preference_sections( $theirs, $this->user( 7 ) ) );
 	}
 
-	public function test_the_message_toggles_read_the_stored_choice_and_save_through_the_profile_route(): void {
+	public function test_the_notification_toggles_read_the_stored_choice_and_save_through_the_profile_route(): void {
+		$this->settings['module_date_messages_enabled'] = true;
 		$styles    = array();
 		$scripts   = array();
 		$localized = array();
@@ -704,7 +696,9 @@ class AppScreensTest extends TestCase {
 		$backup          = $GLOBALS['wpdb'] ?? null;
 		$GLOBALS['wpdb'] = $wpdb;
 		try {
-			$html = DashboardAppScreens::message_preferences( 7 );
+			$html = DashboardAppScreens::notification_preferences( 7 );
+			$this->settings['module_date_messages_enabled'] = false;
+			$alone = DashboardAppScreens::notification_preferences( 7 );
 		} finally {
 			if ( $had ) {
 				$GLOBALS['wpdb'] = $backup;
@@ -715,14 +709,19 @@ class AppScreensTest extends TestCase {
 
 		$this->assertMatchesRegularExpression( '/data-key="notify_date_messages" checked/', $html, 'never turned off: on' );
 		$this->assertMatchesRegularExpression( '/data-key="notify_date_announcements" \/>/', $html, 'stored false: off' );
-		$this->assertStringContainsString( 'ffc-message-pref-status ffc-status', $html );
-		$this->assertSame( array( 'ffc-core' ), $scripts['ffc-app-message-preferences'][1] );
-		$this->assertArrayHasKey( 'ffc-app-message-preferences-css', $styles );
-		$this->assertSame( 'ffcAppMessagePreferences', $localized['ffc-app-message-preferences'][0] );
-		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/profile', $localized['ffc-app-message-preferences'][1]['rest'] );
+		$this->assertMatchesRegularExpression( '/data-key="notify_appointment_reminder" checked/', $html, 'the reminder is everyone\'s' );
+		$this->assertStringContainsString( 'ffc-app-notification-hint', $html );
+		$this->assertStringContainsString( 'ffc-app-notification-status ffc-status', $html );
+		$this->assertStringContainsString( 'data-key="notify_appointment_reminder"', $alone );
+		$this->assertStringNotContainsString( 'notify_date_messages', $alone, 'no Messages tab: no date-message toggles' );
+		$this->assertStringNotContainsString( 'ffc-app-notification-hint', $alone );
+		$this->assertSame( array( 'ffc-core' ), $scripts['ffc-app-notification-preferences'][1] );
+		$this->assertArrayHasKey( 'ffc-app-notification-preferences-css', $styles );
+		$this->assertSame( 'ffcAppNotificationPreferences', $localized['ffc-app-notification-preferences'][0] );
+		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/profile', $localized['ffc-app-notification-preferences'][1]['rest'] );
 	}
 
-	public function test_the_apps_messages_screen_keeps_the_toggles_without_preference_sections(): void {
+	public function test_the_apps_messages_and_profile_keep_the_toggles_without_preference_sections(): void {
 		$inline = array();
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'wp_add_inline_script' )->alias(
@@ -749,9 +748,17 @@ class AppScreensTest extends TestCase {
 		Functions\when( 'wp_script_is' )->justReturn( false );
 		Functions\when( 'wp_kses_post' )->returnArg();
 
-		DashboardAppScreens::render_messages( array( 'messages' ) );
+		DashboardAppScreens::render_without_preferences( array( 'messages' ) );
 
-		$this->assertSame( array(), $inline, 'an app without Preferences sections keeps the toggles on Messages' );
+		$this->assertSame( array(), $inline, 'an app without Preferences sections keeps the toggles where they were' );
+	}
+
+	public function test_messages_and_profile_leave_their_toggles_to_preferences(): void {
+		$definitions = DashboardAppScreens::definitions();
+
+		foreach ( array( 'messages', DashboardAppScreens::PROFILE_SCREEN ) as $id ) {
+			$this->assertSame( array( DashboardAppScreens::class, 'render_without_preferences' ), $definitions[ $id ]['render'] ?? null, $id );
+		}
 	}
 
 	public function test_the_app_has_preference_sections_only_where_its_frame_draws_them(): void {

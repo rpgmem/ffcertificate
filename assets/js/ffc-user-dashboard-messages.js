@@ -189,7 +189,7 @@
         render: function (state) {
             var s = ffcDashboard.strings;
             var $container = $('#ffc-tabpanel-messages');
-            var withPrefs = ffcDashboard.messagePreferences !== false;
+            var withPrefs = ffcDashboard.notificationPreferences !== false;
             var html = '<div class="ffc-messages' + (withPrefs ? '' : ' ffc-messages-list-only') + '">';
 
             html += '<div class="ffc-messages-list ffc-profile-section">';

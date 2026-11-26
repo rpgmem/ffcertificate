@@ -202,6 +202,17 @@ describe('FFCDashboard.panels.profile.render', () => {
 		}
 	});
 
+	it('leaves the notification preferences out where the app shows them in Preferences', () => {
+		window.ffcDashboard.notificationPreferences = false;
+		try {
+			panel().render(makeProfile());
+			expect(document.querySelector('#ffc-tabpanel-profile .ffc-notif-toggle')).toBeNull();
+			expect(document.querySelector('#ffc-tabpanel-profile .ffc-notif-list')).toBeNull();
+		} finally {
+			delete window.ffcDashboard.notificationPreferences;
+		}
+	});
+
 	it('stores the profile on the panel state', () => {
 		const profile = makeProfile({ display_name: 'João' });
 		panel().render(profile);
