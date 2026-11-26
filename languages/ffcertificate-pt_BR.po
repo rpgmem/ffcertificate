@@ -37400,3 +37400,21 @@ msgstr "Certificado emitido. Ele está no app, em Certificados."
 #: includes/frontend/class-ffc-certificate-form-target.php
 msgid "You already have this certificate. Open the app, under Certificates, to download it."
 msgstr "Você já tem este certificado. Abra o app, em Certificados, para baixá-lo."
+
+msgid "Fill from profile at the terminal"
+msgstr "Preencher do perfil no terminal"
+
+msgid "Not filled: the participant completes it on the phone"
+msgstr "Não preenchido: o participante completa no celular"
+
+msgid "Accepted by showing the QR"
+msgstr "Aceito ao mostrar o QR"
+
+msgid "Profile fields"
+msgstr "Campos do perfil"
+
+msgid "Name, email and CPF/RF are always taken from the profile."
+msgstr "Nome, e-mail e CPF/RF são sempre tirados do perfil."
+
+msgid "When an event terminal reads the participant's QR, the certificate is issued from the profile. Name, email and CPF/RF are always taken from it. Any other field may name a field of the global profile list under \"Fill from profile at the terminal\", and a checkbox may be \"Accepted by showing the QR\". A choice takes the profile value only when it is one of its options. A required field left without a value is completed by the participant on the phone."
+msgstr "Quando o terminal do evento lê o QR do participante, o certificado é emitido a partir do perfil. Nome, e-mail e CPF/RF são sempre tirados dele. Qualquer outro campo pode indicar um campo da lista global do perfil em \"Preencher do perfil no terminal\", e uma caixa de seleção pode ser \"Aceito ao mostrar o QR\". Uma escolha recebe o valor do perfil só quando ele é uma das suas opções. Um campo obrigatório que fica sem valor é completado pelo participante no celular."

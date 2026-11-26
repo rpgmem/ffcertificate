@@ -260,21 +260,23 @@ class FormEditorSaveHandler {
 			$limits = \FreeFormCertificate\Core\FormField::sanitize_limits( $field, $type );
 
 			$row = array(
-				'label'         => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
-				'name'          => $name,
-				'type'          => $type,
+				'label'          => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
+				'name'           => $name,
+				'type'           => $type,
 				// A required field is always required: the editor disables
 				// its toggle (#1734).
-				'required'      => isset( $field['required'] ) || null !== $required_row ? '1' : '',
-				'content'       => wp_kses_post( ArrayValue::string( $field, 'content' ) ),
-				'embed_url'     => esc_url_raw( ArrayValue::string( $field, 'embed_url' ) ),
-				'points'        => sanitize_text_field( ArrayValue::string( $field, 'points' ) ),
+				'required'       => isset( $field['required'] ) || null !== $required_row ? '1' : '',
+				'content'        => wp_kses_post( ArrayValue::string( $field, 'content' ) ),
+				'embed_url'      => esc_url_raw( ArrayValue::string( $field, 'embed_url' ) ),
+				'points'         => sanitize_text_field( ArrayValue::string( $field, 'points' ) ),
 				// The fixed value a hidden field submits (#1574). Stored for
 				// that type only; the submission takes it from here, never
 				// from the request.
-				'default_value' => 'hidden' === $type
+				'default_value'  => 'hidden' === $type
 					? sanitize_text_field( ArrayValue::string( $field, 'default_value' ) )
 					: '',
+				// Where a terminal fills the field from the profile (#2891).
+				'profile_source' => \FreeFormCertificate\Frontend\CertificateProfileSource::sanitize( sanitize_text_field( ArrayValue::string( $field, 'profile_source' ) ), $type ),
 			);
 			// The quiz half overrides the base `points`: it rebuilds the
 			// string from the option rows (#1730).

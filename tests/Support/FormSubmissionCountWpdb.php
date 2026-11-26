@@ -14,7 +14,8 @@ namespace FreeFormCertificate\Tests\Support;
  *
  * The form editor asks `SubmissionRepository::countLiveByForm()` whether a
  * form already holds submissions: once it does, field tags lock and the
- * layout warns about issued certificates. A test of the editor chooses that
+ * layout warns about issued certificates. It also lists the global
+ * profile fields, of which it finds none. A test of the editor chooses that
  * answer here instead of inheriting whatever `$wpdb` an earlier test left in
  * the process, which is what made those tests pass in the full suite and
  * fail alone.
@@ -48,6 +49,9 @@ final class FormSubmissionCountWpdb {
 		$wpdb->prefix = 'wp_';
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql )->byDefault();
 		$wpdb->shouldReceive( 'get_var' )->andReturn( (string) $count )->byDefault();
+		// The editor also lists the global profile fields a field may fill
+		// from (#2891); the editor under test reads none.
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
 		$GLOBALS['wpdb'] = $wpdb;
 	}
 
