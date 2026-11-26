@@ -433,13 +433,12 @@ class SubmissionPersister {
 
 		// An invited submission names its booking (#1948). A reprint already
 		// carries it from the first time.
-		if ( null !== $ctx->invite && ! $is_reprint && (int) $submission_id > 0 ) {
-			if ( ! empty( $ctx->invite['completion'] ) ) {
-				// A terminal's completion link is spent by the certificate it issues (#2891).
-				\FreeFormCertificate\Frontend\CertificateCompletionLink::complete( $form_id, $ctx->invite['user_id'], (int) $submission_id );
-			} else {
-				$this->submission_handler->get_repository()->update( (int) $submission_id, array( 'audience_booking_id' => $ctx->invite['booking_id'] ) );
-			}
+		if ( null !== $ctx->invite && ! empty( $ctx->invite['completion'] ) && (int) $submission_id > 0 ) {
+			// A terminal's completion link is spent by the certificate it
+			// leads to (#2891), a reprint of one already issued included.
+			\FreeFormCertificate\Frontend\CertificateCompletionLink::complete( $form_id, $ctx->invite['user_id'], (int) $submission_id );
+		} elseif ( null !== $ctx->invite && ! $is_reprint && (int) $submission_id > 0 ) {
+			$this->submission_handler->get_repository()->update( (int) $submission_id, array( 'audience_booking_id' => $ctx->invite['booking_id'] ) );
 		}
 
 		$ctx->submission_data      = $submission_data;

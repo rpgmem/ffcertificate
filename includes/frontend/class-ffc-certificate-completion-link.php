@@ -70,6 +70,36 @@ final class CertificateCompletionLink {
 	 */
 	public static function register(): void {
 		add_filter( FormInvite::FILTER, array( self::class, 'filter' ), 5, 4 );
+		// A certificate saved through the form's own page, without the link,
+		// ends the wait too. Default priority: nothing here depends on the
+		// order of the other listeners.
+		add_action( 'ffcertificate_after_submission_save', array( self::class, 'on_saved' ), 10, 4 );
+	}
+
+	/**
+	 * The `ffcertificate_after_submission_save` callback: a certificate the
+	 * person saved for a form a terminal left waiting marks that reading
+	 * issued, so the link closes.
+	 *
+	 * @param mixed $submission_id New submission id.
+	 * @param mixed $form_id       Form id.
+	 * @param mixed $data          Submission data; not used.
+	 * @param mixed $user_email    The e-mail it was issued to.
+	 * @return void
+	 */
+	public static function on_saved( $submission_id, $form_id, $data = null, $user_email = '' ): void {
+		unset( $data );
+		if ( ! is_numeric( $submission_id ) || ! is_numeric( $form_id ) || ! is_string( $user_email ) || '' === $user_email ) {
+			return;
+		}
+		$user = get_user_by( 'email', $user_email );
+		if ( ! $user instanceof \WP_User ) {
+			return;
+		}
+		$reading = CertificateTerminalReadingRepository::for_person( (int) $form_id, (int) $user->ID );
+		if ( null !== $reading && CertificateTerminalReadingRepository::AWAITING_DATA === $reading['result'] ) {
+			self::complete( (int) $form_id, (int) $user->ID, (int) $submission_id );
+		}
 	}
 
 	/**

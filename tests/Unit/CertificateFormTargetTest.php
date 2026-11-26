@@ -441,6 +441,47 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( 'used', $used->get_error_code() );
 	}
 
+	public function test_a_certificate_already_issued_on_the_site_answers_before_missing_data(): void {
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'type' => 'text', 'required' => '1' );
+		$target = $this->target(
+			array(
+				'existing' => static fn() => array(
+					'is_reprint' => true,
+					'id'         => 88,
+				),
+			)
+		);
+
+		$result = $target->terminal_read( self::FORM, $this->reading() );
+
+		$this->assertSame( TerminalVerdict::ALREADY, $result['status'] );
+		$this->assertSame( array(), $this->notified, 'no "complete it on the phone" e-mail for a certificate the person holds' );
+		$this->assertSame( 88, CertificateTerminalReadingRepository::for_person( self::FORM, self::USER )['submission_id'] );
+	}
+
+	public function test_a_certificate_saved_on_the_forms_own_page_closes_the_link(): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		Functions\when( 'get_user_by' )->alias(
+			static function ( $field, $value ) {
+				if ( 'email' !== $field || 'maria@example.test' !== strtolower( (string) $value ) ) {
+					return false;
+				}
+				return new \WP_User( self::USER );
+			}
+		);
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'type' => 'text', 'required' => '1' );
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+
+		CertificateCompletionLink::on_saved( 902, self::FORM, array(), 'nobody@example.test' );
+		$this->assertSame( CertificateTerminalReadingRepository::AWAITING_DATA, CertificateTerminalReadingRepository::for_person( self::FORM, self::USER )['result'], 'another person\'s certificate changes nothing' );
+
+		CertificateCompletionLink::on_saved( 903, self::FORM, array(), 'Maria@Example.test' );
+		$row = CertificateTerminalReadingRepository::for_person( self::FORM, self::USER );
+		$this->assertSame( CertificateTerminalReadingRepository::ISSUED, $row['result'] );
+		$this->assertSame( 903, $row['submission_id'] );
+		$this->assertInstanceOf( \WP_Error::class, CertificateCompletionLink::resolve( self::FORM, CertificateCompletionLink::code( self::FORM, self::USER ), self::NOW ) );
+	}
+
 	public function test_the_filter_answers_only_its_own_codes(): void {
 		$this->assertNull( CertificateCompletionLink::filter( null, self::FORM, '5.7.abcdefghijklmnopqrstuv' ), 'an audience invitation is left to its resolver' );
 		$this->assertSame( array( 'user_id' => 3 ), CertificateCompletionLink::filter( array( 'user_id' => 3 ), self::FORM, 'c.7.x' ), 'an earlier answer stands' );

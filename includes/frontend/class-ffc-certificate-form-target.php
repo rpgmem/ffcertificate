@@ -370,6 +370,18 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			return $this->already( $reading['name'] );
 		}
 
+		// A certificate the person already holds for this form, issued on
+		// the site or by an earlier link, answers before anything is asked
+		// of them: no ticket, and no "complete it on the phone" e-mail.
+		$person = self::person( $user_id );
+		if ( '' !== $person['cpf_rf'] ) {
+			$existing = ( $this->existing )( $form_id, $person['cpf_rf'], '' );
+			if ( $existing['is_reprint'] ) {
+				CertificateTerminalReadingRepository::record( $form_id, $user_id, $reading['terminal_id'], $at, CertificateTerminalReadingRepository::ISSUED, '', array(), (int) $existing['id'], time() );
+				return $this->already( $reading['name'] );
+			}
+		}
+
 		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
 		$form_config  = is_array( $form_config ) ? $form_config : array();
 		$restrictions = isset( $form_config['restrictions'] ) && is_array( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
@@ -382,7 +394,6 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			return TerminalVerdict::refused( 'ffc_terminal_ticket_required', __( 'Type the code of your ticket.', 'ffcertificate' ) );
 		}
 
-		$person  = self::person( $user_id );
 		$fields  = get_post_meta( $form_id, '_ffc_form_fields', true );
 		$fields  = is_array( $fields ) ? array_values( array_filter( $fields, 'is_array' ) ) : array();
 		$built   = self::submission_data( $fields, $person, CertificateProfileSource::values( $user_id, $fields ) );
@@ -403,14 +414,6 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 				'message' => __( 'Attendance recorded. Finish your certificate on your phone: the terminal is free for the next person.', 'ffcertificate' ),
 				'name'    => $reading['name'],
 			);
-		}
-
-		if ( '' !== $person['cpf_rf'] ) {
-			$existing = ( $this->existing )( $form_id, $person['cpf_rf'], '' );
-			if ( $existing['is_reprint'] ) {
-				CertificateTerminalReadingRepository::record( $form_id, $user_id, $reading['terminal_id'], $at, CertificateTerminalReadingRepository::ISSUED, '', array(), (int) $existing['id'], time() );
-				return $this->already( $reading['name'] );
-			}
 		}
 
 		$checked = $form_config;
