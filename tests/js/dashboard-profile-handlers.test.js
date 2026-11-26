@@ -978,3 +978,94 @@ describe('profile — the owner', () => {
 		expect(window.$('.ffc-profile-reveal-btn[data-field="phone"]').length).toBe(0);
 	});
 });
+
+// ----------------------------------------------------------------------
+// The custom fields of the user's audiences (#2850)
+// ----------------------------------------------------------------------
+
+describe('profile audience fields', () => {
+	const FIELDS = {
+		...PROFILE_FIXTURE,
+		can_reveal: true,
+		audience_fields: [{
+			audience_id: 10,
+			name: 'Teachers',
+			color: '#336699',
+			fields: [
+				{ id: 1, label: 'School', display: 'North', masked: false, read_only: '' },
+				{ id: 2, label: 'Registry', display: '***456', masked: true, read_only: '' },
+			],
+		}],
+		audience_form:
+			'<fieldset class="ffc-profile-cf-section">' +
+			'<div class="ffc-rereg-field" data-field-id="1"><label for="ffc_rereg_field_1">School</label><input type="text" id="ffc_rereg_field_1" value="North"></div>' +
+			'<div class="ffc-rereg-field" data-field-id="3"><input type="checkbox" id="ffc_rereg_field_3" value="1" checked></div>' +
+			'<div class="ffc-rereg-field ffc-profile-cf-masked" data-field-id="2"><input type="text" id="ffc_rereg_field_2" value="***456" disabled>' +
+			'<button type="button" class="ffc-profile-cf-reveal-btn" data-field="cf_2">Reveal</button></div>' +
+			'<div class="ffc-rereg-field ffc-profile-cf-readonly" data-field-id="4"><div class="ffc-field-value">RF</div></div>' +
+			'</fieldset>',
+	};
+
+	it('lists each audience with its fields, the masked one behind Reveal', () => {
+		panel().render(FIELDS);
+
+		const section = document.querySelector('.ffc-profile-cf-view');
+		expect(section.querySelector('h3').textContent).toContain('Teachers');
+		expect(section.textContent).toContain('North');
+		expect(section.textContent).toContain('***456');
+		expect(section.querySelector('.ffc-profile-reveal-btn').getAttribute('data-field')).toBe('cf_2');
+	});
+
+	it('reveals a field in the read view and shows how it reads', async () => {
+		panel().render(FIELDS);
+		mockAjaxSuccess({ field: 'cf_2', value: '123456', display: '123456', html: '' });
+		window.$('.ffc-profile-cf-view .ffc-profile-reveal-btn').trigger('click');
+		await flush();
+
+		expect(document.querySelector('.ffc-profile-cf-view').textContent).toContain('123456');
+		expect(document.querySelector('.ffc-profile-cf-view .ffc-profile-reveal-btn')).toBeNull();
+	});
+
+	it('sends the editable fields by id, leaving out the masked and read-only ones', () => {
+		panel().render(FIELDS);
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		document.getElementById('ffc_rereg_field_1').value = 'South';
+		document.getElementById('ffc_rereg_field_3').checked = false;
+
+		const spy = mockAjaxSuccess(FIELDS);
+		window.$('.ffc-profile-save-btn').trigger('click');
+
+		const payload = JSON.parse(spy.mock.calls[0][0].data);
+		expect(payload.custom_fields).toEqual({ 1: 'South', 3: '0' });
+	});
+
+	it('swaps a revealed field in the edit form for its control', async () => {
+		panel().render(FIELDS);
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		mockAjaxSuccess({
+			field: 'cf_2',
+			value: '123456',
+			html: '<div class="ffc-rereg-field" data-field-id="2"><input type="text" id="ffc_rereg_field_2" value="123456"></div>',
+		});
+		window.$('.ffc-profile-cf-reveal-btn').trigger('click');
+		await flush();
+
+		const input = document.getElementById('ffc_rereg_field_2');
+		expect(input.disabled).toBe(false);
+		expect(input.value).toBe('123456');
+		expect(document.querySelector('.ffc-profile-cf-masked')).toBeNull();
+	});
+
+	it('says under each refused field why it was refused', async () => {
+		panel().render(FIELDS);
+		window.$('.ffc-profile-edit-btn').trigger('click');
+
+		mockAjaxError({ responseJSON: { message: 'School is invalid.', data: { fields: { 1: 'School is invalid.' } } } });
+		window.$('.ffc-profile-save-btn').trigger('click');
+		await flush();
+
+		const input = document.getElementById('ffc_rereg_field_1');
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+		expect(document.querySelector('.ffc-profile-save-status').textContent).toBe('School is invalid.');
+	});
+});

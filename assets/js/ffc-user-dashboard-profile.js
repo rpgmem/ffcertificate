@@ -103,6 +103,18 @@
                 } else if (field === 'birth_date') {
                     state.birth_date = response.value;
                     state.birth_date_display = response.display;
+                } else if (field.indexOf('cf_') === 0) {
+                    // An audience custom field (#2850): the read view shows
+                    // how it reads; the edit form takes its control.
+                    var id = parseInt(field.slice(3), 10);
+                    (state.audience_fields || []).forEach(function (section) {
+                        section.fields.forEach(function (f) {
+                            if (f.id === id) {
+                                f.display = response.display;
+                                f.masked = false;
+                            }
+                        });
+                    });
                 } else if (field === 'cpf_rf') {
                     // Formatted in clear (#1888); the masked keys hold the
                     // revealed list, so the render needs no second path.
@@ -119,6 +131,72 @@
                 $btn.prop('disabled', false);
                 helpers.flash('danger', ffcDashboard.strings.revealError || 'Unable to reveal this value.');
             });
+    }
+
+    /**
+     * The custom fields of the user's audiences (#2850), one section per
+     * audience, in the read view. A sensitive value arrives masked, with the
+     * same Reveal as the phone.
+     */
+    function renderAudienceFields(profile) {
+        var sections = profile.audience_fields || [];
+        var html = '';
+        sections.forEach(function (section) {
+            html += '<div class="ffc-profile-section ffc-profile-cf-view">';
+            html += '<h3><span class="ffc-color-dot" style="--ffc-color: ' + escAttr(section.color) + ';" aria-hidden="true"></span> ' + esc(section.name) + '</h3>';
+            html += '<div class="ffc-profile-info">';
+            section.fields.forEach(function (f) {
+                html += '<div class="ffc-profile-field"><label>' + esc(f.label) + '</label>';
+                html += '<div class="ffc-field-value">' + esc(f.display || '-') + '</div>';
+                if (f.masked && profile.can_reveal) {
+                    html += ' ' + window.FFC.buttonHtml({
+                        label: ffcDashboard.strings.reveal || 'Reveal',
+                        category: 'neutral',
+                        icon: 'eye',
+                        className: 'ffc-profile-reveal-btn',
+                        attrs: { 'data-field': 'cf_' + f.id }
+                    });
+                }
+                html += '</div>';
+            });
+            html += '</div></div>';
+        });
+        return html;
+    }
+
+    /**
+     * Wire the masks, dependent selects and CEP lookup of the audience
+     * fields, as the reregistration form does for the same markup.
+     */
+    function initAudienceFields($scope) {
+        if (!window.FFC || !window.FFC.Fields || !$scope.length) {
+            return;
+        }
+        var strings = (window.ffcReregistration && window.ffcReregistration.strings) || {};
+        window.FFC.Fields.initMasks($scope);
+        window.FFC.Fields.initCepLookup($scope);
+        window.FFC.Fields.initDependentSelects($scope, strings);
+    }
+
+    /**
+     * The audience fields' values by field id; a field still masked or
+     * read-only is left out, so the server keeps what it has.
+     */
+    function collectAudienceFields() {
+        var values = {};
+        $('.ffc-profile-cf-form .ffc-rereg-field[data-field-id]').each(function () {
+            var $field = $(this);
+            if ($field.hasClass('ffc-profile-cf-masked') || $field.hasClass('ffc-profile-cf-readonly')) {
+                return;
+            }
+            var id = $field.data('field-id');
+            var $control = $('#ffc_rereg_field_' + id);
+            if (!$control.length) {
+                return;
+            }
+            values[id] = $control.is(':checkbox') ? ($control.is(':checked') ? '1' : '0') : $control.val();
+        });
+        return values;
     }
 
     // defaultOn: a key that means RECEIVE when absent (date messages are sent
@@ -175,6 +253,10 @@
         html += '<div class="ffc-profile-field"><label for="ffc-edit-notes">' + (s.notesLabel || 'Notes:') + '</label>';
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
 
+        if (profile.audience_form) {
+            html += '<div class="ffc-profile-cf-form">' + profile.audience_form + '</div>';
+        }
+
         html += '<div class="ffc-profile-edit-actions">';
         html += window.FFC.buttonHtml({ label: s.save || 'Save', category: 'primary', icon: 'save', className: 'ffc-profile-save-btn' }) + ' ';
         html += window.FFC.buttonHtml({ label: s.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-profile-cancel-btn' });
@@ -186,6 +268,7 @@
         if (window.FFC && window.FFC.Fields) {
             window.FFC.Fields.initMasks($container.find('.ffc-profile-edit-form'));
         }
+        initAudienceFields($container.find('.ffc-profile-cf-form'));
     }
 
     /**
@@ -216,6 +299,11 @@
         if (!$('#ffc-edit-birth-date').prop('disabled')) {
             data.birth_date = $('#ffc-edit-birth-date').val();
         }
+        var custom = collectAudienceFields();
+        if (Object.keys(custom).length) {
+            data.custom_fields = custom;
+        }
+        FFC.clearFieldMessage($('.ffc-profile-cf-form [id^="ffc_rereg_field_"]'));
 
         var $saveBtn = $('.ffc-profile-save-btn');
         var $status = $('.ffc-profile-save-status');
@@ -232,7 +320,21 @@
             })
             .catch(function (err) {
                 var msg = (ffcDashboard.strings.saveError || 'Error saving profile');
-                if (err.xhr && err.xhr.responseJSON && err.xhr.responseJSON.message) msg = err.xhr.responseJSON.message;
+                var body = err.xhr && err.xhr.responseJSON;
+                if (body && body.message) msg = body.message;
+                // Each invalid audience field says why under itself (#2850).
+                var fields = body && body.data && body.data.fields;
+                if (fields) {
+                    var $first = null;
+                    Object.keys(fields).forEach(function (id) {
+                        var $control = $('#ffc_rereg_field_' + id);
+                        if ($control.length) {
+                            FFC.fieldMessage($control, 'error', fields[id]);
+                            $first = $first || $control;
+                        }
+                    });
+                    if ($first) $first.trigger('focus');
+                }
                 setStatus($status, msg, 'error');
                 $saveBtn.prop('disabled', false);
             });
@@ -362,6 +464,28 @@
                     Object.keys(typed).forEach(function (id) { $(id).val(typed[id]); });
                 });
             });
+            // An audience field revealed in the edit form takes its control
+            // in place, keeping everything else typed (#2850).
+            $(document).on('click', '.ffc-profile-cf-reveal-btn', function (e) {
+                e.preventDefault();
+                var $btn = $(this);
+                var field = String($btn.data('field'));
+                var $block = $btn.closest('.ffc-profile-cf-masked');
+                var url = ffcDashboard.restUrl + 'user/profile/reveal';
+                if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
+                $btn.prop('disabled', true);
+                FFC.rest(url, { method: 'POST', data: { field: field }, nonce: ffcDashboard.nonce })
+                    .then(function (response) {
+                        var $fresh = $(response.html || '');
+                        $block.replaceWith($fresh);
+                        initAudienceFields($fresh);
+                        $fresh.find('input, textarea, select').first().trigger('focus');
+                    })
+                    .catch(function () {
+                        $btn.prop('disabled', false);
+                        helpers.flash('danger', ffcDashboard.strings.revealError || 'Unable to reveal this value.');
+                    });
+            });
             $(document).on('click', '.ffc-profile-save-btn', function (e) { e.preventDefault(); saveProfile(); });
             $(document).on('click', '.ffc-profile-cancel-btn', function (e) {
                 e.preventDefault();
@@ -454,6 +578,8 @@
             html += '<div class="ffc-field-value">' + esc(profile.member_since || '-') + '</div></div>';
 
             html += '</div>';
+
+            html += renderAudienceFields(profile);
 
             html += '<div class="ffc-profile-actions">';
             html += window.FFC.buttonHtml({ label: s.editProfile || 'Edit Profile', category: 'neutral', icon: 'edit', className: 'ffc-profile-edit-btn' });
