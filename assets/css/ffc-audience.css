@@ -385,7 +385,11 @@
    responsive step of its own. Mapping both to `2xs` (11px) would make that
    @media a no-op, which is worse than the drift it corrects. */
 .ffc-shortcode .ffc-day-badge {
-    display: inline-block;
+    /* Its own line, with the padding inside the width: content-box sizing
+       added the padding to `max-width: 100%`, so the name ran past the day's
+       box and was clipped on one side (#2856). */
+    display: block;
+    box-sizing: border-box;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     /* The audience tag's shape, like the admin's closed-date pill (#2210). */
     border-radius: var(--ffc-radius-xs);
