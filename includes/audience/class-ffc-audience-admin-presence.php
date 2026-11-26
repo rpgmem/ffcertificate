@@ -196,8 +196,10 @@ class AudienceAdminPresence {
 	 *
 	 * Allowing a reserved phone releases it from every other account it is
 	 * reserved to; allowing a change beyond the limit lets exactly one more
-	 * activation through. Either way the participant activates the phone
-	 * again in the app.
+	 * activation through and deactivates the participant's current phone at
+	 * once, because the request says that phone is being left behind and it
+	 * must not keep showing codes until the new one is set up. Either way the
+	 * participant activates the phone again in the app.
 	 *
 	 * @param int  $id      Request id.
 	 * @param bool $approve Whether to allow it.
@@ -230,8 +232,40 @@ class AudienceAdminPresence {
 			ActivityLog::log( 'presence_device_released', ActivityLog::LEVEL_INFO, $context, $by );
 			return 'released';
 		}
+		$context['revoked'] = $this->revoke_active( $request['user_id'], $by, $now );
 		ActivityLog::log( 'presence_request_approved', ActivityLog::LEVEL_INFO, $context, $by );
 		return 'approved';
+	}
+
+	/**
+	 * Deactivate every active phone of a participant, logging each one as an
+	 * administrator's deactivation.
+	 *
+	 * @param int $user_id The participant.
+	 * @param int $by      The administrator.
+	 * @param int $now     Unix time.
+	 * @return int How many phones were deactivated.
+	 */
+	private function revoke_active( int $user_id, int $by, int $now ): int {
+		$count = 0;
+		foreach ( AudiencePresenceReader::for_user( $user_id ) as $device ) {
+			if ( null !== $device['revoked_at'] || ! AudiencePresenceWriter::revoke( $device['id'], AudiencePresenceWriter::REVOKED_ADMIN, $by, $now ) ) {
+				continue;
+			}
+			++$count;
+			ActivityLog::log(
+				'presence_device_revoked',
+				ActivityLog::LEVEL_INFO,
+				array(
+					'target_user_id' => $user_id,
+					'device_id'      => $device['device_id'],
+					'key_id'         => $device['key_id'],
+					'reason'         => AudiencePresenceWriter::REVOKED_ADMIN,
+				),
+				$by
+			);
+		}
+		return $count;
 	}
 
 	/**
@@ -273,7 +307,7 @@ class AudienceAdminPresence {
 		$messages = array(
 			'deactivated' => array( 'success', __( 'Device deactivated. Its codes stop working at each terminal\'s next sync, and the app asks to activate it again.', 'ffcertificate' ) ),
 			'released'    => array( 'success', __( 'Phone released. The participant can now activate it in the app.', 'ffcertificate' ) ),
-			'approved'    => array( 'success', __( 'One more device change allowed. The participant can now activate the phone in the app.', 'ffcertificate' ) ),
+			'approved'    => array( 'success', __( 'One more device change allowed. The participant\'s current phone was deactivated, and they can now activate the new one in the app.', 'ffcertificate' ) ),
 			'refused'     => array( 'success', __( 'Request refused. The participant keeps the device they had.', 'ffcertificate' ) ),
 			'dismissed'   => array( 'success', __( 'Alert dismissed. It comes back if another phone reports the same signals.', 'ffcertificate' ) ),
 			'stale'       => array( 'warning', __( 'Nothing changed: someone already answered this, or the device is no longer active.', 'ffcertificate' ) ),
@@ -544,7 +578,7 @@ class AudienceAdminPresence {
 				'unlock',
 				$reserved
 					? __( 'Release this phone from the other account? That account can no longer show codes from it.', 'ffcertificate' )
-					: ''
+					: __( 'Release one more device change? The participant\'s current phone stops showing codes now.', 'ffcertificate' )
 			);
 			$this->action_form( 'refuse', (string) $request['id'], __( 'Refuse', 'ffcertificate' ), 'neutral', 'cross', '' );
 			echo '</div></li>';
