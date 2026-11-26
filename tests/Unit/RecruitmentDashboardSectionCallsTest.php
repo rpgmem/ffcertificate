@@ -20,7 +20,7 @@ use FreeFormCertificate\Recruitment\RecruitmentDashboardSection;
  *
  * The clock is always passed in, never read: the deadline rule snaps to a
  * site-timezone midnight, so a test reading `time()` once would fail on the
- * run that crosses it (CLAUDE.md "Test infrastructure").
+ * run that crosses it (`.claude/rules/tests.md`).
  *
  * The readers, DateFormatter and DashboardViewMode are the real classes.
  * The readers run over a `$wpdb` double that answers each query from the

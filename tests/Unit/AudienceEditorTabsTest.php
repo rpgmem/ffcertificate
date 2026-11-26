@@ -37,7 +37,7 @@ class AudienceEditorTabsTest extends TestCase {
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		// The global stubs only: PHP's fallback resolves them from the Core
-		// namespace (CLAUDE.md "Test infrastructure").
+		// namespace (`.claude/rules/tests.md`).
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 	}
