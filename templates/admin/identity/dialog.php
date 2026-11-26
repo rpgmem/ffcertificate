@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	// otherwise only shows and hides this.
 	//
 	// It is inside the `wrap`, which is what gives its rules the page anchor
-	// `ffc-page-identities` (`CLAUDE.md`, "Page scope on the admin wrap").
+	// `ffc-page-identities` (`.claude/rules/stylesheets.md`, "Page scope on the admin wrap").
 	?>
 	<div class="ffc-identity-dialog" id="ffc-identity-dialog" role="dialog" aria-modal="true" aria-labelledby="ffc-identity-dialog-title" hidden>
 		<div class="ffc-identity-dialog-backdrop" data-ffc-dialog-dismiss></div>

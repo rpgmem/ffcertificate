@@ -170,6 +170,7 @@ jobs:
             --exclude='package.json' \
             --exclude='package-lock.json' \
             --exclude='CLAUDE.md' \
+            --exclude='.claude/' \
             --exclude='CONTRIBUTING.md' \
             --exclude='SECURITY.md' \
             -e "$SSH_CMD" \

@@ -4,7 +4,7 @@
  *
  * An inline declaration bypasses the whole stylesheet architecture at once:
  * every CSS guard reads `assets/css/` and none of them sees it, it beats the
- * tokenized class on specificity (CLAUDE.md "Theme", item 6), and so it does
+ * tokenized class on specificity (.claude/rules/stylesheets.md "Theme", item 6), and so it does
  * not follow the dark theme. Nothing stopped a new one from landing -- #1836
  * found a `style="margin-top: 30px;"` on the dashboard headings by reading.
  *

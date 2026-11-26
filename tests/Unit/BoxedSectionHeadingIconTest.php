@@ -27,7 +27,7 @@ class BoxedSectionHeadingIconTest extends TestCase {
 	 * left the file fails the self-check, so the list only ever shrinks.
 	 */
 	private const NOT_ADMIN_SECTIONS = array(
-		// WordPress core screens keep WordPress styling (CLAUDE.md "Theme").
+		// WordPress core screens keep WordPress styling (.claude/rules/stylesheets.md "Theme").
 		'includes/admin/class-ffc-admin-user-capabilities.php'          => 'profile / user-edit: a WordPress core screen',
 		'includes/admin/class-ffc-admin-user-columns.php'               => 'users.php: a WordPress core screen',
 		'includes/admin/class-ffc-admin-user-custom-fields.php'         => 'profile / user-edit: a WordPress core screen',

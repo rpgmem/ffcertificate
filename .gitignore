@@ -41,8 +41,10 @@ html/atestado_jair.html
 # JS coverage output
 /coverage-js/
 
-# Claude Code local state (settings.local.json, agent worktrees, etc.)
-/.claude/
+# Claude Code local state (settings.local.json, agent worktrees, etc.).
+# The path-scoped rules in .claude/rules/ are project instructions and are versioned.
+/.claude/*
+!/.claude/rules/
 
 # Credentials and secrets: never versioned (keys, tokens, environment files)
 .env

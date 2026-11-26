@@ -34,8 +34,8 @@
  * So the two are not the same finding and must not carry the same severity: a
  * hazard fails, dead weight warns. Reddening a deploy for an inert legacy
  * column is how an alarm becomes noise people learn to skip, which is the
- * failure `CLAUDE.md` records twice (the smoke's own timeout, and #1311's
- * twelve unread deploys).
+ * failure the project's notes record twice (the smoke's own timeout in
+ * `.claude/rules/release-and-deploy.md`, and #1311's twelve unread deploys).
  *
  * THE READERS ARE SHARED, NOT COPIED. `ffc_create_statements()` finds the
  * statements and `SchemaColumns::of_create()` reads their columns -- the same
