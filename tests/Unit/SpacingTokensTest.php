@@ -99,7 +99,7 @@ final class SpacingTokensTest extends TestCase {
 		// above the ladder. The repository's net is zero.
 		'ffc-admin.css'                    => 2,
 		'ffc-audience-admin.css'           => 6,
-		'ffc-audience.css'                 => 7,
+		'ffc-audience.css'                 => 6,
 		'ffc-calendar-frontend.css'        => 4,
 		'ffc-certificates-dashboard.css'   => 1,
 		'ffc-code-editor-dark.css'         => 1,
