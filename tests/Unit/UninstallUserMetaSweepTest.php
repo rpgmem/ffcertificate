@@ -258,9 +258,13 @@ class UninstallUserMetaSweepTest extends TestCase {
 		// with any refactor and carries nothing this needs.
 		// `ffc_user_cpf` and `ffc_user_rf` are read by the certificate
 		// terminal (#2891); both start with the swept prefix.
+		// Compared as a sorted set: the walk returns keys in the order the
+		// filesystem lists the files, which differs between machines.
+		$found = array_keys( $this->literal_keys() );
+		sort( $found );
 		$this->assertSame(
-			array( 'ffc_user_cpf', 'ffc_user_rf', 'ffc_registration_date' ),
-			array_keys( $this->literal_keys() ),
+			array( 'ffc_registration_date', 'ffc_user_cpf', 'ffc_user_rf' ),
+			$found,
 			'The literal user-meta keys under `includes/` are not the frozen set. Either the walk'
 			. ' collapsed and lost one, or a new literal key was written -- in which case confirm it'
 			. ' starts with the swept prefix and add it here.'
