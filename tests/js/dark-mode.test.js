@@ -33,6 +33,14 @@ describe('ffc-dark-mode', () => {
 		document.documentElement.removeAttribute('data-site-pwa-scheme');
 	});
 
+	it("keeps the class off when the app chose light on this device, even when the site says 'on' (site-pwa#62)", () => {
+		document.documentElement.setAttribute('data-site-pwa-scheme', 'light');
+		window.ffcDarkMode = { mode: 'on' };
+		loadScript('assets/js/ffc-dark-mode.js');
+		expect(document.documentElement.classList.contains('ffc-dark-mode')).toBe(false);
+		document.documentElement.removeAttribute('data-site-pwa-scheme');
+	});
+
 	it("adds the class when mode === 'on'", () => {
 		window.ffcDarkMode = { mode: 'on' };
 		loadScript('assets/js/ffc-dark-mode.js');

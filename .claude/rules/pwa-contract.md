@@ -35,6 +35,8 @@ Site PWA (`rpgmem/site-pwa`, epic #2738) turns the site into an installable app,
 
 This plugin offers the app its look through the three filters `AppLook` hooks: Public Design's accent and corners as an identity source, Dark Mode as a scheme source, and `ffc-dark-mode` as a class the app adds to `<html>` when it turns dark, so the screens drawn here follow it. Both sources carry the id **`ffc`, which is a stored value** — Site PWA keeps it in its settings as the source an administrator chose (`identity_source`, `color_scheme`, whose default it is) — so it never renames. The readers return Site PWA's shapes: `accent` / `radius` (cards) / `control_radius` (buttons and fields), or null while Public Design is off; `light` / `dark` / `auto`, or null for a Dark Mode value the app does not know.
 
+Inside the app, the theme a person chose on their device (More → Appearance, rpgmem/site-pwa#62) marks `<html>` with `data-site-pwa-scheme` `dark` or `light` before the first paint; `assets/js/ffc-dark-mode.js` treats `dark` as on and `light` as off, whatever this plugin's Dark Mode says (#2883).
+
 Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above.
 
 ## Checked with both plugins running (#2875)
