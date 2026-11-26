@@ -239,7 +239,7 @@ final class ProfileCustomFields {
 	}
 
 	/**
-	 * A working-hours grid in one line: each day with its time spans.
+	 * A working-hours grid as text: each day with its time spans, one per line.
 	 *
 	 * @param mixed $value Stored JSON or decoded list.
 	 * @return string
@@ -263,18 +263,23 @@ final class ProfileCustomFields {
 			if ( ! is_array( $row ) ) {
 				continue;
 			}
-			$spans = array();
-			foreach ( array( array( 'entry1', 'exit1' ), array( 'entry2', 'exit2' ) ) as $pair ) {
-				$from = is_string( $row[ $pair[0] ] ?? null ) ? $row[ $pair[0] ] : '';
-				$to   = is_string( $row[ $pair[1] ] ?? null ) ? $row[ $pair[1] ] : '';
-				if ( '' !== $from || '' !== $to ) {
-					$spans[] = trim( $from . '–' . $to, '–' );
-				}
+			$time = static fn( string $key ): string => is_string( $row[ $key ] ?? null ) ? $row[ $key ] : '';
+			// Entry 1 and Exit 2 are required; Exit 1 and Entry 2 are the
+			// break. A day without a break is one span, Entry 1 to Exit 2.
+			if ( '' === $time( 'exit1' ) && '' === $time( 'entry2' ) ) {
+				$spans = array( trim( $time( 'entry1' ) . '–' . $time( 'exit2' ), '–' ) );
+			} else {
+				$spans = array(
+					trim( $time( 'entry1' ) . '–' . $time( 'exit1' ), '–' ),
+					trim( $time( 'entry2' ) . '–' . $time( 'exit2' ), '–' ),
+				);
 			}
+			$spans   = array_filter( $spans, static fn( string $span ): bool => '' !== $span );
 			$day     = $days[ (int) ( $row['day'] ?? 0 ) ] ?? '';
 			$lines[] = trim( $day . ' ' . implode( ', ', $spans ) );
 		}
-		return implode( '; ', $lines );
+		// One day per line; the read view keeps the line breaks (#2854).
+		return implode( "\n", $lines );
 	}
 
 	/**
