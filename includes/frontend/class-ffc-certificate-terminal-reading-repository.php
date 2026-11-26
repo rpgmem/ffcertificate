@@ -70,6 +70,37 @@ final class CertificateTerminalReadingRepository {
 	}
 
 	/**
+	 * How many people got each result on a form.
+	 *
+	 * @param int $form_id Form id.
+	 * @return array{issued: int, awaiting_data: int, refused: int}
+	 */
+	public static function counts( int $form_id ): array {
+		global $wpdb;
+
+		$rows   = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT result, COUNT(*) AS total FROM %i WHERE form_id = %d GROUP BY result',
+				CertificateTerminalActivator::table(),
+				$form_id
+			),
+			ARRAY_A
+		);
+		$counts = array(
+			self::ISSUED        => 0,
+			self::AWAITING_DATA => 0,
+			self::REFUSED       => 0,
+		);
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$result = is_array( $row ) ? \FreeFormCertificate\Core\ArrayValue::string( $row, 'result' ) : '';
+			if ( isset( $counts[ $result ] ) ) {
+				$counts[ $result ] = \FreeFormCertificate\Core\ArrayValue::int( $row, 'total' );
+			}
+		}
+		return $counts;
+	}
+
+	/**
 	 * Record what a reading gave a person.
 	 *
 	 * A first reading inserts the row. A later one replaces it only when its

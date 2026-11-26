@@ -247,7 +247,7 @@ class FormEditorMetaboxRendererTest extends TestCase {
 
 		preg_match_all( '/id="ffc-tabnav-([a-z]+)"[^>]*?data-ffc-tab-masters="([^"]+)"/', $output, $m, PREG_SET_ORDER );
 		$tabs = array_column( $m, 1 );
-		$this->assertSame( array( 'restriction', 'email', 'time', 'geolocation', 'quiz', 'operator' ), $tabs, 'Layout and Fields have no master; every other tab does' );
+		$this->assertSame( array( 'restriction', 'email', 'time', 'geolocation', 'terminal', 'quiz', 'operator' ), $tabs, 'Layout and Fields have no master; every other tab does' );
 		foreach ( $m as $match ) {
 			foreach ( explode( ' ', $match[2] ) as $id ) {
 				$this->assertStringContainsString( 'id="' . $id . '"', $output, $match[1] . ' names a master no panel renders, so its dot would never light' );
