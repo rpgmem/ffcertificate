@@ -37,6 +37,12 @@ class GeofenceGuard {
 		if ( ! class_exists( '\FreeFormCertificate\Security\Geofence' ) ) {
 			return;
 		}
+		// A terminal's completion link (#2891) arrives after the form may
+		// have closed, from wherever the person is: the terminal that read
+		// them already proved the hours and the place.
+		if ( ! empty( $ctx->invite['completion'] ) ) {
+			return;
+		}
 
 		// The server decides the date window, the GPS reading the browser
 		// sent and the IP, combined by the form's "GPS or IP" setting

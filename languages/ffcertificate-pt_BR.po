@@ -37495,3 +37495,30 @@ msgid "%d required field does not come from the profile"
 msgid_plural "%d required fields do not come from the profile"
 msgstr[0] "%d campo obrigatório não vem do perfil"
 msgstr[1] "%d campos obrigatórios não vêm do perfil"
+
+msgid "Complete my certificate"
+msgstr "Completar meu certificado"
+
+msgid "Complete your certificate (terminal reading)"
+msgstr "Complete seu certificado (leitura no terminal)"
+
+msgid "Complete your certificate: {{form_title}}"
+msgstr "Complete seu certificado: {{form_title}}"
+
+msgid "The link is open until {{closes_at}}. It is personal: it fills in your name and e-mail, so do not forward it. Once issued, the certificate is in the app, under Certificates."
+msgstr "O link fica aberto até {{closes_at}}. Ele é pessoal: preenche seu nome e e-mail, então não o encaminhe. Depois de emitido, o certificado fica no app, em Certificados."
+
+msgid "The terminal recorded your attendance for \"{{form_title}}\". To issue your certificate, fill in what your profile does not have: {{missing}}."
+msgstr "O terminal registrou sua presença em \"{{form_title}}\". Para emitir seu certificado, preencha o que falta no seu perfil: {{missing}}."
+
+msgid "This link has expired. Ask the event organisers for help."
+msgstr "Este link expirou. Peça ajuda aos organizadores do evento."
+
+msgid "Your attendance is recorded"
+msgstr "Sua presença foi registrada"
+
+msgid "Your certificate was already issued. Open the app, under Certificates, to download it."
+msgstr "Seu certificado já foi emitido. Abra o app, em Certificados, para baixá-lo."
+
+msgid "A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail, which opens the form in the app when Site PWA is active. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply."
+msgstr "Um campo obrigatório que fica sem valor é completado pelo participante no celular, por um link pessoal enviado por e-mail, que abre o formulário no app quando o Site PWA está ativo. Ele abre o formulário por sete dias depois da leitura, seja qual for o horário, sem a área de GPS nem a senha, que o terminal já comprovou; o ingresso, as listas e os limites continuam valendo."

@@ -854,7 +854,9 @@ class Frontend {
 		$geofence_configs = array();
 
 		foreach ( array_unique( $form_ids ) as $form_id_int ) {
-			$config = \FreeFormCertificate\Security\Geofence::get_frontend_config( $form_id_int );
+			// A terminal's completion link (#2891) lifts the hours and the
+			// GPS area in the browser too, as the server does.
+			$config = CertificateCompletionLink::opens( $form_id_int ) ? null : \FreeFormCertificate\Security\Geofence::get_frontend_config( $form_id_int );
 
 			// A form with no restriction still runs the visitor pre-flight
 			// (#2030): the browser and cookie steps apply to every form.

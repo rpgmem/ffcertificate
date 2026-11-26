@@ -130,6 +130,18 @@ final class SitePwaContractTest extends TestCase {
 	}
 
 	/**
+	 * The "complete your certificate" link opens the form inside the app
+	 * (#2891), and adds its code after the app answers, because the app's
+	 * address keeps a fragment but drops a query string.
+	 */
+	public function test_the_completion_link_asks_the_app_for_its_url_before_adding_the_code(): void {
+		$src    = self::source( 'includes/frontend/class-ffc-certificate-completion-link.php' );
+		$filter = strpos( $src, "apply_filters( 'site_pwa_app_url'" );
+		$this->assertNotFalse( $filter );
+		$this->assertGreaterThan( $filter, strpos( $src, 'add_query_arg( FormInvite::QUERY_VAR', (int) $filter ), 'The code goes on after the app has answered.' );
+	}
+
+	/**
 	 * Every consumer speaks the same contract version, and it is the one Site PWA ships.
 	 */
 	public function test_every_consumer_speaks_api_version_one(): void {
