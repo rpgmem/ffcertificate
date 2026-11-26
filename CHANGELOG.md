@@ -64,6 +64,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - The contract with Site PWA is now checked with both plugins running (#2875): a script boots WordPress with both active and asks Site PWA's own classes for the `$api` versions, the registered screens and the look sources; it runs in both repositories' CI and, read-only, after both testes deploys.
 - The contract with Site PWA no longer pins this plugin's classes for a by-name read (#2877), since no Site PWA reads them any more; `SitePwaContractTest` now holds the Dark Mode values to what `AppLook` maps, and the dark palette to the class it offers.
 - **Allowing one more device change deactivates the participant's current phone at once** (#2879): its codes stop at each terminal's next sync instead of when the new phone is activated, and the button asks first.
+- **The app's "My details" opens the Profile screen** (#2880) through Site PWA's `site_pwa_details_screen` filter (rpgmem/site-pwa#56); an older app keeps its own account screen.
 
 ### Security
 

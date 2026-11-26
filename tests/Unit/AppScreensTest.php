@@ -85,6 +85,7 @@ class AppScreensTest extends TestCase {
 		AudienceAppScreens::init();
 
 		$this->assertSame( 10, has_filter( 'site_pwa_profile_line', array( DashboardAppScreens::class, 'profile_line' ) ), 'the line under the name on More' );
+		$this->assertSame( 10, has_filter( 'site_pwa_details_screen', array( DashboardAppScreens::class, 'details_screen' ) ), 'My details opens Profile (site-pwa#56)' );
 		$this->assertSame( 10, has_filter( 'map_meta_cap', array( AudienceAppScreens::class, 'map_app_caps' ) ), 'the operator screens wait for presence (#2828)' );
 		$this->assertSame( 10, has_filter( 'site_pwa_lock_required', array( AudienceAppScreens::class, 'lock_required' ) ), 'operators must lock the app (#2830)' );
 		$this->assertSame(
@@ -459,6 +460,13 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'set by another plugin', DashboardAppScreens::profile_line( 'set by another plugin', new \WP_User( 7 ) ), 'a line already set is kept' );
 		$this->assertSame( '', DashboardAppScreens::profile_line( '', null ) );
 		$this->assertSame( 42, DashboardAppScreens::profile_line( 42, new \WP_User( 7 ) ) );
+	}
+
+	public function test_my_details_names_the_profile_screen_unless_another_plugin_named_one(): void {
+		$this->assertSame( 'profile', DashboardAppScreens::details_screen( '' ) );
+		$this->assertArrayHasKey( DashboardAppScreens::PROFILE_SCREEN, DashboardAppScreens::definitions(), 'the screen it names is one this class registers' );
+		$this->assertSame( 'other', DashboardAppScreens::details_screen( 'other' ), 'a screen another plugin named is kept' );
+		$this->assertNull( DashboardAppScreens::details_screen( null ) );
 	}
 
 	public function test_reregistration_shows_no_badge_while_the_module_is_off_or_nobody_is_signed_in(): void {
