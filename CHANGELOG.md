@@ -48,6 +48,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The terminal's camera rests when it is not reading** (#2838). On the presence screen it turns off after a minute without a code and Use the camera brings it back; screens that read nothing with it turn it off. A connected reader keeps working throughout, so a tablet left on all day no longer heats up or hangs.
 - **The dashboard's Profile shows and edits the custom fields of the user's audiences** (#2850), on the site and in the app: one section per audience, edited with the reregistration form's controls, sensitive values masked until revealed, invalid values refused under the field. CPF and RF stay read-only. The WordPress user screen now saves through the same shared method.
 - **A terminal can issue a certificate.** A certificate form becomes a terminal target: a reading issues the certificate from the profile (name, e-mail, CPF/RF), applies the form's deny/allow lists, ticket and per-person limits, and records each person's result. The Terminal tab that turns it on comes next. (#2891)
+- **Fill from profile at the terminal.** A form field may name a field of the global profile list, and a checkbox may be accepted by showing the QR; the terminal fills them when it issues, and a choice takes only a value among its options. (#2891)
 
 ### Changed
 

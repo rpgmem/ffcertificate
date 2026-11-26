@@ -80,7 +80,16 @@
         $row.find('.ffc-options-field').toggleClass('ffc-hidden', !isChoice);
         $row.find('[data-ffc-types]').each(function() {
             var types = String($(this).attr('data-ffc-types')).split(' ');
-            $(this).toggleClass('ffc-hidden', types.indexOf(type) === -1);
+            var off = types.indexOf(type) === -1;
+            $(this).toggleClass('ffc-hidden', off);
+            // An option cannot be hidden in every browser, so it is also
+            // disabled, and let go when it was the one picked.
+            if (this.tagName === 'OPTION') {
+                this.disabled = off;
+                if (off && this.selected) {
+                    $(this).closest('select').val('');
+                }
+            }
         });
         $row.find('.ffc-type-desc').text(typeDescription(type));
         applyQuiz($row, type);

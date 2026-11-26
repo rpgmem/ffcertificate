@@ -15,6 +15,7 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Core\FormField;
 use FreeFormCertificate\Core\LabelSorter;
 use FreeFormCertificate\Core\QuizQuestion;
+use FreeFormCertificate\Frontend\CertificateProfileSource;
 use FreeFormCertificate\Settings\SettingsReader;
 use WP_Post;
 
@@ -36,6 +37,13 @@ class FormEditorBuilderMetabox {
 	 * @var bool
 	 */
 	private bool $names_locked = false;
+
+	/**
+	 * The profile fields a field may fill from, read once per screen.
+	 *
+	 * @var array<string, string>|null
+	 */
+	private ?array $profile_options = null;
 
 	/**
 	 * Canonical certificate form field types — the union consumed by both
@@ -236,6 +244,18 @@ class FormEditorBuilderMetabox {
 	}
 
 	/**
+	 * The profile fields a field may fill from, read once.
+	 *
+	 * @return array<string, string>
+	 */
+	private function profile_options(): array {
+		if ( null === $this->profile_options ) {
+			$this->profile_options = CertificateProfileSource::options();
+		}
+		return $this->profile_options;
+	}
+
+	/**
 	 * Helper: Renders a field row in the builder
 	 *
 	 * @param int|string           $index Field index.
@@ -357,6 +377,33 @@ class FormEditorBuilderMetabox {
 				</div>
 			</div>
 			<p class="description ffc-type-desc" aria-live="polite"><?php echo esc_html( self::field_type_descriptions()[ $type ] ?? '' ); ?></p>
+
+			<?php
+			// Where the field's value comes from when a terminal issues the
+			// certificate from the participant's profile (#2891). Name,
+			// e-mail and CPF/RF are always filled and need no choice.
+			$source    = CertificateProfileSource::of( $field );
+			$source_id = 'ffc_field_profile_source_' . $index;
+			$fillable  = implode( ' ', CertificateProfileSource::FILLABLE_TYPES );
+			?>
+			<div class="ffc-field-settings<?php echo in_array( (string) $type, CertificateProfileSource::FILLABLE_TYPES, true ) ? '' : ' ffc-hidden'; ?>" data-ffc-types="<?php echo esc_attr( $fillable ); ?>">
+				<label class="ffc-field-setting" for="<?php echo esc_attr( $source_id ); ?>">
+					<?php esc_html_e( 'Fill from profile at the terminal', 'ffcertificate' ); ?>
+				</label>
+				<select id="<?php echo esc_attr( $source_id ); ?>" name="ffc_fields[<?php echo esc_attr( $index ); ?>][profile_source]" aria-describedby="<?php echo esc_attr( $source_id . '_desc' ); ?>">
+					<option value=""><?php esc_html_e( 'Not filled: the participant completes it on the phone', 'ffcertificate' ); ?></option>
+					<option value="<?php echo esc_attr( CertificateProfileSource::CONSENT ); ?>" data-ffc-types="checkbox"<?php selected( $source, CertificateProfileSource::CONSENT ); ?><?php echo 'checkbox' === $type ? '' : ' disabled class="ffc-hidden"'; ?>><?php esc_html_e( 'Accepted by showing the QR', 'ffcertificate' ); ?></option>
+					<?php $options = $this->profile_options(); ?>
+					<?php if ( array() !== $options ) : ?>
+						<optgroup label="<?php esc_attr_e( 'Profile fields', 'ffcertificate' ); ?>">
+							<?php foreach ( $options as $value => $option_label ) : ?>
+								<option value="<?php echo esc_attr( $value ); ?>"<?php selected( $source, $value ); ?>><?php echo esc_html( $option_label ); ?></option>
+							<?php endforeach; ?>
+						</optgroup>
+					<?php endif; ?>
+				</select>
+				<span class="description" id="<?php echo esc_attr( $source_id . '_desc' ); ?>"><?php esc_html_e( 'Name, email and CPF/RF are always taken from the profile.', 'ffcertificate' ); ?></span>
+			</div>
 
 			<div class="ffc-content-field<?php echo $is_info ? '' : ' ffc-hidden'; ?>">
 				<p class="description ffc-options-desc">

@@ -353,7 +353,7 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 		$person  = self::person( $user_id );
 		$fields  = get_post_meta( $form_id, '_ffc_form_fields', true );
 		$fields  = is_array( $fields ) ? array_values( array_filter( $fields, 'is_array' ) ) : array();
-		$built   = self::submission_data( $fields, $person );
+		$built   = self::submission_data( $fields, $person, CertificateProfileSource::values( $user_id, $fields ) );
 		$missing = $built['missing'];
 		if ( '' === $person['cpf_rf'] && self::has_identifier_field( $fields ) && ! in_array( 'cpf_rf', $missing, true ) ) {
 			$missing[] = 'cpf_rf';
@@ -478,14 +478,17 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 	 * fields the profile cannot fill.
 	 *
 	 * Name, e-mail and CPF/RF are filled; a hidden field carries the form's
-	 * value, as on the site. Any other required field is missing until the
-	 * person fills it on their phone.
+	 * value, as on the site; a field set to fill from the profile takes the
+	 * value the person's profile holds, and a checkbox set to consent is
+	 * accepted by the reading. Any other required field is missing until
+	 * the person fills it on their phone.
 	 *
-	 * @param list<array<string, mixed>>                         $fields Form fields.
-	 * @param array{name: string, email: string, cpf_rf: string} $person Profile data.
+	 * @param list<array<string, mixed>>                         $fields  Form fields.
+	 * @param array{name: string, email: string, cpf_rf: string} $person  Profile data.
+	 * @param array<string, string>                              $profile Profile values by source, from {@see CertificateProfileSource::values()}.
 	 * @return array{data: array<string, mixed>, missing: list<string>}
 	 */
-	public static function submission_data( array $fields, array $person ): array {
+	public static function submission_data( array $fields, array $person, array $profile = array() ): array {
 		$data    = array();
 		$missing = array();
 		foreach ( $fields as $field ) {
@@ -505,6 +508,9 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 				$value = $person['email'];
 			} elseif ( in_array( $name, SubmitterName::CANDIDATE_KEYS, true ) ) {
 				$value = DataSanitizer::normalize_brazilian_name( $person['name'] );
+			}
+			if ( '' === $value ) {
+				$value = CertificateProfileSource::value_for( $field, $profile ) ?? '';
 			}
 			if ( '' !== $value ) {
 				$data[ $name ] = $value;
