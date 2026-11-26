@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\ArrayValue;
+use FreeFormCertificate\Core\TerminalTargetKey;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,8 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for terminals and the pairing codes that create them.
  *
- * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, bookings: list<int>, removed: array<int, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, auto_end_hours: int|null, refused_after_revocation: int, revoked_at: int|null, revoked_by: int|null}
- * @phpstan-type PairingRow array{id: int, code_hash: string, bookings: list<int>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null, auto_end_hours: int|null}
+ * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, targets: list<int|string>, removed: array<int|string, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, auto_end_hours: int|null, refused_after_revocation: int, revoked_at: int|null, revoked_by: int|null}
+ * @phpstan-type PairingRow array{id: int, code_hash: string, targets: list<int|string>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null, auto_end_hours: int|null}
  *
  * @since 6.50.0
  */
@@ -145,29 +146,30 @@ class AudienceTerminalReader {
 	}
 
 	/**
-	 * How many active terminals hold a booking.
+	 * How many active terminals hold a target.
 	 *
-	 * @param int $booking_id Booking.
-	 * @param int $now        Unix time.
+	 * @param int|string $key A {@see TerminalTargetKey}; a booking id is one.
+	 * @param int        $now Unix time.
 	 * @return int
 	 */
-	public static function count_active_for_booking( int $booking_id, int $now ): int {
-		return count( self::active_for_booking( $booking_id, $now ) );
+	public static function count_active_for_target( $key, int $now ): int {
+		return count( self::active_for_target( $key, $now ) );
 	}
 
 	/**
-	 * The active terminals that hold a booking (#2748), as the event's
+	 * The active terminals that hold a target (#2748), as an event's
 	 * Check-in tab lists them.
 	 *
-	 * @param int $booking_id Booking.
-	 * @param int $now        Unix time.
+	 * @param int|string $key A {@see TerminalTargetKey}; a booking id is one.
+	 * @param int        $now Unix time.
 	 * @return list<TerminalRow>
 	 */
-	public static function active_for_booking( int $booking_id, int $now ): array {
+	public static function active_for_target( $key, int $now ): array {
+		$key = TerminalTargetKey::normalize( $key );
 		return array_values(
 			array_filter(
 				self::active_terminals( $now ),
-				static fn( array $terminal ): bool => in_array( $booking_id, $terminal['bookings'], true )
+				static fn( array $terminal ): bool => null !== $key && in_array( $key, $terminal['targets'], true )
 			)
 		);
 	}
@@ -184,7 +186,8 @@ class AudienceTerminalReader {
 			'token_hash'               => ArrayValue::string( $row, 'token_hash' ),
 			'device_hash'              => ArrayValue::string( $row, 'device_hash' ),
 			'label'                    => ArrayValue::string( $row, 'label' ),
-			'bookings'                 => self::ids( ArrayValue::string( $row, 'bookings' ) ),
+			// The column keeps its first name, `bookings` (#2744): it is stored.
+			'targets'                  => self::targets( ArrayValue::string( $row, 'bookings' ) ),
 			'removed'                  => self::removals( ArrayValue::string( $row, 'removed' ) ),
 			'paired_by'                => self::nullable_int( $row, 'paired_by' ),
 			'paired_at'                => ArrayValue::int( $row, 'paired_at' ),
@@ -209,7 +212,7 @@ class AudienceTerminalReader {
 		return array(
 			'id'             => ArrayValue::int( $row, 'id' ),
 			'code_hash'      => ArrayValue::string( $row, 'code_hash' ),
-			'bookings'       => self::ids( ArrayValue::string( $row, 'bookings' ) ),
+			'targets'        => self::targets( ArrayValue::string( $row, 'bookings' ) ),
 			'label'          => ArrayValue::string( $row, 'label' ),
 			'created_by'     => self::nullable_int( $row, 'created_by' ),
 			'created_at'     => ArrayValue::int( $row, 'created_at' ),
@@ -221,34 +224,30 @@ class AudienceTerminalReader {
 	}
 
 	/**
-	 * A JSON list of ids, as positive integers.
+	 * A JSON list of target keys (#2890): booking ids as stored before, and
+	 * `type:id` for any other target.
 	 *
 	 * @param string $json JSON text.
-	 * @return list<int>
+	 * @return list<int|string>
 	 */
-	public static function ids( string $json ): array {
+	public static function targets( string $json ): array {
 		$list = json_decode( $json, true );
-		$out  = array();
-		foreach ( is_array( $list ) ? $list : array() as $id ) {
-			if ( is_numeric( $id ) && (int) $id > 0 ) {
-				$out[] = (int) $id;
-			}
-		}
-		return array_values( array_unique( $out ) );
+		return TerminalTargetKey::clean( is_array( $list ) ? $list : array() );
 	}
 
 	/**
-	 * A JSON map of booking id to the moment it left the queue (#2746).
+	 * A JSON map of target key to the moment it left the queue (#2746).
 	 *
 	 * @param string $json JSON text.
-	 * @return array<int, int>
+	 * @return array<int|string, int>
 	 */
 	public static function removals( string $json ): array {
 		$map = json_decode( $json, true );
 		$out = array();
-		foreach ( is_array( $map ) ? $map : array() as $id => $at ) {
-			if ( is_numeric( $id ) && (int) $id > 0 && is_numeric( $at ) && (int) $at > 0 ) {
-				$out[ (int) $id ] = (int) $at;
+		foreach ( is_array( $map ) ? $map : array() as $key => $at ) {
+			$key = TerminalTargetKey::normalize( $key );
+			if ( null !== $key && is_numeric( $at ) && (int) $at > 0 ) {
+				$out[ $key ] = (int) $at;
 			}
 		}
 		return $out;

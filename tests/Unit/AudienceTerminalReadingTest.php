@@ -67,6 +67,8 @@ class AudienceTerminalReadingTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The terminal reads a booking through its attendance target (#2890).
+		\FreeFormCertificate\Core\AttendanceTargetRegistry::register( \FreeFormCertificate\Audience\AudienceAttendanceTarget::TYPE, static fn() => new \FreeFormCertificate\Audience\AudienceAttendanceTarget() );
 		$this->options = array(
 			'ffc_settings' => array(
 				'date_format' => 'Y-m-d',
@@ -120,6 +122,7 @@ class AudienceTerminalReadingTest extends TestCase {
 		} else {
 			unset( $GLOBALS['wpdb'] );
 		}
+		\FreeFormCertificate\Core\AttendanceTargetRegistry::reset();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -392,7 +395,7 @@ class AudienceTerminalReadingTest extends TestCase {
 			'token_hash'   => str_repeat( 'a', 64 ),
 			'device_hash'  => str_repeat( 'b', 64 ),
 			'label'        => '',
-			'bookings'     => array( self::BOOKING ),
+			'targets'      => array( self::BOOKING ),
 			'paired_by'    => 5,
 			'paired_at'    => self::NOW - 3600,
 			'expires_at'   => self::NOW + 36000,

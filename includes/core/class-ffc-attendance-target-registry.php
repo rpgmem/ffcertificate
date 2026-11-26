@@ -70,6 +70,25 @@ class AttendanceTargetRegistry {
 	}
 
 	/**
+	 * The target a terminal key names, when its type can be read at a
+	 * terminal (#2890).
+	 *
+	 * @param mixed $key A {@see TerminalTargetKey}.
+	 * @return array{target: TerminalTargetInterface, id: int}|null Null for a malformed key, an unknown type, or a type no terminal reads.
+	 */
+	public static function terminal( $key ): ?array {
+		$parts = TerminalTargetKey::parse( $key );
+		if ( null === $parts ) {
+			return null;
+		}
+		$target = self::get( $parts['type'] );
+		return $target instanceof TerminalTargetInterface ? array(
+			'target' => $target,
+			'id'     => $parts['id'],
+		) : null;
+	}
+
+	/**
 	 * Registered type ids.
 	 *
 	 * @return list<string>

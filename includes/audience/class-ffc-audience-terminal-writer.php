@@ -30,13 +30,13 @@ class AudienceTerminalWriter {
 	 * Record a pairing code an operator generated.
 	 *
 	 * @param string   $code_hash Keyed hash of the code.
-	 * @param int[]    $bookings  Booking ids the terminal will hold.
+	 * @param array    $bookings  Target keys the terminal will hold ({@see \FreeFormCertificate\Core\TerminalTargetKey}).
 	 * @param string   $label     What the operator called the terminal.
 	 * @param int      $by        The operator.
 	 * @param int      $now       Unix time.
 	 * @param int      $expires   Unix time.
 	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself; null for the Check-in settings.
-	 * @phpstan-param list<int> $bookings
+	 * @phpstan-param list<int|string> $bookings
 	 * @return int The new row's id, or 0 on failure.
 	 */
 	public static function create_pairing( string $code_hash, array $bookings, string $label, int $by, int $now, int $expires, ?int $auto_end_hours = null ): int {
@@ -98,12 +98,12 @@ class AudienceTerminalWriter {
 	 * @param string   $token_hash  SHA-256 of its token.
 	 * @param string   $device_hash Keyed hash of the device id it sent.
 	 * @param string   $label       Label.
-	 * @param int[]    $bookings    Booking ids it holds.
+	 * @param array    $bookings    Target keys it holds.
 	 * @param int|null $by          The operator who generated the code.
 	 * @param int      $now         Unix time.
 	 * @param int      $expires     Unix time.
 	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself; null for the Check-in settings.
-	 * @phpstan-param list<int> $bookings
+	 * @phpstan-param list<int|string> $bookings
 	 * @return int The new row's id, or 0 on failure.
 	 */
 	public static function create_terminal( string $token_hash, string $device_hash, string $label, array $bookings, ?int $by, int $now, int $expires, ?int $auto_end_hours = null ): int {
@@ -149,11 +149,11 @@ class AudienceTerminalWriter {
 	/**
 	 * Replace the events of an active terminal (#2746).
 	 *
-	 * @param int             $id       Terminal id.
-	 * @param int[]           $bookings Booking ids it holds now.
-	 * @param array<int, int> $removed  When each event it no longer holds left.
-	 * @param int             $expires  Unix time.
-	 * @phpstan-param list<int> $bookings
+	 * @param int                    $id       Terminal id.
+	 * @param array                  $bookings Target keys it holds now.
+	 * @param array<int|string, int> $removed When each target it no longer holds left.
+	 * @param int                    $expires  Unix time.
+	 * @phpstan-param list<int|string> $bookings
 	 * @return bool Whether an active terminal was changed.
 	 */
 	public static function set_bookings( int $id, array $bookings, array $removed, int $expires ): bool {

@@ -17,6 +17,7 @@ use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\ClientIpResolver;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\IpAddress;
+use FreeFormCertificate\Core\TerminalTargetKey;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -76,8 +77,8 @@ class AudienceTerminalRestController {
 					'bookings' => array(
 						'type'              => 'array',
 						'required'          => true,
-						'items'             => array( 'type' => 'integer' ),
-						'sanitize_callback' => array( self::class, 'sanitize_ids' ),
+						'items'             => array( 'type' => array( 'integer', 'string' ) ),
+						'sanitize_callback' => array( self::class, 'sanitize_targets' ),
 					),
 					'label'    => array(
 						'type'              => 'string',
@@ -135,8 +136,8 @@ class AudienceTerminalRestController {
 					'bookings' => array(
 						'type'              => 'array',
 						'required'          => true,
-						'items'             => array( 'type' => 'integer' ),
-						'sanitize_callback' => array( self::class, 'sanitize_ids' ),
+						'items'             => array( 'type' => array( 'integer', 'string' ) ),
+						'sanitize_callback' => array( self::class, 'sanitize_targets' ),
 					),
 					'label'    => array(
 						'type'              => 'string',
@@ -224,8 +225,8 @@ class AudienceTerminalRestController {
 						'bookings' => array(
 							'type'              => 'array',
 							'required'          => true,
-							'items'             => array( 'type' => 'integer' ),
-							'sanitize_callback' => array( self::class, 'sanitize_ids' ),
+							'items'             => array( 'type' => array( 'integer', 'string' ) ),
+							'sanitize_callback' => array( self::class, 'sanitize_targets' ),
 						),
 					),
 				),
@@ -327,8 +328,8 @@ class AudienceTerminalRestController {
 						'bookings' => array(
 							'type'              => 'array',
 							'required'          => true,
-							'items'             => array( 'type' => 'integer' ),
-							'sanitize_callback' => array( self::class, 'sanitize_ids' ),
+							'items'             => array( 'type' => array( 'integer', 'string' ) ),
+							'sanitize_callback' => array( self::class, 'sanitize_targets' ),
 						),
 					),
 				),
@@ -415,7 +416,7 @@ class AudienceTerminalRestController {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function create_pairing( \WP_REST_Request $request ) {
-		$bookings = self::sanitize_ids( $request->get_param( 'bookings' ) );
+		$bookings = self::sanitize_targets( $request->get_param( 'bookings' ) );
 		$label    = $request->get_param( 'label' );
 		$result   = AudienceTerminalPairing::create_code( get_current_user_id(), $bookings, is_string( $label ) ? $label : '', time(), self::auto_end_of( $request ) );
 		if ( is_wp_error( $result ) ) {
@@ -465,7 +466,7 @@ class AudienceTerminalRestController {
 	 *
 	 * @param array $result What {@see AudienceTerminalPairing::pair()} returned.
 	 * @param int   $now    Unix time.
-	 * @phpstan-param array{token: string, terminal_id: int, label: string, bookings: list<int>, expires_at: int} $result
+	 * @phpstan-param array{token: string, terminal_id: int, label: string, bookings: list<int|string>, expires_at: int} $result
 	 * @return \WP_REST_Response
 	 */
 	private static function paired_response( array $result, int $now ): \WP_REST_Response {
@@ -516,7 +517,7 @@ class AudienceTerminalRestController {
 		$now    = time();
 		$label  = $request->get_param( 'label' );
 		$device = $request->get_param( 'device' );
-		$code   = AudienceTerminalPairing::create_code( $operator['user_id'], self::sanitize_ids( $request->get_param( 'bookings' ) ), is_string( $label ) ? $label : '', $now, self::auto_end_of( $request ) );
+		$code   = AudienceTerminalPairing::create_code( $operator['user_id'], self::sanitize_targets( $request->get_param( 'bookings' ) ), is_string( $label ) ? $label : '', $now, self::auto_end_of( $request ) );
 		if ( is_wp_error( $code ) ) {
 			return $code;
 		}
@@ -574,7 +575,7 @@ class AudienceTerminalRestController {
 			if ( null === $end || $end < $now ) {
 				continue;
 			}
-			$held     = AudienceTerminalReader::count_active_for_booking( $id, $now );
+			$held     = AudienceTerminalReader::count_active_for_target( $id, $now );
 			$events[] = array(
 				'id'          => $id,
 				'description' => (string) $booking->description,
@@ -653,7 +654,7 @@ class AudienceTerminalRestController {
 	public function update_terminal( \WP_REST_Request $request ) {
 		$result = AudienceTerminalPairing::update_bookings(
 			absint( $request->get_param( 'id' ) ),
-			self::sanitize_ids( $request->get_param( 'bookings' ) ),
+			self::sanitize_targets( $request->get_param( 'bookings' ) ),
 			get_current_user_id(),
 			current_user_can( 'manage_options' ),
 			time()
@@ -681,7 +682,7 @@ class AudienceTerminalRestController {
 		return new \WP_REST_Response(
 			array(
 				'label'         => $terminal['label'],
-				'bookings'      => $terminal['bookings'],
+				'bookings'      => $terminal['targets'],
 				'expires_at'    => $terminal['expires_at'],
 				'expires_label' => DateFormatter::format_datetime( $terminal['expires_at'] ),
 				'now'           => $now,
@@ -864,14 +865,14 @@ class AudienceTerminalRestController {
 			return $operator;
 		}
 		$now    = time();
-		$result = AudienceTerminalPairing::update_bookings( $terminal['id'], self::sanitize_ids( $request->get_param( 'bookings' ) ), $operator['user_id'], true, $now );
+		$result = AudienceTerminalPairing::update_bookings( $terminal['id'], self::sanitize_targets( $request->get_param( 'bookings' ) ), $operator['user_id'], true, $now );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 		return new \WP_REST_Response(
 			array(
 				'label'         => $result['label'],
-				'bookings'      => $result['bookings'],
+				'bookings'      => $result['targets'],
 				'expires_at'    => $result['expires_at'],
 				'expires_label' => DateFormatter::format_datetime( $result['expires_at'] ),
 				'now'           => $now,
@@ -976,13 +977,13 @@ class AudienceTerminalRestController {
 	 *
 	 * @param array $terminal Terminal row.
 	 * @phpstan-param TerminalRow $terminal
-	 * @return array{id: int, label: string, bookings: list<int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, paired_label: string, expires_label: string, last_seen_label: string}
+	 * @return array{id: int, label: string, bookings: list<int|string>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, paired_label: string, expires_label: string, last_seen_label: string}
 	 */
 	public static function present( array $terminal ): array {
 		return array(
 			'id'              => $terminal['id'],
 			'label'           => $terminal['label'],
-			'bookings'        => $terminal['bookings'],
+			'bookings'        => $terminal['targets'],
 			'paired_by'       => $terminal['paired_by'],
 			'paired_at'       => $terminal['paired_at'],
 			'expires_at'      => $terminal['expires_at'],
@@ -994,19 +995,14 @@ class AudienceTerminalRestController {
 	}
 
 	/**
-	 * Positive integer ids from a list.
+	 * Target keys from a list (#2890): a booking id, or `type:id` for any
+	 * other target; anything else is dropped.
 	 *
 	 * @param mixed $value Raw value.
-	 * @return list<int>
+	 * @return list<int|string>
 	 */
-	public static function sanitize_ids( $value ): array {
-		$out = array();
-		foreach ( is_array( $value ) ? $value : array() as $id ) {
-			if ( is_numeric( $id ) && (int) $id > 0 ) {
-				$out[] = (int) $id;
-			}
-		}
-		return array_values( array_unique( $out ) );
+	public static function sanitize_targets( $value ): array {
+		return TerminalTargetKey::clean( is_array( $value ) ? $value : array() );
 	}
 
 	/**
