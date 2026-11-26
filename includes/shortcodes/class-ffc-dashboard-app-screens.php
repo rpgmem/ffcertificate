@@ -35,6 +35,11 @@ final class DashboardAppScreens {
 	public const API_VERSION = 1;
 
 	/**
+	 * The id of the screen that holds the person's details.
+	 */
+	public const PROFILE_SCREEN = 'profile';
+
+	/**
 	 * Hook the registration action.
 	 *
 	 * @return void
@@ -42,6 +47,20 @@ final class DashboardAppScreens {
 	public static function init(): void {
 		add_action( 'site_pwa_register_screens', array( self::class, 'register' ), 10, 2 );
 		add_filter( 'site_pwa_profile_line', array( self::class, 'profile_line' ), 10, 2 );
+		add_filter( 'site_pwa_details_screen', array( self::class, 'details_screen' ) );
+	}
+
+	/**
+	 * The screen More's "My details" opens (site-pwa#56): the Profile screen,
+	 * which holds the person's details, instead of the app's account screen.
+	 * A screen another plugin named is kept; the app checks the person may
+	 * open it and falls back to its own otherwise.
+	 *
+	 * @param mixed $id What the app or another plugin handed.
+	 * @return mixed
+	 */
+	public static function details_screen( $id ) {
+		return '' === $id ? self::PROFILE_SCREEN : $id;
 	}
 
 	/**
@@ -143,7 +162,7 @@ final class DashboardAppScreens {
 	 */
 	public static function definitions(): array {
 		return array(
-			'calendar'       => array(
+			'calendar'           => array(
 				// "Agenda", as the approved app names it (site-pwa#23); the id stays.
 				'label'    => __( 'Agenda', 'ffcertificate' ),
 				'icon'     => 'calendar',
@@ -153,7 +172,7 @@ final class DashboardAppScreens {
 				// The app draws its own screen over the same routes (#2781).
 				'render'   => array( AgendaAppScreen::class, 'render' ),
 			),
-			'certificates'   => array(
+			'certificates'       => array(
 				'label'    => __( 'Certificates', 'ffcertificate' ),
 				'icon'     => 'document',
 				'place'    => 'nav',
@@ -162,14 +181,14 @@ final class DashboardAppScreens {
 				// The app draws its own screen over the same route (#2781).
 				'render'   => array( CertificatesAppScreen::class, 'render' ),
 			),
-			'messages'       => array(
+			'messages'           => array(
 				'label'    => __( 'Messages', 'ffcertificate' ),
 				'icon'     => 'news',
 				'place'    => 'more',
 				'position' => 20,
 				'tabs'     => array( 'messages' ),
 			),
-			'reregistration' => array(
+			'reregistration'     => array(
 				'label'    => __( 'Reregistration', 'ffcertificate' ),
 				'icon'     => 'edit',
 				'place'    => 'more',
@@ -178,14 +197,14 @@ final class DashboardAppScreens {
 				'subtitle' => __( 'Keep your registration up to date', 'ffcertificate' ),
 				'badge'    => array( self::class, 'reregistration_badge' ),
 			),
-			'recruitment'    => array(
+			'recruitment'        => array(
 				'label'    => __( 'Recruitment', 'ffcertificate' ),
 				'icon'     => 'grid',
 				'place'    => 'more',
 				'position' => 22,
 				'tabs'     => array( 'recruitment' ),
 			),
-			'profile'        => array(
+			self::PROFILE_SCREEN => array(
 				'label'    => __( 'Profile', 'ffcertificate' ),
 				'icon'     => 'user',
 				'place'    => 'more',
