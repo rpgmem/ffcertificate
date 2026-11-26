@@ -2,7 +2,7 @@
 Title: `release: X.Y.Z — bump + finalize CHANGELOG` (to `develop`), or
 `X.Y.Z — <summary of the batch>` (the `develop → main` PR, which stays draft
 until the maintainer confirms the production deploy).
-See CLAUDE.md → "Release PR (develop → main)".
+See `.claude/rules/release-and-deploy.md` → "Release PR (develop → main)".
 -->
 
 ## Release X.Y.Z
@@ -20,7 +20,7 @@ See CLAUDE.md → "Release PR (develop → main)".
 
 ## After merge (maintainer / agent)
 
-1. Maintainer pushes the tag with the guarded recipe in `CLAUDE.md`.
+1. Maintainer pushes the tag with the guarded recipe in `.claude/rules/release-and-deploy.md`.
 2. Agent resets `develop` to `main` (`--force-with-lease`).
 3. Agent opens the SHA-backfill PR for the CHANGELOG heading.
 4. Agent lists any branch left behind; maintainer deletes it.

@@ -44,7 +44,7 @@ final class AssetHandleUniquenessTest extends TestCase {
 	 * @var array<string, string>
 	 */
 	private const ALLOWED = array(
-		// CLAUDE.md "Page scope on the admin `wrap`": `ffc-admin` on users.php,
+		// .claude/rules/stylesheets.md "Page scope on the admin `wrap`": `ffc-admin` on users.php,
 		// `ffc-admin-css` on FFC screens, with different dependency lists. The
 		// two never meet on one screen -- users.php is not an FFC page.
 		'assets/css/ffc-admin.css' => 'users.php and the FFC screens each enqueue it with their own dependencies; no screen is both',
