@@ -79,6 +79,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **An audience calendar's event list stacks under it on a phone** (#2843). The panel kept its 500 px width beside the calendar, because the phone rule came before the rule it overrides, and widened the page past the screen; at 412 px the page was 510 px wide.
 - **The plugin's screens inside the app take the app's look** (#2848). In the light theme, primary buttons, toggles, links, focus and the Presence stage read Site PWA's accent and corners, with the app's contrasting text colour; the Presence stage's messages no longer use tones meant for a light surface.
 - **The Profile's audience fields fit the phone** (#2852): each audience's section no longer grows past the screen with the working-hours grid; the grid scrolls inside its own region, as on the reregistration form.
+- **A calendar day's name stays inside its box** (#2856): the holiday, booking or available name under a day's number no longer runs past the day and gets clipped on a phone.
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 
