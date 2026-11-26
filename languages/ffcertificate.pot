@@ -37465,6 +37465,7 @@ msgid "A location an environment of Audience Calendars is linked to cannot be de
 msgstr ""
 
 msgid "An environment can be linked to a GPS location of Settings → Geolocation, on its edit screen. One location can have several environments. The side column then names the location, its environments and how many certificate forms use it, and the location cannot be deleted while an environment is linked to it."
+msgstr ""
 
 msgid "Consent accepted at the terminal"
 msgstr ""
