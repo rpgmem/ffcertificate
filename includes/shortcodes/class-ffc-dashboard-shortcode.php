@@ -39,6 +39,8 @@ class DashboardShortcode {
 		// unless the Site PWA plugin fires its registration action.
 		DashboardAppScreens::init();
 		AppHome::init();
+		// The site's look offered to the app (#2873), through its filters.
+		AppLook::init();
 	}
 
 	/**

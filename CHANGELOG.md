@@ -60,6 +60,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - The test-writing rules and the audited lint-config verdicts move from `CLAUDE.md` to path-scoped `.claude/rules/` files, loaded when an agent session works in `tests/` or edits a lint config, and four references the stylesheet split left stale name their new home (#2867)
 - `ClaudeRulesReferenceTest` holds `CLAUDE.md` and `.claude/rules/` together: every rule file is path-scoped to files that exist and named by a pointer, and every `` `file` "Section" `` reference resolves; `CLAUDE.md` states when a new section belongs in a rule file (#2869)
 - The contract with Site PWA is written down in `.claude/rules/pwa-contract.md` (the `site_pwa_*` hooks this plugin uses, what the app reads from it, and what a change on this side requires), and `SitePwaContractTest` pins this side so a rename can no longer break the app in silence (#2871)
+- The installable app now takes this plugin's look (Public Design's accent and corners, Dark Mode and the dark root class) through Site PWA's source filters, which `AppLook` hooks, instead of Site PWA reading this plugin by class name; the source id stays `ffc` (#2873)
 
 ### Security
 

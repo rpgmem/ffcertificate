@@ -513,7 +513,7 @@ Every public form is guarded by the same block: a honeypot (provider-independent
 
 ### The Site PWA contract — `.claude/rules/pwa-contract.md`
 
-This plugin is the first consumer of Site PWA (`rpgmem/site-pwa`), and the two meet in PHP in both directions: this plugin hooks into the app's `site_pwa_*` action and filters to register its screens, and the app reads `Core\PublicDesign`, `SettingsReader::get( 'dark_mode' )` and the `ffc-dark-mode` root class to follow the site's look. Both sides read the other defensively, so **a rename here breaks the app in silence**. The contract, the `$api` versioning rule and what a change on this side requires are in `.claude/rules/pwa-contract.md`, which loads when a session works in the files on this side; **read it before renaming anything it names from anywhere else**. `SitePwaContractTest` pins this side and cannot see the other repository.
+This plugin is the first consumer of Site PWA (`rpgmem/site-pwa`), and the two meet in PHP: this plugin hooks into the app's `site_pwa_*` action and filters to register its screens and to offer its look (`Shortcodes\AppLook`, #2873), and until rpgmem/site-pwa#48 ships the app also reads `Core\PublicDesign`, `SettingsReader::get( 'dark_mode' )` and the `ffc-dark-mode` root class by name. Both sides are defensive, so **a rename here breaks the app in silence**. The contract, the `$api` versioning rule and what a change on this side requires are in `.claude/rules/pwa-contract.md`, which loads when a session works in the files on this side; **read it before renaming anything it names from anywhere else**. `SitePwaContractTest` pins this side and cannot see the other repository.
 
 ---
 
