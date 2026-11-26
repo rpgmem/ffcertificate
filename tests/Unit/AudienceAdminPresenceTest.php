@@ -180,6 +180,36 @@ class AudienceAdminPresenceTest extends TestCase {
 
 		$this->assertSame( $request, AudiencePresenceReader::request_id( 7, 'fifth-phone-000000001', AudiencePresenceEnrolment::REASON_CHANGE_LIMIT, AudiencePresenceWriter::REQUEST_APPROVED ) );
 		$this->assertSame( array( 'presence_request_approved' ), array_column( ActivityLogBuffer::contexts(), 'action' ) );
+		$this->assertSame( 0, ActivityLogBuffer::contexts()[0]['context']['revoked'], 'no active phone, nothing to deactivate' );
+	}
+
+	public function test_allowing_one_more_change_deactivates_the_current_phone_at_once(): void {
+		$current = $this->device( 7, 'fourth-phone-00000001', 'kid-a', $this->now - self::DAY, null, true );
+		$other   = $this->device( 8, 'other-phone-000000001', 'kid-b', $this->now - self::DAY );
+		$request = AudiencePresenceWriter::request( 7, 'fifth-phone-000000001', AudiencePresenceEnrolment::REASON_CHANGE_LIMIT, $this->now - 60 );
+
+		$this->assertSame( 'approved', $this->screen->run( 'approve', (string) $request, self::ADMIN, $this->now ) );
+
+		$device = AudiencePresenceReader::by_id( $current );
+		$this->assertSame( $this->now, $device['revoked_at'] );
+		$this->assertSame( AudiencePresenceWriter::REVOKED_ADMIN, $device['revoked_reason'] );
+		$this->assertContains( 'kid-a', AudiencePresenceReader::revoked_key_ids_since( $this->now - AudiencePresenceAttestation::TTL ), 'terminals refuse its codes from their next sync' );
+		$this->assertNull( AudiencePresenceReader::by_id( $other )['revoked_at'], 'another participant\'s phone is untouched' );
+
+		$log = ActivityLogBuffer::contexts();
+		$this->assertSame( array( 'presence_device_revoked', 'presence_request_approved' ), array_column( $log, 'action' ) );
+		$this->assertSame( 7, $log[0]['context']['target_user_id'] );
+		$this->assertSame( 'kid-a', $log[0]['context']['key_id'] );
+		$this->assertSame( 1, $log[1]['context']['revoked'] );
+	}
+
+	public function test_refusing_one_more_change_keeps_the_current_phone(): void {
+		$current = $this->device( 7, 'fourth-phone-00000001', 'kid-a', $this->now - self::DAY, null, true );
+		$request = AudiencePresenceWriter::request( 7, 'fifth-phone-000000001', AudiencePresenceEnrolment::REASON_CHANGE_LIMIT, $this->now - 60 );
+
+		$this->assertSame( 'refused', $this->screen->run( 'refuse', (string) $request, self::ADMIN, $this->now ) );
+
+		$this->assertNull( AudiencePresenceReader::by_id( $current )['revoked_at'] );
 	}
 
 	public function test_refusing_a_request_keeps_the_device_reserved_and_logs_it(): void {

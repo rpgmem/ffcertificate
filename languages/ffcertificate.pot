@@ -35700,7 +35700,7 @@ msgid "Nothing changed: someone already answered this, or the device is no longe
 msgstr ""
 
 
-msgid "One more device change allowed. The participant can now activate the phone in the app."
+msgid "One more device change allowed. The participant's current phone was deactivated, and they can now activate the new one in the app."
 msgstr ""
 
 msgid "Phone released. The participant can now activate it in the app."
@@ -37054,7 +37054,7 @@ msgstr ""
 msgid "Expired on %s; renews when the app goes online"
 msgstr ""
 
-msgid "Scheduling → Presence devices lists the active phones, searchable by user, each with its platform and browser, when it was activated, until when it works offline and how many of the 3 changes allowed in 30 days its owner used, and a History per participant with every phone they used and why each one stopped. Deactivate stops a phone at once: its codes are refused from each terminal's next sync and the app asks to activate a phone again. Needs attention, above the list and only when something waits, holds the requests to answer: Release to the participant frees a phone reserved to another account (the item names that account and until when the phone stays reserved), Release one change lets one more activation through beyond the limit, and Refuse keeps things as they are. A shared-signals alert can be dismissed, and comes back when another phone reports the same signals. Every answer is in the activity log. The screen needs ffc_manage_audiences_presence."
+msgid "Scheduling → Presence devices lists the active phones, searchable by user, each with its platform and browser, when it was activated, until when it works offline and how many of the 3 changes allowed in 30 days its owner used, and a History per participant with every phone they used and why each one stopped. Deactivate stops a phone at once: its codes are refused from each terminal's next sync and the app asks to activate a phone again. Needs attention, above the list and only when something waits, holds the requests to answer: Release to the participant frees a phone reserved to another account (the item names that account and until when the phone stays reserved), Release one change lets one more activation through beyond the limit and deactivates the participant's current phone at once, and Refuse keeps things as they are. A shared-signals alert can be dismissed, and comes back when another phone reports the same signals. Every answer is in the activity log. The screen needs ffc_manage_audiences_presence."
 msgstr ""
 
 msgid "This terminal is offline. Pairing it needs a connection; once paired, it reads codes offline."
@@ -37257,4 +37257,7 @@ msgstr ""
 
 #: includes/shortcodes/class-ffc-app-look.php
 msgid "Free Form Certificate: Dark Mode"
+msgstr ""
+
+msgid "Release one more device change? The participant's current phone stops showing codes now."
 msgstr ""
