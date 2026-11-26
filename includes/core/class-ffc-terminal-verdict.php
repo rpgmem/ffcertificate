@@ -45,6 +45,13 @@ final class TerminalVerdict {
 	public const REFUSED = 'refused';
 
 	/**
+	 * The reading was recorded, and the person still has something to do
+	 * before it counts in full: a certificate waiting on data the profile
+	 * does not hold (#2891).
+	 */
+	public const PENDING = 'pending';
+
+	/**
 	 * A refusal, with no name in it.
 	 *
 	 * @param string $code    Reason code.

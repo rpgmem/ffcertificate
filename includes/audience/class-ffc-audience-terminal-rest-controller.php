@@ -251,10 +251,18 @@ class AudienceTerminalRestController {
 				'callback'            => array( $this, 'reading' ),
 				'permission_callback' => array( $this, 'check_terminal_permission' ),
 				'args'                => array(
-					'code' => array(
+					'code'        => array(
 						'type'              => 'string',
 						'required'          => true,
 						'sanitize_callback' => array( self::class, 'sanitize_reading' ),
+					),
+					// The code a certificate form's ticket asks for (#2891),
+					// typed at the terminal after the QR.
+					'ticket_code' => array(
+						'type'              => 'string',
+						'required'          => false,
+						'default'           => '',
+						'sanitize_callback' => array( self::class, 'sanitize_ticket_code' ),
 					),
 				),
 			)
@@ -717,8 +725,9 @@ class AudienceTerminalRestController {
 		if ( null === $terminal ) {
 			return self::not_paired();
 		}
-		$code = $request->get_param( 'code' );
-		return new \WP_REST_Response( AudienceTerminalReading::read( $terminal, is_string( $code ) ? $code : '', time() ), 200, array( 'Cache-Control' => 'no-store' ) );
+		$code   = $request->get_param( 'code' );
+		$ticket = $request->get_param( 'ticket_code' );
+		return new \WP_REST_Response( AudienceTerminalReading::read( $terminal, is_string( $code ) ? $code : '', time(), is_string( $ticket ) ? $ticket : '' ), 200, array( 'Cache-Control' => 'no-store' ) );
 	}
 
 	/**
@@ -941,6 +950,17 @@ class AudienceTerminalRestController {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * A ticket code as a certificate form stores it: letters, digits and
+	 * hyphens, upper-cased, at most 40 characters.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return string
+	 */
+	public static function sanitize_ticket_code( $value ): string {
+		return is_string( $value ) ? substr( (string) preg_replace( '/[^A-Z0-9-]/', '', strtoupper( trim( $value ) ) ), 0, 40 ) : '';
 	}
 
 	/**

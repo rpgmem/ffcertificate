@@ -85,6 +85,10 @@ final class AudiencePresenceCode {
 	 */
 	public const TARGETS = array(
 		1 => AudienceAttendanceTarget::TYPE,
+		// A certificate form (#2891). Written as its type id, the literal
+		// `Frontend\CertificateFormTarget::TYPE` holds, so this module does
+		// not reach into the forms module for one string.
+		2 => 'certificate_form',
 	);
 
 	/**

@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type Verdict from TerminalVerdict
  * @phpstan-type TerminalWindow array{date: string, opens: int, closes: int}
  * @phpstan-type TerminalEntry array{title: string, place: string, hours: string, open: bool, closes: int, present: int, enrolled: int}
+ * @phpstan-type TerminalReading array{user_id: int, name: string, ticket: bool, at: int, terminal_id: int, queued: bool, ticket_code: string}
  */
 interface TerminalTargetInterface extends AttendanceTargetInterface {
 
@@ -84,14 +85,19 @@ interface TerminalTargetInterface extends AttendanceTargetInterface {
 	 *
 	 * The caller has already verified the code and that the terminal holds
 	 * the target. A verdict whose status is {@see TerminalVerdict::RECORDED}
-	 * wrote a record; the caller counts it on the terminal.
+	 * or {@see TerminalVerdict::PENDING} wrote a record; the caller counts it
+	 * on the terminal.
 	 *
-	 * @param int    $target_id Id within the type.
-	 * @param int    $user_id   The person the code names.
-	 * @param string $name      Their short display name.
-	 * @param bool   $ticket    Whether the code carries the site's ticket for the target.
-	 * @param int    $at        The moment of the reading.
+	 * The reading carries the person the code names (`user_id`, and their
+	 * short `name`), whether the code carries the site's presence ticket for
+	 * the target (`ticket`), its moment (`at`), the terminal that read it,
+	 * whether it was queued offline and sent later (`queued`), and a code the
+	 * person typed at the terminal for the target, or '' (`ticket_code`).
+	 *
+	 * @param int   $target_id Id within the type.
+	 * @param array $reading   The reading.
+	 * @phpstan-param TerminalReading $reading
 	 * @return Verdict
 	 */
-	public function terminal_read( int $target_id, int $user_id, string $name, bool $ticket, int $at ): array;
+	public function terminal_read( int $target_id, array $reading ): array;
 }

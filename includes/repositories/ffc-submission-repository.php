@@ -336,6 +336,16 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * The encrypted CPF and RF of a user's newest submission that carries one.
+	 *
+	 * @param int $user_id User.
+	 * @return array{cpf_encrypted: string, rf_encrypted: string}|null
+	 */
+	public function latest_identifier_for_user( int $user_id ): ?array {
+		return $this->reader->latest_identifier_for_user( $user_id );
+	}
+
+	/**
 	 * SQL fragment for the WP_User_Query orderby rewrite.
 	 *
 	 * @since 6.6.2

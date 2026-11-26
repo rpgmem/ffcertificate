@@ -28,6 +28,11 @@ return array(
 		'revision'    => '2',
 		'fingerprint' => '6a6ac095f8fee6f2509b4427e7985b2b7ff05c3e',
 	),
+	'includes/frontend/class-ffc-certificate-terminal-activator.php' => array(
+		'class'       => 'FreeFormCertificate\\Frontend\\CertificateTerminalActivator',
+		'revision'    => '1',
+		'fingerprint' => 'c7e331201288b28686599993c40a9f045a1f9020',
+	),
 	'includes/recruitment/class-ffc-recruitment-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\Recruitment\\RecruitmentActivator',
 		'revision'    => '5',

@@ -37265,3 +37265,59 @@ msgstr ""
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "In the app, the notification toggles are on the Preferences screen, in a Notifications section: \"Appointment reminder\", plus \"Date messages\" and \"Announcements from this site\" for an account that has the Messages tab. The app's Profile and Messages screens leave them out."
 msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This certificate form does not take the terminal. Turn it on in the form's Terminal tab."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "A form with a quiz cannot issue at the terminal: the certificate needs the answers."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "The terminal reads a certificate form while it is open, on one day: set the form's opening and closing on the same date."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "Form #%d"
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This form does not issue certificates at the terminal. Speak to the organiser."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This form opens at %s."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This form closed at %s."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This form asks for a ticket, which the terminal cannot check offline. Show the QR again when the terminal is online."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "Type the code of your ticket."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "Attendance recorded. Finish your certificate on your phone: the terminal is free for the next person."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This certificate is already being issued. Show the QR again in a moment."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "The certificate could not be issued. Show the code again."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "Certificate issued. It is in the app, under Certificates."
+msgstr ""
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "You already have this certificate. Open the app, under Certificates, to download it."
+msgstr ""

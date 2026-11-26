@@ -151,6 +151,15 @@ class Loader {
 		\FreeFormCertificate\Submissions\CertificateSignatureActivator::maybe_create_table();
 		\FreeFormCertificate\Submissions\CertificateSigner::init();
 
+		// A certificate form as a terminal target (#2891): the readings
+		// table heals on request, and the target is registered on every
+		// request, REST included, because a terminal reads outside wp-admin.
+		\FreeFormCertificate\Frontend\CertificateTerminalActivator::maybe_create_table();
+		\FreeFormCertificate\Core\AttendanceTargetRegistry::register(
+			\FreeFormCertificate\Frontend\CertificateFormTarget::TYPE,
+			static fn(): \FreeFormCertificate\Frontend\CertificateFormTarget => new \FreeFormCertificate\Frontend\CertificateFormTarget()
+		);
+
 		// Ensure activity_log schema is healed. Installs created in a
 		// pre-`action`-column plugin version skipped dbDelta on every
 		// upgrade because create_table() used to early-return on

@@ -154,6 +154,7 @@ abstract class IntegrationTestCase extends TestCase {
 		$this->options['ffc_activity_log_db_version'] = \FreeFormCertificate\Core\ActivityLog::SCHEMA_REVISION;
 		$this->options['ffc_bulk_issue_db_version']   = \FreeFormCertificate\Submissions\BulkIssueActivator::SCHEMA_REVISION;
 		$this->options['ffc_certificate_signatures_db_version'] = \FreeFormCertificate\Submissions\CertificateSignatureActivator::SCHEMA_REVISION;
+		$this->options['ffc_certificate_terminal_db_version']   = \FreeFormCertificate\Frontend\CertificateTerminalActivator::SCHEMA_REVISION;
 	}
 
 	protected function tearDown(): void {

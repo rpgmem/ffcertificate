@@ -26,7 +26,7 @@
     var POINT_BYTES = 65;
     var SIGNATURE_BYTES = 64;
     var NAME_BYTES = 48;
-    var TARGETS = { 1: 'audience_booking' };
+    var TARGETS = { 1: 'audience_booking', 2: 'certificate_form' };
     var encoder = new TextEncoder();
     var DOMAINS = {
         code: encoder.encode('FFC-PRESENCE-READING\0'),

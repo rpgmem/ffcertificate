@@ -34,6 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type Verdict from \FreeFormCertificate\Core\TerminalVerdict
  * @phpstan-import-type TerminalWindow from \FreeFormCertificate\Core\TerminalTargetInterface
  * @phpstan-import-type TerminalEntry from \FreeFormCertificate\Core\TerminalTargetInterface
+ * @phpstan-import-type TerminalReading from \FreeFormCertificate\Core\TerminalTargetInterface
  */
 final class AudienceAttendanceTarget implements TerminalTargetInterface {
 
@@ -172,14 +173,16 @@ final class AudienceAttendanceTarget implements TerminalTargetInterface {
 	 * The window's geofence does not apply: the terminal stands at the
 	 * entrance, and that is the point of it.
 	 *
-	 * @param int    $target_id Booking id.
-	 * @param int    $user_id   The person.
-	 * @param string $name      Their short display name.
-	 * @param bool   $ticket    Whether the code carries the site's ticket.
-	 * @param int    $at        The moment of the reading.
+	 * @param int   $target_id Booking id.
+	 * @param array $reading   The reading.
+	 * @phpstan-param TerminalReading $reading
 	 * @return Verdict
 	 */
-	public function terminal_read( int $target_id, int $user_id, string $name, bool $ticket, int $at ): array {
+	public function terminal_read( int $target_id, array $reading ): array {
+		$user_id = $reading['user_id'];
+		$name    = $reading['name'];
+		$ticket  = $reading['ticket'];
+		$at      = $reading['at'];
 		$booking = AudienceBookingReader::get_by_id( $target_id );
 		$day     = (string) wp_date( 'Y-m-d', $at );
 		if ( null === $booking || 'active' !== ( $booking->status ?? '' ) || ! in_array( $day, AudienceAttendanceRule::counted_days( $booking ), true ) ) {

@@ -37344,3 +37344,59 @@ msgstr "Liberar mais uma troca de aparelho? O celular atual do participante deix
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "In the app, the notification toggles are on the Preferences screen, in a Notifications section: \"Appointment reminder\", plus \"Date messages\" and \"Announcements from this site\" for an account that has the Messages tab. The app's Profile and Messages screens leave them out."
 msgstr "No app, as chaves de notificação ficam na tela Preferências, em uma seção Notificações: \"Lembrete de agendamento\", e também \"Mensagens por data\" e \"Comunicados deste site\" para uma conta que tem a aba Mensagens. As telas Perfil e Mensagens do app não as mostram."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This certificate form does not take the terminal. Turn it on in the form's Terminal tab."
+msgstr "Este formulário de certificado não usa o terminal. Ligue-o na aba Terminal do formulário."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "A form with a quiz cannot issue at the terminal: the certificate needs the answers."
+msgstr "Um formulário com questionário não emite pelo terminal: o certificado precisa das respostas."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "The terminal reads a certificate form while it is open, on one day: set the form's opening and closing on the same date."
+msgstr "O terminal lê um formulário de certificado enquanto ele está aberto, em um único dia: defina a abertura e o fechamento do formulário na mesma data."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "Form #%d"
+msgstr "Formulário #%d"
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This form does not issue certificates at the terminal. Speak to the organiser."
+msgstr "Este formulário não emite certificados pelo terminal. Procure a organização."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This form opens at %s."
+msgstr "Este formulário abre às %s."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This form closed at %s."
+msgstr "Este formulário fechou às %s."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This form asks for a ticket, which the terminal cannot check offline. Show the QR again when the terminal is online."
+msgstr "Este formulário pede ingresso, que o terminal não consegue conferir sem conexão. Mostre o QR de novo quando o terminal estiver online."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "Type the code of your ticket."
+msgstr "Digite o código do seu ingresso."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "Attendance recorded. Finish your certificate on your phone: the terminal is free for the next person."
+msgstr "Presença registrada. Complete seu certificado no celular: o terminal está livre para a próxima pessoa."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "This certificate is already being issued. Show the QR again in a moment."
+msgstr "Este certificado já está sendo emitido. Mostre o QR de novo em instantes."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "The certificate could not be issued. Show the code again."
+msgstr "Não foi possível emitir o certificado. Mostre o código de novo."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "Certificate issued. It is in the app, under Certificates."
+msgstr "Certificado emitido. Ele está no app, em Certificados."
+
+#: includes/frontend/class-ffc-certificate-form-target.php
+msgid "You already have this certificate. Open the app, under Certificates, to download it."
+msgstr "Você já tem este certificado. Abra o app, em Certificados, para baixá-lo."
