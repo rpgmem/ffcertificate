@@ -37418,3 +37418,80 @@ msgstr "Nome, e-mail e CPF/RF são sempre tirados do perfil."
 
 msgid "When an event terminal reads the participant's QR, the certificate is issued from the profile. Name, email and CPF/RF are always taken from it. Any other field may name a field of the global profile list under \"Fill from profile at the terminal\", and a checkbox may be \"Accepted by showing the QR\". A choice takes the profile value only when it is one of its options. A required field left without a value is completed by the participant on the phone."
 msgstr "Quando o terminal do evento lê o QR do participante, o certificado é emitido a partir do perfil. Nome, e-mail e CPF/RF são sempre tirados dele. Qualquer outro campo pode indicar um campo da lista global do perfil em \"Preencher do perfil no terminal\", e uma caixa de seleção pode ser \"Aceito ao mostrar o QR\". Uma escolha recebe o valor do perfil só quando ele é uma das suas opções. Um campo obrigatório que fica sem valor é completado pelo participante no celular."
+
+msgid "A field the profile cannot fill"
+msgstr "Campo que o perfil não preenche"
+
+msgid "Allow list only"
+msgstr "Só a lista de permitidos"
+
+msgid "Any account"
+msgstr "Qualquer conta"
+
+msgid "Anyone who shows the app QR receives the certificate, unless the deny list names them."
+msgstr "Quem mostrar o QR do app recebe o certificado, a menos que esteja na lista de bloqueados."
+
+msgid "At the terminal"
+msgstr "No terminal"
+
+msgid "Certificate at the terminal"
+msgstr "Certificado pelo terminal"
+
+msgid "Issue at the terminal"
+msgstr "Emitir pelo terminal"
+
+msgid "Issued by the terminal"
+msgstr "Emitidos pelo terminal"
+
+msgid "Map the field"
+msgstr "Mapear o campo"
+
+msgid "Only people on the Security tab's allow list receive it at the terminal."
+msgstr "Só quem está na lista de permitidos da aba Segurança recebe pelo terminal."
+
+msgid "Open the Time tab"
+msgstr "Abrir a aba Horário"
+
+msgid "Paired terminals"
+msgstr "Terminais pareados"
+
+msgid "The terminal was turned off:"
+msgstr "O terminal foi desligado:"
+
+msgid "To pair: in the app, More › Pair terminal, then choose this form."
+msgstr "Para parear: no app, Mais › Parear terminal, e escolha este formulário."
+
+msgid "When it can be turned on"
+msgstr "Quando pode ser ligado"
+
+msgid "Who may receive at the terminal"
+msgstr "Quem pode receber pelo terminal"
+
+msgid "Any account, or only the people on the Security tab's allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline."
+msgstr "Qualquer conta, ou só quem está na lista de permitidos da aba Segurança. A lista de bloqueados, os limites de envio e o ingresso valem na leitura; a senha e a área de GPS não, porque estar diante do terminal comprova as duas. Com o ingresso ligado, o terminal pede o código depois do QR, cada código uma vez, e pausa a leitura enquanto estiver offline."
+
+msgid "From the Security tab, the deny list, the submission limits and the ticket apply to a reading: with the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline. The password and the GPS area do not apply: standing at the terminal proves both."
+msgstr "Da aba Segurança, valem na leitura a lista de bloqueados, os limites de envio e o ingresso: com o ingresso ligado, o terminal pede o código depois do QR, cada código uma vez, e pausa a leitura enquanto estiver offline. A senha e a área de GPS não se aplicam: estar diante do terminal já comprova as duas."
+
+msgid "Required with no profile source: %s. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\"."
+msgstr "Obrigatório sem fonte no perfil: %s. Quem não tiver esse dado tem a presença registrada e recebe \"Complete seu certificado\"."
+
+msgid "The event terminal reads the QR in the participant's app and issues the certificate at once, from the profile. The form still accepts entries on the site."
+msgstr "O terminal do evento lê o QR do app do participante e emite o certificado na hora, com os dados do perfil. O formulário continua aceitando envio pelo site."
+
+msgid "The form editor's Terminal tab lets an event terminal read the QR in the participant's app and issue the certificate at once, from the profile. The form still accepts entries on the site at the same time."
+msgstr "A aba Terminal do editor do formulário permite que o terminal do evento leia o QR do app do participante e emita o certificado na hora, com os dados do perfil. O formulário continua aceitando envio pelo site ao mesmo tempo."
+
+msgid "The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\". The side box shows the reading hours, the paired terminals and how many certificates the terminal issued."
+msgstr "A aba aponta cada campo obrigatório sem fonte no perfil. Quem não tiver esse dado tem a presença registrada e recebe \"Complete seu certificado\". A caixa lateral mostra o horário de leitura, os terminais pareados e quantos certificados o terminal emitiu."
+
+msgid "The terminal reads while the form is open: the date and hours are the Time tab's, with no window of their own. To turn it on, the opening and closing must fall on the same day."
+msgstr "O terminal lê enquanto o formulário está aberto: a data e o horário são os da aba Horário, sem janela própria. Para ligar, a abertura e o fechamento precisam cair no mesmo dia."
+
+msgid "The terminal reads while the form is open: the date and hours are the Time tab's, with no window of their own, and the opening and closing must fall on the same day. A form with a quiz cannot take the terminal, because the certificate needs the answers. The switch refuses to turn on and says why; a form that stops qualifying when it is saved has the terminal turned off, with a notice."
+msgstr "O terminal lê enquanto o formulário está aberto: a data e o horário são os da aba Horário, sem janela própria, e a abertura e o fechamento precisam cair no mesmo dia. Um formulário com quiz não pode usar o terminal, porque o certificado precisa das respostas. O botão se recusa a ligar e diz o motivo; um formulário que deixa de se qualificar ao ser salvo tem o terminal desligado, com um aviso."
+
+msgid "%d required field does not come from the profile"
+msgid_plural "%d required fields do not come from the profile"
+msgstr[0] "%d campo obrigatório não vem do perfil"
+msgstr[1] "%d campos obrigatórios não vêm do perfil"

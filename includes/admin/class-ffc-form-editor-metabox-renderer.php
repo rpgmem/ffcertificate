@@ -95,12 +95,29 @@ class FormEditorMetaboxRenderer {
 	private FormEditorDeviceLimitMetabox $device_limit;
 
 	/**
+	 * The Terminal tab (#2892).
+	 *
+	 * @var FormEditorTerminalMetabox
+	 */
+	private FormEditorTerminalMetabox $terminal;
+
+	/**
+	 * Render the side box of the Terminal tab (#2892).
+	 *
+	 * @param WP_Post $post Post being edited.
+	 */
+	public function render_terminal_side( WP_Post $post ): void {
+		$this->terminal->render_side( $post );
+	}
+
+	/**
 	 * Wire up the per-metabox renderers.
 	 */
 	public function __construct() {
 		$this->shortcode           = new FormEditorShortcodeMetabox();
 		$this->layout              = new FormEditorLayoutMetabox();
 		$this->builder             = new FormEditorBuilderMetabox();
+		$this->terminal            = new FormEditorTerminalMetabox();
 		$this->email               = new FormEditorEmailMetabox();
 		$this->geofence            = new FormEditorGeofenceMetabox();
 		$this->quiz                = new FormEditorQuizMetabox();
@@ -305,6 +322,13 @@ class FormEditorMetaboxRenderer {
 				'masters' => array( 'ffc_geofence_geo_enabled' ),
 			),
 			array(
+				'key'     => 'terminal',
+				'icon'    => 'ffc-icon-qr',
+				'label'   => __( 'Terminal', 'ffcertificate' ),
+				'title'   => __( 'Certificate at the terminal', 'ffcertificate' ),
+				'masters' => array( FormEditorTerminalMetabox::TOGGLE_ID ),
+			),
+			array(
 				'key'     => 'quiz',
 				'icon'    => 'ffc-icon-chart',
 				'label'   => __( 'Quiz', 'ffcertificate' ),
@@ -388,6 +412,9 @@ class FormEditorMetaboxRenderer {
 				break;
 			case 'quiz':
 				$this->render_box_quiz( $post );
+				break;
+			case 'terminal':
+				$this->terminal->render( $post );
 				break;
 			case 'operator':
 				$this->render_box_public_csv_download( $post );

@@ -150,6 +150,42 @@ class FormEditorSaveHandler {
 
 		// 5. Save Device Fingerprint Limit override.
 		$this->save_device_limit_meta( $post_id );
+
+		// 6. The terminal, once the quiz and the window it depends on are saved.
+		$this->enforce_terminal_eligibility( $post_id );
+	}
+
+	/**
+	 * Turn the terminal off when the saved form cannot take it (#2892).
+	 *
+	 * The switch, the quiz and the dated window are saved by different
+	 * tabs in the same request, so the check runs after all of them: a
+	 * form turned into a quiz, or given a window over two days, loses the
+	 * terminal, and the editor says why on the next screen.
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function enforce_terminal_eligibility( int $post_id ): void {
+		$key    = \FreeFormCertificate\Frontend\CertificateFormTarget::CONFIG_KEY;
+		$config = get_post_meta( $post_id, '_ffc_form_config', true );
+		if ( ! is_array( $config ) || ! is_array( $config[ $key ] ?? null ) || '1' !== ( $config[ $key ]['enabled'] ?? '' ) ) {
+			return;
+		}
+		$blocker = \FreeFormCertificate\Frontend\CertificateFormTarget::cannot_enable( $post_id );
+		if ( null === $blocker ) {
+			return;
+		}
+		\FreeFormCertificate\Core\NamedLock::with_form_config(
+			$post_id,
+			static function () use ( $post_id, $key ): void {
+				$current = get_post_meta( $post_id, '_ffc_form_config', true );
+				if ( is_array( $current ) && is_array( $current[ $key ] ?? null ) ) {
+					$current[ $key ]['enabled'] = '';
+					update_post_meta( $post_id, '_ffc_form_config', $current );
+				}
+			}
+		);
+		set_transient( 'ffc_save_terminal_off_' . get_current_user_id(), $blocker->get_error_message(), 45 );
 	}
 
 	/**
@@ -423,6 +459,17 @@ class FormEditorSaveHandler {
 			if ( '1' === $restrictions['ticket'] ) {
 				$clean_config['generated_codes_list'] = sanitize_textarea_field( ArrayValue::string( $config, 'generated_codes_list' ) );
 			}
+
+			// The terminal (#2892): its switch and who may receive there.
+			// Whether the form can take it is checked once every tab has
+			// saved, in enforce_terminal_eligibility().
+			$terminal = ArrayValue::array( $config, \FreeFormCertificate\Frontend\CertificateFormTarget::CONFIG_KEY );
+			$clean_config[ \FreeFormCertificate\Frontend\CertificateFormTarget::CONFIG_KEY ] = array(
+				'enabled' => isset( $terminal['enabled'] ) ? '1' : '',
+				'who'     => \FreeFormCertificate\Frontend\CertificateFormTarget::WHO_ALLOWLIST === ArrayValue::string( $terminal, 'who' )
+					? \FreeFormCertificate\Frontend\CertificateFormTarget::WHO_ALLOWLIST
+					: \FreeFormCertificate\Frontend\CertificateFormTarget::WHO_ANY,
+			);
 
 			// Quiz / Evaluation Mode — 1 master toggle, 5 sub-options
 			// (passing_score / max_attempts / show_score / show_correct /
@@ -997,6 +1044,17 @@ class FormEditorSaveHandler {
 				'warning',
 				(string) ob_get_clean(),
 				array( 'paragraph_wrap' => false )
+			);
+		}
+
+		// The terminal was turned off because the saved form cannot take it (#2892).
+		$terminal_off = get_transient( 'ffc_save_terminal_off_' . get_current_user_id() );
+		if ( is_string( $terminal_off ) && '' !== $terminal_off ) {
+			delete_transient( 'ffc_save_terminal_off_' . get_current_user_id() );
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				'<strong>' . esc_html__( 'The terminal was turned off:', 'ffcertificate' ) . '</strong> ' . esc_html( $terminal_off ),
+				array( 'paragraph_wrap' => true )
 			);
 		}
 
