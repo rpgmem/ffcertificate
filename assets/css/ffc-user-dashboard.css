@@ -2282,6 +2282,11 @@
     align-items: start;
 }
 
+/* The app shows the toggles in its Preferences (site-pwa#66). */
+.ffc-messages.ffc-messages-list-only {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .ffc-messages > .ffc-profile-section {
     margin-top: 0;
     padding-top: 0;

@@ -37340,3 +37340,7 @@ msgstr "Free Form Certificate: Modo Escuro"
 
 msgid "Release one more device change? The participant's current phone stops showing codes now."
 msgstr "Liberar mais uma troca de aparelho? O celular atual do participante deixa de mostrar códigos agora."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "In the app, the \"Date messages\" and \"Announcements from this site\" toggles are on the Preferences screen, in a Messages section, and the Messages screen shows only the list."
+msgstr "No app, as chaves \"Mensagens por data\" e \"Comunicados deste site\" ficam na tela Preferências, em uma seção Mensagens, e a tela Mensagens mostra só a lista."

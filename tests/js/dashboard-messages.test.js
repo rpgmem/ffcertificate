@@ -88,6 +88,16 @@ describe('Messages panel', () => {
 		expect(keys).toEqual(['notify_date_messages', 'notify_date_announcements']);
 	});
 
+	it('leaves the preferences out where the app shows them in Preferences', () => {
+		window.ffcDashboard.messagePreferences = false;
+		panel().state = state([message(1)], []);
+		panel().render(panel().state);
+
+		expect(document.querySelector('.ffc-messages').classList.contains('ffc-messages-list-only')).toBe(true);
+		expect(document.querySelectorAll('.ffc-message-pref-toggle')).toHaveLength(0);
+		delete window.ffcDashboard.messagePreferences;
+	});
+
 	it('draws each preference as stored, on unless turned off', () => {
 		panel().state = state([], [], { notify_date_announcements: false });
 		panel().render(panel().state);

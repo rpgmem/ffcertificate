@@ -30,8 +30,10 @@
  *      refuses the call and the app shows none of this plugin's screens.
  *   3. As an administrator, Site PWA's registry holds at least one screen and
  *      refused none (`Screens::add()` reports a refusal through
- *      `_doing_it_wrong()`), and More's "My details" opens the Profile
- *      screen where the app has that link.
+ *      `_doing_it_wrong()`), More's "My details" opens the Profile screen
+ *      where the app has that link, and Preferences carries the Messages
+ *      section exactly while the Messages tab shows, where the app has
+ *      sections.
  *   4. Both look sources are offered under the id `ffc`, and their readers
  *      answer in Site PWA's shapes; the dark root class is in Site PWA's list.
  *   5. With `--write` only: set this plugin's Public Design and Dark Mode, point
@@ -178,6 +180,17 @@ if ( array() !== $ffc_pwa_admins ) {
 			null !== $ffc_pwa_profile && \SitePwa\App\Screens::link( $ffc_pwa_profile ) === $ffc_pwa_details,
 			'My details opens the Profile screen',
 			$ffc_pwa_details
+		);
+	}
+	// The message toggles in Preferences (site-pwa#66), while the person
+	// sees the Messages tab; an older app has no such sections.
+	if ( method_exists( '\\SitePwa\\App\\Frame', 'preferenceSections' ) ) {
+		$ffc_pwa_messages_tab = ! empty( \FreeFormCertificate\Shortcodes\DashboardAssetManager::tab_permissions( get_current_user_id() )['messages'] );
+		$ffc_pwa_pref_ids     = array_column( \SitePwa\App\Frame::preferenceSections( wp_get_current_user() ), 'id' );
+		ffc_pwa_report(
+			$ffc_pwa_messages_tab === in_array( 'messages', $ffc_pwa_pref_ids, true ),
+			'Preferences carries the Messages section exactly while the Messages tab shows',
+			implode( ', ', $ffc_pwa_pref_ids )
 		);
 	}
 	wp_set_current_user( 0 );

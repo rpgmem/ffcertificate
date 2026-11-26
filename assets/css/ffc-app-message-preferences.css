@@ -1,0 +1,24 @@
+/**
+ * The Messages section of the app's Preferences (site-pwa#66): the two
+ * e-mail toggles the dashboard's Messages tab carries on the site.
+ */
+
+.ffc-app-message-preferences {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-md);
+}
+
+.ffc-app-message-preferences .ffc-message-pref-desc {
+    display: block;
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 400;
+}
+
+.ffc-app-message-preferences .ffc-notif-hint {
+    margin: 0;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-sm);
+    line-height: 1.5;
+}

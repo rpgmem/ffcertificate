@@ -18,6 +18,10 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
+use FreeFormCertificate\Core\AssetHelper;
+use FreeFormCertificate\Core\AssetRegistry;
+use FreeFormCertificate\UserDashboard\UserManager;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -48,6 +52,89 @@ final class DashboardAppScreens {
 		add_action( 'site_pwa_register_screens', array( self::class, 'register' ), 10, 2 );
 		add_filter( 'site_pwa_profile_line', array( self::class, 'profile_line' ), 10, 2 );
 		add_filter( 'site_pwa_details_screen', array( self::class, 'details_screen' ) );
+		add_filter( 'site_pwa_preference_sections', array( self::class, 'preference_sections' ), 10, 2 );
+	}
+
+	/**
+	 * The Messages section of the app's Preferences (site-pwa#66): the two
+	 * e-mail toggles the Messages tab carries on the site, for a person who
+	 * sees that tab. The app's Messages screen then shows only the list.
+	 *
+	 * @param mixed $sections What the app or another plugin handed.
+	 * @param mixed $user     The signed-in user.
+	 * @return mixed
+	 */
+	public static function preference_sections( $sections, $user = null ) {
+		if ( ! is_array( $sections ) || ! $user instanceof \WP_User || $user->ID <= 0 ) {
+			return $sections;
+		}
+		$user_id = (int) $user->ID;
+		if ( empty( DashboardAssetManager::tab_permissions( $user_id )['messages'] ) ) {
+			return $sections;
+		}
+		$sections[] = array(
+			'id'     => 'messages',
+			'label'  => __( 'Messages', 'ffcertificate' ),
+			'render' => static fn(): string => self::message_preferences( $user_id ),
+		);
+		return $sections;
+	}
+
+	/**
+	 * The two message toggles, with the script that saves them through the
+	 * same `user/profile` route the dashboard uses.
+	 *
+	 * @param int $user_id Person.
+	 * @return string
+	 */
+	public static function message_preferences( int $user_id ): string {
+		AssetHelper::enqueue_common_style();
+		AssetHelper::enqueue_dark_mode();
+		AssetRegistry::enqueue_scripts( 'ffc-core' );
+		$suffix = AssetHelper::asset_suffix();
+		wp_enqueue_style(
+			'ffc-app-message-preferences-css',
+			FFC_PLUGIN_URL . "assets/css/ffc-app-message-preferences{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+		wp_enqueue_script(
+			'ffc-app-message-preferences',
+			FFC_PLUGIN_URL . "assets/js/ffc-app-message-preferences{$suffix}.js",
+			array( 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-app-message-preferences',
+			'ffcAppMessagePreferences',
+			array(
+				'rest'    => esc_url_raw( rest_url( 'ffc/v1/user/profile' ) ),
+				'nonce'   => wp_create_nonce( 'wp_rest' ),
+				'strings' => array(
+					'saved'  => __( 'Preferences saved', 'ffcertificate' ),
+					'failed' => __( 'Error saving profile', 'ffcertificate' ),
+				),
+			)
+		);
+
+		$toggles = array(
+			'notify_date_messages'      => array( __( 'Date messages', 'ffcertificate' ), __( 'Such as birthday greetings.', 'ffcertificate' ) ),
+			'notify_date_announcements' => array( __( 'Announcements from this site', 'ffcertificate' ), '' ),
+		);
+		$html    = '<div class="ffc-shortcode ffc-app-message-preferences">';
+		foreach ( $toggles as $key => $text ) {
+			$html .= '<label class="ffc-control-toggle ffc-control-toggle-mark ffc-message-pref">'
+				. '<input type="checkbox" class="ffc-message-pref-toggle" data-key="' . esc_attr( $key ) . '"'
+				. checked( UserManager::wants_notification( $user_id, $key ), true, false ) . ' />'
+				. '<span class="ffc-control-toggle-track" aria-hidden="true"></span>'
+				. '<span class="ffc-control-toggle-label">' . esc_html( $text[0] )
+				. ( '' === $text[1] ? '' : '<small class="ffc-message-pref-desc">' . esc_html( $text[1] ) . '</small>' )
+				. '</span></label>';
+		}
+		$html .= '<p class="ffc-notif-hint">' . esc_html__( 'The unsubscribe link at the end of these e-mails turns off the same preference.', 'ffcertificate' ) . '</p>';
+		$html .= '<span class="ffc-message-pref-status ffc-status" role="status" aria-live="polite" hidden></span>';
+		return $html . '</div>';
 	}
 
 	/**
@@ -212,6 +299,19 @@ final class DashboardAppScreens {
 				'tabs'     => array( 'profile' ),
 			),
 		);
+	}
+
+	/**
+	 * The app's Messages screen: the dashboard's Messages tab without its
+	 * two toggles, which the app shows in Preferences instead.
+	 *
+	 * @param array<int, string> $tabs The tabs this person sees.
+	 * @return string
+	 */
+	public static function render_messages( array $tabs ): string {
+		$html = DashboardShortcode::render( array( 'tabs' => implode( ',', $tabs ) ) );
+		wp_add_inline_script( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.messagePreferences = false);', 'after' );
+		return $html;
 	}
 
 	/**
