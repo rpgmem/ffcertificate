@@ -5,7 +5,7 @@ paths:
 
 # Test infrastructure
 
-This is the test-writing half of `CLAUDE.md` "Quality gates and testing" → "Test infrastructure", moved here (#2867) so it loads when a session works in `tests/`. "Running the suite locally" and "PHPStan/phpdoc idioms" stay in `CLAUDE.md`, because they apply before every push and to product code. The guards themselves are in `CLAUDE.md` "The guards".
+This is the test-writing half of `CLAUDE.md` "Quality gates and testing" → "Test infrastructure", moved here (#2867) so it loads when a session works in `tests/`. `CLAUDE.md` "Running the suite locally" and `CLAUDE.md` "PHPStan/phpdoc idioms" stay there, because they apply before every push and to product code. The guards themselves are in `CLAUDE.md` "The guards".
 
 - PHP: PHPUnit 9; tests under `tests/Unit` and `tests/Integration`.
 - JS: Vitest with jsdom (the pinned major lives in `package.json`, and Dependabot moves it — this file does not restate it); tests under `tests/js/*.test.js`. Real jQuery via `jquery/factory` bound to the jsdom window (`tests/js/setup.js`). Scripts under `assets/js/` load via `vm.runInThisContext` so V8 coverage attribution survives (`tests/js/helpers.js`).
