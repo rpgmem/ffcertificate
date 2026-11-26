@@ -37261,3 +37261,7 @@ msgstr ""
 
 msgid "Release one more device change? The participant's current phone stops showing codes now."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "In the app, the notification toggles are on the Preferences screen, in a Notifications section: \"Appointment reminder\", plus \"Date messages\" and \"Announcements from this site\" for an account that has the Messages tab. The app's Profile and Messages screens leave them out."
+msgstr ""

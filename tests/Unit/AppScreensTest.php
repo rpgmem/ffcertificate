@@ -86,6 +86,7 @@ class AppScreensTest extends TestCase {
 
 		$this->assertSame( 10, has_filter( 'site_pwa_profile_line', array( DashboardAppScreens::class, 'profile_line' ) ), 'the line under the name on More' );
 		$this->assertSame( 10, has_filter( 'site_pwa_details_screen', array( DashboardAppScreens::class, 'details_screen' ) ), 'My details opens Profile (site-pwa#56)' );
+		$this->assertSame( 10, has_filter( 'site_pwa_preference_sections', array( DashboardAppScreens::class, 'preference_sections' ) ), 'the message toggles in Preferences (site-pwa#66)' );
 		$this->assertSame( 10, has_filter( 'map_meta_cap', array( AudienceAppScreens::class, 'map_app_caps' ) ), 'the operator screens wait for presence (#2828)' );
 		$this->assertSame( 10, has_filter( 'site_pwa_lock_required', array( AudienceAppScreens::class, 'lock_required' ) ), 'operators must lock the app (#2830)' );
 		$this->assertSame(
@@ -602,5 +603,175 @@ class AppScreensTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-terminal-operator="qr"', $html );
 		$this->assertStringContainsString( 'data-ffc-op-part="qr"', $html );
 		$this->assertStringNotContainsString( 'data-ffc-op-part="form"', $html );
+	}
+
+	/**
+	 * A WP_User double with an id.
+	 */
+	private function user( int $id ): \WP_User {
+		$user     = \Mockery::mock( \WP_User::class );
+		$user->ID = $id;
+		return $user;
+	}
+
+	public function test_preference_sections_leave_what_they_cannot_read(): void {
+		$this->assertSame( 'x', DashboardAppScreens::preference_sections( 'x', $this->user( 7 ) ) );
+		$this->assertSame( array(), DashboardAppScreens::preference_sections( array(), null ) );
+		$this->assertSame( array(), DashboardAppScreens::preference_sections( array(), $this->user( 0 ) ) );
+	}
+
+	public function test_preference_sections_add_notifications_after_what_was_there(): void {
+		$sections = DashboardAppScreens::preference_sections( array( 'other' => array( 'label' => 'Other' ) ), $this->user( 7 ) );
+
+		$this->assertSame( array( 'other', 'notifications' ), array_keys( $sections ) );
+		$this->assertSame( 'Notifications', $sections['notifications']['label'] );
+		$this->assertIsCallable( $sections['notifications']['render'] );
+	}
+
+	public function test_preference_sections_keep_a_notifications_section_another_plugin_set(): void {
+		$theirs = array( 'notifications' => array( 'label' => 'Theirs' ) );
+
+		$this->assertSame( $theirs, DashboardAppScreens::preference_sections( $theirs, $this->user( 7 ) ) );
+	}
+
+	public function test_the_notification_toggles_read_the_stored_choice_and_save_through_the_profile_route(): void {
+		$this->settings['module_date_messages_enabled'] = true;
+		$styles    = array();
+		$scripts   = array();
+		$localized = array();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'checked' )->alias( static fn ( $a, $b = true, $echo = true ) => $a === $b ? ' checked=\'checked\'' : '' );
+		Functions\when( 'rest_url' )->alias( static fn ( $path = '' ) => 'https://example.com/wp-json/' . $path );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$styles ) {
+				$styles[ $handle ] = array( $src, $deps );
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$scripts ) {
+				$scripts[ $handle ] = array( $src, $deps );
+			}
+		);
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_register_style' )->justReturn( true );
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( $handle, $name, $data ) use ( &$localized ) {
+				$localized[ $handle ] = array( $name, $data );
+				return true;
+			}
+		);
+		Functions\when( 'wp_add_inline_script' )->justReturn( true );
+		Functions\when( 'wp_script_is' )->justReturn( false );
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'is_admin' )->justReturn( false );
+
+		$wpdb         = \Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn ( $query ) => $query );
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn ( $value ) => $value );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static fn ( $query ) => 'SHOW TABLES LIKE %s' === $query ? 'wp_ffc_user_profiles' : '3'
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturn(
+			array(
+				'id'           => '3',
+				'user_id'      => '7',
+				'display_name' => 'X',
+				'phone'        => null,
+				'department'   => null,
+				'organization' => null,
+				'notes'        => null,
+				'preferences'  => '{"notify_date_announcements":false}',
+				'cpf_hash'     => null,
+				'rf_hash'      => null,
+				'created_at'   => null,
+				'updated_at'   => null,
+			)
+		);
+		$had             = array_key_exists( 'wpdb', $GLOBALS );
+		$backup          = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = $wpdb;
+		try {
+			$html = DashboardAppScreens::notification_preferences( 7 );
+			$this->settings['module_date_messages_enabled'] = false;
+			$alone = DashboardAppScreens::notification_preferences( 7 );
+		} finally {
+			if ( $had ) {
+				$GLOBALS['wpdb'] = $backup;
+			} else {
+				unset( $GLOBALS['wpdb'] );
+			}
+		}
+
+		$this->assertMatchesRegularExpression( '/data-key="notify_date_messages" checked/', $html, 'never turned off: on' );
+		$this->assertMatchesRegularExpression( '/data-key="notify_date_announcements" \/>/', $html, 'stored false: off' );
+		$this->assertMatchesRegularExpression( '/data-key="notify_appointment_reminder" checked/', $html, 'the reminder is everyone\'s' );
+		$this->assertStringContainsString( 'ffc-app-notification-hint', $html );
+		$this->assertStringContainsString( 'ffc-app-notification-status ffc-status', $html );
+		$this->assertStringContainsString( 'data-key="notify_appointment_reminder"', $alone );
+		$this->assertStringNotContainsString( 'notify_date_messages', $alone, 'no Messages tab: no date-message toggles' );
+		$this->assertStringNotContainsString( 'ffc-app-notification-hint', $alone );
+		$this->assertSame( array( 'ffc-core' ), $scripts['ffc-app-notification-preferences'][1] );
+		$this->assertArrayHasKey( 'ffc-app-notification-preferences-css', $styles );
+		$this->assertSame( 'ffcAppNotificationPreferences', $localized['ffc-app-notification-preferences'][0] );
+		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/profile', $localized['ffc-app-notification-preferences'][1]['rest'] );
+	}
+
+	public function test_the_apps_messages_and_profile_keep_the_toggles_without_preference_sections(): void {
+		$inline = array();
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'wp_add_inline_script' )->alias(
+			static function ( $handle, $data, $position = 'after' ) use ( &$inline ) {
+				$inline[] = array( $handle, $data, $position );
+				return true;
+			}
+		);
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $text ) { echo $text; } );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'wp_login_url' )->justReturn( 'https://example.com/login' );
+		Functions\when( 'wp_lostpassword_url' )->justReturn( 'https://example.com/lost' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/dashboard' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		foreach ( array( 'wp_enqueue_style', 'wp_enqueue_script', 'wp_register_style', 'wp_register_script', 'wp_localize_script' ) as $fn ) {
+			Functions\when( $fn )->justReturn( true );
+		}
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'wp_script_is' )->justReturn( false );
+		Functions\when( 'wp_kses_post' )->returnArg();
+
+		DashboardAppScreens::render_without_preferences( array( 'messages' ) );
+
+		$this->assertSame( array(), $inline, 'an app without Preferences sections keeps the toggles where they were' );
+	}
+
+	public function test_messages_and_profile_leave_their_toggles_to_preferences(): void {
+		$definitions = DashboardAppScreens::definitions();
+
+		foreach ( array( 'messages', DashboardAppScreens::PROFILE_SCREEN ) as $id ) {
+			$this->assertSame( array( DashboardAppScreens::class, 'render_without_preferences' ), $definitions[ $id ]['render'] ?? null, $id );
+		}
+	}
+
+	public function test_the_app_has_preference_sections_only_where_its_frame_draws_them(): void {
+		$with    = new class() {
+			public static function preferenceSections(): array {
+				return array();
+			}
+		};
+		$without = new class() {
+		};
+
+		$this->assertTrue( DashboardAppScreens::app_has_preference_sections( get_class( $with ) ) );
+		$this->assertFalse( DashboardAppScreens::app_has_preference_sections( get_class( $without ) ) );
+		$this->assertFalse( DashboardAppScreens::app_has_preference_sections(), 'no Site PWA loaded in the unit suite' );
 	}
 }

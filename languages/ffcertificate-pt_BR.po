@@ -37340,3 +37340,7 @@ msgstr "Free Form Certificate: Modo Escuro"
 
 msgid "Release one more device change? The participant's current phone stops showing codes now."
 msgstr "Liberar mais uma troca de aparelho? O celular atual do participante deixa de mostrar códigos agora."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "In the app, the notification toggles are on the Preferences screen, in a Notifications section: \"Appointment reminder\", plus \"Date messages\" and \"Announcements from this site\" for an account that has the Messages tab. The app's Profile and Messages screens leave them out."
+msgstr "No app, as chaves de notificação ficam na tela Preferências, em uma seção Notificações: \"Lembrete de agendamento\", e também \"Mensagens por data\" e \"Comunicados deste site\" para uma conta que tem a aba Mensagens. As telas Perfil e Mensagens do app não as mostram."

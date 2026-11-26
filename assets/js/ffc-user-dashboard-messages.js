@@ -189,7 +189,8 @@
         render: function (state) {
             var s = ffcDashboard.strings;
             var $container = $('#ffc-tabpanel-messages');
-            var html = '<div class="ffc-messages">';
+            var withPrefs = ffcDashboard.notificationPreferences !== false;
+            var html = '<div class="ffc-messages' + (withPrefs ? '' : ' ffc-messages-list-only') + '">';
 
             html += '<div class="ffc-messages-list ffc-profile-section">';
             html += '<h3>' + helpers.esc(s.receivedMessages || 'Received messages') + '</h3>';
@@ -204,8 +205,18 @@
             }
             html += '</div>';
 
-            var prefs = state.preferences || {};
-            html += '<div class="ffc-messages-prefs ffc-profile-section">';
+            // In the app the toggles live in Preferences (site-pwa#66).
+            if (withPrefs) {
+                html += this.buildPreferencesHtml(state.preferences || {});
+            }
+
+            html += '</div>';
+            $container.html(html);
+        },
+
+        buildPreferencesHtml: function (prefs) {
+            var s = ffcDashboard.strings;
+            var html = '<div class="ffc-messages-prefs ffc-profile-section">';
             html += '<h3>' + helpers.esc(s.messagePreferences || 'Message preferences') + '</h3>';
             html += '<div class="ffc-notif-list">';
             html += buildPreference('notify_date_messages', s.notifDateMessages || 'Date messages', s.notifDateMessagesDesc || 'Such as birthday greetings.', prefs.notify_date_messages !== false);
@@ -213,10 +224,7 @@
             html += '<p class="ffc-notif-hint">' + helpers.esc(s.notifDateMessagesHint || 'The unsubscribe link at the end of these e-mails turns off the same preference.') + '</p>';
             html += '</div>';
             html += '<span class="ffc-message-pref-status ffc-status" role="status" aria-live="polite" hidden></span>';
-            html += '</div>';
-
-            html += '</div>';
-            $container.html(html);
+            return html + '</div>';
         },
 
         // One group at its current page: heading with count, a hint, the

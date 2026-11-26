@@ -22,6 +22,7 @@ Site PWA (`rpgmem/site-pwa`, epic #2738) turns the site into an installable app,
 | `site_pwa_register_screens` | action, `( $screens, int $api )` | `Shortcodes\DashboardAppScreens`, `Audience\AudienceAppScreens` |
 | `site_pwa_profile_line` | filter, `( string $line, WP_User $user )` | `DashboardAppScreens` |
 | `site_pwa_details_screen` | filter, `( string $id, WP_User $user )` | `DashboardAppScreens` |
+| `site_pwa_preference_sections` | filter, `( array $sections, WP_User $user )` | `DashboardAppScreens` |
 | `site_pwa_home` | filter, `( array $home, WP_User $user, int $api )` | `Shortcodes\AppHome` |
 | `site_pwa_lock_required` | filter, `( bool $required, WP_User $user )` | `AudienceAppScreens` |
 | `site_pwa_app_url` | filter, `( string $url )` | `Shortcodes\AgendaAppScreen` |
@@ -37,13 +38,13 @@ This plugin offers the app its look through the three filters `AppLook` hooks: P
 
 Inside the app, the theme a person chose on their device (More → Appearance, rpgmem/site-pwa#62) marks `<html>` with `data-site-pwa-scheme` `dark` or `light` before the first paint; `assets/js/ffc-dark-mode.js` treats `dark` as on and `light` as off, whatever this plugin's Dark Mode says (#2883).
 
-Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above.
+Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above. This side reads one name of Site PWA's: `DashboardAppScreens::app_has_preference_sections()` asks whether `SitePwa\App\Frame::preferenceSections()` exists, so the app's Messages and Profile screens hand their notification toggles to Preferences only where Preferences can draw them (#2885). The two plugins update apart, and the integration check reports it.
 
 ## Checked with both plugins running (#2875)
 
 `SitePwaContractTest` reads this side's source and cannot see the other repository. What crosses the boundary is checked by `.github/scripts/site-pwa-integration-check.php`. It boots a WordPress with both plugins active and asks Site PWA's own classes what this plugin gave them:
 - the `$api` each consumer here speaks against the one Site PWA sends;
-- the screens registered for an administrator, with none refused, and More's "My details" opening the Profile screen;
+- the screens registered for an administrator, with none refused, More's "My details" opening the Profile screen, and the Notifications section in Preferences, with the date-message toggles while Date Messages is on;
 - both look sources under `ffc` and the dark root class;
 - with `--write`, Public Design and Dark Mode read back through `Identity::current()` and `Scheme::current()`, with the options restored afterwards.
 

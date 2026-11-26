@@ -18,6 +18,10 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
+use FreeFormCertificate\Core\AssetHelper;
+use FreeFormCertificate\Core\AssetRegistry;
+use FreeFormCertificate\UserDashboard\UserManager;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -48,6 +52,95 @@ final class DashboardAppScreens {
 		add_action( 'site_pwa_register_screens', array( self::class, 'register' ), 10, 2 );
 		add_filter( 'site_pwa_profile_line', array( self::class, 'profile_line' ), 10, 2 );
 		add_filter( 'site_pwa_details_screen', array( self::class, 'details_screen' ) );
+		add_filter( 'site_pwa_preference_sections', array( self::class, 'preference_sections' ), 10, 2 );
+	}
+
+	/**
+	 * The Notifications section of the app's Preferences (site-pwa#66): the
+	 * e-mail toggles the dashboard keeps on its Profile and Messages tabs.
+	 * The appointment reminder is everyone's, as on Profile; the two
+	 * date-message toggles join it for a person who sees the Messages tab.
+	 *
+	 * @param mixed $sections What the app or another plugin handed.
+	 * @param mixed $user     The signed-in user.
+	 * @return mixed
+	 */
+	public static function preference_sections( $sections, $user = null ) {
+		if ( ! is_array( $sections ) || ! $user instanceof \WP_User || $user->ID <= 0 ) {
+			return $sections;
+		}
+		// Sections are keyed by id; one another plugin named `notifications` is kept.
+		if ( ! isset( $sections['notifications'] ) ) {
+			$user_id                   = (int) $user->ID;
+			$sections['notifications'] = array(
+				'label'  => __( 'Notifications', 'ffcertificate' ),
+				'render' => static fn(): string => self::notification_preferences( $user_id ),
+			);
+		}
+		return $sections;
+	}
+
+	/**
+	 * The notification toggles, with the script that saves them through the
+	 * same `user/profile` route the dashboard uses.
+	 *
+	 * @param int $user_id Person.
+	 * @return string
+	 */
+	public static function notification_preferences( int $user_id ): string {
+		AssetHelper::enqueue_common_style();
+		AssetHelper::enqueue_dark_mode();
+		AssetRegistry::enqueue_scripts( 'ffc-core' );
+		$suffix = AssetHelper::asset_suffix();
+		wp_enqueue_style(
+			'ffc-app-notification-preferences-css',
+			FFC_PLUGIN_URL . "assets/css/ffc-app-notification-preferences{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+		wp_enqueue_script(
+			'ffc-app-notification-preferences',
+			FFC_PLUGIN_URL . "assets/js/ffc-app-notification-preferences{$suffix}.js",
+			array( 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-app-notification-preferences',
+			'ffcAppNotificationPreferences',
+			array(
+				'rest'    => esc_url_raw( rest_url( 'ffc/v1/user/profile' ) ),
+				'nonce'   => wp_create_nonce( 'wp_rest' ),
+				'strings' => array(
+					'saved'  => __( 'Preferences saved', 'ffcertificate' ),
+					'failed' => __( 'Error saving profile', 'ffcertificate' ),
+				),
+			)
+		);
+
+		$toggles  = array(
+			UserManager::NOTIFY_APPOINTMENT_REMINDER => array( __( 'Appointment reminder', 'ffcertificate' ), '' ),
+		);
+		$messages = ! empty( DashboardAssetManager::tab_permissions( $user_id )['messages'] );
+		if ( $messages ) {
+			$toggles['notify_date_messages']      = array( __( 'Date messages', 'ffcertificate' ), __( 'Such as birthday greetings.', 'ffcertificate' ) );
+			$toggles['notify_date_announcements'] = array( __( 'Announcements from this site', 'ffcertificate' ), '' );
+		}
+		$html = '<div class="ffc-shortcode ffc-app-notification-preferences">';
+		foreach ( $toggles as $key => $text ) {
+			$html .= '<label class="ffc-control-toggle ffc-control-toggle-mark">'
+				. '<input type="checkbox" class="ffc-app-notification-toggle" data-key="' . esc_attr( $key ) . '"'
+				. checked( UserManager::wants_notification( $user_id, $key ), true, false ) . ' />'
+				. '<span class="ffc-control-toggle-track" aria-hidden="true"></span>'
+				. '<span class="ffc-control-toggle-label">' . esc_html( $text[0] )
+				. ( '' === $text[1] ? '' : '<small class="ffc-app-notification-desc">' . esc_html( $text[1] ) . '</small>' )
+				. '</span></label>';
+		}
+		if ( $messages ) {
+			$html .= '<p class="ffc-app-notification-hint">' . esc_html__( 'The unsubscribe link at the end of these e-mails turns off the same preference.', 'ffcertificate' ) . '</p>';
+		}
+		$html .= '<span class="ffc-app-notification-status ffc-status" role="status" aria-live="polite" hidden></span>';
+		return $html . '</div>';
 	}
 
 	/**
@@ -187,6 +280,8 @@ final class DashboardAppScreens {
 				'place'    => 'more',
 				'position' => 20,
 				'tabs'     => array( 'messages' ),
+				// The toggles live in the app's Preferences (site-pwa#66).
+				'render'   => array( self::class, 'render_without_preferences' ),
 			),
 			'reregistration'     => array(
 				'label'    => __( 'Reregistration', 'ffcertificate' ),
@@ -210,8 +305,38 @@ final class DashboardAppScreens {
 				'place'    => 'more',
 				'position' => 30,
 				'tabs'     => array( 'profile' ),
+				// The toggles live in the app's Preferences (site-pwa#66).
+				'render'   => array( self::class, 'render_without_preferences' ),
 			),
 		);
+	}
+
+	/**
+	 * The app's Messages and Profile screens: their dashboard tab, without
+	 * the notification toggles where the app shows them in Preferences.
+	 *
+	 * @param array<int, string> $tabs The tabs this person sees.
+	 * @return string
+	 */
+	public static function render_without_preferences( array $tabs ): string {
+		$html = DashboardShortcode::render( array( 'tabs' => implode( ',', $tabs ) ) );
+		if ( self::app_has_preference_sections() ) {
+			wp_add_inline_script( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.notificationPreferences = false);', 'after' );
+		}
+		return $html;
+	}
+
+	/**
+	 * Whether the running Site PWA draws plugin sections in Preferences
+	 * (site-pwa#66). The two plugins update apart, and an app without them
+	 * would leave the toggles nowhere, so Messages and Profile keep them
+	 * until it has. The one Site PWA name this plugin reads.
+	 *
+	 * @param string $frame The app's frame class; a test names its own.
+	 * @return bool
+	 */
+	public static function app_has_preference_sections( string $frame = '\\SitePwa\\App\\Frame' ): bool {
+		return method_exists( $frame, 'preferenceSections' );
 	}
 
 	/**

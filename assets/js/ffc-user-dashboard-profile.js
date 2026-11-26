@@ -617,17 +617,20 @@
                 setTimeout(function () { FFCDashboard.audienceJoin.load(); }, 0);
             }
 
+            // In the app the toggles live in Preferences (site-pwa#66).
             var prefs = profile.preferences || {};
-            html += '<div class="ffc-profile-section">';
-            html += '<h3>' + (s.notificationSection || 'Notification Preferences') + '</h3>';
-            html += '<div class="ffc-notif-list">';
-            // Only toggles the server reads (#1545). On until turned off,
-            // which is what the send site does with a missing key. The two
-            // date-message preferences live in the Messages tab (#2503).
-            html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs, true);
-            html += '</div>';
-            html += '<span class="ffc-notif-status ffc-status" role="status" aria-live="polite" hidden></span>';
-            html += '</div>';
+            if (ffcDashboard.notificationPreferences !== false) {
+                html += '<div class="ffc-profile-section">';
+                html += '<h3>' + (s.notificationSection || 'Notification Preferences') + '</h3>';
+                html += '<div class="ffc-notif-list">';
+                // Only toggles the server reads (#1545). On until turned off,
+                // which is what the send site does with a missing key. The two
+                // date-message preferences live in the Messages tab (#2503).
+                html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs, true);
+                html += '</div>';
+                html += '<span class="ffc-notif-status ffc-status" role="status" aria-live="polite" hidden></span>';
+                html += '</div>';
+            }
 
             // No privacy request while viewing as another account (#2690).
             if (!ffcDashboard.viewAsUserId) {
