@@ -116,6 +116,12 @@ $ffc_doc_tree = array(
 						'file'   => 'forms-email.php',
 					),
 					array(
+						'anchor' => 'forms-terminal',
+						'icon'   => 'ffc-icon-qr',
+						'title'  => __( 'Terminal', 'ffcertificate' ),
+						'file'   => 'forms-terminal.php',
+					),
+					array(
 						'anchor' => 'feature-quiz',
 						'icon'   => 'ffc-icon-chart',
 						'title'  => __( 'Quiz / Evaluation', 'ffcertificate' ),

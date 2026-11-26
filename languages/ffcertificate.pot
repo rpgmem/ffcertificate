@@ -37340,6 +37340,83 @@ msgstr ""
 msgid "When an event terminal reads the participant's QR, the certificate is issued from the profile. Name, email and CPF/RF are always taken from it. Any other field may name a field of the global profile list under \"Fill from profile at the terminal\", and a checkbox may be \"Accepted by showing the QR\". A choice takes the profile value only when it is one of its options. A required field left without a value is completed by the participant on the phone."
 msgstr ""
 
+msgid "A field the profile cannot fill"
+msgstr ""
+
+msgid "Allow list only"
+msgstr ""
+
+msgid "Any account"
+msgstr ""
+
+msgid "Anyone who shows the app QR receives the certificate, unless the deny list names them."
+msgstr ""
+
+msgid "At the terminal"
+msgstr ""
+
+msgid "Certificate at the terminal"
+msgstr ""
+
+msgid "Issue at the terminal"
+msgstr ""
+
+msgid "Issued by the terminal"
+msgstr ""
+
+msgid "Map the field"
+msgstr ""
+
+msgid "Only people on the Security tab's allow list receive it at the terminal."
+msgstr ""
+
+msgid "Open the Time tab"
+msgstr ""
+
+msgid "Paired terminals"
+msgstr ""
+
+msgid "The terminal was turned off:"
+msgstr ""
+
+msgid "To pair: in the app, More › Pair terminal, then choose this form."
+msgstr ""
+
+msgid "When it can be turned on"
+msgstr ""
+
+msgid "Who may receive at the terminal"
+msgstr ""
+
+msgid "Any account, or only the people on the Security tab's allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline."
+msgstr ""
+
+msgid "From the Security tab, the deny list, the submission limits and the ticket apply to a reading: with the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline. The password and the GPS area do not apply: standing at the terminal proves both."
+msgstr ""
+
+msgid "Required with no profile source: %s. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\"."
+msgstr ""
+
+msgid "The event terminal reads the QR in the participant's app and issues the certificate at once, from the profile. The form still accepts entries on the site."
+msgstr ""
+
+msgid "The form editor's Terminal tab lets an event terminal read the QR in the participant's app and issue the certificate at once, from the profile. The form still accepts entries on the site at the same time."
+msgstr ""
+
+msgid "The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\". The side box shows the reading hours, the paired terminals and how many certificates the terminal issued."
+msgstr ""
+
+msgid "The terminal reads while the form is open: the date and hours are the Time tab's, with no window of their own. To turn it on, the opening and closing must fall on the same day."
+msgstr ""
+
+msgid "The terminal reads while the form is open: the date and hours are the Time tab's, with no window of their own, and the opening and closing must fall on the same day. A form with a quiz cannot take the terminal, because the certificate needs the answers. The switch refuses to turn on and says why; a form that stops qualifying when it is saved has the terminal turned off, with a notice."
+msgstr ""
+
+msgid "%d required field does not come from the profile"
+msgid_plural "%d required fields do not come from the profile"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Complete my certificate"
 msgstr ""
 

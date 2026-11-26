@@ -264,6 +264,18 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 		if ( ! $post instanceof \WP_Post || 'ffc_form' !== $post->post_type || 'publish' !== $post->post_status || ! self::settings( $form_id )['enabled'] ) {
 			return new \WP_Error( 'ffc_terminal_form_off', __( 'This certificate form does not take the terminal. Turn it on in the form\'s Terminal tab.', 'ffcertificate' ), array( 'status' => 400 ) );
 		}
+		return self::cannot_enable( $form_id );
+	}
+
+	/**
+	 * Why the terminal cannot be turned on for a form, whatever its switch
+	 * says, or null when it can: a quiz needs the answers, and the reading
+	 * follows one dated window on one day.
+	 *
+	 * @param int $form_id Form id.
+	 * @return \WP_Error|null
+	 */
+	public static function cannot_enable( int $form_id ): ?\WP_Error {
 		$config = get_post_meta( $form_id, '_ffc_form_config', true );
 		if ( is_array( $config ) && ! empty( $config['quiz_enabled'] ) ) {
 			return new \WP_Error( 'ffc_terminal_form_quiz', __( 'A form with a quiz cannot issue at the terminal: the certificate needs the answers.', 'ffcertificate' ), array( 'status' => 400 ) );
@@ -272,6 +284,31 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			return new \WP_Error( 'ffc_terminal_form_window', __( 'The terminal reads a certificate form while it is open, on one day: set the form\'s opening and closing on the same date.', 'ffcertificate' ), array( 'status' => 400 ) );
 		}
 		return null;
+	}
+
+	/**
+	 * The required fields a terminal cannot fill: not filled from the
+	 * profile automatically (name, e-mail, CPF/RF) and naming no profile
+	 * source. A person reading the QR is left to complete them on the phone.
+	 *
+	 * @param list<array<string, mixed>> $fields Form fields.
+	 * @return list<string> Their labels, or names where a field has no label.
+	 */
+	public static function unfilled_required( array $fields ): array {
+		$out = array();
+		foreach ( $fields as $field ) {
+			$name = isset( $field['name'] ) && is_string( $field['name'] ) ? $field['name'] : '';
+			$type = isset( $field['type'] ) && is_string( $field['type'] ) ? $field['type'] : 'text';
+			if ( '' === $name || empty( $field['required'] ) || in_array( $type, self::DISPLAY_TYPES, true ) ) {
+				continue;
+			}
+			if ( 'cpf_rf' === $name || 'email' === $type || in_array( $name, SubmitterName::CANDIDATE_KEYS, true ) || '' !== CertificateProfileSource::of( $field ) ) {
+				continue;
+			}
+			$label = isset( $field['label'] ) && is_string( $field['label'] ) ? trim( $field['label'] ) : '';
+			$out[] = '' === $label ? $name : $label;
+		}
+		return $out;
 	}
 
 	/**

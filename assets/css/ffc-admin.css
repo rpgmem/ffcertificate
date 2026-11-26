@@ -387,8 +387,9 @@
     word-break: break-all;
 }
 
-/* Form summary sidebar metabox (#1614): the shared .ffc-facts list, values to the right. */
-#ffc_form_summary .ffc-facts__value {
+/* Form summary (#1614) and At the terminal (#2892) sidebar metaboxes: the shared .ffc-facts list, values to the right. */
+#ffc_form_summary .ffc-facts__value,
+#ffc_form_terminal .ffc-facts__value {
     text-align: right;
 }
 

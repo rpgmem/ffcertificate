@@ -280,6 +280,17 @@ class FormEditor {
 			'high'
 		);
 
+		// This event at the terminal (#2892): reading hours, paired
+		// terminals and certificates issued there.
+		add_meta_box(
+			'ffc_form_terminal',
+			__( 'At the terminal', 'ffcertificate' ),
+			array( $this->metabox_renderer, 'render_terminal_side' ),
+			'ffc_form',
+			'side',
+			'default'
+		);
+
 		// 6.6.4 follow-up (#361 Sprint 3) — per-form pre-flight stats
 		// badges (cookie wall / GPS wall / rate-limit hits over the
 		// last 30 days). Sidebar position, low priority so it sits

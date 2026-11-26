@@ -486,6 +486,38 @@ class FormEditorSaveHandlerTest extends TestCase {
 	 * per-form device-limit message. An unusable value now reads as empty,
 	 * which is the documented "inherit the global" state.
 	 */
+	/**
+	 * A form turned into a quiz in the same save loses the terminal (#2892):
+	 * the switch, the quiz and the window are saved by different tabs, so the
+	 * check runs once all of them have, and the editor says why.
+	 */
+	public function test_a_form_that_cannot_take_the_terminal_has_it_turned_off_after_saving(): void {
+		$config = array(
+			'quiz_enabled' => '1',
+			'terminal'     => array(
+				'enabled' => '1',
+				'who'     => 'any',
+			),
+		);
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_form_config' === $key ? $config : '' );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		$writes = $this->capture_meta_writes( 'enforce_terminal_eligibility' );
+
+		$this->assertSame( '', $writes['written']['_ffc_form_config']['terminal']['enabled'] );
+		$this->assertSame( 'any', $writes['written']['_ffc_form_config']['terminal']['who'], 'who may receive is kept for when it is turned back on' );
+		$this->assertSame( 'A form with a quiz cannot issue at the terminal: the certificate needs the answers.', $writes['transients']['ffc_save_terminal_off_7'] );
+	}
+
+	public function test_a_terminal_that_is_off_is_left_alone_after_saving(): void {
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_form_config' === $key ? array( 'quiz_enabled' => '1' ) : '' );
+
+		$writes = $this->capture_meta_writes( 'enforce_terminal_eligibility' );
+
+		$this->assertSame( array(), $writes['written'] );
+		$this->assertSame( array(), $writes['transients'] );
+	}
+
 	public function test_save_device_limit_meta_does_not_store_a_non_scalar_message(): void {
 		$_POST['ffc_device_limit'] = array(
 			'present' => '1',
