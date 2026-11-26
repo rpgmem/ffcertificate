@@ -304,16 +304,31 @@ final class DashboardAppScreens {
 	}
 
 	/**
-	 * The app's Messages screen: the dashboard's Messages tab without its
-	 * two toggles, which the app shows in Preferences instead.
+	 * The app's Messages screen: the dashboard's Messages tab, without its
+	 * two toggles where the app shows them in Preferences instead.
 	 *
 	 * @param array<int, string> $tabs The tabs this person sees.
 	 * @return string
 	 */
 	public static function render_messages( array $tabs ): string {
 		$html = DashboardShortcode::render( array( 'tabs' => implode( ',', $tabs ) ) );
-		wp_add_inline_script( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.messagePreferences = false);', 'after' );
+		if ( self::app_has_preference_sections() ) {
+			wp_add_inline_script( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.messagePreferences = false);', 'after' );
+		}
 		return $html;
+	}
+
+	/**
+	 * Whether the running Site PWA draws plugin sections in Preferences
+	 * (site-pwa#66). The two plugins update apart, and an app without them
+	 * would leave the toggles nowhere, so the Messages screen keeps them
+	 * there until it has. The one Site PWA name this plugin reads.
+	 *
+	 * @param string $frame The app's frame class; a test names its own.
+	 * @return bool
+	 */
+	public static function app_has_preference_sections( string $frame = '\\SitePwa\\App\\Frame' ): bool {
+		return method_exists( $frame, 'preferenceSections' );
 	}
 
 	/**

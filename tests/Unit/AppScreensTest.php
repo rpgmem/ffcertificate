@@ -722,7 +722,7 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/profile', $localized['ffc-app-message-preferences'][1]['rest'] );
 	}
 
-	public function test_the_apps_messages_screen_tells_the_tab_to_leave_the_toggles_out(): void {
+	public function test_the_apps_messages_screen_keeps_the_toggles_without_preference_sections(): void {
 		$inline = array();
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'wp_add_inline_script' )->alias(
@@ -751,6 +751,20 @@ class AppScreensTest extends TestCase {
 
 		DashboardAppScreens::render_messages( array( 'messages' ) );
 
-		$this->assertSame( array( array( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.messagePreferences = false);', 'after' ) ), $inline );
+		$this->assertSame( array(), $inline, 'an app without Preferences sections keeps the toggles on Messages' );
+	}
+
+	public function test_the_app_has_preference_sections_only_where_its_frame_draws_them(): void {
+		$with    = new class() {
+			public static function preferenceSections(): array {
+				return array();
+			}
+		};
+		$without = new class() {
+		};
+
+		$this->assertTrue( DashboardAppScreens::app_has_preference_sections( get_class( $with ) ) );
+		$this->assertFalse( DashboardAppScreens::app_has_preference_sections( get_class( $without ) ) );
+		$this->assertFalse( DashboardAppScreens::app_has_preference_sections(), 'no Site PWA loaded in the unit suite' );
 	}
 }

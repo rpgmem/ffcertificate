@@ -192,6 +192,13 @@ if ( array() !== $ffc_pwa_admins ) {
 			'Preferences carries the Messages section exactly while the Messages tab shows',
 			implode( ', ', $ffc_pwa_pref_ids )
 		);
+		// The one Site PWA name this plugin reads: a rename there would put
+		// the toggles back on Messages without anything failing.
+		ffc_pwa_report(
+			\FreeFormCertificate\Shortcodes\DashboardAppScreens::app_has_preference_sections(),
+			'Messages leaves its toggles to Preferences',
+			''
+		);
 	}
 	wp_set_current_user( 0 );
 }

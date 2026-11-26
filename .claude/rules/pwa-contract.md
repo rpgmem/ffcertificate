@@ -38,7 +38,7 @@ This plugin offers the app its look through the three filters `AppLook` hooks: P
 
 Inside the app, the theme a person chose on their device (More → Appearance, rpgmem/site-pwa#62) marks `<html>` with `data-site-pwa-scheme` `dark` or `light` before the first paint; `assets/js/ffc-dark-mode.js` treats `dark` as on and `light` as off, whatever this plugin's Dark Mode says (#2883).
 
-Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above.
+Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above. This side reads one name of Site PWA's: `DashboardAppScreens::app_has_preference_sections()` asks whether `SitePwa\App\Frame::preferenceSections()` exists, so the app's Messages screen hands its two toggles to Preferences only where Preferences can draw them (#2885). The two plugins update apart, and the integration check reports it.
 
 ## Checked with both plugins running (#2875)
 
