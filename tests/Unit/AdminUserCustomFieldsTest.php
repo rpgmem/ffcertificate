@@ -1624,4 +1624,23 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$this->assertSame( 'common', $by[1]['display'] );
 	}
 
+
+	/**
+	 * The working-hours grid reads one day per line, each with its spans
+	 * (#2854); a day with one span shows that span alone.
+	 */
+	public function test_working_hours_read_one_day_per_line(): void {
+		$field = $this->field( 10, array( 'id' => 1, 'field_type' => 'working_hours' ) );
+		$value = json_encode(
+			array(
+				array( 'day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00' ),
+				array( 'day' => 5, 'entry1' => '08:00', 'exit1' => '', 'entry2' => '', 'exit2' => '12:00' ),
+			)
+		);
+
+		$this->assertSame(
+			"Monday 08:00–12:00, 13:00–17:00\nFriday 08:00–12:00",
+			ProfileCustomFields::display_value( $field, $value )
+		);
+	}
 }
