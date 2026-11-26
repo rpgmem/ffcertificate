@@ -183,6 +183,8 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_bulk_issue_jobs',
 	// Signed certificate records (#2639): the record is encrypted, it names the holder.
 	$wpdb->prefix . 'ffc_certificate_signatures',
+	// Certificate terminal readings (#2891): who a terminal read, and what they got.
+	$wpdb->prefix . 'ffc_certificate_terminal_readings',
 );
 
 // The discovered half. `esc_like()` is load-bearing on the underscore: `_` is a
@@ -219,6 +221,7 @@ $ffcertificate_options = array(
 	'ffc_encryption_v1_reads',
 	'ffc_bulk_issue_db_version',
 	'ffc_certificate_signatures_db_version',
+	'ffc_certificate_terminal_db_version',
 	'ffc_signing_keys', // Written only when a signing key is generated (#2639).
 	'ffc_presence_keys', // Written only when the first presence device enrols (#2741).
 	'ffc_user_access_settings',

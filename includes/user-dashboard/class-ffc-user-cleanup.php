@@ -236,6 +236,9 @@ class UserCleanup {
 			// and who ended it; the row stays and loses the operator.
 			'ffc_audience_terminals'            => array( 'paired_by', 'revoked_by' ),
 			'ffc_audience_terminal_pairings'    => array( 'created_by' ),
+			// Certificate terminal readings (#2891): a reading is a record of
+			// what a person got at an event; it stays and loses the person.
+			'ffc_certificate_terminal_readings' => array( 'user_id' ),
 		);
 
 		foreach ( $map as $basename => $columns ) {

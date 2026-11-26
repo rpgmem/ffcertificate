@@ -27,7 +27,7 @@
     var DOMAIN_READING = 'FFC-PRESENCE-READING\u0000';
     var DOMAIN_ENROL = 'FFC-PRESENCE-ENROL\u0000';
     var DOMAIN_RENEW = 'FFC-PRESENCE-RENEW\u0000';
-    var TARGETS = { audience_booking: 1 };
+    var TARGETS = { audience_booking: 1, certificate_form: 2 };
     var RENEW_BEFORE = 5 * 86400;
     var DB_NAME = 'ffc-presence';
     var STORE = 'state';

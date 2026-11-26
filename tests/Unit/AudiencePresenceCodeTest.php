@@ -210,6 +210,14 @@ class AudiencePresenceCodeTest extends TestCase {
 		$this->assertSame( 'ffc_presence_ticket_malformed', $this->error( $this->code( 42, self::NOW, 'short' ) ) );
 	}
 
+	public function test_a_code_for_a_certificate_form_names_that_target(): void {
+		$read = AudiencePresenceCode::verify( $this->code( 40, self::NOW, '', '', null, 2 ), self::NOW );
+
+		$this->assertIsArray( $read, is_wp_error( $read ) ? $read->get_error_code() : '' );
+		$this->assertSame( \FreeFormCertificate\Frontend\CertificateFormTarget::TYPE, $read['target_type'], 'byte 2 is the type id the forms module registers (#2891)' );
+		$this->assertSame( 40, $read['target_id'] );
+	}
+
 	public function test_a_ticket_is_issued_only_for_a_known_target(): void {
 		$this->assertNull( AudiencePresenceTicket::issue( 7, 'appointment', 42, self::NOW + 60 ) );
 		$this->assertNull( AudiencePresenceTicket::issue( 0, AudienceAttendanceTarget::TYPE, 42, self::NOW + 60 ) );
@@ -383,13 +391,14 @@ class AudiencePresenceCodeTest extends TestCase {
 	 * @param string $ticket    Raw ticket, or '' for none.
 	 * @param string $secret    The signing phone's secret; this test's device by default.
 	 * @param int    $issued_at When the attestation was issued; a minute before the reading by default.
+	 * @param int    $type      Target type byte; 1 is a booking.
 	 */
-	private function code( int $target_id, int $read_at, string $ticket = '', string $secret = '', ?int $issued_at = null ): string {
+	private function code( int $target_id, int $read_at, string $ticket = '', string $secret = '', ?int $issued_at = null, int $type = 1 ): string {
 		$issued      = AudiencePresenceAttestation::issue( 7, 'Maria S.', $this->device['public'], $issued_at ?? $read_at - 60 );
 		$attestation = SigningKeys::unb64( (string) $issued['attestation'] );
 		$body        = chr( AudiencePresenceCode::VERSION )
 			. pack( 'n', strlen( $attestation ) ) . $attestation
-			. chr( 1 ) . pack( 'NN', $target_id, $read_at )
+			. chr( $type ) . pack( 'NN', $target_id, $read_at )
 			. chr( strlen( $ticket ) ) . $ticket;
 		$signature   = (string) EcdsaP256::sign( AudiencePresenceCode::DOMAIN . $body, '' === $secret ? $this->device['secret'] : $secret );
 		return AudiencePresenceCode::PREFIX . Base45::encode( $body . $signature );

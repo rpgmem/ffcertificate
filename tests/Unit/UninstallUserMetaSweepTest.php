@@ -256,8 +256,10 @@ class UninstallUserMetaSweepTest extends TestCase {
 		//
 		// Only the key is frozen, not the file it sits in: the path churns
 		// with any refactor and carries nothing this needs.
+		// `ffc_user_cpf` and `ffc_user_rf` are read by the certificate
+		// terminal (#2891); both start with the swept prefix.
 		$this->assertSame(
-			array( 'ffc_registration_date' ),
+			array( 'ffc_user_cpf', 'ffc_user_rf', 'ffc_registration_date' ),
 			array_keys( $this->literal_keys() ),
 			'The literal user-meta keys under `includes/` are not the frozen set. Either the walk'
 			. ' collapsed and lost one, or a new literal key was written -- in which case confirm it'

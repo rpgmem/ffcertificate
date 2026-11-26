@@ -72,14 +72,15 @@ final class AudienceTerminalReading {
 	/**
 	 * Read a code now, online.
 	 *
-	 * @param array  $terminal Terminal row.
-	 * @param string $code     The text the reader typed.
-	 * @param int    $now      Unix time.
+	 * @param array  $terminal    Terminal row.
+	 * @param string $code        The text the reader typed.
+	 * @param int    $now         Unix time.
+	 * @param string $ticket_code A code the person typed at the terminal for the target (#2891), or ''.
 	 * @phpstan-param TerminalRow $terminal
 	 * @return ReadingResult
 	 */
-	public static function read( array $terminal, string $code, int $now ): array {
-		return self::evaluate( $terminal, $code, $now );
+	public static function read( array $terminal, string $code, int $now, string $ticket_code = '' ): array {
+		return self::evaluate( $terminal, $code, $now, false, $ticket_code );
 	}
 
 	/**
@@ -104,7 +105,7 @@ final class AudienceTerminalReading {
 		if ( $at > $now + AudiencePresenceCode::SKEW || $at < $terminal['paired_at'] - AudiencePresenceCode::SKEW || $at < $now - AudiencePresenceAttestation::TTL ) {
 			return self::refused( 'ffc_terminal_reading_time', __( 'This reading was taken at a time this terminal cannot vouch for, and was not recorded.', 'ffcertificate' ) );
 		}
-		return self::evaluate( $terminal, $code, $at );
+		return self::evaluate( $terminal, $code, $at, true );
 	}
 
 	/**
@@ -159,13 +160,15 @@ final class AudienceTerminalReading {
 	/**
 	 * Read a code as of a moment.
 	 *
-	 * @param array  $terminal Terminal row.
-	 * @param string $code     The text the reader typed.
-	 * @param int    $at       The moment of the reading.
+	 * @param array  $terminal    Terminal row.
+	 * @param string $code        The text the reader typed.
+	 * @param int    $at          The moment of the reading.
+	 * @param bool   $queued      Whether the terminal kept it offline and sent it later.
+	 * @param string $ticket_code A code the person typed at the terminal for the target, or ''.
 	 * @phpstan-param TerminalRow $terminal
 	 * @return ReadingResult
 	 */
-	private static function evaluate( array $terminal, string $code, int $at ): array {
+	private static function evaluate( array $terminal, string $code, int $at, bool $queued, string $ticket_code = '' ): array {
 		$revoked = AudiencePresenceReader::revoked_key_ids_between( $at - AudiencePresenceAttestation::TTL, $at );
 		$reading = AudiencePresenceCode::verify( $code, $at, $revoked );
 		if ( is_wp_error( $reading ) ) {
@@ -181,8 +184,19 @@ final class AudienceTerminalReading {
 			return self::refused( 'ffc_terminal_other_event', __( 'This code is for an event this terminal does not check in. Choose this event on the phone, or use the terminal at its entrance.', 'ffcertificate' ) );
 		}
 
-		$result = $found['target']->terminal_read( $found['id'], $reading['user_id'], $reading['name'], $reading['ticket'], $at );
-		if ( self::RECORDED === $result['status'] ) {
+		$result = $found['target']->terminal_read(
+			$found['id'],
+			array(
+				'user_id'     => $reading['user_id'],
+				'name'        => $reading['name'],
+				'ticket'      => $reading['ticket'],
+				'at'          => $at,
+				'terminal_id' => $terminal['id'],
+				'queued'      => $queued,
+				'ticket_code' => $ticket_code,
+			)
+		);
+		if ( self::RECORDED === $result['status'] || TerminalVerdict::PENDING === $result['status'] ) {
 			AudienceTerminalWriter::count_reading( $terminal['id'] );
 		}
 		return $result;

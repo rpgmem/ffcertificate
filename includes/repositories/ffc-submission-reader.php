@@ -826,6 +826,35 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * The encrypted CPF and RF of a user's newest submission that carries
+	 * one (#2891): where a terminal finds the identifier of a person whose
+	 * profile holds only its hash.
+	 *
+	 * @param int $user_id User.
+	 * @return array{cpf_encrypted: string, rf_encrypted: string}|null
+	 */
+	public function latest_identifier_for_user( int $user_id ): ?array {
+		if ( $user_id <= 0 ) {
+			return null;
+		}
+		$row = $this->wpdb->get_row(
+			$this->wpdb->prepare(
+				"SELECT cpf_encrypted, rf_encrypted FROM %i WHERE user_id = %d AND ( ( cpf_encrypted IS NOT NULL AND cpf_encrypted <> '' ) OR ( rf_encrypted IS NOT NULL AND rf_encrypted <> '' ) ) ORDER BY submission_date DESC, id DESC LIMIT 1",
+				$this->table,
+				$user_id
+			),
+			ARRAY_A
+		);
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+		return array(
+			'cpf_encrypted' => is_string( $row['cpf_encrypted'] ?? null ) ? $row['cpf_encrypted'] : '',
+			'rf_encrypted'  => is_string( $row['rf_encrypted'] ?? null ) ? $row['rf_encrypted'] : '',
+		);
+	}
+
+	/**
 	 * The accounts whose name or login contains a search term.
 	 *
 	 * A submission keeps the name only inside its encrypted data, so the

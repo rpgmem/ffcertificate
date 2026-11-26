@@ -427,6 +427,8 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertArrayNotHasKey( 'token_hash', $shown );
 		$this->assertArrayNotHasKey( 'device_hash', $shown );
 		$this->assertSame( array( 3, 7, 'certificate_form:5' ), AudienceTerminalRestController::sanitize_targets( array( '3', 7, 'x', -1, 3, 'certificate_form:5', 'certificate_form:0', 'Bad:1' ) ) );
+		$this->assertSame( 'TK-48', AudienceTerminalRestController::sanitize_ticket_code( ' tk-48<> ' ), 'a typed ticket code keeps what a ticket is made of' );
+		$this->assertSame( '', AudienceTerminalRestController::sanitize_ticket_code( array( 'x' ) ) );
 		$this->assertSame( 'P-AB12-CD34script', AudienceTerminalRestController::sanitize_code( 'P-AB12-CD34<script>' ) );
 		$this->assertSame( '', AudienceTerminalRestController::sanitize_code( array( 'P' ) ) );
 	}
@@ -731,7 +733,7 @@ class AudienceTerminalPairingTest extends TestCase {
 					'enrolled' => 0,
 				);
 			}
-			public function terminal_read( int $target_id, int $user_id, string $name, bool $ticket, int $at ): array {
+			public function terminal_read( int $target_id, array $reading ): array {
 				return \FreeFormCertificate\Core\TerminalVerdict::refused( 'demo', 'demo' );
 			}
 		};
