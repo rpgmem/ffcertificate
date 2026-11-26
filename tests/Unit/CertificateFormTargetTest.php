@@ -9,6 +9,7 @@ use FreeFormCertificate\Core\TerminalVerdict;
 use FreeFormCertificate\Frontend\CertificateCompletionLink;
 use FreeFormCertificate\Frontend\CertificateFormTarget;
 use FreeFormCertificate\Frontend\CertificateTerminalReadingRepository;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 use FreeFormCertificate\Tests\Support\FakeCredentials;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -65,13 +66,15 @@ class CertificateFormTargetTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		ActivityLogBuffer::stub_functions();
+		ActivityLogBuffer::reset();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
 		Functions\when( 'date_i18n' )->alias( static fn( string $format, $ts = null ) => gmdate( $format, (int) ( $ts ?? time() ) ) );
 		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'time_format' => 'H:i' ) : $default
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'time_format' => 'H:i' ) + ActivityLogBuffer::ENABLED_SETTINGS : $default
 		);
 		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
@@ -222,9 +225,42 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( 501, $row['submission_id'] );
 		$this->assertSame( 3, $row['terminal_id'] );
 
+		$this->assertArrayNotHasKey( CertificateFormTarget::CONSENT_AT_KEY, $saved['data'], 'no consent field, no consent record' );
+		$logged = $this->logged( 'terminal_certificate_issued' );
+		$this->assertCount( 1, $logged );
+		$this->assertSame(
+			array(
+				'form_id'     => self::FORM,
+				'terminal_id' => 3,
+			),
+			$logged[0]['context']
+		);
+		$entries = ActivityLogBuffer::entries();
+		$entry   = end( $entries );
+		$this->assertSame( self::USER, (int) $entry['user_id'] );
+		$this->assertSame( 501, (int) $entry['submission_id'] );
+
 		$again = $this->target()->terminal_read( self::FORM, $this->reading() );
 		$this->assertSame( TerminalVerdict::ALREADY, $again['status'] );
 		$this->assertCount( 1, $this->saved, 'a second reading issues nothing new' );
+	}
+
+	public function test_a_consent_the_reading_accepts_keeps_the_time_and_the_terminal(): void {
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array(
+			'name'           => 'termo',
+			'type'           => 'checkbox',
+			'required'       => '1',
+			'choices'        => array( 'I agree' ),
+			'profile_source' => 'consent',
+		);
+
+		$result = $this->target()->terminal_read( self::FORM, $this->reading() );
+
+		$this->assertSame( TerminalVerdict::RECORDED, $result['status'], $result['message'] );
+		$data = $this->saved[0]['data'];
+		$this->assertSame( array( 'I agree' ), $data['termo'] );
+		$this->assertSame( self::NOW, $data[ CertificateFormTarget::CONSENT_AT_KEY ], 'accepted at the moment of the reading' );
+		$this->assertSame( 3, $data[ CertificateFormTarget::CONSENT_TERMINAL_KEY ], 'by the terminal that read it' );
 	}
 
 	public function test_someone_who_already_submitted_on_the_site_gets_that_certificate(): void {
@@ -279,6 +315,10 @@ class CertificateFormTargetTest extends TestCase {
 
 		$this->assertCount( 1, $this->notified );
 		$this->assertSame( array( 'School' ), $this->notified[0]['missing'], 'the e-mail names the field by its label' );
+		$logged = $this->logged( 'terminal_certificate_awaiting_data' );
+		$this->assertCount( 1, $logged, 'logged once per wait, like the e-mail' );
+		$this->assertSame( array( 'school' ), $logged[0]['context']['missing'] );
+		$this->assertSame( 3, $logged[0]['context']['terminal_id'] );
 		$this->assertSame( self::NOW + 60, CertificateTerminalReadingRepository::for_person( self::FORM, self::USER )['read_at'], 'the later reading reopens the link' );
 	}
 
@@ -507,6 +547,16 @@ class CertificateFormTargetTest extends TestCase {
 	 * @param array<string, callable> $with Collaborators to replace.
 	 * @return CertificateFormTarget
 	 */
+	/**
+	 * The buffered log entries of one action.
+	 *
+	 * @param string $action Action.
+	 * @return list<array{action: string, level: string, context: mixed}>
+	 */
+	private function logged( string $action ): array {
+		return array_values( array_filter( ActivityLogBuffer::contexts(), static fn( array $row ) => $action === $row['action'] ) );
+	}
+
 	private function target( array $with = array() ): CertificateFormTarget {
 		return new CertificateFormTarget(
 			$with['save'] ?? function ( int $form_id, string $title, array $data, string $email, array $fields, array $config, array $options ) {

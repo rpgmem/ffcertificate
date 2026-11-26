@@ -37522,3 +37522,23 @@ msgstr "Seu certificado já foi emitido. Abra o app, em Certificados, para baix�
 
 msgid "A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail, which opens the form in the app when Site PWA is active. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply."
 msgstr "Um campo obrigatório que fica sem valor é completado pelo participante no celular, por um link pessoal enviado por e-mail, que abre o formulário no app quando o Site PWA está ativo. Ele abre o formulário por sete dias depois da leitura, seja qual for o horário, sem a área de GPS nem a senha, que o terminal já comprovou; o ingresso, as listas e os limites continuam valendo."
+
+msgid "Consent accepted at the terminal"
+msgstr "Consentimento aceito no terminal"
+
+msgid "Terminal that read the consent"
+msgstr "Terminal que leu o consentimento"
+
+#. translators: %s: terminal id
+#, php-format
+msgid "Terminal #%s"
+msgstr "Terminal nº %s"
+
+msgid "Certificate Issued at the Terminal"
+msgstr "Certificado Emitido no Terminal"
+
+msgid "Terminal Certificate Awaiting Data"
+msgstr "Certificado do Terminal Aguardando Dados"
+
+msgid "A consent accepted by the reading keeps, beside the answers, the time of the reading and the terminal that read it, shown on the submission's edit screen. The activity log records each certificate issued at the terminal and each reading left waiting on data, under Certificates."
+msgstr "Um consentimento aceito pela leitura guarda, junto às respostas, a hora da leitura e o terminal que a fez, mostrados na tela de edição da submissão. O registro de atividades anota cada certificado emitido no terminal e cada leitura que fica aguardando dados, em Certificados."

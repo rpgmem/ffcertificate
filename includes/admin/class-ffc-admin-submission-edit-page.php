@@ -979,6 +979,8 @@ class AdminSubmissionEditPage {
 			'_quiz_question_count' => __( 'Scored questions', 'ffcertificate' ),
 			'_quiz_attempt'        => __( 'Quiz attempt', 'ffcertificate' ),
 			'_quiz_focus_losses'   => __( 'Times the quiz window was left', 'ffcertificate' ),
+			\FreeFormCertificate\Frontend\CertificateFormTarget::CONSENT_AT_KEY => __( 'Consent accepted at the terminal', 'ffcertificate' ),
+			\FreeFormCertificate\Frontend\CertificateFormTarget::CONSENT_TERMINAL_KEY => __( 'Terminal that read the consent', 'ffcertificate' ),
 		);
 	}
 
@@ -996,6 +998,13 @@ class AdminSubmissionEditPage {
 		}
 		if ( '_quiz_percent' === $key && is_numeric( $value ) ) {
 			return $value . '%';
+		}
+		if ( \FreeFormCertificate\Frontend\CertificateFormTarget::CONSENT_AT_KEY === $key && ctype_digit( $value ) ) {
+			return \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $value );
+		}
+		if ( \FreeFormCertificate\Frontend\CertificateFormTarget::CONSENT_TERMINAL_KEY === $key && ctype_digit( $value ) ) {
+			/* translators: %s: terminal id */
+			return sprintf( __( 'Terminal #%s', 'ffcertificate' ), $value );
 		}
 		return $value;
 	}

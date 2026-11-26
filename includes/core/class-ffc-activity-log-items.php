@@ -272,6 +272,8 @@ final class ActivityLogItems {
 		'pdf_generated'                           => 'cert_submissions',
 		'certificate_emailed'                     => 'cert_submissions',
 		'data_accessed'                           => 'cert_submissions',
+		'terminal_certificate_issued'             => 'cert_submissions',
+		'terminal_certificate_awaiting_data'      => 'cert_submissions',
 
 		'submission_updated'                      => 'cert_changes',
 		'certificate_signer_added'                => 'cert_changes',
