@@ -125,7 +125,7 @@ final class CertificateTerminalReadingRepository {
 	/**
 	 * Type one raw row.
 	 *
-	 * @param array<string, mixed> $row Raw row.
+	 * @param array<array-key, mixed> $row Raw row.
 	 * @return ReadingRow
 	 */
 	private static function shape( array $row ): array {
