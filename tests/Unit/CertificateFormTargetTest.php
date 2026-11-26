@@ -35,7 +35,7 @@ class CertificateFormTargetTest extends TestCase {
 
 	private const USER = 7;
 
-	private const CPF = '52998224725';
+	private const CPF = \FreeFormCertificate\Tests\Support\Identifiers::CPF_A;
 
 	/** @var array<int, array<string, mixed>> */
 	private array $meta = array();
