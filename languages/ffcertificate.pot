@@ -37339,3 +37339,30 @@ msgstr ""
 
 msgid "When an event terminal reads the participant's QR, the certificate is issued from the profile. Name, email and CPF/RF are always taken from it. Any other field may name a field of the global profile list under \"Fill from profile at the terminal\", and a checkbox may be \"Accepted by showing the QR\". A choice takes the profile value only when it is one of its options. A required field left without a value is completed by the participant on the phone."
 msgstr ""
+
+msgid "Complete my certificate"
+msgstr ""
+
+msgid "Complete your certificate (terminal reading)"
+msgstr ""
+
+msgid "Complete your certificate: {{form_title}}"
+msgstr ""
+
+msgid "The link is open until {{closes_at}}. It is personal: it fills in your name and e-mail, so do not forward it. Once issued, the certificate is in the app, under Certificates."
+msgstr ""
+
+msgid "The terminal recorded your attendance for \"{{form_title}}\". To issue your certificate, fill in what your profile does not have: {{missing}}."
+msgstr ""
+
+msgid "This link has expired. Ask the event organisers for help."
+msgstr ""
+
+msgid "Your attendance is recorded"
+msgstr ""
+
+msgid "Your certificate was already issued. Open the app, under Certificates, to download it."
+msgstr ""
+
+msgid "A required field left without a value is completed by the participant on the phone, through a personal link sent by e-mail, which opens the form in the app when Site PWA is active. It opens the form for seven days after the reading, whatever its hours, without the GPS area or the password, which the terminal already proved; the ticket, the lists and the limits still apply."
+msgstr ""

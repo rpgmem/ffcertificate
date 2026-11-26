@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and a link that works without logging in must not print it. The person
  * types it, and the answer to the filter says whether it is theirs.
  *
- * @phpstan-type Invite array{booking_id: int, user_id: int, name: string, email: string, event: string}
+ * @phpstan-type Invite array{booking_id: int, user_id: int, name: string, email: string, event: string, completion: bool}
  *
  * @since 6.42.0
  */
@@ -100,6 +100,9 @@ final class FormInvite {
 			'name'       => (string) ( $answer['name'] ?? '' ),
 			'email'      => (string) $answer['email'],
 			'event'      => (string) ( $answer['event'] ?? '' ),
+			// A terminal's completion link (#2891): the terminal already
+			// proved the hours, the GPS area and the password.
+			'completion' => ! empty( $answer['completion'] ),
 		);
 	}
 

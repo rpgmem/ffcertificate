@@ -251,6 +251,10 @@ class TabEmailTexts extends SettingsTab {
 				// The booking as it now stands, then what it was (#2243).
 				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'changed_by_name', 'previous_environment', 'previous_date', 'previous_time', 'site_name', 'site_url' ),
 			),
+			'certificate-complete'          => array(
+				'label'  => __( 'Complete your certificate (terminal reading)', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'form_title', 'form_link', 'missing', 'closes_at', 'site_name' ),
+			),
 			'audience-post-event-invite'    => array(
 				'label'  => __( 'Audience post-event form invitation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'event', 'schedule_name', 'form_title', 'form_link', 'closes_at', 'site_name' ),
@@ -346,7 +350,7 @@ class TabEmailTexts extends SettingsTab {
 	 */
 	private static function email_hub_groups(): array {
 		return array(
-			__( 'Certificates', 'ffcertificate' )       => array( 'certificate-user', 'quiz-graded-passed', 'quiz-graded-not-passed' ),
+			__( 'Certificates', 'ffcertificate' )       => array( 'certificate-user', 'certificate-complete', 'quiz-graded-passed', 'quiz-graded-not-passed' ),
 			__( 'Personal Calendars', 'ffcertificate' ) => array(
 				'selfscheduling-confirmation',
 				'appointment-approval',

@@ -50,6 +50,7 @@ final class EmailTemplates {
 		'audience-post-event-invite',
 		'presence-device-replaced',
 		'certificate-user',
+		'certificate-complete',
 		'quiz-graded-passed',
 		'quiz-graded-not-passed',
 		'recruitment-convocation',

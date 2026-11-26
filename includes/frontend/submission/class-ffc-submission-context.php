@@ -149,7 +149,7 @@ class SubmissionContext {
 	/**
 	 * The invitation this submission answers (#1948), or null.
 	 *
-	 * @var array{booking_id: int, user_id: int, name: string, email: string, event: string}|null
+	 * @var array{booking_id: int, user_id: int, name: string, email: string, event: string, completion: bool}|null
 	 */
 	public ?array $invite = null;
 
