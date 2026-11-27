@@ -152,6 +152,7 @@ return array(
 	'Shortcodes>Audience',
 	'Shortcodes>Core',
 	'Shortcodes>DateMessages',
+	'Shortcodes>Frontend',
 	'Shortcodes>Recruitment',
 	'Shortcodes>Repositories',
 	'Shortcodes>Reregistration',

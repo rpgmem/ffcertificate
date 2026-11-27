@@ -101,6 +101,22 @@ class AppHomeTest extends TestCase {
 		$this->assertSame( 'Formação em Educação Inclusiva', $items['pending'][1]['meta'] );
 	}
 
+	public function test_a_certificate_waiting_on_data_is_pending_with_its_link(): void {
+		$items = AppHome::build( array(), null, array(), null, array( array( 'title' => 'Seminar', 'url' => 'https://example.test/form/?ffc_invite=c.x', 'until' => '22/01/2027' ) ) );
+		$this->assertSame(
+			array(
+				array(
+					'label' => 'Complete your certificate',
+					'meta'  => 'Seminar · until 22/01/2027',
+					'url'   => 'https://example.test/form/?ffc_invite=c.x',
+					'icon'  => 'edit',
+					'tone'  => 'warning',
+				),
+			),
+			$items['pending']
+		);
+	}
+
 	public function test_ffcs_items_join_the_others_and_never_replace_a_next_card_already_set(): void {
 		$theirs = array(
 			'banners' => array( array( 'id' => 'other' ) ),
