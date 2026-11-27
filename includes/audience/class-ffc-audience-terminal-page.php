@@ -591,71 +591,71 @@ final class AudienceTerminalPage {
 				'camera'   => self::camera_allowed(),
 				'worker'   => self::worker_url(),
 				'strings'  => array(
-					'offlinePairing'  => __( 'This terminal is offline. Pairing it needs a connection; once paired, it reads codes offline.', 'ffcertificate' ),
-					'storage'         => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
-					'paired'          => __( 'Terminal paired.', 'ffcertificate' ),
-					'failed'          => __( 'The terminal could not reach the site. Check the connection and try again.', 'ffcertificate' ),
+					'offlinePairing'    => __( 'This terminal is offline. Pairing it needs a connection; once paired, it reads codes offline.', 'ffcertificate' ),
+					'storage'           => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
+					'paired'            => __( 'Terminal paired.', 'ffcertificate' ),
+					'failed'            => __( 'The terminal could not reach the site. Check the connection and try again.', 'ffcertificate' ),
 					/* translators: %d: number of events */
-					'events'          => __( 'Events: %d', 'ffcertificate' ),
+					'events'            => __( 'Events: %d', 'ffcertificate' ),
 					/* translators: %s: date and time */
-					'until'           => __( 'Works until %s', 'ffcertificate' ),
-					'expired'         => __( 'This terminal\'s pairing has ended. An operator pairs it again at the lock.', 'ffcertificate' ),
-					'revoked'         => __( 'This terminal was revoked. The readings it took before that were sent. An operator pairs it again at the lock.', 'ffcertificate' ),
+					'until'             => __( 'Works until %s', 'ffcertificate' ),
+					'expired'           => __( 'This terminal\'s pairing has ended. An operator pairs it again at the lock.', 'ffcertificate' ),
+					'revoked'           => __( 'This terminal was revoked. The readings it took before that were sent. An operator pairs it again at the lock.', 'ffcertificate' ),
 					/* translators: %s: the operator's short name, such as Maria S. */
-					'operator'        => __( 'Unlocked by %s.', 'ffcertificate' ),
+					'operator'          => __( 'Unlocked by %s.', 'ffcertificate' ),
 					/* translators: %d: seconds between this terminal's clock and the site's */
-					'clockOff'        => __( 'This terminal\'s clock was %d s off the site\'s. Readings follow the site\'s clock; set the device\'s date and time to automatic.', 'ffcertificate' ),
-					'ended'           => __( 'Terminal ended. An operator pairs it again at the lock.', 'ffcertificate' ),
-					'queued'          => __( 'Saved. It is sent to the site when the connection returns.', 'ffcertificate' ),
+					'clockOff'          => __( 'This terminal\'s clock was %d s off the site\'s. Readings follow the site\'s clock; set the device\'s date and time to automatic.', 'ffcertificate' ),
+					'ended'             => __( 'Terminal ended. An operator pairs it again at the lock.', 'ffcertificate' ),
+					'queued'            => __( 'Saved. It is sent to the site when the connection returns.', 'ffcertificate' ),
 					/* translators: Offline: this person's reading for this event is already waiting to be sent. */
-					'alreadyQueued'   => __( 'Already saved on this terminal.', 'ffcertificate' ),
+					'alreadyQueued'     => __( 'Already saved on this terminal.', 'ffcertificate' ),
 					/* translators: %d: number of readings waiting to be sent */
-					'queue'           => __( 'Readings waiting to be sent: %d', 'ffcertificate' ),
+					'queue'             => __( 'Readings waiting to be sent: %d', 'ffcertificate' ),
 					/* translators: %d: number of readings sent */
-					'sent'            => __( 'Readings sent: %d', 'ffcertificate' ),
-					'nowChecking'     => __( 'Checking in now', 'ffcertificate' ),
-					'nextEvent'       => __( 'Next event', 'ffcertificate' ),
+					'sent'              => __( 'Readings sent: %d', 'ffcertificate' ),
+					'nowChecking'       => __( 'Checking in now', 'ffcertificate' ),
+					'nextEvent'         => __( 'Next event', 'ffcertificate' ),
 					/* translators: %s: time check-in closes */
-					'openUntil'       => __( 'Check-in open until %s', 'ffcertificate' ),
-					'notOpen'         => __( 'Check-in opens when the organiser opens it.', 'ffcertificate' ),
+					'openUntil'         => __( 'Check-in open until %s', 'ffcertificate' ),
+					'notOpen'           => __( 'Check-in opens when the organiser opens it.', 'ffcertificate' ),
 					/* translators: %s: date and time check-in opens */
-					'opensAt'         => __( 'Check-in opens at %s', 'ffcertificate' ),
-					'noEvents'        => __( 'No more events on this terminal.', 'ffcertificate' ),
-					'idleRefused'     => __( 'Terminal without events. An operator must release it first.', 'ffcertificate' ),
-					'unpairedRefused' => __( 'This terminal is not paired. An operator pairs it first, at the lock.', 'ffcertificate' ),
-					'terminalTitle'   => __( 'Check-in terminal', 'ffcertificate' ),
-					'notPaired'       => __( 'Not paired', 'ffcertificate' ),
+					'opensAt'           => __( 'Check-in opens at %s', 'ffcertificate' ),
+					'noEvents'          => __( 'No more events on this terminal.', 'ffcertificate' ),
+					'idleRefused'       => __( 'Terminal without events. An operator must release it first.', 'ffcertificate' ),
+					'unpairedRefused'   => __( 'This terminal is not paired. An operator pairs it first, at the lock.', 'ffcertificate' ),
+					'terminalTitle'     => __( 'Check-in terminal', 'ffcertificate' ),
+					'notPaired'         => __( 'Not paired', 'ffcertificate' ),
 					/* translators: %s: time check-in closes */
-					'checkinUntil'    => __( 'check-in until %s', 'ffcertificate' ),
+					'checkinUntil'      => __( 'check-in until %s', 'ffcertificate' ),
 					/* translators: 1: people present, 2: people enrolled */
-					'present'         => __( '%1$d of %2$d present', 'ffcertificate' ),
+					'present'           => __( '%1$d of %2$d present', 'ffcertificate' ),
 					/* translators: %d: people present */
-					'presentOnly'     => __( '%d present', 'ffcertificate' ),
+					'presentOnly'       => __( '%d present', 'ffcertificate' ),
 					/* translators: %s: time check-in opens */
-					'opensIn'         => __( 'Check-in opens at %s, in', 'ffcertificate' ),
-					'readyTitle'      => __( 'Hold your phone\'s QR code to the reader', 'ffcertificate' ),
-					'readyLead'       => __( 'Open the app, tap Presence and show the screen to the reader.', 'ffcertificate' ),
-					'cameraTitle'     => __( 'Show your phone\'s QR code to the camera', 'ffcertificate' ),
-					'cameraLead'      => __( 'Hold the screen inside the frame, a hand\'s width from the tablet.', 'ffcertificate' ),
-					'recordedTitle'   => __( 'Attendance recorded', 'ffcertificate' ),
-					'alreadyTitle'    => __( 'Already recorded', 'ffcertificate' ),
-					'queuedTitle'     => __( 'Attendance saved', 'ffcertificate' ),
-					'refusedTitle'    => __( 'Not recorded', 'ffcertificate' ),
-					'recordedDetail'  => __( 'The certificate is in the app after the event.', 'ffcertificate' ),
-					'openBadge'       => __( 'Not enrolled beforehand', 'ffcertificate' ),
-					'openDetail'      => __( 'Open event: your attendance counts as usual and shows to the organisers as attendance without enrolment.', 'ffcertificate' ),
-					'help'            => __( 'Still a problem? Ask the team at the help desk.', 'ffcertificate' ),
+					'opensIn'           => __( 'Check-in opens at %s, in', 'ffcertificate' ),
+					'readyTitle'        => __( 'Hold your phone\'s QR code to the reader', 'ffcertificate' ),
+					'readyLead'         => __( 'Open the app, tap Presence and show the screen to the reader.', 'ffcertificate' ),
+					'cameraTitle'       => __( 'Show your phone\'s QR code to the camera', 'ffcertificate' ),
+					'cameraLead'        => __( 'Hold the screen inside the frame, a hand\'s width from the tablet.', 'ffcertificate' ),
+					'recordedTitle'     => __( 'Attendance recorded', 'ffcertificate' ),
+					'alreadyTitle'      => __( 'Already recorded', 'ffcertificate' ),
+					'queuedTitle'       => __( 'Attendance saved', 'ffcertificate' ),
+					'refusedTitle'      => __( 'Not recorded', 'ffcertificate' ),
+					'recordedDetail'    => __( 'The certificate is in the app after the event.', 'ffcertificate' ),
+					'openBadge'         => __( 'Not enrolled beforehand', 'ffcertificate' ),
+					'openDetail'        => __( 'Open event: your attendance counts as usual and shows to the organisers as attendance without enrolment.', 'ffcertificate' ),
+					'help'              => __( 'Still a problem? Ask the team at the help desk.', 'ffcertificate' ),
 					/* translators: %d: seconds left */
-					'nextPerson'      => __( 'Next person in %d s', 'ffcertificate' ),
+					'nextPerson'        => __( 'Next person in %d s', 'ffcertificate' ),
 					/* translators: %d: seconds left */
-					'unlockWait'      => __( 'Back to reading on its own in %d s', 'ffcertificate' ),
-					'connIdle'        => __( 'Connected · no reading waiting', 'ffcertificate' ),
+					'unlockWait'        => __( 'Back to reading on its own in %d s', 'ffcertificate' ),
+					'connIdle'          => __( 'Connected · no reading waiting', 'ffcertificate' ),
 					/* translators: %d: readings waiting to be sent */
-					'connQueue'       => __( 'Connected · %d readings to send', 'ffcertificate' ),
+					'connQueue'         => __( 'Connected · %d readings to send', 'ffcertificate' ),
 					/* translators: %d: readings kept on the terminal */
-					'connOffline'     => __( 'Offline · %d readings saved here', 'ffcertificate' ),
-					'connCamera'      => __( 'front camera', 'ffcertificate' ),
-					'setup'           => array(
+					'connOffline'       => __( 'Offline · %d readings saved here', 'ffcertificate' ),
+					'connCamera'        => __( 'front camera', 'ffcertificate' ),
+					'setup'             => array(
 						/* translators: %s: the operator's short name, such as Maria S. */
 						'operator'       => __( 'Operator: %s', 'ffcertificate' ),
 						/* translators: 1: items chosen, 2: the most a terminal may hold */
@@ -671,7 +671,7 @@ final class AudienceTerminalPage {
 						'overlap'        => __( 'Crosses %1$s: it starts when that one closes, at %2$s.', 'ffcertificate' ),
 						'chooseLocation' => __( 'Choose a place.', 'ffcertificate' ),
 					),
-					'queueEdit'       => array(
+					'queueEdit'         => array(
 						'now'           => __( 'Now', 'ffcertificate' ),
 						'remove'        => __( 'Remove', 'ffcertificate' ),
 						'confirmRemove' => __( 'Tap again to remove', 'ffcertificate' ),
@@ -685,16 +685,20 @@ final class AudienceTerminalPage {
 						'max'           => AudienceTerminalPairing::MAX_BOOKINGS,
 					),
 					/* translators: 1: the ticket code typed, 2: seconds left to show the QR */
-					'ticketHeld'      => __( 'Ticket %1$s · show your QR within %2$d s', 'ffcertificate' ),
-					'ticketEmpty'     => __( 'Type the code of your ticket.', 'ffcertificate' ),
-					'ticketFirst'     => __( 'This form asks for a ticket. Type its code first, then show your QR.', 'ffcertificate' ),
-					'titles'          => array(
+					'ticketHeld'        => __( 'Ticket %1$s · show your QR within %2$d s', 'ffcertificate' ),
+					'ticketEmpty'       => __( 'Type the code of your ticket.', 'ffcertificate' ),
+					'queuedCertificate' => __( 'Attendance recorded. The certificate reaches your app when the terminal syncs.', 'ffcertificate' ),
+					'pausedLead'        => __( 'This form asks for a ticket, which the terminal checks with the site, and the terminal is offline.', 'ffcertificate' ),
+					'pausedMenu'        => __( 'Reading is paused: the form on screen asks for a ticket, which needs the connection. Restore it and reading resumes on its own.', 'ffcertificate' ),
+					'ticketFirst'       => __( 'This form asks for a ticket. Type its code first, then show your QR.', 'ffcertificate' ),
+					'titles'            => array(
 						'ffc_terminal_issued'              => __( 'Certificate issued', 'ffcertificate' ),
 						'ffc_terminal_already_issued'      => __( 'Certificate already issued', 'ffcertificate' ),
 						'ffc_terminal_awaiting_data'       => __( 'Attendance recorded', 'ffcertificate' ),
 						'ffc_terminal_ticket_required'     => __( 'Ticket needed', 'ffcertificate' ),
 						'ffc_terminal_ticket_refused'      => __( 'Ticket not accepted', 'ffcertificate' ),
 						'ffc_terminal_ticket_offline'      => __( 'Ticket needs the connection', 'ffcertificate' ),
+						'ffc_terminal_certificate_queued'  => __( 'Attendance recorded', 'ffcertificate' ),
 						'ffc_terminal_not_today'           => __( 'No check-in today', 'ffcertificate' ),
 						'ffc_terminal_path_off'            => __( 'No terminal check-in', 'ffcertificate' ),
 						'ffc_terminal_window_not_open'     => __( 'Check-in not open yet', 'ffcertificate' ),
@@ -713,9 +717,9 @@ final class AudienceTerminalPage {
 						'invalid'                          => __( 'Code not recognised', 'ffcertificate' ),
 						'full'                             => __( 'Terminal full', 'ffcertificate' ),
 					),
-					'wakeUnsupported' => __( 'This browser cannot keep the screen on. Set the device\'s screen timeout so the screen does not turn off during the event.', 'ffcertificate' ),
-					'wakeRefused'     => __( 'The browser did not keep the screen on, for instance in battery saver. Set the device\'s screen timeout so the screen does not turn off during the event.', 'ffcertificate' ),
-					'check'           => array(
+					'wakeUnsupported'   => __( 'This browser cannot keep the screen on. Set the device\'s screen timeout so the screen does not turn off during the event.', 'ffcertificate' ),
+					'wakeRefused'       => __( 'The browser did not keep the screen on, for instance in battery saver. Set the device\'s screen timeout so the screen does not turn off during the event.', 'ffcertificate' ),
+					'check'             => array(
 						'secureLabel'       => __( 'Secure page (HTTPS)', 'ffcertificate' ),
 						'cameraLabel'       => __( 'Camera reading', 'ffcertificate' ),
 						'wakeLabel'         => __( 'Screen kept on', 'ffcertificate' ),
@@ -731,7 +735,7 @@ final class AudienceTerminalPage {
 						'wakeAvailable'     => __( 'Supported, not active now', 'ffcertificate' ),
 						'wakeUnsupported'   => __( 'Not supported by this browser', 'ffcertificate' ),
 					),
-					'camera'          => array(
+					'camera'            => array(
 						'ready'       => __( 'The browser asks for permission to use the camera. Allow it, then hold the presence code inside the frame.', 'ffcertificate' ),
 						'reading'     => __( 'Hold the presence code inside the frame.', 'ffcertificate' ),
 						'insecure'    => __( 'The camera needs this page to be served over HTTPS. Use a reader connected to the device.', 'ffcertificate' ),
@@ -740,7 +744,7 @@ final class AudienceTerminalPage {
 						'failed'      => __( 'The camera could not be started. Use a reader connected to the device.', 'ffcertificate' ),
 						'asleep'      => __( 'The camera is resting after a minute without a code. Tap Use the camera to read again; a connected reader keeps working.', 'ffcertificate' ),
 					),
-					'offline'         => array(
+					'offline'           => array(
 						'invalid'                          => __( 'This is not a valid presence code. Show the code on the phone again.', 'ffcertificate' ),
 						'ffc_presence_code_stale'          => __( 'This presence code is old. Show the code on the phone again.', 'ffcertificate' ),
 						'ffc_presence_code_future'         => __( 'This presence code is dated in the future. Check the phone\'s clock.', 'ffcertificate' ),

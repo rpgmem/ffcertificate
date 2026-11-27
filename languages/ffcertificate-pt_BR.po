@@ -37711,3 +37711,24 @@ msgstr "Preencher os dados que faltam"
 
 msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and Home lists it under Pending; both open the same link the e-mail carries, so a lost e-mail does not lose the certificate."
 msgstr "No app, a tela Certificados mostra o certificado em Para completar, com os campos que faltam e a data em que o link fecha, e o Início o mostra em Pendências; os dois abrem o mesmo link do e-mail, então um e-mail perdido não faz perder o certificado."
+
+msgid "Attendance recorded. The certificate reaches your app when the terminal syncs."
+msgstr "Presença registrada. O certificado chega ao seu app quando o terminal sincronizar."
+
+msgid "Organisers: restore the terminal's connection. Participants: use the form page projected at the event."
+msgstr "Organização: restabeleça a conexão do terminal. Participantes: usem a página do formulário projetada no evento."
+
+msgid "Reading is paused: the form on screen asks for a ticket, which needs the connection. Restore it and reading resumes on its own."
+msgstr "A leitura está pausada: o formulário na tela pede ingresso, que precisa da conexão. Restabeleça-a e a leitura volta sozinha."
+
+msgid "Reading paused"
+msgstr "Leitura pausada"
+
+msgid "Reading resumes on its own when the connection returns."
+msgstr "A leitura volta sozinha quando a conexão retornar."
+
+msgid "This form asks for a ticket, which the terminal checks with the site, and the terminal is offline."
+msgstr "Este formulário pede ingresso, que o terminal confere com o site, e o terminal está offline."
+
+msgid "Offline, a form without a ticket keeps each reading with its time and tells the person the certificate reaches the app when the terminal syncs. A form with a ticket shows Reading paused instead, with the reason in the operator menu too, and asks participants to use the form page projected at the event; reading resumes on its own when the connection returns."
+msgstr "Offline, um formulário sem ingresso guarda cada leitura com o seu horário e avisa a pessoa que o certificado chega ao app quando o terminal sincronizar. Um formulário com ingresso mostra Leitura pausada, com o motivo também no menu do operador, e indica aos participantes a página do formulário projetada no evento; a leitura volta sozinha quando a conexão retorna."
