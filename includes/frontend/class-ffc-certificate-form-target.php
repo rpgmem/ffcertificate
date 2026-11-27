@@ -43,7 +43,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * by standing at the entrance:
  *
  * - the deny list, the allow list, the ticket and the per-person limits
- *   apply; the terminal asks for a ticket code after the QR;
+ *   apply; the terminal asks for a ticket code before the QR (#2893);
  * - the password and the geofence do not;
  * - nor do the per-IP limit, the captcha, the honeypot and the device
  *   signals, which guard anonymous submissions: here the caller is a
@@ -439,7 +439,29 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			'closes'   => $window['closes'],
 			'present'  => 0,
 			'enrolled' => 0,
+			'ticket'   => self::takes_ticket( self::restrictions( $target_id ) ),
 		);
+	}
+
+	/**
+	 * The access restrictions a form stores.
+	 *
+	 * @param int $form_id Form id.
+	 * @return array<array-key, mixed>
+	 */
+	private static function restrictions( int $form_id ): array {
+		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
+		return is_array( $form_config ) && isset( $form_config['restrictions'] ) && is_array( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
+	}
+
+	/**
+	 * Whether a form asks for a ticket code.
+	 *
+	 * @param array<array-key, mixed> $restrictions The form's restrictions.
+	 * @return bool
+	 */
+	private static function takes_ticket( array $restrictions ): bool {
+		return isset( $restrictions['ticket'] ) && '1' === (string) $restrictions['ticket'];
 	}
 
 	/**
@@ -488,7 +510,7 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
 		$form_config  = is_array( $form_config ) ? $form_config : array();
 		$restrictions = isset( $form_config['restrictions'] ) && is_array( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
-		$has_ticket   = isset( $restrictions['ticket'] ) && '1' === (string) $restrictions['ticket'];
+		$has_ticket   = self::takes_ticket( $restrictions );
 		if ( $has_ticket && $reading['queued'] ) {
 			return $this->refuse( $form_id, $reading, 'ffc_terminal_ticket_offline', __( 'This form asks for a ticket, which the terminal cannot check offline. Show the QR again when the terminal is online.', 'ffcertificate' ) );
 		}

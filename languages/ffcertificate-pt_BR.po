@@ -37297,8 +37297,8 @@ msgstr "Quando pode ser ligado"
 msgid "Who may receive at the terminal"
 msgstr "Quem pode receber pelo terminal"
 
-msgid "Any account, or only the people on the Security tab's allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline."
-msgstr "Qualquer conta, ou só quem está na lista de permitidos da aba Segurança. A lista de bloqueados, os limites de submissões e o ingresso valem na leitura; a senha e a área de GPS não, porque estar diante do terminal comprova as duas. Com o ingresso ligado, o terminal pede o código depois do QR, cada código uma vez, e pausa a leitura enquanto estiver offline."
+msgid "Any account, or only the people on the Security tab's allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code before the QR and keeps it for 60 seconds, each code once, and pauses reading while it is offline. The result names what happened: certificate issued, already issued, attendance recorded with data still missing (in amber, the terminal free for the next person), or refused with the reason."
+msgstr "Qualquer conta, ou só quem está na lista de permitidos da aba Segurança. A lista de bloqueados, os limites de submissões e o ingresso valem na leitura; a senha e a área de GPS não, porque estar diante do terminal comprova as duas. Com o ingresso ligado, o terminal pede o código antes do QR e o guarda por 60 segundos, cada código uma vez, e pausa a leitura enquanto estiver offline. O resultado diz o que aconteceu: certificado emitido, já emitido, presença registrada com dado ainda faltando (em âmbar, com o terminal livre para a próxima pessoa) ou recusa com o motivo."
 
 msgid "From the Security tab, the deny list, the submission limits and the ticket apply to a reading: with the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline. The password and the GPS area do not apply: standing at the terminal proves both."
 msgstr "Da aba Segurança, valem na leitura a lista de bloqueados, os limites de submissões e o ingresso: com o ingresso ligado, o terminal pede o código depois do QR, cada código uma vez, e pausa a leitura enquanto estiver offline. A senha e a área de GPS não se aplicam: estar diante do terminal já comprova as duas."
@@ -37645,3 +37645,36 @@ msgstr "Você não tem permissão para ver as leituras do terminal."
 
 msgid "form open from %1$s to %2$s"
 msgstr "formulário aberto de %1$s a %2$s"
+
+msgid "Another ticket"
+msgstr "Outro ingresso"
+
+msgid "Certificate already issued"
+msgstr "Certificado já emitido"
+
+msgid "The ticket is kept for 60 s. If no QR is shown by then, the terminal asks again and nothing is recorded."
+msgstr "O ingresso fica guardado por 60 s. Se nenhum QR for mostrado até lá, o terminal pede de novo e nada é registrado."
+
+msgid "This form asks for a ticket"
+msgstr "Este formulário pede ingresso"
+
+msgid "This form asks for a ticket. Type its code first, then show your QR."
+msgstr "Este formulário pede ingresso. Digite o código primeiro e depois mostre seu QR."
+
+msgid "Ticket %1$s · show your QR within %2$d s"
+msgstr "Ingresso %1$s · mostre seu QR em até %2$d s"
+
+msgid "Ticket code"
+msgstr "Código do ingresso"
+
+msgid "Ticket needed"
+msgstr "Ingresso necessário"
+
+msgid "Ticket needs the connection"
+msgstr "O ingresso precisa de conexão"
+
+msgid "Ticket not accepted"
+msgstr "Ingresso não aceito"
+
+msgid "Type the code of the ticket you received, then show your phone's QR code."
+msgstr "Digite o código do ingresso que você recebeu e depois mostre o QR do seu celular."

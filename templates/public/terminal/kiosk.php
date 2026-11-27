@@ -205,6 +205,19 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 			<div class="ffc-terminal-ready-text">
 				<h2 data-ffc-terminal-part="ready-title"><?php esc_html_e( 'Hold your phone\'s QR code to the reader', 'ffcertificate' ); ?></h2>
 				<p class="ffc-terminal-lead" data-ffc-terminal-part="ready-lead"><?php esc_html_e( 'Open the app, tap Presence and show the screen to the reader.', 'ffcertificate' ); ?></p>
+				<div class="ffc-terminal-ticket-held" data-ffc-terminal-part="ticket-held" hidden>
+					<p class="ffc-terminal-chip ffc-icon-ticket" data-ffc-terminal-part="ticket-held-text"></p>
+					<?php
+					Button::render(
+						array(
+							'label'    => __( 'Another ticket', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'cross',
+							'attrs'    => array( 'data-ffc-terminal-part' => 'ticket-cancel' ),
+						)
+					);
+					?>
+				</div>
 				<ul class="ffc-terminal-tips" data-ffc-terminal-part="camera-tips" hidden>
 					<li class="ffc-icon-zap"><?php esc_html_e( 'Turn the phone\'s brightness up', 'ffcertificate' ); ?></li>
 					<li class="ffc-icon-phone"><?php esc_html_e( 'Open Presence in the app, not a screenshot', 'ffcertificate' ); ?></li>
@@ -237,6 +250,39 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 				</div>
 			</div>
 		</div>
+	</section>
+
+	<section class="ffc-terminal-view" data-ffc-terminal-view="ticket" hidden>
+		<form class="ffc-terminal-ticket" data-ffc-terminal-part="ticket-form" novalidate>
+			<h2><?php esc_html_e( 'This form asks for a ticket', 'ffcertificate' ); ?></h2>
+			<p class="ffc-terminal-lead"><?php esc_html_e( 'Type the code of the ticket you received, then show your phone\'s QR code.', 'ffcertificate' ); ?></p>
+			<div class="ffc-terminal-field">
+				<label for="ffc-terminal-ticket"><?php esc_html_e( 'Ticket code', 'ffcertificate' ); ?></label>
+				<input id="ffc-terminal-ticket" type="text" maxlength="40" autocomplete="off" autocapitalize="characters" spellcheck="false" data-ffc-terminal-part="ticket-code">
+			</div>
+			<p class="ffc-terminal-error" role="alert" data-ffc-terminal-part="ticket-error" hidden></p>
+			<div class="ffc-terminal-actions">
+				<?php
+				Button::render(
+					array(
+						'label'    => __( 'Confirm', 'ffcertificate' ),
+						'category' => 'primary',
+						'icon'     => 'checkmark',
+						'type'     => 'submit',
+					)
+				);
+				Button::render(
+					array(
+						'label'    => __( 'Clear', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'cross',
+						'attrs'    => array( 'data-ffc-terminal-part' => 'ticket-clear' ),
+					)
+				);
+				?>
+			</div>
+			<p class="ffc-terminal-note"><?php esc_html_e( 'The ticket is kept for 60 s. If no QR is shown by then, the terminal asks again and nothing is recorded.', 'ffcertificate' ); ?></p>
+		</form>
 	</section>
 
 	<section class="ffc-terminal-view" data-ffc-terminal-view="between" hidden>

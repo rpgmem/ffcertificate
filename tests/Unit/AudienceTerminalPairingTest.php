@@ -887,6 +887,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 1, $plan[0]['present'], 'the open event counts who is already in, once per person' );
 		$this->assertSame( 0, $plan[2]['present'], 'an event on another day counts nobody' );
 		$this->assertSame( 0, $plan[2]['enrolled'] );
+		$this->assertFalse( $plan[0]['ticket'], 'an event never asks for a ticket' );
 
 		$later = \FreeFormCertificate\Audience\AudienceTerminalSchedule::plan( $terminal, gmmktime( 12, 0, 0, 1, 15, 2027 ) );
 		$this->assertSame( array( 12 ), array_column( $later, 'booking_id' ), 'a window past its close leaves the schedule' );

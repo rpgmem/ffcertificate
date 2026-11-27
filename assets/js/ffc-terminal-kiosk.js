@@ -33,6 +33,8 @@
     var RESULT_MS = 5000;
     var UNLOCK_MS = 30000;
     var MENU_MS = 120000;
+    // A ticket typed before the QR is kept this long (#2893).
+    var TICKET_MS = 60000;
     var EXPIRY_CHECK_MS = 30000;
     var QUEUE_KEY = 'ffcTerminalQueue';
     var REVOKED_KEY = 'ffcTerminalRevoked';
@@ -326,7 +328,7 @@
             }
             el.setAttribute('data-ffc-terminal-tone', tone || 'neutral');
             el.setAttribute('data-ffc-terminal-screen', view);
-            part('foot').hidden = !('ready' === view || 'between' === view || 'idle' === view || 'unpaired' === view);
+            part('foot').hidden = !('ready' === view || 'between' === view || 'idle' === view || 'unpaired' === view || 'ticket' === view);
             part('help').hidden = 'unpaired' === view;
             part('help-operator').hidden = 'unpaired' !== view;
             if ('unpaired' === view || 'setup' === view) {
@@ -402,11 +404,17 @@
         function showEvent(state) {
             var at = plan(state);
             if (at.current) {
+                var takesTicket = !!(at.current.ticket && at.current.open);
+                if (!takesTicket || ticket.target !== heldKey(at.current)) {
+                    forgetTicket();
+                }
                 var sub = at.current.open
                     ? fill(strings.checkinUntil, [at.current.closes_label || ''])
                     : strings.notOpen;
                 head(at.current.title, [at.current.place, sub].filter(Boolean).join(' · '), counter(at.current));
-                return 'ready';
+                // A form that takes a ticket asks for its code first, so the
+                // QR read after it is still fresh (#2893).
+                return takesTicket && !ticket.code ? 'ticket' : 'ready';
             }
             if (at.next) {
                 head(state.label || strings.terminalTitle, '', '');
@@ -432,7 +440,12 @@
             part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
             show(view);
             updateQueue();
-            focusReading();
+            if ('ticket' === view) {
+                focusTicket();
+            } else {
+                focusReading();
+            }
+            showTicketHeld();
             keepAwake();
             if ('ready' === view) {
                 autoCamera();
@@ -443,7 +456,7 @@
         // to the next check-in, and the switch to reading when it opens.
         function followPlan() {
             var state = current();
-            if (!state || ('ready' !== screen && 'between' !== screen && 'idle' !== screen)) {
+            if (!state || ('ready' !== screen && 'between' !== screen && 'idle' !== screen && 'ticket' !== screen)) {
                 return;
             }
             var view = showEvent(state);
@@ -457,6 +470,89 @@
             input.value = '';
             input.focus();
         }
+
+        // The ticket asked before the QR (#2893) -------------------------------
+        //
+        // A form that takes a ticket rests on a screen asking for its code.
+        // The code is kept for TICKET_MS against the item on screen, then
+        // the reading that follows carries it; any result, a timeout or a
+        // change of item forgets it, so the next person starts afresh.
+
+        var ticket = { code: '', target: null, until: 0, timer: null, tick: null };
+
+        function heldKey(entry) {
+            return undefined !== entry.target ? entry.target : entry.booking_id;
+        }
+
+        function forgetTicket() {
+            if (ticket.timer) {
+                env.clearTimeout(ticket.timer);
+            }
+            if (ticket.tick) {
+                env.clearInterval(ticket.tick);
+            }
+            ticket = { code: '', target: null, until: 0, timer: null, tick: null };
+            var held = part('ticket-held');
+            if (held) {
+                held.hidden = true;
+            }
+        }
+
+        function focusTicket() {
+            var input = part('ticket-code');
+            input.value = '';
+            part('ticket-error').hidden = true;
+            input.focus();
+        }
+
+        function showTicketHeld() {
+            var held = part('ticket-held');
+            if (!held) {
+                return;
+            }
+            held.hidden = !ticket.code || 'ready' !== screen;
+            if (!held.hidden) {
+                var left = Math.max(0, Math.ceil((ticket.until - env.now()) / 1000));
+                part('ticket-held-text').textContent = fill(strings.ticketHeld, [ticket.code, left]);
+            }
+        }
+
+        function holdTicket(raw) {
+            var code = String(raw || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 40);
+            if (!code) {
+                part('ticket-error').textContent = strings.ticketEmpty;
+                part('ticket-error').hidden = false;
+                part('ticket-code').focus();
+                return false;
+            }
+            var at = whatNow((current() || {}).schedule, now());
+            if (!at.current) {
+                return false;
+            }
+            forgetTicket();
+            ticket.code = code;
+            ticket.target = heldKey(at.current);
+            ticket.until = env.now() + TICKET_MS;
+            ticket.timer = env.setTimeout(function () {
+                forgetTicket();
+                if ('ready' === screen) {
+                    rest();
+                }
+            }, TICKET_MS);
+            ticket.tick = env.setInterval(showTicketHeld, 1000);
+            rest();
+            return true;
+        }
+
+        part('ticket-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            holdTicket(part('ticket-code').value);
+        });
+        part('ticket-clear').addEventListener('click', focusTicket);
+        part('ticket-cancel').addEventListener('click', function () {
+            forgetTicket();
+            rest();
+        });
 
         var resultTick = null;
 
@@ -492,6 +588,10 @@
 
         function resultTitle(body) {
             var titles = strings.titles || {};
+            // A certificate form names its own results (#2893).
+            if (body.code && titles[body.code]) {
+                return titles[body.code];
+            }
             if ('recorded' === body.status) {
                 return strings.recordedTitle;
             }
@@ -501,7 +601,7 @@
             if ('queued' === body.status) {
                 return strings.queuedTitle;
             }
-            return titles[body.code] || strings.refusedTitle;
+            return strings.refusedTitle;
         }
 
         // A reading's result fills the screen (#2780): green when recorded,
@@ -509,7 +609,10 @@
         // reading field keeps the focus, so the next code read cuts it short.
         function showResult(body) {
             clearResult();
-            var ok = 'recorded' === body.status || 'already' === body.status || 'queued' === body.status;
+            forgetTicket();
+            // Pending is a success that waits on the person, not a refusal:
+            // the attendance is in and the terminal is free (#2893).
+            var ok = 'recorded' === body.status || 'already' === body.status || 'queued' === body.status || 'pending' === body.status;
             var region = part(ok ? 'result-ok' : 'result-refused');
             var title = line(region, resultTitle(body));
             if (title) {
@@ -528,7 +631,7 @@
                     }
                 }
                 var when = body.time || wallClock(clockNow());
-                var detail = 'recorded' === body.status
+                var detail = 'recorded' === body.status && 'ffc_terminal_issued' !== body.code
                     ? (body.open ? strings.openDetail : strings.recordedDetail)
                     : (body.message || '');
                 lineClass(line(region, [when, detail].filter(Boolean).join(' · ')), 'ffc-terminal-result-detail');
@@ -536,7 +639,8 @@
                 lineClass(line(region, body.message || strings.failed), 'ffc-terminal-result-detail');
                 lineClass(line(region, strings.help), 'ffc-terminal-result-help');
             }
-            var tone = !ok ? 'refused' : ('queued' === body.status ? 'saved' : 'ok');
+            var tones = { queued: 'saved', already: 'saved', pending: 'warning' };
+            var tone = !ok ? 'refused' : (tones[body.status] || 'ok');
             show('result', tone);
             var started = env.now();
             var bar = part('result-bar');
@@ -720,7 +824,11 @@
             if (!online()) {
                 return readOffline(code);
             }
-            return terminalRequest('POST', 'readings', { code: code }).then(function (result) {
+            var payload = { code: code };
+            if (ticket.code) {
+                payload.ticket_code = ticket.code;
+            }
+            return terminalRequest('POST', 'readings', payload).then(function (result) {
                 if (!result) {
                     return null;
                 }
@@ -1601,6 +1709,12 @@
             }
             if ('idle' === screen) {
                 showResult({ status: 'refused', code: 'ffc_terminal_idle', message: strings.idleRefused });
+                return null;
+            }
+            if ('ticket' === screen) {
+                // A QR read before the ticket would expire while the person
+                // types it; the ticket comes first (#2893).
+                showResult({ status: 'refused', code: 'ffc_terminal_ticket_required', message: strings.ticketFirst });
                 return null;
             }
             return read(code);

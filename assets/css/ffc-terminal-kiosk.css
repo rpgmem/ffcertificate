@@ -302,6 +302,7 @@
 
 .ffc-terminal[data-ffc-terminal-tone="ok"] .ffc-terminal-badge-ok,
 .ffc-terminal[data-ffc-terminal-tone="saved"] .ffc-terminal-badge-ok,
+.ffc-terminal[data-ffc-terminal-tone="warning"] .ffc-terminal-badge-ok,
 .ffc-terminal[data-ffc-terminal-tone="refused"] .ffc-terminal-badge-refused {
 	display: flex;
 }
@@ -385,6 +386,26 @@
 .ffc-terminal-ready.has-camera .ffc-terminal-ready-text {
 	flex: 1 1 320px;
 	align-items: flex-start;
+}
+
+/* A ticket asked before the QR (#2893): the code screen, then the code
+   kept beside the reading prompt while the QR is shown. */
+.ffc-terminal-ticket {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-lg);
+	align-items: center;
+}
+
+.ffc-terminal-ticket-held {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ffc-spacing-sm);
+	align-items: center;
+}
+
+.ffc-terminal-ticket-held[hidden] {
+	display: none;
 }
 
 .ffc-terminal-tips {

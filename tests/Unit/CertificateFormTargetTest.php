@@ -193,6 +193,10 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertTrue( $entry['open'] );
 		$this->assertSame( '09:00–12:00', $entry['hours'] );
 		$this->assertFalse( $this->target()->terminal_entry( self::FORM, $window, gmmktime( 8, 0, 0, 1, 15, 2027 ) )['open'] );
+		$this->assertFalse( $entry['ticket'], 'a form without a ticket reads the QR alone' );
+
+		$this->meta[ self::FORM ]['_ffc_form_config']['restrictions'] = array( 'ticket' => '1' );
+		$this->assertTrue( $this->target()->terminal_entry( self::FORM, $window, self::NOW )['ticket'], 'the terminal asks for the ticket before the QR (#2893)' );
 	}
 
 	public function test_attendance_by_hand_writes_nothing(): void {
