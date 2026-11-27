@@ -219,7 +219,8 @@
 /* The New and status badges keep their boundary when forced colors drop their ground. */
 @media (forced-colors: active) {
 	.ffc-app-certificate-badge,
-	.ffc-app-certificate-status {
+	.ffc-app-certificate-status-valid,
+	.ffc-app-certificate-status-incomplete {
 		border: 1px solid CanvasText;
 	}
 }
