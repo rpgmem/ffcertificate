@@ -797,8 +797,10 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 
 	/**
 	 * What a profile holds for a certificate: the display name, the account
-	 * e-mail, and the CPF or RF, read from the profile or, when it holds only
-	 * a hash, from the person's newest submission that carries one.
+	 * e-mail, and the RF or, without one, the CPF, read from the profile or,
+	 * when it holds only a hash, from the person's newest submission that
+	 * carries one. The RF comes first because it is what identifies a member
+	 * of staff on a certificate (#2944).
 	 *
 	 * @param int $user_id Account id.
 	 * @return array{name: string, email: string, cpf_rf: string}
@@ -810,7 +812,7 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			'email'  => $user instanceof \WP_User ? DataSanitizer::normalize_email( (string) $user->user_email ) : '',
 			'cpf_rf' => '',
 		);
-		foreach ( array( get_user_meta( $user_id, 'ffc_user_cpf', true ), get_user_meta( $user_id, 'ffc_user_rf', true ) ) as $stored ) {
+		foreach ( array( get_user_meta( $user_id, 'ffc_user_rf', true ), get_user_meta( $user_id, 'ffc_user_cpf', true ) ) as $stored ) {
 			$plain = is_string( $stored ) && '' !== $stored ? (string) Encryption::decrypt( $stored ) : '';
 			if ( '' !== $plain ) {
 				$out['cpf_rf'] = DataSanitizer::normalize_cpf_rf( $plain );
@@ -818,7 +820,7 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 			}
 		}
 		$latest = ( new SubmissionRepository() )->latest_identifier_for_user( $user_id );
-		foreach ( null === $latest ? array() : array( $latest['cpf_encrypted'], $latest['rf_encrypted'] ) as $stored ) {
+		foreach ( null === $latest ? array() : array( $latest['rf_encrypted'], $latest['cpf_encrypted'] ) as $stored ) {
 			$plain = '' !== $stored ? (string) Encryption::decrypt( $stored ) : '';
 			if ( '' !== $plain ) {
 				$out['cpf_rf'] = DataSanitizer::normalize_cpf_rf( $plain );

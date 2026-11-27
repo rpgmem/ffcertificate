@@ -37233,7 +37233,7 @@ msgstr ""
 msgid "The form editor's Terminal tab lets an event terminal read the QR in the participant's app and issue the certificate at once, from the profile. The form still accepts entries on the site at the same time."
 msgstr ""
 
-msgid "The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\". The certificate's code is fixed at that reading, and the certificate completed later keeps it, with the reading's time as its issue time. The side box shows the reading hours, the paired terminals and how many certificates the terminal issued."
+msgid "The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\". The certificate's code is fixed at that reading, and the certificate completed later keeps it, with the reading's time as its issue time. When the profile holds both an RF and a CPF, the RF is the one used. The side box shows the reading hours, the paired terminals and how many certificates the terminal issued."
 msgstr ""
 
 msgid "The terminal reads while the form is open: the date and hours are the Time tab's, with no window of their own. To turn it on, the opening and closing must fall on the same day."
@@ -37631,7 +37631,7 @@ msgstr ""
 msgid "Fill in the missing data"
 msgstr ""
 
-msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and its button opens the form on that screen, filled from the profile, so the form needs no page of its own. Home lists it under Pending, and the e-mail links to the same screen, so a lost e-mail does not lose the certificate. Without the app, the e-mail links to the form's page, when one is published. A person who showed the QR in the app does not need to look for it: once the terminal reads the code, the app opens Certificates when the certificate was issued, or the form to complete when data is missing."
+msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and its button opens the form on that screen, filled from the profile, so the form needs no page of its own. The CPF/RF the profile holds is shown masked and cannot be changed there: the certificate carries the full number. Home lists it under Pending, and the e-mail links to the same screen, so a lost e-mail does not lose the certificate. Without the app, the e-mail links to the form's page, when one is published. A person who showed the QR in the app does not need to look for it: once the terminal reads the code, the app opens Certificates when the certificate was issued, or the form to complete when data is missing."
 msgstr ""
 
 msgid "Attendance recorded. The certificate reaches your app when the terminal syncs."
@@ -37811,4 +37811,8 @@ msgid "Certificate issued. Opening your certificates…"
 msgstr ""
 
 msgid "Attendance recorded. Opening the form to finish your certificate…"
+msgstr ""
+
+#: includes/frontend/class-ffc-form-field-renderer.php
+msgid "From your profile. The certificate carries the full number."
 msgstr ""

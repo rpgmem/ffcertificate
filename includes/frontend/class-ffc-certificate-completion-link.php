@@ -194,6 +194,9 @@ final class CertificateCompletionLink {
 			'email'      => (string) $user->user_email,
 			'event'      => get_the_title( $form_id ),
 			'completion' => true,
+			// The terminal read it from the profile: the form shows it
+			// masked and the submission takes it from here (#2944).
+			'cpf_rf'     => CertificateFormTarget::person( $user_id )['cpf_rf'],
 		);
 	}
 

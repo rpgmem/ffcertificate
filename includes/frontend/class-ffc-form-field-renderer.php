@@ -50,6 +50,10 @@ final class FormFieldRenderer {
 		$hint    = $this->hint( $field );
 		$hint_id = $name . '-hint';
 
+		if ( ! empty( $field['profile_held'] ) ) {
+			return $this->render_profile_held( $label, $default, $is_req );
+		}
+
 		ob_start();
 
 		if ( in_array( $type, array( 'radio', 'checkbox' ), true ) ) {
@@ -73,6 +77,37 @@ final class FormFieldRenderer {
 
 		$html = ob_get_clean();
 		return $html ? $html : '';
+	}
+
+	/**
+	 * The CPF/RF a completion link took from the profile (#2944): shown
+	 * masked and posted by nobody, since the submission takes the real value
+	 * on the server. The control carries no `name`, and its id names no
+	 * identifier, so the CPF/RF mask script leaves it alone.
+	 *
+	 * @param string $label  Field label.
+	 * @param string $masked The masked value.
+	 * @param bool   $is_req Whether the field is required.
+	 * @return string
+	 */
+	private function render_profile_held( string $label, string $masked, bool $is_req ): string {
+		$id = 'ffc-profile-identifier';
+		ob_start();
+		?>
+		<div class="ffc-form-field">
+			<label for="<?php echo esc_attr( $id ); ?>">
+				<?php echo esc_html( $label ); ?>
+				<?php if ( $is_req ) : ?>
+					<span class="ffc-required" aria-hidden="true">*</span>
+				<?php endif; ?>
+			</label>
+			<input class="ffc-input" type="text" id="<?php echo esc_attr( $id ); ?>" value="<?php echo esc_attr( $masked ); ?>" readonly aria-readonly="true" aria-describedby="<?php echo esc_attr( $id . '-hint' ); ?>">
+			<div class="ffc-field-foot">
+				<p class="ffc-field-hint" id="<?php echo esc_attr( $id . '-hint' ); ?>"><?php esc_html_e( 'From your profile. The certificate carries the full number.', 'ffcertificate' ); ?></p>
+			</div>
+		</div>
+		<?php
+		return (string) ob_get_clean();
 	}
 
 	/**
