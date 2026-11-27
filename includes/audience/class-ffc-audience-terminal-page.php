@@ -507,6 +507,17 @@ final class AudienceTerminalPage {
 	}
 
 	/**
+	 * Writes into the boot note, while it is still shown, why the terminal
+	 * did not start (#2910, #2912): a script error with its file and line, a
+	 * script or sheet that did not load, a rejected promise, and, three
+	 * seconds after the page loaded, which of the terminal's globals exist,
+	 * the browser and its version, and the moment. It stays in the plugin: a
+	 * photo of the note is how a terminal that will not start gets reported.
+	 * Plain ES5, so it runs on whatever browser the terminal failed on.
+	 */
+	private const BOOT_ERROR_SCRIPT = '(function(w,d){function note(){var n=d.querySelector(\'[data-ffc-terminal-part="boot"]\');return n&&!n.hidden?n:null;}function add(t){var n=note();if(!n){return;}var c=d.createElement(\'code\');c.textContent=t;n.appendChild(c);}function file(u){return String(u||\'\').split(\'?\')[0].split(\'/\').pop();}w.addEventListener(\'error\',function(e){var t=e.target;if(t&&t!==w&&(t.src||t.href)){add(\'not loaded: \'+file(t.src||t.href));return;}add(String(e.message||\'error\')+(e.filename?\' (\'+file(e.filename)+\':\'+(e.lineno||0)+\')\':\'\'));},true);w.addEventListener(\'unhandledrejection\',function(e){add(\'rejected: \'+String(e.reason&&e.reason.message||e.reason));});w.addEventListener(\'load\',function(){w.setTimeout(function(){if(note()){add(\'ffcTerminal \'+(w.ffcTerminal?\'yes\':\'no\')+\' · FFCPresenceVerifier \'+(w.FFCPresenceVerifier?\'yes\':\'no\')+\' · FFCTerminal \'+(w.FFCTerminal?\'yes\':\'no\')+\' · \'+d.querySelectorAll(\'script\').length+\' scripts\');var u=String(w.navigator&&w.navigator.userAgent||\'\');var m=u.match(/(Chrome|Firefox|Version)\\/[0-9.]+/);add((m?m[0]:u.slice(0,80))+(/Android [0-9.]+/.test(u)?\' · \'+u.match(/Android [0-9.]+/)[0]:\'\')+\' · \'+new Date().toISOString());}},3000);});}(window,document));';
+
+	/**
 	 * The install script: the banner on the page, the states on the install
 	 * page (#2813). It reads its words from the markup, so it needs no data.
 	 *
@@ -545,6 +556,10 @@ final class AudienceTerminalPage {
 			FFC_VERSION,
 			true
 		);
+		// Before the terminal's own scripts (#2910): an error while they load
+		// or start is written into the boot note, so a terminal that cannot
+		// start says why on its own screen, where the team can photograph it.
+		wp_add_inline_script( 'ffc-presence-verifier', self::BOOT_ERROR_SCRIPT, 'before' );
 		wp_enqueue_script(
 			'ffc-terminal-kiosk',
 			FFC_PLUGIN_URL . "assets/js/ffc-terminal-kiosk{$suffix}.js",

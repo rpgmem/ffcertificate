@@ -37542,3 +37542,6 @@ msgstr "O terminal deixa de ter os eventos marcados para ele e segue este local 
 
 msgid "Starting the terminal… If this message stays, the terminal could not start: close it and open it again, and tell the event team if it happens again."
 msgstr "Iniciando o terminal… Se esta mensagem continuar, o terminal não conseguiu iniciar: feche-o e abra de novo, e avise a equipe do evento se acontecer outra vez."
+
+msgid "A terminal that does not start shows \"Starting the terminal…\" under its header and keeps it there, with what stopped it below: a script error with its file and line, a file that did not load, which of the terminal's parts are present, the browser and its version, and the time. A photo of that note is what the team sends when a terminal will not start."
+msgstr "Um terminal que não inicia mostra \"Iniciando o terminal…\" sob o cabeçalho e o mantém ali, com o que o impediu logo abaixo: um erro de script com arquivo e linha, um arquivo que não carregou, quais partes do terminal estão presentes, o navegador e sua versão, e o horário. Uma foto desse aviso é o que a equipe envia quando um terminal não inicia."
