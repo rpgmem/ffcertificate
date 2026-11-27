@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-type PresencePending array{type: string, key: string, title: string, text: string, detail: string, url?: string, closes?: string}
  * @phpstan-type PresenceDay array{date: string, label: string}
  * @phpstan-type PresenceRecorded array{date: string, time: string}
- * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, days: list<PresenceDay>, recorded: list<PresenceRecorded>, expires: int, ticket: string, attendance: string, needs_ticket?: bool, consent?: string, terms?: string}
+ * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, days: list<PresenceDay>, recorded: list<PresenceRecorded>, expires: int, ticket: string, attendance: string, needs_ticket?: bool, consent?: string, terms?: string, awaiting?: bool}
  */
 final class AudiencePresenceEvents {
 
@@ -165,6 +165,9 @@ final class AudiencePresenceEvents {
 				// Showing the QR accepts the form's consent field (#2901).
 				'consent'      => CertificateFormTarget::consent_text( $form['id'] ),
 				'terms'        => (string) get_privacy_policy_url(),
+				// Recorded, but the certificate waits on profile data the
+				// person completes on Certificates (#2893).
+				'awaiting'     => null !== $reading && CertificateTerminalReadingRepository::AWAITING_DATA === $reading['result'],
 			);
 		}
 		return $out;

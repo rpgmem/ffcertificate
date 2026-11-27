@@ -72,7 +72,8 @@
                 last: String(row.date || ''),
                 title: row.title || '',
                 when: row.when || '',
-                status: row.issued ? 'issued' : 'open',
+                // Issued, recorded but waiting on profile data, or still open.
+                status: row.issued ? 'issued' : (row.awaiting ? 'awaiting' : 'open'),
                 past: false,
                 receipt: '',
                 attendance: null,
@@ -115,6 +116,7 @@
         this.config = config;
         this.fetch = deps.fetch;
         this.presenceUrl = deps.presenceUrl;
+        this.certificatesUrl = deps.certificatesUrl;
         this.items = [];
     }
 
@@ -248,9 +250,13 @@
             chips.appendChild(this.chip(strings.today, 'accent'));
         }
         if ('certificate' === item.kind) {
-            chips.appendChild('issued' === item.status
-                ? this.chip(strings.issued, 'success')
-                : this.chip(strings.onTheSpot, 'info'));
+            if ('issued' === item.status) {
+                chips.appendChild(this.chip(strings.issued, 'success'));
+            } else if ('awaiting' === item.status) {
+                chips.appendChild(this.chip(strings.toComplete, 'warning'));
+            } else {
+                chips.appendChild(this.chip(strings.onTheSpot, 'info'));
+            }
         } else if (item.attendance && item.attendance.met) {
             chips.appendChild(this.chip(item.attendance.detail || item.attendance.label || '', 'success'));
         } else if ('pending' === item.status) {
@@ -263,7 +269,11 @@
         if (item.when) {
             body.appendChild(withClass('p', 'ffc-app-agenda-when', item.when));
         }
-        if ('certificate' === item.kind && 'issued' !== item.status) {
+        if ('certificate' === item.kind && 'awaiting' === item.status) {
+            body.appendChild(withClass('p', 'ffc-app-agenda-note ffc-icon-edit', strings.recorded));
+        }
+        if ('certificate' === item.kind && 'open' === item.status) {
+            body.appendChild(withClass('p', 'ffc-app-agenda-note ffc-icon-info', strings.howTo));
             if (item.ticket) {
                 body.appendChild(withClass('p', 'ffc-app-agenda-note ffc-icon-ticket', strings.ticket));
             }
@@ -281,10 +291,19 @@
             }
         }
         var actions = withClass('p', 'ffc-app-agenda-actions');
-        if ('certificate' === item.kind && 'issued' !== item.status && this.config.presence && this.presenceUrl) {
+        if ('certificate' === item.kind && 'open' === item.status && this.config.presence && this.presenceUrl) {
             var show = withClass('a', 'ffc-app-agenda-action ffc-icon-qr', strings.showQr);
             show.href = this.presenceUrl;
             actions.appendChild(show);
+        }
+        // A reading already taken leads to Certificates: what is missing is
+        // filled there, and the issued certificate is downloaded there.
+        if ('certificate' === item.kind && 'open' !== item.status && this.certificatesUrl) {
+            var toCerts = 'awaiting' === item.status
+                ? withClass('a', 'ffc-app-agenda-action ffc-icon-edit', strings.completeIn)
+                : withClass('a', 'ffc-app-agenda-action ffc-icon-file', strings.viewIn);
+            toCerts.href = this.certificatesUrl;
+            actions.appendChild(toCerts);
         }
         if ('audience' === item.kind && !item.past && this.config.presence && this.presenceUrl) {
             var qr = withClass('a', 'ffc-app-agenda-action ffc-icon-qr', strings.presence);
@@ -332,7 +351,7 @@
     /**
      * Start every Calendar screen on the page.
      *
-     * @param {Object} [deps] Test seams: fetch, presenceUrl.
+     * @param {Object} [deps] Test seams: fetch, presenceUrl, certificatesUrl.
      * @return {Screen[]}
      */
     function boot(deps) {
@@ -345,7 +364,8 @@
             fetch: deps.fetch || root.fetch.bind(root),
             // The app opens a screen at …/s/<id>/, so the Presence screen
             // sits beside this one; nothing here needs the app's prefix.
-            presenceUrl: undefined !== deps.presenceUrl ? deps.presenceUrl : new root.URL('../presence/', root.location.href).href
+            presenceUrl: undefined !== deps.presenceUrl ? deps.presenceUrl : new root.URL('../presence/', root.location.href).href,
+            certificatesUrl: undefined !== deps.certificatesUrl ? deps.certificatesUrl : new root.URL('../certificates/', root.location.href).href
         };
         return Array.prototype.map.call(root.document.querySelectorAll('[data-ffc-app-agenda]'), function (node) {
             var screen = new Screen(node, config, options);

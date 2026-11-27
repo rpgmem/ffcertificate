@@ -8,8 +8,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--ffc-spacing-md);
-	max-width: var(--ffc-form-width);
-	margin: 0 auto;
+	/* The app's frame sets the width, so the screen lines up with its title (#2932). */
 	color: var(--ffc-text);
 }
 

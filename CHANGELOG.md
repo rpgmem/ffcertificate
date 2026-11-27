@@ -62,6 +62,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Terminal offline with certificate forms.** A form without a ticket is queued with its time and says the certificate reaches the app on sync; a form with a ticket pauses reading with the reason on screen and in the operator menu, and resumes when the connection returns (#2893).
 - **Certificate forms in the app's Agenda.** On its day, a form the terminal reads shows as Certificate on the spot, with its hours and Show my QR, the ticket note and the consent text with a link to the terms before the button, and Certificate issued once issued (#2893).
 - **The app's Certificates item counts the new ones** (#2926). In the bottom bar it shows how many certificates were issued since the person last opened the screen, at most from the last 7 days and up to 9+; opening the screen clears it. Needs rpgmem/site-pwa#68.
+- **The Agenda's certificate card follows the reading** (#2932). Before it, a line says to show the QR at the entrance; once read, a reading that waits on profile data shows To complete and leads to Certificates instead of the QR, and an issued certificate offers View in Certificates. The app's Agenda, Certificates and Presence screens now take the app frame's width, lining up with its title on a tablet.
 
 ### Changed
 
