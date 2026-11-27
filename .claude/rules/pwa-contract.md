@@ -25,7 +25,7 @@ Site PWA (`rpgmem/site-pwa`, epic #2738) turns the site into an installable app,
 | `site_pwa_preference_sections` | filter, `( array $sections, WP_User $user )` | `DashboardAppScreens` |
 | `site_pwa_home` | filter, `( array $home, WP_User $user, int $api )` | `Shortcodes\AppHome` |
 | `site_pwa_lock_required` | filter, `( bool $required, WP_User $user )` | `AudienceAppScreens` |
-| `site_pwa_app_url` | filter, `( string $url )` | `Shortcodes\AgendaAppScreen`, `Frontend\CertificateCompletionLink` |
+| `site_pwa_app_url` | filter, `( string $url )` | `Shortcodes\AgendaAppScreen` |
 | `site_pwa_identity_sources` | filter, `( array $sources )` | `Shortcodes\AppLook` |
 | `site_pwa_scheme_sources` | filter, `( array $sources )` | `AppLook` |
 | `site_pwa_dark_root_classes` | filter, `( array $classes )` | `AppLook` |
@@ -38,16 +38,20 @@ This plugin offers the app its look through the three filters `AppLook` hooks: P
 
 Inside the app, the theme a person chose on their device (More → Appearance, rpgmem/site-pwa#62) marks `<html>` with `data-site-pwa-scheme` `dark` or `light` before the first paint; `assets/js/ffc-dark-mode.js` treats `dark` as on and `light` as off, whatever this plugin's Dark Mode says (#2883).
 
-Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above. This side reads one name of Site PWA's: `DashboardAppScreens::app_has_preference_sections()` asks whether `SitePwa\App\Frame::preferenceSections()` exists, so the app's Messages and Profile screens hand their notification toggles to Preferences only where Preferences can draw them (#2885). The two plugins update apart, and the integration check reports it.
+Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above. This side reads two names of Site PWA's, each guarded so an older or absent app falls back:
+- `DashboardAppScreens::app_has_preference_sections()` asks whether `SitePwa\App\Frame::preferenceSections()` exists, so the app's Messages and Profile screens hand their notification toggles to Preferences only where Preferences can draw them (#2885).
+- `CertificateCompletionLink::app_screen_url()` calls `SitePwa\App\Routes::url( 'home' )` and appends `s/certificates/`, the screen address `docs/screens.md` documents, so a certificate waiting on profile data is completed on the app's Certificates screen, whether or not a page carries its form (#2936). Without Site PWA the link is the form's page.
+
+The two plugins update apart, and the integration check reports both.
 
 ## Checked with both plugins running (#2875)
 
 `SitePwaContractTest` reads this side's source and cannot see the other repository. What crosses the boundary is checked by `.github/scripts/site-pwa-integration-check.php`. It boots a WordPress with both plugins active and asks Site PWA's own classes what this plugin gave them:
 - the `$api` each consumer here speaks against the one Site PWA sends;
-- the screens registered for an administrator, with none refused, More's "My details" opening the Profile screen, the Certificates screen carrying its badge of new certificates, and the Notifications section in Preferences, with the date-message toggles while Date Messages is on;
+- the screens registered for an administrator, with none refused, More's "My details" opening the Profile screen, the Certificates screen carrying its badge of new certificates and being the address a certificate to complete opens, and the Notifications section in Preferences, with the date-message toggles while Date Messages is on;
 - both look sources under `ffc` and the dark root class;
 - with `--write`, Public Design and Dark Mode read back through `Identity::current()` and `Scheme::current()`, with the options restored afterwards;
-- with `--write`, a certificate form open today joining the administrator's Presence list once, with its ticket and consent text, and a reading that waits on profile data reaching Site PWA's Home as a pending item, the form and the reading removed afterwards.
+- with `--write`, a certificate form open today joining the administrator's Presence list once, with its ticket and consent text, and a reading that waits on profile data reaching Site PWA's Home as a pending item that opens the Certificates screen, with no page carrying the form, the form and the reading removed afterwards.
 
 The one script runs in three places:
 

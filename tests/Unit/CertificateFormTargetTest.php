@@ -656,15 +656,67 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, CertificateCompletionLink::resolve( self::FORM, CertificateCompletionLink::code( self::FORM, self::USER ), self::NOW ) );
 	}
 
-	public function test_the_completion_link_opens_the_form_in_the_app_when_the_app_can_draw_it(): void {
+	public function test_without_site_pwa_the_completion_link_is_the_forms_page(): void {
 		Functions\when( 'add_query_arg' )->alias( static fn( $k, $v, $url ) => $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . $k . '=' . $v );
 		\Brain\Monkey\Filters\expectApplied( 'ffc_schedule_exception_form_url' )->andReturn( 'https://example.test/seminar/' );
-		\Brain\Monkey\Filters\expectApplied( 'site_pwa_app_url' )->with( 'https://example.test/seminar/' )->andReturn( 'https://example.test/app/?p=12' );
 
 		$this->assertSame(
-			'https://example.test/app/?p=12&ffc_invite=' . CertificateCompletionLink::code( self::FORM, self::USER ),
+			'https://example.test/seminar/?ffc_invite=' . CertificateCompletionLink::code( self::FORM, self::USER ),
 			CertificateCompletionLink::link( self::FORM, self::USER )
 		);
+	}
+
+	public function test_a_form_with_no_page_is_still_listed_to_complete(): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		// The page lookup's cache already knows no page embeds the form.
+		Functions\when( 'get_transient' )->justReturn( array( 'ffc_form:' . self::FORM => 0 ) );
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'label' => 'School', 'type' => 'text', 'required' => '1' );
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+
+		$items = CertificateCompletionLink::pending_for_user( self::USER, self::NOW + 3600 );
+
+		$this->assertCount( 1, $items, 'a form used only at the terminal must not vanish (#2936)' );
+		$this->assertSame( '', $items[0]['url'] );
+	}
+
+	public function test_the_apps_certificates_screen_address_comes_from_site_pwa(): void {
+		Functions\when( 'trailingslashit' )->alias( static fn( $s ) => rtrim( $s, '/' ) . '/' );
+
+		$this->assertSame( '', CertificateCompletionLink::app_screen_url( '\\Nowhere\\Routes' ), 'without Site PWA' );
+		$this->assertSame( 'https://example.test/app/s/certificates/', CertificateCompletionLink::app_screen_url( CompletionRoutesDouble::class ) );
+	}
+
+	public function test_a_screen_link_carries_the_form_and_the_persons_code(): void {
+		Functions\when( 'add_query_arg' )->alias( static fn( array $args, $url ) => $url . '?' . http_build_query( $args ) );
+
+		$this->assertSame(
+			'https://example.test/app/s/certificates/?ffc_complete=' . self::FORM . '&ffc_invite=' . CertificateCompletionLink::code( self::FORM, self::USER ),
+			CertificateCompletionLink::screen_link( 'https://example.test/app/s/certificates/', self::FORM, self::USER )
+		);
+	}
+
+	public function test_the_screen_opens_the_form_only_for_the_person_and_while_the_code_is_open(): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		$code = CertificateCompletionLink::code( self::FORM, self::USER );
+
+		$this->assertNull( CertificateCompletionLink::requested( self::USER, self::NOW ), 'nothing asked' );
+
+		$_GET = array( 'ffc_complete' => (string) self::FORM, 'ffc_invite' => $code );
+		$this->assertNotSame( '', CertificateCompletionLink::requested( self::USER, self::NOW )['error'], 'no reading waits' );
+
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'label' => 'School', 'type' => 'text', 'required' => '1' );
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+
+		$this->assertSame(
+			array( 'form_id' => self::FORM, 'error' => '' ),
+			CertificateCompletionLink::requested( self::USER, self::NOW + 3600 )
+		);
+		$this->assertStringContainsString( 'another account', CertificateCompletionLink::requested( self::USER + 1, self::NOW + 3600 )['error'] );
+		$this->assertStringContainsString( 'expired', CertificateCompletionLink::requested( self::USER, self::NOW + CertificateCompletionLink::TTL + 1 )['error'] );
+
+		$_GET['ffc_invite'] = 'c.7.forged';
+		$this->assertStringContainsString( 'not valid', CertificateCompletionLink::requested( self::USER, self::NOW + 3600 )['error'] );
+		$_GET = array();
 	}
 
 	public function test_the_filter_answers_only_its_own_codes(): void {
@@ -815,5 +867,21 @@ class CertificateFormTargetTest extends TestCase {
 				return '';
 			}
 		};
+	}
+}
+
+/**
+ * Stands in for Site PWA's routes class.
+ */
+final class CompletionRoutesDouble {
+
+	/**
+	 * The address of a route.
+	 *
+	 * @param string $route Route name.
+	 * @return string
+	 */
+	public static function url( string $route ): string {
+		return 'home' === $route ? 'https://example.test/app/' : '';
 	}
 }

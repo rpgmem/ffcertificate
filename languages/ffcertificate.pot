@@ -37631,7 +37631,7 @@ msgstr ""
 msgid "Fill in the missing data"
 msgstr ""
 
-msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and Home lists it under Pending; both open the same link the e-mail carries, so a lost e-mail does not lose the certificate."
+msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and its button opens the form on that screen, filled from the profile, so the form needs no page of its own. Home lists it under Pending, and the e-mail links to the same screen, so a lost e-mail does not lose the certificate. Without the app, the e-mail links to the form's page, when one is published."
 msgstr ""
 
 msgid "Attendance recorded. The certificate reaches your app when the terminal syncs."
@@ -37792,4 +37792,13 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-at-events.php
 msgid "Without internet"
+msgstr ""
+
+msgid "Back to certificates"
+msgstr ""
+
+msgid "This certificate belongs to another account. Sign in with the account that showed the QR."
+msgstr ""
+
+msgid "Your attendance is recorded. Fill in what is missing and send the form to receive the certificate."
 msgstr ""

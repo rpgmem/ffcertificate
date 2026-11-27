@@ -304,6 +304,35 @@ class AppScreensTest extends TestCase {
 		$this->assertLessThan( strpos( $html, 'type="search"' ), strpos( $html, 'To complete' ), 'above the issued certificates' );
 	}
 
+	public function test_the_certificates_screen_opens_one_form_to_complete_or_says_why_not(): void {
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		$ffc_back  = 'https://example.test/app/s/certificates/';
+		$ffc_title = 'Seminar';
+		$ffc_error = '';
+		$ffc_form  = '<form class="ffc-submission-form"></form>';
+
+		ob_start();
+		include dirname( __DIR__, 2 ) . '/templates/public/app/certificate-complete.php';
+		$open = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'href="https://example.test/app/s/certificates/"', $open, 'a way back to the list' );
+		$this->assertStringContainsString( 'Seminar', $open );
+		$this->assertStringContainsString( '<form class="ffc-submission-form">', $open );
+
+		$ffc_error = 'This link has expired.';
+		ob_start();
+		include dirname( __DIR__, 2 ) . '/templates/public/app/certificate-complete.php';
+		$refused = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'This link has expired.', $refused );
+		$this->assertStringNotContainsString( '<form', $refused, 'no form without a valid code' );
+	}
+
 	public function test_the_calendar_screen_reads_the_routes_of_the_tabs_the_person_sees(): void {
 		$scripts   = array();
 		$localized = array();

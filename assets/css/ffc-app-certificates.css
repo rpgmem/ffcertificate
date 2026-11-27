@@ -69,6 +69,24 @@
 	font-size: var(--ffc-font-size-sm);
 }
 
+/* One certificate completed inside the app (#2936). */
+.ffc-app-certificates-completing {
+	align-items: flex-start;
+}
+
+.ffc-app-certificates-completing > .ffc-notice,
+.ffc-app-certificates-completing > .ffc-form-wrapper {
+	align-self: stretch;
+}
+
+.ffc-app-certificates-completing-title {
+	display: flex;
+	align-items: center;
+	gap: var(--ffc-spacing-xs);
+	margin: 0;
+	font-size: var(--ffc-font-size-lg);
+}
+
 .ffc-app-certificates-status:empty {
 	display: none;
 }
