@@ -102,6 +102,36 @@ final class CertificateTerminalReadingRepository {
 	}
 
 	/**
+	 * A person's readings still waiting on profile data, read since a
+	 * moment, latest first (#2893): what the app lists to complete.
+	 *
+	 * @param int $user_id Account id.
+	 * @param int $since   Oldest reading time to include.
+	 * @return list<ReadingRow>
+	 */
+	public static function awaiting_for_user( int $user_id, int $since ): array {
+		global $wpdb;
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE user_id = %d AND result = %s AND read_at >= %d ORDER BY read_at DESC LIMIT 20',
+				CertificateTerminalActivator::table(),
+				$user_id,
+				self::AWAITING_DATA,
+				$since
+			),
+			ARRAY_A
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( is_array( $row ) ) {
+				$out[] = self::shape( $row );
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * One reading by its row id, or null.
 	 *
 	 * @param int $id Row id.

@@ -20,6 +20,7 @@ use FreeFormCertificate\Audience\AudienceAppScreens;
 use FreeFormCertificate\Audience\AudiencePresenceEvents;
 use FreeFormCertificate\Audience\AudienceQueryService;
 use FreeFormCertificate\Core\DateFormatter;
+use FreeFormCertificate\Frontend\CertificateCompletionLink;
 use FreeFormCertificate\Reregistration\ReregistrationFrontend;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 use FreeFormCertificate\Settings\SettingsReader;
@@ -111,7 +112,8 @@ final class AppHome {
 			$attendance ? AudiencePresenceEvents::pending( $user_id, $now ) : array(),
 			$attendance ? self::next_event( $user_id, $now ) : null,
 			$campaigns,
-			$latest
+			$latest,
+			SettingsReader::module_enabled( 'certificates' ) ? CertificateCompletionLink::pending_for_user( $user_id, $now ) : array()
 		);
 	}
 
@@ -122,9 +124,10 @@ final class AppHome {
 	 * @param array{title: string, place: string, date: string, time: string}|null $event       The next booking.
 	 * @param array<int, array<string, mixed>>                                     $campaigns   The person's reregistration campaigns.
 	 * @param array{id: int, form_title: string, submission_date: int}|null        $certificate The newest recent certificate.
+	 * @param list<array{title: string, url: string, until: string}>               $to_complete Certificates waiting on profile data after a terminal reading (#2893).
 	 * @return array{banners: list<array<string, string>>, next: array<string, mixed>|null, pending: list<array<string, string>>}
 	 */
-	public static function build( array $pending, ?array $event, array $campaigns, ?array $certificate ): array {
+	public static function build( array $pending, ?array $event, array $campaigns, ?array $certificate, array $to_complete = array() ): array {
 		$banners = array();
 		$items   = array();
 		$next    = null;
@@ -188,6 +191,17 @@ final class AppHome {
 				'screen' => 'reregistration',
 				'icon'   => 'edit',
 				'tone'   => 'warning',
+			);
+		}
+
+		foreach ( $to_complete as $item ) {
+			$items[] = array(
+				'label' => __( 'Complete your certificate', 'ffcertificate' ),
+				/* translators: 1: form title, 2: the date the completion link closes */
+				'meta'  => sprintf( __( '%1$s · until %2$s', 'ffcertificate' ), $item['title'], $item['until'] ),
+				'url'   => $item['url'],
+				'icon'  => 'edit',
+				'tone'  => 'warning',
 			);
 		}
 

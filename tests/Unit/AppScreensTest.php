@@ -169,9 +169,12 @@ class AppScreensTest extends TestCase {
 		Functions\when( 'rest_url' )->alias( static fn( $path ) => 'https://example.com/wp-json/' . $path );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+
 		$html = CertificatesAppScreen::render();
 
 		$this->assertStringContainsString( 'data-ffc-app-certificates', $html );
+		$this->assertStringNotContainsString( 'ffc-app-certificates-complete', $html, 'nothing to complete, no section' );
 		$this->assertStringContainsString( 'type="search"', $html );
 		$this->assertStringContainsString( 'aria-label="Search by course or code"', $html );
 		$this->assertArrayHasKey( 'ffc-app-certificates', $styles );
@@ -181,6 +184,38 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/certificates', $config['rest'] );
 		$this->assertSame( CertificatesAppScreen::NEW_DAYS, $config['newDays'] );
 		$this->assertStringContainsString( '%s', $config['strings']['issued'] );
+	}
+
+	public function test_the_certificates_screen_lists_what_waits_on_profile_data(): void {
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		Functions\when( 'esc_attr_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		$to_complete = array(
+			array(
+				'form_id' => 40,
+				'title'   => 'Seminar',
+				'missing' => array( 'School' ),
+				'url'     => 'https://example.test/seminar/?ffc_invite=c.x',
+				'until'   => '22/01/2027',
+			),
+		);
+
+		ob_start();
+		include dirname( __DIR__, 2 ) . '/templates/public/app/certificates.php';
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'To complete', $html );
+		$this->assertStringContainsString( 'Seminar', $html );
+		$this->assertStringContainsString( 'Missing: School', $html );
+		$this->assertStringContainsString( '22/01/2027', $html );
+		$this->assertStringContainsString( 'href="https://example.test/seminar/?ffc_invite=c.x"', $html );
+		$this->assertLessThan( strpos( $html, 'type="search"' ), strpos( $html, 'To complete' ), 'above the issued certificates' );
 	}
 
 	public function test_the_calendar_screen_reads_the_routes_of_the_tabs_the_person_sees(): void {

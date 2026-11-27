@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Shortcodes;
 
 use FreeFormCertificate\Core\AssetHelper;
+use FreeFormCertificate\Frontend\CertificateCompletionLink;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -80,6 +81,10 @@ final class CertificatesAppScreen {
 				),
 			)
 		);
+
+		// Certificates waiting on profile data after a terminal reading
+		// (#2893): drawn here, so a lost e-mail does not lose them.
+		$to_complete = is_user_logged_in() ? CertificateCompletionLink::pending_for_user( get_current_user_id(), time() ) : array();
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/public/app/certificates.php';

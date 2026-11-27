@@ -37696,3 +37696,18 @@ msgstr "Tenha o código do seu ingresso em mãos: o terminal pede antes do QR."
 
 msgid "In the app, the form shows under Presence for everyone the terminal would accept, over the same 7 days, with the code ready for its day; a form that checks a deny or allow list shows only to whom it lets in, and one whose certificate was already issued shows as recorded. A form with a ticket says to have the code ready."
 msgstr "No app, o formulário aparece em Presença para todos que o terminal aceitaria, nos mesmos 7 dias, com o código pronto para o seu dia; um formulário que confere lista de bloqueados ou de permitidos aparece só para quem ele deixa entrar, e um cujo certificado já foi emitido aparece como registrado. Um formulário com ingresso avisa para ter o código em mãos."
+
+msgid "Attendance recorded. Complete it until %s to receive the certificate."
+msgstr "Presença registrada. Complete até %s para receber o certificado."
+
+msgid "Complete your certificate"
+msgstr "Complete seu certificado"
+
+msgid "To complete"
+msgstr "Para completar"
+
+msgid "Fill in the missing data"
+msgstr "Preencher os dados que faltam"
+
+msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and Home lists it under Pending; both open the same link the e-mail carries, so a lost e-mail does not lose the certificate."
+msgstr "No app, a tela Certificados mostra o certificado em Para completar, com os campos que faltam e a data em que o link fecha, e o Início o mostra em Pendências; os dois abrem o mesmo link do e-mail, então um e-mail perdido não faz perder o certificado."

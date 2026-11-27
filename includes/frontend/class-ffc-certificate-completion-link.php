@@ -247,6 +247,35 @@ final class CertificateCompletionLink {
 	}
 
 	/**
+	 * The certificates a person still has to complete (#2893): each reading
+	 * that recorded attendance but waits on profile data, while its link is
+	 * open, with the fields to fill and the link the e-mail carries. The
+	 * app lists them, so a lost e-mail does not lose the certificate.
+	 *
+	 * @param int $user_id Account id.
+	 * @param int $now     Unix time.
+	 * @return list<array{form_id: int, title: string, missing: list<string>, url: string, until: string}>
+	 */
+	public static function pending_for_user( int $user_id, int $now ): array {
+		$out = array();
+		foreach ( CertificateTerminalReadingRepository::awaiting_for_user( $user_id, $now - self::TTL ) as $reading ) {
+			$url = self::link( $reading['form_id'], $user_id );
+			if ( '' === $url ) {
+				continue;
+			}
+			$fields = get_post_meta( $reading['form_id'], '_ffc_form_fields', true );
+			$out[]  = array(
+				'form_id' => $reading['form_id'],
+				'title'   => ( new CertificateFormTarget() )->terminal_title( $reading['form_id'] ),
+				'missing' => CertificateFormTarget::missing_labels( is_array( $fields ) ? array_values( array_filter( $fields, 'is_array' ) ) : array(), $reading['missing'] ),
+				'url'     => $url,
+				'until'   => \FreeFormCertificate\Core\DateFormatter::format_date( self::expires_at( $reading['read_at'] ) ),
+			);
+		}
+		return $out;
+	}
+
+	/**
 	 * Send the "complete your certificate" e-mail.
 	 *
 	 * @param int   $form_id Form id.
