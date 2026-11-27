@@ -290,10 +290,24 @@
 		el.querySelector('.ffc-device-check-label').appendChild(tip);
 	}
 
-	/** The fix for a blocked location, for the platform in hand. */
+	/**
+	 * The fix for a blocked location, for the platform in hand: the
+	 * installed app's own path where it has one (#2956), since the app has
+	 * no address bar, else the browser's.
+	 */
 	function locationHelp() {
-		var os = window.FFC && window.FFC.Platform ? window.FFC.Platform.os() : 'desktop';
-		return { ios: 'helpLocationIos', android: 'helpLocationAndroid' }[os] || 'helpLocationDesktop';
+		var platform = window.FFC && window.FFC.Platform;
+		var os = platform ? platform.os() : 'desktop';
+		var key = { ios: 'helpLocationIos', android: 'helpLocationAndroid' }[os] || 'helpLocationDesktop';
+		var app = { ios: 'helpLocationIosApp', android: 'helpLocationAndroidApp' }[os];
+		var installed = platform && typeof platform.installed === 'function' && platform.installed();
+		return installed && app && own(strings, app) ? app : key;
+	}
+
+	/** Where the test runs: the installed app or a browser tab (#2956). */
+	function checkMode(platform) {
+		var installed = typeof platform.installed === 'function' && platform.installed();
+		set('mode', 'ok', installed ? text('modeApp', 'Installed app') : text('modeTab', 'Browser tab'));
 	}
 
 	function device(platform) {
@@ -1064,6 +1078,7 @@
 			: text('secureNo', 'No: the browser gives no location here, and forms that ask for it will stop.'), 'helpSecure');
 
 		checkBrowser(platform);
+		checkMode(platform);
 
 		set('cookies', preflight.cookiesWork() ? 'ok' : 'fail', preflight.cookiesWork()
 			? text('cookiesYes', 'Allowed')

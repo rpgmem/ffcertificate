@@ -74,6 +74,7 @@ final class DeviceCheck {
 		'connection' => 'wifi',
 		'server'     => 'server',
 		'browser'    => 'monitor',
+		'mode'       => 'phone',
 		'cookies'    => 'cookie',
 		'storage'    => 'database',
 		'captcha'    => 'robot',
@@ -99,7 +100,7 @@ final class DeviceCheck {
 		),
 		'browser'     => array(
 			'icon'   => 'monitor',
-			'checks' => array( 'browser', 'cookies', 'storage' ),
+			'checks' => array( 'browser', 'mode', 'cookies', 'storage' ),
 		),
 		'protections' => array(
 			'icon'   => 'shield',
@@ -159,6 +160,7 @@ final class DeviceCheck {
 			'secure'     => __( 'Secure connection', 'ffcertificate' ),
 			'server'     => __( 'Server requests', 'ffcertificate' ),
 			'browser'    => __( 'Browser', 'ffcertificate' ),
+			'mode'       => __( 'Mode', 'ffcertificate' ),
 			'cookies'    => __( 'Cookies', 'ffcertificate' ),
 			'storage'    => __( 'Local storage', 'ffcertificate' ),
 			'captcha'    => __( 'Captcha', 'ffcertificate' ),
@@ -279,6 +281,10 @@ final class DeviceCheck {
 			'secureNo'               => __( 'No: the browser gives no location here, and forms that ask for it will stop.', 'ffcertificate' ),
 			/* translators: %s: the kind of device (iPhone or iPad, Android, computer). */
 			'browserOk'              => __( 'Ordinary browser (%s)', 'ffcertificate' ),
+			// Where the test runs (#2956): a support reader learns from one
+			// screenshot whether the settings are reached through the app.
+			'modeApp'                => __( 'Installed app', 'ffcertificate' ),
+			'modeTab'                => __( 'Browser tab', 'ffcertificate' ),
 			/* translators: 1: the browser's name and version, such as "Chrome (v. 129.0.6668.81)", 2: the kind of device (iPhone or iPad, Android, computer). */
 			'browserNamed'           => __( '%1$s — %2$s', 'ffcertificate' ),
 			/* translators: %s: the kind of device (iPhone or iPad, Android, computer), after the app's name when it is known. */
@@ -372,6 +378,9 @@ final class DeviceCheck {
 			'helpLocationIos'        => __( 'Turn on Settings → Privacy & Security → Location Services, then set the browser (Safari or Chrome) to "While Using the App". In Safari also tap "aA" next to the address → Website Settings → Location → Allow. Reload this page.', 'ffcertificate' ),
 			'helpLocationAndroid'    => __( 'Turn on the phone\'s Location in the quick settings. Then tap the icon next to the address → Permissions (or Site settings) → Location → Allow, and reload this page.', 'ffcertificate' ),
 			'helpLocationDesktop'    => __( 'Click the icon next to the address → Site settings (or Permissions) → Location → Allow, and reload this page. On Windows and macOS, the system\'s location services must be on too.', 'ffcertificate' ),
+			// The installed app has no address bar (#2956).
+			'helpLocationIosApp'     => __( 'Turn on Settings → Privacy & Security → Location Services, then set Safari Websites to "While Using the App". Close the app and open it again.', 'ffcertificate' ),
+			'helpLocationAndroidApp' => __( 'Turn on the phone\'s Location in the quick settings. Then touch and hold the app\'s icon → App info → Permissions (or Site settings) → Location → Allow, and open the app again.', 'ffcertificate' ),
 			'helpNoGeolocation'      => __( 'Use an up-to-date Chrome, Safari, Firefox or Edge: this browser cannot give a location.', 'ffcertificate' ),
 			'helpAccuracy'           => __( 'Turn on the device\'s location with high accuracy (Google Location Accuracy on Android, Precise Location on iPhone), go outdoors or near a window, wait a few seconds and test again.', 'ffcertificate' ),
 			/* translators: %s: radius in metres of the reference area the test grades against. */

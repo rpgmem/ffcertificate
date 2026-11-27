@@ -797,15 +797,42 @@ class AppScreensTest extends TestCase {
 	public function test_preference_sections_add_notifications_after_what_was_there(): void {
 		$sections = DashboardAppScreens::preference_sections( array( 'other' => array( 'label' => 'Other' ) ), $this->user( 7 ) );
 
-		$this->assertSame( array( 'other', 'notifications' ), array_keys( $sections ) );
+		$this->assertSame( array( 'other', 'notifications', 'device-check' ), array_keys( $sections ) );
 		$this->assertSame( 'Notifications', $sections['notifications']['label'] );
 		$this->assertIsCallable( $sections['notifications']['render'] );
+		$this->assertSame( 'Device test', $sections['device-check']['label'] );
+		$this->assertIsCallable( $sections['device-check']['render'] );
 	}
 
-	public function test_preference_sections_keep_a_notifications_section_another_plugin_set(): void {
-		$theirs = array( 'notifications' => array( 'label' => 'Theirs' ) );
+	public function test_preference_sections_keep_the_sections_another_plugin_set(): void {
+		$theirs = array(
+			'notifications' => array( 'label' => 'Theirs' ),
+			'device-check'  => array( 'label' => 'Their test' ),
+		);
 
 		$this->assertSame( $theirs, DashboardAppScreens::preference_sections( $theirs, $this->user( 7 ) ) );
+	}
+
+	// The device test opens inside the app where Site PWA draws the
+	// verification page, with the query argument that switches it on (#2956).
+	public function test_the_device_test_section_opens_the_test_inside_the_app(): void {
+		Functions\when( 'get_option' )->justReturn( 0 );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.com' . $path );
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_style_is' )->justReturn( true );
+		Functions\when( 'wp_enqueue_style' )->justReturn( true );
+		Functions\when( 'remove_query_arg' )->alias( static fn( $key, $url ) => $url );
+		Functions\when( 'add_query_arg' )->alias( static fn( $key, $value, $url ) => $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . $key . '=' . $value );
+		Filters\expectApplied( 'site_pwa_app_url' )->with( 'https://example.com/valid/' )->andReturn( 'https://example.com/app/?p=9' );
+
+		$html = DashboardAppScreens::device_check_section();
+
+		$this->assertStringContainsString( 'href="https://example.com/app/?p=9&ffc_device_check=1"', $html );
+		$this->assertStringContainsString( 'Test this device', $html );
+		$this->assertStringContainsString( 'ffc-icon-phone', $html );
 	}
 
 	public function test_the_notification_toggles_read_the_stored_choice_and_save_through_the_profile_route(): void {

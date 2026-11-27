@@ -86,6 +86,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - The app opens a certificate inside its own frame, without the site's theme, when Site PWA can draw the verification page; otherwise it still opens on the site (#2950).
 - Inside the app, the verification page no longer ends with Share, Copy link and Open on the site, whose address carries no certificate; a certificate is shared as its file (#2952).
 - The terminal no longer starts the camera before saying why: until the browser allows it, it waits for Use the camera. A refused camera or location shows where to allow it again for the platform, in a browser tab or in the installed app (#2954).
+- The device test is reachable from the app's Preferences and opens inside the app; it gains a Mode row (installed app or browser tab), and a blocked location's help names the app's own settings there (#2956).
 
 ### Security
 

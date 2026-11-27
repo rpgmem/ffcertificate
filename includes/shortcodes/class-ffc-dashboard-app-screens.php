@@ -77,7 +77,38 @@ final class DashboardAppScreens {
 				'render' => static fn(): string => self::notification_preferences( $user_id ),
 			);
 		}
+		if ( ! isset( $sections['device-check'] ) ) {
+			$sections['device-check'] = array(
+				'label'  => __( 'Device test', 'ffcertificate' ),
+				'render' => array( self::class, 'device_check_section' ),
+			);
+		}
 		return $sections;
+	}
+
+	/**
+	 * The way to the device test from Preferences (#2956): the verification
+	 * page's test, opened inside the app where Site PWA draws that page, so
+	 * a person checks the location, the download and the form protections
+	 * of this phone, and reads how to fix what fails, without leaving it.
+	 *
+	 * @return string
+	 */
+	public static function device_check_section(): string {
+		AssetHelper::enqueue_common_style();
+		AssetHelper::enqueue_dark_mode();
+		$url = \FreeFormCertificate\Frontend\DeviceCheck::url( \FreeFormCertificate\Frontend\VerificationHandler::page_addresses()['app'] );
+		return '<div class="ffc-shortcode ffc-app-device-check">'
+			. '<p>' . esc_html__( 'Check whether this phone can read your location, download a certificate and pass the form protections, with how to fix what fails.', 'ffcertificate' ) . '</p>'
+			. \FreeFormCertificate\Core\Button::html(
+				array(
+					'label'    => __( 'Test this device', 'ffcertificate' ),
+					'category' => 'neutral',
+					'icon'     => 'phone',
+					'href'     => $url,
+				)
+			)
+			. '</div>';
 	}
 
 	/**
