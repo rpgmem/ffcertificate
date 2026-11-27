@@ -41,6 +41,11 @@
  *      Site PWA at the `ffc` sources, and read the look and the scheme back
  *      through `Identity::current()` and `Scheme::current()`. The options are
  *      restored before the script exits.
+ *   6. With `--write` only: publish a certificate form open today with a
+ *      consent field and check that it joins the administrator's Presence
+ *      list once, with its ticket and consent text; record a reading that
+ *      waits on profile data and check that Site PWA's Home keeps it as a
+ *      pending item. The form and the reading are removed afterwards.
  *
  * Usage: php site-pwa-integration-check.php <wp-root> [--write | --read-only]
  * Exit codes: 0 = every check passed (or skipped, read-only), 1 = a check
@@ -190,7 +195,7 @@ if ( array() !== $ffc_pwa_admins ) {
 		ffc_pwa_report(
 			is_callable( $ffc_pwa_certificates['badge'] ),
 			'Certificates carries its badge of new certificates',
-			is_string( $ffc_pwa_certificates['badge'] ) ? 'a fixed string' : 'not callable'
+			is_callable( $ffc_pwa_certificates['badge'] ) ? 'callable' : ( is_string( $ffc_pwa_certificates['badge'] ) ? 'a fixed string' : 'not callable' )
 		);
 	}
 	// The notification toggles in Preferences (site-pwa#66); an older app
@@ -298,6 +303,100 @@ if ( $ffc_pwa_write ) {
 			} else {
 				update_option( $ffc_pwa_option, $ffc_pwa_value );
 			}
+		}
+	}
+}
+
+// 6. A certificate form the terminal reads, end to end (#2893): a form open
+// today with a consent field joins the person's Presence list, and a reading
+// that waits on profile data reaches the app's Home through Site PWA's own
+// checks, which drop an item whose icon, tone or link they refuse. Write
+// mode only: it publishes a form and records a reading, both removed after.
+if ( $ffc_pwa_write && array() !== $ffc_pwa_admins && class_exists( '\\SitePwa\\App\\Home' ) ) {
+	$ffc_pwa_user    = (int) $ffc_pwa_admins[0];
+	$ffc_pwa_form    = 0;
+	// The completion link needs a page that embeds the form; the filter
+	// names one, so the check publishes no page.
+	$ffc_pwa_landing = static function ( $url, $form_id ) use ( &$ffc_pwa_form ) {
+		return $ffc_pwa_form > 0 && (int) $form_id === $ffc_pwa_form ? home_url( '/ffc-integration-check/' ) : $url;
+	};
+	add_filter( 'ffc_schedule_exception_form_url', $ffc_pwa_landing, 10, 2 );
+	try {
+		$ffc_pwa_form = (int) wp_insert_post(
+			array(
+				'post_type'   => 'ffc_form',
+				'post_status' => 'publish',
+				'post_title'  => 'FFC integration check form',
+			)
+		);
+		$ffc_pwa_today = (string) wp_date( 'Y-m-d' );
+		update_post_meta(
+			$ffc_pwa_form,
+			'_ffc_geofence_config',
+			array(
+				'datetime_enabled' => '1',
+				'date_start'       => $ffc_pwa_today,
+				'date_end'         => $ffc_pwa_today,
+				'time_start'       => '00:00',
+				'time_end'         => '23:59',
+			)
+		);
+		update_post_meta(
+			$ffc_pwa_form,
+			'_ffc_form_fields',
+			array(
+				array(
+					'type'           => 'checkbox',
+					'name'           => 'terms',
+					'label'          => 'I accept the <strong>terms</strong>',
+					'options'        => 'I accept',
+					'required'       => '1',
+					'profile_source' => \FreeFormCertificate\Frontend\CertificateProfileSource::CONSENT,
+				),
+			)
+		);
+
+		$ffc_pwa_items = array_values(
+			array_filter(
+				\FreeFormCertificate\Audience\AudiencePresenceEvents::for_user( $ffc_pwa_user, time() ),
+				static fn( $item ) => is_array( $item ) && \FreeFormCertificate\Frontend\CertificateFormTarget::TYPE === ( $item['target_type'] ?? '' ) && $ffc_pwa_form === (int) ( $item['target_id'] ?? 0 )
+			)
+		);
+		$ffc_pwa_item  = $ffc_pwa_items[0] ?? array();
+		ffc_pwa_report(
+			1 === count( $ffc_pwa_items ) && '' !== (string) ( $ffc_pwa_item['ticket'] ?? '' ) && 'I accept the terms' === ( $ffc_pwa_item['consent'] ?? null ) && array_key_exists( 'needs_ticket', $ffc_pwa_item ),
+			'a certificate form open today joins Presence once, with its ticket and its consent text',
+			(string) wp_json_encode( array_intersect_key( $ffc_pwa_item, array_flip( array( 'target_type', 'title', 'consent', 'needs_ticket' ) ) ) )
+		);
+
+		\FreeFormCertificate\Frontend\CertificateTerminalReadingRepository::record(
+			$ffc_pwa_form,
+			$ffc_pwa_user,
+			0,
+			time(),
+			\FreeFormCertificate\Frontend\CertificateTerminalReadingRepository::AWAITING_DATA,
+			'',
+			array( 'school' ),
+			null,
+			time()
+		);
+		$ffc_pwa_home  = \SitePwa\App\Home::items( get_userdata( $ffc_pwa_user ) );
+		$ffc_pwa_found = array_filter(
+			$ffc_pwa_home['pending'],
+			static fn( $row ) => false !== strpos( (string) $row['meta'], 'FFC integration check form' ) && 'warning' === $row['tone']
+		);
+		ffc_pwa_report(
+			array() !== $ffc_pwa_found,
+			'a reading that waits on profile data reaches the app\'s Home as a pending warning item',
+			(string) wp_json_encode( array_column( $ffc_pwa_home['pending'], 'label' ) )
+		);
+	} finally {
+		remove_filter( 'ffc_schedule_exception_form_url', $ffc_pwa_landing, 10 );
+		if ( $ffc_pwa_form > 0 ) {
+			global $wpdb;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The check's own row in the plugin's table.
+			$wpdb->delete( $wpdb->prefix . 'ffc_certificate_terminal_readings', array( 'form_id' => $ffc_pwa_form ), array( '%d' ) );
+			wp_delete_post( $ffc_pwa_form, true );
 		}
 	}
 }
