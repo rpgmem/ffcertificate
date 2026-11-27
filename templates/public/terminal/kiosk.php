@@ -362,9 +362,49 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 			</div>
 			<div class="ffc-terminal-queue-add" data-ffc-terminal-part="queue-add" hidden>
 				<h4><?php esc_html_e( 'Events this terminal can take', 'ffcertificate' ); ?></h4>
-				<p class="ffc-terminal-note"><?php esc_html_e( 'Events whose check-in windows cross another one on this terminal are refused, naming the event they collide with.', 'ffcertificate' ); ?></p>
-				<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="queue-offered"></ul>
-				<p class="ffc-terminal-note" data-ffc-terminal-part="queue-none" hidden><?php esc_html_e( 'No other event can be added now.', 'ffcertificate' ); ?></p>
+				<div role="group" aria-label="<?php esc_attr_e( 'Add by', 'ffcertificate' ); ?>" data-ffc-terminal-part="queue-add-mode">
+					<?php
+					AdminUI::render_segmented(
+						array(
+							'name'    => 'ffc_terminal_add_mode',
+							'id'      => 'ffc-terminal-add-mode',
+							'fluid'   => true,
+							'options' => array(
+								'event' => __( 'By event', 'ffcertificate' ),
+								'place' => __( 'By place', 'ffcertificate' ),
+							),
+							'value'   => 'event',
+						)
+					);
+					?>
+				</div>
+				<div data-ffc-terminal-part="queue-add-by-event">
+					<p class="ffc-terminal-note"><?php esc_html_e( 'Events whose check-in windows cross another one on this terminal are refused, naming the event they collide with.', 'ffcertificate' ); ?></p>
+					<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="queue-offered"></ul>
+					<p class="ffc-terminal-note" data-ffc-terminal-part="queue-none" hidden><?php esc_html_e( 'No other event can be added now.', 'ffcertificate' ); ?></p>
+				</div>
+				<div data-ffc-terminal-part="queue-add-by-place" hidden>
+					<div class="ffc-terminal-field">
+						<label for="ffc-terminal-add-location"><?php esc_html_e( 'Place', 'ffcertificate' ); ?></label>
+						<select id="ffc-terminal-add-location" data-ffc-terminal-part="queue-add-location"></select>
+					</div>
+					<p class="ffc-terminal-note"><?php esc_html_e( 'The terminal stops holding the events ticked for it and follows this place from now on: what is created for the place joins on its own, and what ends leaves.', 'ffcertificate' ); ?></p>
+					<p class="ffc-terminal-note" data-ffc-terminal-part="queue-add-no-location" hidden><?php esc_html_e( 'No GPS location is set in Settings → Geolocation.', 'ffcertificate' ); ?></p>
+					<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="queue-place-list"></ul>
+					<p class="ffc-terminal-note" data-ffc-terminal-part="queue-place-none" hidden><?php esc_html_e( 'Nothing at this place in the next 7 days takes the terminal yet. What is created for it later joins on its own.', 'ffcertificate' ); ?></p>
+					<div class="ffc-terminal-actions">
+						<?php
+						Button::render(
+							array(
+								'label'    => __( 'Follow this place', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'map-pin',
+								'attrs'    => array( 'data-ffc-terminal-part' => 'queue-follow' ),
+							)
+						);
+						?>
+					</div>
+				</div>
 				<?php
 				Button::render(
 					array(

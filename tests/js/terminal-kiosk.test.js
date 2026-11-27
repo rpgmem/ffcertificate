@@ -197,8 +197,21 @@ function markup() {
 				<p data-ffc-terminal-part="queue-locked" hidden></p>
 				<div data-ffc-terminal-part="queue-edit" hidden><button type="button" data-ffc-terminal-part="queue-open-add">Add event</button></div>
 				<div data-ffc-terminal-part="queue-add" hidden>
-					<ul data-ffc-terminal-part="queue-offered"></ul>
-					<p data-ffc-terminal-part="queue-none" hidden></p>
+					<div data-ffc-terminal-part="queue-add-mode">
+						<input type="radio" name="ffc_terminal_add_mode" value="event" checked>
+						<input type="radio" name="ffc_terminal_add_mode" value="place">
+					</div>
+					<div data-ffc-terminal-part="queue-add-by-event">
+						<ul data-ffc-terminal-part="queue-offered"></ul>
+						<p data-ffc-terminal-part="queue-none" hidden></p>
+					</div>
+					<div data-ffc-terminal-part="queue-add-by-place" hidden>
+						<select data-ffc-terminal-part="queue-add-location"></select>
+						<p data-ffc-terminal-part="queue-add-no-location" hidden></p>
+						<ul data-ffc-terminal-part="queue-place-list"></ul>
+						<p data-ffc-terminal-part="queue-place-none" hidden></p>
+						<button type="button" data-ffc-terminal-part="queue-follow">Follow this place</button>
+					</div>
 					<button type="button" data-ffc-terminal-part="queue-close-add">Close</button>
 				</div>
 			</section>
@@ -752,6 +765,84 @@ describe('reading', () => {
 		expect(el.querySelector('[data-ffc-terminal-part="queue-locked"]').hidden).toBe(true);
 		expect(el.querySelectorAll('[data-ffc-terminal-remove]')).toHaveLength(0, 'no Remove');
 		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="menu-close"]'));
+	});
+
+	it('turns an event terminal into one that follows a place, from Add event (#2900)', async () => {
+		const locations = [
+			{ id: 'loc_a', name: 'EMEF Paulo Freire', items: [{ id: 41, kind: 'event', description: 'Seminar', when: 'Tue' }] },
+			{ id: 'loc_b', name: 'CEU Butantã', items: [] },
+		];
+		const after = { label: 'Gate', location: 'loc_a', location_name: 'EMEF Paulo Freire', bookings: [41], schedule: [{ booking_id: 41, title: 'Seminar', hours: '09:00–11:00', open: true }], expires_at: NOW + 7200, expires_label: 'later' };
+		const c = paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'POST self/events': [200, { max: 10, bookings: [{ id: 12, description: 'Seminar' }], locations }],
+			'PUT self': [200, after],
+		});
+		await submit('FFO1OPERATOR');
+		el.querySelector('[data-ffc-terminal-part="queue-open-add"]').click();
+		await settle();
+		const part = (name) => el.querySelector(`[data-ffc-terminal-part="${name}"]`);
+		expect(part('queue-add-by-event').hidden).toBe(false, 'By event first');
+		expect(part('queue-add-by-place').hidden).toBe(true);
+
+		const place = el.querySelector('input[name="ffc_terminal_add_mode"][value="place"]');
+		place.checked = true;
+		place.dispatchEvent(new Event('change'));
+		expect(part('queue-add-by-event').hidden).toBe(true);
+		expect(part('queue-add-by-place').hidden).toBe(false);
+		expect(Array.from(part('queue-add-location').options).map((o) => o.textContent)).toEqual(['EMEF Paulo Freire', 'CEU Butantã']);
+		expect(part('queue-place-list').textContent).toContain('Seminar');
+		expect(part('queue-place-none').hidden).toBe(true);
+
+		part('queue-add-location').value = 'loc_b';
+		part('queue-add-location').dispatchEvent(new Event('change'));
+		expect(part('queue-place-list').children).toHaveLength(0);
+		expect(part('queue-place-none').hidden).toBe(false, 'a place that holds nothing yet says so');
+
+		part('queue-add-location').value = 'loc_a';
+		part('queue-add-location').dispatchEvent(new Event('change'));
+		part('queue-follow').click();
+		await settle();
+		const put = c.calls.filter((call) => 'PUT' === call[0]).pop();
+		expect(JSON.parse(put[2].body)).toEqual({ code: 'FFO1OPERATOR', location: 'loc_a' });
+		expect(part('queue-add').hidden).toBe(true);
+		expect(text('queue-follows')).toBe('follows EMEF Paulo Freire');
+		expect(part('queue-edit').hidden).toBe(true, 'it follows the place now');
+	});
+
+	it('says why the site refused to follow a place, and that no place is set', async () => {
+		paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'POST self/events': [200, { max: 10, bookings: [], locations: [] }],
+		});
+		await submit('FFO1OPERATOR');
+		el.querySelector('[data-ffc-terminal-part="queue-open-add"]').click();
+		await settle();
+		const part = (name) => el.querySelector(`[data-ffc-terminal-part="${name}"]`);
+		const place = el.querySelector('input[name="ffc_terminal_add_mode"][value="place"]');
+		place.checked = true;
+		place.dispatchEvent(new Event('change'));
+		expect(part('queue-add-no-location').hidden).toBe(false);
+		expect(part('queue-follow').disabled).toBe(true);
+		part('queue-follow').click();
+		await settle();
+
+		const c = paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'POST self/events': [200, { max: 10, bookings: [], locations: [{ id: 'loc_a', name: 'EMEF', items: [] }] }],
+			'PUT self': [400, { code: 'ffc_terminal_location', message: 'There is no such location.' }],
+		});
+		await submit('FFO1OPERATOR');
+		el.querySelector('[data-ffc-terminal-part="queue-open-add"]').click();
+		await settle();
+		const again = el.querySelector('input[name="ffc_terminal_add_mode"][value="place"]');
+		again.checked = true;
+		again.dispatchEvent(new Event('change'));
+		el.querySelector('[data-ffc-terminal-part="queue-follow"]').click();
+		await settle();
+		expect(c.calls.filter((call) => 'PUT' === call[0])).toHaveLength(1);
+		expect(text('queue-error')).toBe('There is no such location.');
+		expect(el.querySelector('[data-ffc-terminal-part="queue-follow"]').disabled).toBe(false);
 	});
 
 	it('hides the starting note once the terminal has started (#2910)', () => {
