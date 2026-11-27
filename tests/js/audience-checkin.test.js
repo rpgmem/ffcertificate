@@ -34,6 +34,12 @@ describe('ffc-audience-checkin.js', () => {
 		expect(form.elements.ffc_lng.value).toBe('-46.6');
 		expect(form.elements.ffc_accuracy.value).toBe('12');
 		expect(submitSpy).toHaveBeenCalledTimes(1);
+
+		// The native post that follows is let through, never read again.
+		const again = new Event('submit', { cancelable: true });
+		form.dispatchEvent(again);
+		expect(again.defaultPrevented).toBe(false);
+		expect(submitSpy).toHaveBeenCalledTimes(1);
 	});
 
 	it('does not post and says why when the location is refused', () => {

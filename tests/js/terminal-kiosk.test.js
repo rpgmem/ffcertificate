@@ -1414,6 +1414,27 @@ describe('event queue', () => {
 	});
 });
 
+describe('installedApp (#2954)', () => {
+	const view = (standalone, modes, throws = false) => ({
+		navigator: { standalone },
+		matchMedia: (query) => {
+			if (throws) {
+				throw new Error('no media queries');
+			}
+			return { matches: modes.includes(query) };
+		},
+	});
+
+	it('reads a standalone or fullscreen window, or iOS\'s flag, as the installed app', () => {
+		expect(T().installedApp(view(undefined, ['(display-mode: standalone)']))).toBe(true);
+		expect(T().installedApp(view(undefined, ['(display-mode: fullscreen)']))).toBe(true);
+		expect(T().installedApp(view(true, []))).toBe(true);
+		expect(T().installedApp(view(undefined, []))).toBe(false);
+		expect(T().installedApp({ navigator: {} })).toBe(false);
+		expect(T().installedApp(view(undefined, [], true))).toBe(false);
+	});
+});
+
 describe('camera', () => {
 	let el;
 	const CAMERA = {
@@ -1766,6 +1787,16 @@ describe('camera', () => {
 		await c.controls.camera.ready;
 		await settle();
 		expect(starts).toBe(1);
+
+		// A query that throws, or answers without a state, cannot say: the
+		// camera starts by itself as before.
+		for (const permissionsApi of [{ query: () => { throw new TypeError('camera'); } }, { query: () => Promise.resolve({}) }]) {
+			starts = 0;
+			c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: media, permissions: permissionsApi });
+			await c.controls.camera.ready;
+			await settle();
+			expect(starts).toBe(1);
+		}
 	});
 
 	it('says where to allow a refused camera on this device, in a tab or in the installed app', async () => {

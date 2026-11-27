@@ -2191,6 +2191,23 @@
         });
     }
 
+    /**
+     * Whether the page runs as the installed app (#2954): a standalone or
+     * fullscreen window, or iOS's `navigator.standalone`. There is no
+     * address bar there, so a refused camera names the app's own path.
+     *
+     * @param {Window} view The window.
+     * @returns {boolean}
+     */
+    function installedApp(view) {
+        try {
+            return true === view.navigator.standalone
+                || (typeof view.matchMedia === 'function' && (view.matchMedia('(display-mode: standalone)').matches || view.matchMedia('(display-mode: fullscreen)').matches));
+        } catch (e) {
+            return false;
+        }
+    }
+
     root.FFCTerminal = {
         registerShell: registerShell,
         cleanReading: cleanReading,
@@ -2198,6 +2215,7 @@
         clock: clock,
         duration: duration,
         fill: fill,
+        installedApp: installedApp,
         newDeviceId: newDeviceId,
         wallClock: wallClock,
         readState: readState,
@@ -2229,14 +2247,7 @@
                 mediaDevices: root.navigator.mediaDevices,
                 permissions: root.navigator.permissions,
                 touchPoints: root.navigator.maxTouchPoints || 0,
-                standalone: function () {
-                    try {
-                        return true === root.navigator.standalone
-                            || (typeof root.matchMedia === 'function' && (root.matchMedia('(display-mode: standalone)').matches || root.matchMedia('(display-mode: fullscreen)').matches));
-                    } catch (e) {
-                        return false;
-                    }
-                },
+                standalone: function () { return installedApp(root); },
                 onOnline: function (fn) { root.addEventListener('online', fn); },
                 onOffline: function (fn) { root.addEventListener('offline', fn); },
                 wakeLock: root.navigator.wakeLock,
