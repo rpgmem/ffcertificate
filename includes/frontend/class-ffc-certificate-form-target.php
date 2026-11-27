@@ -588,6 +588,8 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 		}
 		if ( array() !== $missing ) {
 			CertificateTerminalReadingRepository::record( $form_id, $user_id, $reading['terminal_id'], $at, CertificateTerminalReadingRepository::AWAITING_DATA, '', $missing, null, time() );
+			// The certificate's code is fixed now, at the event (#2938).
+			CertificateTerminalReadingRepository::reserve_code( $form_id, $user_id );
 			// The link goes out once per wait: a second reading of the same
 			// person reopens the link for seven days without a second e-mail.
 			if ( null === $previous || CertificateTerminalReadingRepository::AWAITING_DATA !== $previous['result'] ) {

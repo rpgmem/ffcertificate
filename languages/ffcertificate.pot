@@ -37233,7 +37233,7 @@ msgstr ""
 msgid "The form editor's Terminal tab lets an event terminal read the QR in the participant's app and issue the certificate at once, from the profile. The form still accepts entries on the site at the same time."
 msgstr ""
 
-msgid "The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\". The side box shows the reading hours, the paired terminals and how many certificates the terminal issued."
+msgid "The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\". The certificate's code is fixed at that reading, and the certificate completed later keeps it, with the reading's time as its issue time. The side box shows the reading hours, the paired terminals and how many certificates the terminal issued."
 msgstr ""
 
 msgid "The terminal reads while the form is open: the date and hours are the Time tab's, with no window of their own. To turn it on, the opening and closing must fall on the same day."
@@ -37801,4 +37801,8 @@ msgid "This certificate belongs to another account. Sign in with the account tha
 msgstr ""
 
 msgid "Your attendance is recorded. Fill in what is missing and send the form to receive the certificate."
+msgstr ""
+
+#. translators: %s: the certificate's authentication code
+msgid "Certificate code %s, kept from the reading."
 msgstr ""

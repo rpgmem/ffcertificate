@@ -174,11 +174,11 @@ class AuthCodeServiceTest extends TestCase {
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 
-		// All three tables return null (no collision)
+		// All four tables return null (no collision)
 		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$wpdb->shouldReceive( 'get_var' )
-			->times( 3 )
-			->andReturn( null, null, null );
+			->times( 4 )
+			->andReturn( null, null, null, null );
 
 		$result = AuthCodeService::generate_globally_unique_auth_code();
 
@@ -201,12 +201,13 @@ class AuthCodeServiceTest extends TestCase {
 		// First attempt: collision on ffc_submissions (returns an id)
 		// Second attempt: all three tables clear
 		$wpdb->shouldReceive( 'get_var' )
-			->times( 4 ) // 1 (collision) + 3 (success)
+			->times( 5 ) // 1 (collision) + 4 (success)
 			->andReturn(
 				'1',         // 1st attempt: ffc_submissions has collision -> continue
 				null,        // 2nd attempt: ffc_submissions clear
 				null,        // 2nd attempt: ffc_reregistration_submissions clear
-				null         // 2nd attempt: ffc_self_scheduling_appointments clear
+				null,        // 2nd attempt: ffc_self_scheduling_appointments clear
+				null         // 2nd attempt: reserved reading codes clear
 			);
 
 		$result = AuthCodeService::generate_globally_unique_auth_code();
@@ -229,13 +230,14 @@ class AuthCodeServiceTest extends TestCase {
 		// First attempt: ffc_submissions clear, ffc_reregistration_submissions collision
 		// Second attempt: all clear
 		$wpdb->shouldReceive( 'get_var' )
-			->times( 5 ) // 2 (1st attempt) + 3 (2nd attempt)
+			->times( 6 ) // 2 (1st attempt) + 4 (2nd attempt)
 			->andReturn(
 				null,        // 1st attempt: ffc_submissions clear
 				'1',         // 1st attempt: ffc_reregistration_submissions collision -> continue
 				null,        // 2nd attempt: ffc_submissions clear
 				null,        // 2nd attempt: ffc_reregistration_submissions clear
-				null         // 2nd attempt: ffc_self_scheduling_appointments clear
+				null,        // 2nd attempt: ffc_self_scheduling_appointments clear
+				null         // 2nd attempt: reserved reading codes clear
 			);
 
 		$result = AuthCodeService::generate_globally_unique_auth_code();
@@ -258,14 +260,15 @@ class AuthCodeServiceTest extends TestCase {
 		// First attempt: first two tables clear, third table collision
 		// Second attempt: all clear
 		$wpdb->shouldReceive( 'get_var' )
-			->times( 6 ) // 3 (1st attempt) + 3 (2nd attempt)
+			->times( 7 ) // 3 (1st attempt) + 4 (2nd attempt)
 			->andReturn(
 				null,        // 1st attempt: ffc_submissions clear
 				null,        // 1st attempt: ffc_reregistration_submissions clear
 				'1',         // 1st attempt: ffc_self_scheduling_appointments collision -> continue
 				null,        // 2nd attempt: ffc_submissions clear
 				null,        // 2nd attempt: ffc_reregistration_submissions clear
-				null         // 2nd attempt: ffc_self_scheduling_appointments clear
+				null,        // 2nd attempt: ffc_self_scheduling_appointments clear
+				null         // 2nd attempt: reserved reading codes clear
 			);
 
 		$result = AuthCodeService::generate_globally_unique_auth_code();
@@ -309,21 +312,22 @@ class AuthCodeServiceTest extends TestCase {
 		$prepared_queries = [];
 
 		$wpdb->shouldReceive( 'prepare' )
-			->times( 3 )
+			->times( 4 )
 			->andReturnUsing( function ( $query, $table, $code ) use ( &$prepared_queries ) {
 				$prepared_queries[] = $table;
 				return "SELECT id FROM {$table} WHERE auth_code = '{$code}' LIMIT 1";
 			} );
 
 		$wpdb->shouldReceive( 'get_var' )
-			->times( 3 )
-			->andReturn( null, null, null );
+			->times( 4 )
+			->andReturn( null, null, null, null );
 
 		AuthCodeService::generate_globally_unique_auth_code();
 
 		$this->assertContains( 'wp_ffc_submissions', $prepared_queries );
 		$this->assertContains( 'wp_ffc_reregistration_submissions', $prepared_queries );
 		$this->assertContains( 'wp_ffc_self_scheduling_appointments', $prepared_queries );
+		$this->assertContains( 'wp_ffc_certificate_terminal_readings', $prepared_queries, 'a code a terminal reading reserved is taken too (#2938)' );
 	}
 
 	// ==================================================================
@@ -337,8 +341,8 @@ class AuthCodeServiceTest extends TestCase {
 
 		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$wpdb->shouldReceive( 'get_var' )
-			->times( 3 )
-			->andReturn( null, null, null );
+			->times( 4 )
+			->andReturn( null, null, null, null );
 
 		$result = AuthCodeService::generate_globally_unique_auth_code();
 

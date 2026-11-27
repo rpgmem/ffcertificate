@@ -18,7 +18,7 @@ use FreeFormCertificate\Core\Notice;
 /**
  * Certificates waiting on profile data, from the screen class.
  *
- * @var list<array{form_id: int, title: string, missing: list<string>, url: string, until: string}> $to_complete
+ * @var list<array{form_id: int, title: string, missing: list<string>, url: string, until: string, code?: string}> $to_complete
  */
 $to_complete = isset( $to_complete ) && is_array( $to_complete ) ? $to_complete : array();
 ?>
@@ -38,6 +38,14 @@ $to_complete = isset( $to_complete ) && is_array( $to_complete ) ? $to_complete 
 								<?php
 								/* translators: %s: the fields still to fill, separated by commas */
 								echo esc_html( sprintf( __( 'Missing: %s', 'ffcertificate' ), implode( ', ', $ffc_item['missing'] ) ) );
+								?>
+							</p>
+						<?php endif; ?>
+						<?php if ( '' !== ( $ffc_item['code'] ?? '' ) ) : ?>
+							<p class="ffc-app-certificates-complete-meta">
+								<?php
+								/* translators: %s: the certificate's authentication code */
+								echo esc_html( sprintf( __( 'Code %s', 'ffcertificate' ), $ffc_item['code'] ) );
 								?>
 							</p>
 						<?php endif; ?>

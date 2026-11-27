@@ -24,8 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The terminal readings of certificate forms.
  *
- * @phpstan-type ReadingRow array{id: int, form_id: int, user_id: int|null, terminal_id: int, read_at: int, result: string, reason: string, missing: list<string>, submission_id: int|null, updated_at: int}
- * @phpstan-type ReadingPageRow array{id: int, form_id: int, user_id: int|null, terminal_id: int, read_at: int, result: string, reason: string, missing: list<string>, submission_id: int|null, updated_at: int, auth_code: string}
+ * @phpstan-type ReadingRow array{id: int, form_id: int, user_id: int|null, terminal_id: int, read_at: int, result: string, reason: string, missing: list<string>, submission_id: int|null, reserved_code: string, updated_at: int}
+ * @phpstan-type ReadingPageRow array{id: int, form_id: int, user_id: int|null, terminal_id: int, read_at: int, result: string, reason: string, missing: list<string>, submission_id: int|null, reserved_code: string, updated_at: int, auth_code: string}
  */
 final class CertificateTerminalReadingRepository {
 
@@ -165,7 +165,7 @@ final class CertificateTerminalReadingRepository {
 			return array();
 		}
 		$where = self::where( $form_id, $result, $user_ids );
-		$sql   = 'SELECT r.*, s.auth_code FROM %i r LEFT JOIN %i s ON s.id = r.submission_id WHERE ' . $where['sql'] . ' ORDER BY r.read_at DESC, r.id DESC LIMIT %d OFFSET %d';
+		$sql   = 'SELECT r.*, COALESCE(s.auth_code, r.reserved_code) AS auth_code FROM %i r LEFT JOIN %i s ON s.id = r.submission_id WHERE ' . $where['sql'] . ' ORDER BY r.read_at DESC, r.id DESC LIMIT %d OFFSET %d';
 		$args  = array_merge(
 			array( CertificateTerminalActivator::table(), \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table() ),
 			$where['args'],
@@ -201,7 +201,7 @@ final class CertificateTerminalReadingRepository {
 			return array();
 		}
 		$where = self::where( $form_id, $result, $user_ids );
-		$sql   = 'SELECT r.*, s.auth_code FROM %i r LEFT JOIN %i s ON s.id = r.submission_id WHERE ' . $where['sql'] . ' AND r.id < %d ORDER BY r.id DESC LIMIT %d';
+		$sql   = 'SELECT r.*, COALESCE(s.auth_code, r.reserved_code) AS auth_code FROM %i r LEFT JOIN %i s ON s.id = r.submission_id WHERE ' . $where['sql'] . ' AND r.id < %d ORDER BY r.id DESC LIMIT %d';
 		$args  = array_merge(
 			array( CertificateTerminalActivator::table(), \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table() ),
 			$where['args'],
@@ -320,6 +320,34 @@ final class CertificateTerminalReadingRepository {
 	}
 
 	/**
+	 * The certificate code a person's reading holds while it waits on
+	 * profile data (#2938), reserved the first time and kept after.
+	 *
+	 * The code is fixed when the terminal reads the person, so the
+	 * certificate completed later carries it. It lives on the reading and
+	 * not on a half-issued submission, which every reader of the
+	 * submissions table would otherwise have to filter out.
+	 *
+	 * @param int $form_id Form id.
+	 * @param int $user_id Account id.
+	 * @return string The code, or '' when the person has no reading.
+	 */
+	public static function reserve_code( int $form_id, int $user_id ): string {
+		global $wpdb;
+
+		$reading = self::for_person( $form_id, $user_id );
+		if ( null === $reading ) {
+			return '';
+		}
+		if ( '' !== $reading['reserved_code'] ) {
+			return $reading['reserved_code'];
+		}
+		$code = \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code();
+		$wpdb->update( CertificateTerminalActivator::table(), array( 'reserved_code' => $code ), array( 'id' => $reading['id'] ), array( '%s' ), array( '%d' ) );
+		return $code;
+	}
+
+	/**
 	 * Type one raw row.
 	 *
 	 * @param array<array-key, mixed> $row Raw row.
@@ -337,6 +365,7 @@ final class CertificateTerminalReadingRepository {
 			'reason'        => \FreeFormCertificate\Core\ArrayValue::string( $row, 'reason' ),
 			'missing'       => is_array( $missing ) ? array_values( array_filter( $missing, 'is_string' ) ) : array(),
 			'submission_id' => null === ( $row['submission_id'] ?? null ) ? null : \FreeFormCertificate\Core\ArrayValue::int( $row, 'submission_id' ),
+			'reserved_code' => \FreeFormCertificate\Core\ArrayValue::string( $row, 'reserved_code' ),
 			'updated_at'    => \FreeFormCertificate\Core\ArrayValue::int( $row, 'updated_at' ),
 		);
 	}
