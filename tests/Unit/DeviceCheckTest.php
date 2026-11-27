@@ -125,6 +125,17 @@ class DeviceCheckTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-device-check-back', DeviceCheck::render() );
 	}
 
+	// Inside Site PWA's app the frame's own Back returns to Preferences, and
+	// the link would leave the app for the site's theme (#2958).
+	public function test_the_back_link_is_dropped_inside_the_app_only(): void {
+		$page = 'https://example.com/valid/';
+
+		$this->assertSame( '', DeviceCheck::back_url( $page, DeviceCheckTestActiveFrame::class ) );
+		$this->assertSame( $page, DeviceCheck::back_url( $page, DeviceCheckTestIdleFrame::class ), 'a site page keeps it' );
+		$this->assertSame( $page, DeviceCheck::back_url( $page, 'No\\Such\\Frame' ), 'without Site PWA it stays' );
+		$this->assertSame( $page, DeviceCheck::back_url( $page ), 'the default names Site PWA, absent here' );
+	}
+
 	public function test_strings_carry_every_key_the_script_reads(): void {
 		$script = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/js/ffc-device-check.js' );
 		preg_match_all( "/text\\('([A-Za-z]+)'/", $script, $m );
@@ -226,5 +237,23 @@ class DeviceCheckTest extends TestCase {
 			DeviceCheck::enqueue_assets();
 			$this->assertSame( array( 'ffc-core', 'ffc-preflight', 'ffc-altcha' ), $scripts['ffc-device-check'], $mode );
 		}
+	}
+}
+
+/**
+ * A Site PWA frame answering that the request is an app screen.
+ */
+class DeviceCheckTestActiveFrame {
+	public static function active(): bool {
+		return true;
+	}
+}
+
+/**
+ * A Site PWA frame answering that the request is a site page.
+ */
+class DeviceCheckTestIdleFrame {
+	public static function active(): bool {
+		return false;
 	}
 }

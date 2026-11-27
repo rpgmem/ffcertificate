@@ -142,7 +142,7 @@ class Shortcodes {
 		// shows the checks a form runs instead of the verification form.
 		$page_url = (string) get_permalink();
 		if ( DeviceCheck::requested() ) {
-			return DeviceCheck::render( $page_url );
+			return DeviceCheck::render( DeviceCheck::back_url( $page_url ) );
 		}
 		$device_check_url = '' !== $page_url ? DeviceCheck::url( $page_url ) : '';
 

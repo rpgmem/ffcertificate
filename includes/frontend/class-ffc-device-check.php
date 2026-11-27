@@ -141,6 +141,22 @@ final class DeviceCheck {
 	}
 
 	/**
+	 * Where the test's "Back to certificate verification" leads: the
+	 * verification page on the site, or nowhere inside Site PWA's app
+	 * (#2958), whose own Back already returns to the screen the person
+	 * came from, Preferences, and where the link would leave the app for a
+	 * page in the site's theme. The app is asked through its own
+	 * `Frame::active()`, guarded, so an older or absent app keeps the link.
+	 *
+	 * @param string $page_url The verification page's address.
+	 * @param string $frame    Site PWA's frame class; a test names its own.
+	 */
+	public static function back_url( string $page_url, string $frame = '\\SitePwa\\App\\Frame' ): string {
+		$active = array( $frame, 'active' );
+		return class_exists( $frame ) && is_callable( $active ) && true === call_user_func( $active ) ? '' : $page_url;
+	}
+
+	/**
 	 * The address of the test on a verification page.
 	 *
 	 * @param string $page_url The verification page's address.
