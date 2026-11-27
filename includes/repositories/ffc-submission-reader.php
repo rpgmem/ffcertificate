@@ -826,6 +826,34 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * How many certificates a user was issued after a moment, for the badge
+	 * on the app's Certificates screen (#2893). Trash and a quiz attempt
+	 * that did not pass are not certificates, as on the screen itself.
+	 *
+	 * @param int $user_id User.
+	 * @param int $since   Unix time; a certificate issued at it or before is left out.
+	 * @return int
+	 */
+	public function count_certificates_for_user_since( int $user_id, int $since ): int {
+		if ( $user_id <= 0 ) {
+			return 0;
+		}
+		$hidden = \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE;
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One %s placeholder per hidden status, filled by prepare(); Interpolated* is file-disabled above.
+		$count = $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE user_id = %d AND submission_date > %d AND status NOT IN (' . implode( ', ', array_fill( 0, count( $hidden ), '%s' ) ) . ')',
+				$this->table,
+				$user_id,
+				$since,
+				...$hidden
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		return is_numeric( $count ) ? (int) $count : 0;
+	}
+
+	/**
 	 * The encrypted CPF and RF of a user's newest submission that carries
 	 * one (#2891): where a terminal finds the identifier of a person whose
 	 * profile holds only its hash.

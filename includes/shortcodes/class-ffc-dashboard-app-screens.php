@@ -273,6 +273,8 @@ final class DashboardAppScreens {
 				'tabs'     => array( 'certificates' ),
 				// The app draws its own screen over the same route (#2781).
 				'render'   => array( CertificatesAppScreen::class, 'render' ),
+				// How many were issued since it was last opened (#2893).
+				'badge'    => array( CertificatesAppScreen::class, 'badge' ),
 			),
 			'messages'           => array(
 				'label'    => __( 'Messages', 'ffcertificate' ),

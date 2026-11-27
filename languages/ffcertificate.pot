@@ -37654,3 +37654,7 @@ msgstr ""
 
 msgid "Offline, a form without a ticket keeps each reading with its time and tells the person the certificate reaches the app when the terminal syncs. A form with a ticket shows Reading paused instead, with the reason in the operator menu too, and asks participants to use the form page projected at the event; reading resumes on its own when the connection returns."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "In the app's bottom bar, Certificates shows how many certificates were issued since the person last opened that screen, counting the last 7 days at most and up to 9+; opening the screen clears it."
+msgstr ""

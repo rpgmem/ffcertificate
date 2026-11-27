@@ -11,6 +11,7 @@ use FreeFormCertificate\Audience\AudiencePresenceDeviceCookie;
 use FreeFormCertificate\Shortcodes\AgendaAppScreen;
 use FreeFormCertificate\Shortcodes\CertificatesAppScreen;
 use FreeFormCertificate\Shortcodes\DashboardAppScreens;
+use FreeFormCertificate\Tests\Support\CallLog;
 use FreeFormCertificate\Tests\Support\FakeCredentials;
 use FreeFormCertificate\Tests\Support\FakeTerminalTables;
 use PHPUnit\Framework\TestCase;
@@ -170,8 +171,10 @@ class AppScreensTest extends TestCase {
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		$opened = CallLog::record( 'update_user_meta', true );
 
 		$html = CertificatesAppScreen::render();
+		$this->assertSame( 0, $opened->count(), 'signed out, nothing is remembered' );
 
 		$this->assertStringContainsString( 'data-ffc-app-certificates', $html );
 		$this->assertStringNotContainsString( 'ffc-app-certificates-complete', $html, 'nothing to complete, no section' );
@@ -184,6 +187,89 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/certificates', $config['rest'] );
 		$this->assertSame( CertificatesAppScreen::NEW_DAYS, $config['newDays'] );
 		$this->assertStringContainsString( '%s', $config['strings']['issued'] );
+	}
+
+	public function test_the_certificates_badge_counts_what_was_issued_since_the_screen_was_last_opened(): void {
+		$this->assertSame( array( CertificatesAppScreen::class, 'badge' ), DashboardAppScreens::definitions()['certificates']['badge'] );
+
+		$count = 0;
+		$since = array();
+		$db    = new class( $count, $since ) extends \wpdb {
+			/** @var int */
+			public $count;
+			/** @var list<int> */
+			public $since;
+			/**
+			 * @param int       $count Rows the count answers.
+			 * @param list<int> $since Moments asked for.
+			 */
+			public function __construct( int &$count, array &$since ) {
+				$this->prefix = 'wp_';
+				$this->count  = &$count;
+				$this->since  = &$since;
+			}
+			/**
+			 * @param string $query Query.
+			 * @param mixed  ...$args Arguments.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) {
+				$this->since[] = (int) $args[2];
+				return (string) $query;
+			}
+			/**
+			 * @param string|null $query Query.
+			 * @param int         $x Column.
+			 * @param int         $y Row.
+			 * @return string
+			 */
+			public function get_var( $query = null, $x = 0, $y = 0 ) {
+				return (string) $this->count;
+			}
+		};
+		$seen = '';
+		Functions\when( 'get_user_meta' )->alias( static function ( $user, $key ) use ( &$seen ) {
+			return CertificatesAppScreen::SEEN_META === $key ? $seen : '';
+		} );
+		$had    = array_key_exists( 'wpdb', $GLOBALS );
+		$backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = $db;
+		try {
+			$this->assertSame( '', CertificatesAppScreen::badge( 7 ), 'an account that cannot see its certificates' );
+			$this->assertSame( array(), $since, 'and nothing is read for it' );
+			$this->assertSame( '', CertificatesAppScreen::badge( 0 ), 'signed out' );
+
+			Functions\when( 'user_can' )->justReturn( true );
+			$count = 2;
+			$seen  = (string) ( time() - 3600 );
+			$this->assertSame( '2', CertificatesAppScreen::badge( 7 ) );
+			$this->assertSame( (int) $seen, end( $since ), 'counted from the last opening' );
+
+			$seen   = '';
+			$before = time() - CertificatesAppScreen::NEW_DAYS * DAY_IN_SECONDS;
+			CertificatesAppScreen::badge( 7 );
+			$after = time() - CertificatesAppScreen::NEW_DAYS * DAY_IN_SECONDS;
+			$this->assertGreaterThanOrEqual( $before, end( $since ), 'never opened: only the last week counts' );
+			$this->assertLessThanOrEqual( $after, end( $since ) );
+
+			$seen = '1';
+			CertificatesAppScreen::badge( 7 );
+			$this->assertGreaterThanOrEqual( $before, end( $since ), 'a long absence does not count a whole history' );
+
+			$count = 12;
+			$this->assertSame( '9+', CertificatesAppScreen::badge( 7 ) );
+			$count = 0;
+			$this->assertSame( '', CertificatesAppScreen::badge( 7 ), 'nothing new, no badge' );
+
+			$this->settings['module_certificates_enabled'] = false;
+			$this->assertSame( '', CertificatesAppScreen::badge( 7 ), 'the module is off' );
+		} finally {
+			if ( $had ) {
+				$GLOBALS['wpdb'] = $backup;
+			} else {
+				unset( $GLOBALS['wpdb'] );
+			}
+		}
 	}
 
 	public function test_the_certificates_screen_lists_what_waits_on_profile_data(): void {

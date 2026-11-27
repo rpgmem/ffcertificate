@@ -17,6 +17,8 @@ namespace FreeFormCertificate\Shortcodes;
 
 use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Frontend\CertificateCompletionLink;
+use FreeFormCertificate\Repositories\SubmissionRepository;
+use FreeFormCertificate\Settings\SettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -32,6 +34,40 @@ final class CertificatesAppScreen {
 	 * How long a certificate counts as new, in days.
 	 */
 	public const NEW_DAYS = 7;
+
+	/**
+	 * User meta holding when the person last opened the screen (unix time),
+	 * which the badge counts from.
+	 */
+	public const SEEN_META = 'ffc_app_certificates_seen';
+
+	/**
+	 * The most the badge counts before it reads "9+".
+	 */
+	private const BADGE_MAX = 9;
+
+	/**
+	 * The badge on the Certificates item of the app's bar (#2893): how many
+	 * certificates were issued since the person last opened the screen,
+	 * never older than NEW_DAYS, so a first visit or a long absence does
+	 * not count a whole history. '' when there is none.
+	 *
+	 * @param int|null $user_id Person; the signed-in one when null.
+	 * @return string
+	 */
+	public static function badge( ?int $user_id = null ): string {
+		$user_id = $user_id ?? get_current_user_id();
+		if ( $user_id <= 0 || ! SettingsReader::module_enabled( 'certificates' ) || ! user_can( $user_id, 'ffc_view_own_certificates' ) ) {
+			return '';
+		}
+		$seen  = get_user_meta( $user_id, self::SEEN_META, true );
+		$since = max( is_numeric( $seen ) ? (int) $seen : 0, time() - self::NEW_DAYS * DAY_IN_SECONDS );
+		$count = ( new SubmissionRepository() )->count_certificates_for_user_since( $user_id, $since );
+		if ( $count <= 0 ) {
+			return '';
+		}
+		return $count > self::BADGE_MAX ? self::BADGE_MAX . '+' : (string) $count;
+	}
 
 	/**
 	 * The screen's markup, with its sheet and script enqueued.
@@ -81,6 +117,11 @@ final class CertificatesAppScreen {
 				),
 			)
 		);
+
+		// Opening the screen is seeing what is new: the badge counts from here.
+		if ( is_user_logged_in() ) {
+			update_user_meta( get_current_user_id(), self::SEEN_META, time() );
+		}
 
 		// Certificates waiting on profile data after a terminal reading
 		// (#2893): drawn here, so a lost e-mail does not lose them.
