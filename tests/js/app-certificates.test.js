@@ -14,6 +14,7 @@ const STRINGS = {
 	empty: 'empty',
 	noMatch: 'no match',
 	new: 'New',
+	valid: 'Valid',
 	issued: 'Issued %s',
 	code: 'Code %s',
 	open: 'Open PDF',
@@ -62,6 +63,7 @@ describe('app certificates screen', () => {
 		const card = el.querySelector('.ffc-app-certificate-card');
 		expect(card.querySelector('h2').textContent).toBe('Inclusive Education');
 		expect(card.querySelector('.ffc-app-certificate-badge').textContent).toBe('New');
+		expect(card.querySelector('.ffc-app-certificate-status-valid').textContent).toBe('Valid');
 		expect(card.querySelector('.ffc-app-certificate-code').textContent).toBe('Code A-FDVS-UJA0-BAMQ');
 		expect(card.querySelector('a.ffc-btn-primary').getAttribute('href')).toBe('https://example.org/v/3');
 		const rows = el.querySelectorAll('.ffc-app-certificate-row');
@@ -69,6 +71,7 @@ describe('app certificates screen', () => {
 		expect(rows[0].querySelector('a').getAttribute('href')).toBe('https://example.org/v/2');
 		expect(rows[0].querySelector('.ffc-icon-chevron-right')).not.toBeNull();
 		expect(rows[1].querySelector('a')).toBeNull();
+		expect(el.querySelector('.ffc-app-certificate-row .ffc-app-certificate-status'), 'the rows carry no badge: every one is valid').toBeNull();
 		expect(el.querySelector('[data-ffc-app-part="status"]').textContent).toBe('');
 	});
 

@@ -106,6 +106,7 @@ final class CertificatesAppScreen {
 					'empty'    => __( 'You have no certificate yet.', 'ffcertificate' ),
 					'noMatch'  => __( 'No certificate matches the search.', 'ffcertificate' ),
 					'new'      => __( 'New', 'ffcertificate' ),
+					'valid'    => __( 'Valid', 'ffcertificate' ),
 					/* translators: %s: the date the certificate was issued */
 					'issued'   => __( 'Issued on %s', 'ffcertificate' ),
 					/* translators: %s: the certificate's authentication code */

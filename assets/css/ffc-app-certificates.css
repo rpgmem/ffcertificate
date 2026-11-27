@@ -69,6 +69,35 @@
 	font-size: var(--ffc-font-size-sm);
 }
 
+.ffc-app-certificates-complete-state {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ffc-spacing-xs);
+}
+
+/* The certificate's state, the same badge wherever it is drawn (#2942). */
+.ffc-app-certificate-status {
+	padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+	border: 1px solid transparent;
+	border-radius: var(--ffc-radius-full);
+	font-size: var(--ffc-font-size-xs);
+	font-weight: 600;
+	align-self: flex-start;
+}
+
+.ffc-app-certificate-status-valid {
+	border-color: var(--ffc-success-border);
+	background: var(--ffc-success-bg);
+	color: var(--ffc-success-text);
+}
+
+.ffc-app-certificate-status-incomplete {
+	border-color: var(--ffc-warning-border);
+	background: var(--ffc-bg-card);
+	color: var(--ffc-warning-text);
+}
+
 /* One certificate completed inside the app (#2936). */
 .ffc-app-certificates-completing {
 	align-items: flex-start;
@@ -187,9 +216,11 @@
 	color: var(--ffc-text-muted);
 }
 
-/* The New badge keeps its boundary when forced colors drop its ground. */
+/* The New and status badges keep their boundary when forced colors drop their ground. */
 @media (forced-colors: active) {
-	.ffc-app-certificate-badge {
+	.ffc-app-certificate-badge,
+	.ffc-app-certificate-status-valid,
+	.ffc-app-certificate-status-incomplete {
 		border: 1px solid CanvasText;
 	}
 }
