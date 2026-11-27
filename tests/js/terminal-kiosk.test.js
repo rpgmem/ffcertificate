@@ -415,6 +415,46 @@ describe('pairing', () => {
 		expect(calls.map((c) => c[0])).toEqual(['setup/events']);
 	});
 
+	it('keeps the setup open and says why when a fresh operator code is refused there', async () => {
+		let refuse = false;
+		const calls = [];
+		const e = env({
+			fetch: (url, options) => {
+				calls.push(url.replace(CONFIG.rest, ''));
+				return refuse
+					? respond(403, { message: 'Code expired.' })()
+					: respond(200, { max: 10, name: 'Ana L.', bookings: EVENTS, locations: LOCATIONS })();
+			},
+		});
+		const controls = T().start(el, CONFIG, e);
+		await controls.startSetup('FFO1ABC');
+		el.querySelector('[data-ffc-terminal-part="setup-label"]').value = 'Kept';
+		refuse = true;
+		await controls.startSetup('FFO1NEW');
+		expect(visible(el)).toEqual(['setup']);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-error"]').textContent).toBe('Code expired.');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-label"]').value).toBe('Kept', 'the choices stay');
+		refuse = false;
+		await controls.startSetup('FFO1NEWER');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-error"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-label"]').value).toBe('Kept', 'a renewed code keeps the choices');
+		expect(calls).toEqual(['setup/events', 'setup/events', 'setup/events']);
+	});
+
+	it('on the setup screen a reader renews the operator code and ignores anything else (#2900)', async () => {
+		const calls = [];
+		const controls = T().start(el, CONFIG, setupEnv(calls));
+		await controls.startSetup('FFO1FIRST');
+		const form = el.querySelector('[data-ffc-terminal-part="reading-form"]');
+		['FFP1SOMEONE', 'FFO1RENEWED'].forEach((code) => {
+			el.querySelector('[data-ffc-terminal-part="reading"]').value = code;
+			form.dispatchEvent(new Event('submit', { cancelable: true }));
+		});
+		await settle();
+		expect(visible(el)).toEqual(['setup']);
+		expect(calls.map((c) => c[1].code)).toEqual(['FFO1FIRST', 'FFO1RENEWED']);
+	});
+
 	it('says why the site refused the setup and keeps the choices', async () => {
 		const calls = [];
 		const controls = T().start(el, CONFIG, setupEnv(calls, respond(409, { code: 'ffc_terminal_overlap', message: 'Crosses Workshop.' })));
@@ -480,6 +520,15 @@ describe('pairing', () => {
 });
 
 describe('a paired terminal with no event left (#2794)', () => {
+	it('refuses a participant code while it has no event, saying an operator must release it', () => {
+		const el = markup();
+		const state = JSON.stringify({ token: TOKEN, label: 'Entrance A', bookings: [], schedule: [], expires_at: NOW + 3600, expires_label: 'later' });
+		T().start(el, CONFIG, env({ storage: memoryStorage({ ffcTerminal: state }), fetch: () => Promise.reject(new Error('offline')) }));
+		el.querySelector('[data-ffc-terminal-part="reading"]').value = 'FFP1SOMEONE';
+		el.querySelector('[data-ffc-terminal-part="reading-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		expect(el.querySelector('[data-ffc-terminal-part="result-refused"]').textContent).toContain('idle refused');
+	});
+
 	it('rests locked and keeps the lock', () => {
 		const el = markup();
 		const state = JSON.stringify({ token: TOKEN, label: 'Entrance A', bookings: [], schedule: [], expires_at: NOW + 3600, expires_label: 'later' });
@@ -686,6 +735,20 @@ describe('reading', () => {
 		await settle();
 		const second = c.calls.filter((call) => 'PUT' === call[0]).pop();
 		expect(JSON.parse(second[2].body).bookings).toEqual([11]);
+	});
+
+	it('closes the list of events to add without changing the queue', async () => {
+		const c = paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'POST self/events': [200, { max: 10, bookings: [{ id: 12, description: 'Seminar' }] }],
+		});
+		await submit('FFO1OPERATOR');
+		el.querySelector('[data-ffc-terminal-part="queue-open-add"]').click();
+		await settle();
+		expect(el.querySelector('[data-ffc-terminal-part="queue-add"]').hidden).toBe(false);
+		el.querySelector('[data-ffc-terminal-part="queue-close-add"]').click();
+		expect(el.querySelector('[data-ffc-terminal-part="queue-add"]').hidden).toBe(true);
+		expect(c.calls.filter((call) => 'PUT' === call[0])).toHaveLength(0);
 	});
 
 	it('says why the site refused a change to the events', async () => {

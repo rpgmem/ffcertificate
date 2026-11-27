@@ -1504,6 +1504,11 @@
             if (0 === code.indexOf(OPERATOR_PREFIX)) {
                 return unlock(code);
             }
+            if ('setup' === screen) {
+                // Only a fresh operator code counts while the operator
+                // chooses; anything else read there is ignored (#2900).
+                return null;
+            }
             if (!current()) {
                 // Unpaired: only an operator code does anything (#2900).
                 showResult({ status: 'refused', code: 'ffc_terminal_unpaired', message: strings.unpairedRefused });
@@ -1651,14 +1656,8 @@
             });
         }
 
-        // What a code read by the camera does on the screen in front: on the
-        // setup screen only an operator code counts (it renews the setup),
-        // everywhere else it reads or unlocks.
+        // What a code read by the camera does: what a typed one does.
         function handle(raw) {
-            if ('setup' === screen) {
-                var reading = cleanReading(raw);
-                return 0 === reading.indexOf(OPERATOR_PREFIX) ? startSetup(reading) : null;
-            }
             return take(raw);
         }
 

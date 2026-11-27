@@ -201,6 +201,15 @@ describe('Operator QR', () => {
 		expect(part(el, 'qr').querySelector('svg').getAttribute('data-text')).toBe('FFO1CODE2');
 	});
 
+	it('says the code expired when the clock passes it before a new one arrives', async () => {
+		const el = screen('qr');
+		const e = env({ 'POST operator-code': [200, { code: 'FFO1CODE', expires_at: NOW + 120 }] });
+		await O().start(el, CONFIG, e).ready;
+		e.clock.now = (NOW + 121) * 1000;
+		e.intervals[e.intervals.length - 1]();
+		expect(part(el, 'countdown').textContent).toBe('expired');
+	});
+
 	it('clears the code when the site cannot sign one', async () => {
 		const el = screen('qr');
 		await O().start(el, CONFIG, env({ 'POST operator-code': [500, { message: 'could not sign' }] })).ready;
