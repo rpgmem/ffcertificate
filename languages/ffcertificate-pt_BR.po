@@ -37751,3 +37751,23 @@ msgstr "No dia de um formulário de certificado que o terminal do evento lê, a 
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "In the app's bottom bar, Certificates shows how many certificates were issued since the person last opened that screen, counting the last 7 days at most and up to 9+; opening the screen clears it."
 msgstr "Na barra inferior do app, Certificados mostra quantos certificados foram emitidos desde a última vez que a pessoa abriu essa tela, contando no máximo os últimos 7 dias e até 9+; abrir a tela zera o número."
+
+#: includes/shortcodes/class-ffc-agenda-app-screen.php
+msgid "At the entrance, show your QR to the terminal. The certificate is issued on the spot and appears in Certificates."
+msgstr "Na entrada, mostre seu QR ao terminal. O certificado sai na hora e aparece em Certificados."
+
+#: includes/shortcodes/class-ffc-agenda-app-screen.php
+msgid "Attendance recorded. Fill in what is missing on Certificates to receive the certificate."
+msgstr "Presença registrada. Preencha o que falta em Certificados para receber o certificado."
+
+#: includes/shortcodes/class-ffc-agenda-app-screen.php
+msgid "Complete in Certificates"
+msgstr "Completar em Certificados"
+
+#: includes/shortcodes/class-ffc-agenda-app-screen.php
+msgid "View in Certificates"
+msgstr "Ver em Certificados"
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "Once the terminal has read the QR, the card leads to Certificates: a reading that waits on profile data shows To complete with Complete in Certificates, where the missing data is filled in, and an issued certificate shows View in Certificates. The same reading appears under Pending on Home."
+msgstr "Depois que o terminal lê o QR, o card leva para Certificados: uma leitura que espera dados do perfil mostra Para completar com Completar em Certificados, onde o dado que falta é preenchido, e um certificado emitido mostra Ver em Certificados. A mesma leitura aparece em Pendências no Início."

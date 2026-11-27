@@ -254,12 +254,23 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( array(), $forms[0]['recorded'] );
 		$this->assertSame( 'I accept the LGPD terms', $forms[0]['consent'], 'showing the QR accepts it, so the app shows it first' );
 		$this->assertSame( 'https://example.test/privacy/', $forms[0]['terms'] );
+		$this->assertFalse( $forms[0]['awaiting'], 'no reading yet' );
 		$ticket = \FreeFormCertificate\Audience\AudiencePresenceTicket::verify( \FreeFormCertificate\Core\SigningKeys::unb64( $forms[0]['ticket'] ), self::NOW );
 		$this->assertSame( array( CertificateFormTarget::TYPE, self::FORM, self::USER ), array( $ticket['target_type'], $ticket['target_id'], $ticket['user_id'] ), 'the ticket names this form and this person' );
 
 		$this->db->rows[] = array( 'id' => 1, 'form_id' => self::FORM, 'user_id' => self::USER, 'terminal_id' => 3, 'read_at' => gmmktime( 9, 30, 0, 1, 15, 2027 ), 'result' => 'issued', 'reason' => '', 'missing' => null, 'submission_id' => 9, 'updated_at' => self::NOW );
 		$again = \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW );
 		$this->assertSame( array( array( 'date' => '2027-01-15', 'time' => '09:30' ) ), $again[0]['recorded'], 'issued: the app shows the line, not a code' );
+		$this->assertFalse( $again[0]['awaiting'] );
+
+		$this->db->rows[0]['result']  = 'awaiting_data';
+		$this->db->rows[0]['missing'] = '["school"]';
+		$waiting                      = \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW );
+		$this->assertTrue( $waiting[0]['awaiting'], 'recorded but waiting on profile data: the app sends the person to Certificates' );
+		$this->assertSame( array(), $waiting[0]['recorded'], 'not issued yet' );
+
+		$this->meta[ self::FORM ]['_ffc_geofence_config']['time_end'] = '23:59';
+		$this->assertSame( '09:00–23:59', \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW )[0]['time'], 'open to the end of the day reads 23:59, not the midnight it closes at' );
 
 		$this->meta[ self::FORM ]['_ffc_geofence_config']['time_end'] = '23:59';
 		$this->assertSame( '09:00–23:59', \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW )[0]['time'], 'open to the end of the day reads 23:59, not the midnight it closes at' );
