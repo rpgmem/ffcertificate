@@ -916,3 +916,83 @@ describe('presence app: the code on the event day only (#2842)', () => {
 		app.stop();
 	});
 });
+
+describe('presence app: after the terminal reads a certificate form (#2939)', () => {
+	const answer = (body) => vi.fn(() => Promise.resolve({ ok: true, headers: { get: () => null }, json: () => Promise.resolve(body) }));
+	const make = (fetch, navigate) => {
+		document.body.innerHTML = '<div data-ffc-presence><p data-ffc-presence-part="status"></p></div>';
+		const el = document.querySelector('[data-ffc-presence]');
+		const strings = { goIssued: 'go issued', goComplete: 'go complete' };
+		return new (P().App)(el, { rest: '/wp-json/ffc/v1/presence/', nonce: 'n', userId: USER, strings }, { store: null, fetch, now: () => NOW * 1000, navigate });
+	};
+	const form = { target_type: 'certificate_form', target_id: 40 };
+
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	it('asks only while a certificate form\'s code is up, and stops for anything else', () => {
+		const app = make(answer({ status: 'none', url: '' }), vi.fn());
+		app.watch({ target_type: 'audience_booking', target_id: 9 });
+		expect(app.watching).toBeNull();
+		app.watch(form);
+		expect(app.watching.key).toBe('certificate_form:40');
+		const timer = app.watching.timer;
+		app.watch(form);
+		expect(app.watching.timer).toBe(timer, 'the same code keeps the same question');
+		app.watch(null);
+		expect(app.watching).toBeNull();
+	});
+
+	it('asks the site about the form, from shortly before the code went up', async () => {
+		const fetch = answer({ status: 'none', url: '' });
+		const navigate = vi.fn();
+		const app = make(fetch, navigate);
+		app.watch(form);
+		await app.check(40, NOW - 30, 'certificate_form:40');
+		expect(fetch.mock.calls[0][0]).toMatch(/^\/wp-json\/ffc\/v1\/presence\/reading\?form=40&since=1799999970&_ffc=\d+$/);
+		expect(navigate).not.toHaveBeenCalled();
+		expect(app.watching).not.toBeNull();
+		app.unwatch();
+	});
+
+	it('takes the person to Certificates once issued', async () => {
+		const navigate = vi.fn();
+		const app = make(answer({ status: 'issued', url: 'https://example.test/app/s/certificates/' }), navigate);
+		app.watch(form);
+		expect(await app.check(40, NOW, 'certificate_form:40')).toBe('issued');
+		expect(navigate).toHaveBeenCalledWith('https://example.test/app/s/certificates/');
+		expect(app.watching).toBeNull();
+		expect(document.querySelector('[data-ffc-presence-part="status"]').textContent).toBe('go issued');
+	});
+
+	it('takes the person to the form to complete when data is missing', async () => {
+		const navigate = vi.fn();
+		const url = 'https://example.test/app/s/certificates/?ffc_complete=40&ffc_invite=c.7.x';
+		const app = make(answer({ status: 'awaiting', url }), navigate);
+		app.watch(form);
+		expect(await app.check(40, NOW, 'certificate_form:40')).toBe('awaiting');
+		expect(navigate).toHaveBeenCalledWith(url);
+	});
+
+	it('keeps the code up after a refusal, a failed request or another item', async () => {
+		const navigate = vi.fn();
+		const refused = make(answer({ status: 'refused', url: '' }), navigate);
+		refused.watch(form);
+		expect(await refused.check(40, NOW, 'certificate_form:40')).toBeNull();
+		expect(refused.watching).not.toBeNull();
+		refused.unwatch();
+
+		const offline = make(vi.fn(() => Promise.reject(new Error('offline'))), navigate);
+		offline.watch(form);
+		expect(await offline.check(40, NOW, 'certificate_form:40')).toBeNull();
+		expect(offline.checking).toBe(false, 'the next turn may ask again');
+		offline.unwatch();
+
+		const moved = make(answer({ status: 'issued', url: 'https://example.test/x' }), navigate);
+		moved.watch({ target_type: 'certificate_form', target_id: 41 });
+		expect(await moved.check(40, NOW, 'certificate_form:40')).toBeNull();
+		moved.unwatch();
+		expect(navigate).not.toHaveBeenCalled();
+	});
+});

@@ -719,6 +719,35 @@ class CertificateFormTargetTest extends TestCase {
 		$_GET = array();
 	}
 
+	public function test_the_app_learns_what_the_terminal_made_of_the_code_it_showed(): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( array( 'ffc_form:' . self::FORM => 0 ) );
+		$none = array(
+			'status' => 'none',
+			'url'    => '',
+		);
+
+		$this->assertSame( $none, CertificateCompletionLink::reading_outcome( self::FORM, self::USER, self::NOW ), 'nothing read yet (#2939)' );
+
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'label' => 'School', 'type' => 'text', 'required' => '1' );
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+		$this->assertSame( 'awaiting', CertificateCompletionLink::reading_outcome( self::FORM, self::USER, 0 )['status'] );
+		$this->assertSame( $none, CertificateCompletionLink::reading_outcome( self::FORM, self::USER, PHP_INT_MAX ), 'a reading from before the code went up is not this one' );
+
+		$this->db->rows[0]['result'] = CertificateTerminalReadingRepository::ISSUED;
+		$this->assertSame( 'issued', CertificateCompletionLink::reading_outcome( self::FORM, self::USER, 0 )['status'] );
+
+		$this->db->rows[0]['result'] = CertificateTerminalReadingRepository::REFUSED;
+		$this->assertSame(
+			array(
+				'status' => 'refused',
+				'url'    => '',
+			),
+			CertificateCompletionLink::reading_outcome( self::FORM, self::USER, 0 ),
+			'a refusal keeps the person on the code'
+		);
+	}
+
 	public function test_the_filter_answers_only_its_own_codes(): void {
 		$this->assertNull( CertificateCompletionLink::filter( null, self::FORM, '5.7.abcdefghijklmnopqrstuv' ), 'an audience invitation is left to its resolver' );
 		$this->assertSame( array( 'user_id' => 3 ), CertificateCompletionLink::filter( array( 'user_id' => 3 ), self::FORM, 'c.7.x' ), 'an earlier answer stands' );

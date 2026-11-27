@@ -37709,8 +37709,8 @@ msgstr "Para completar"
 msgid "Fill in the missing data"
 msgstr "Preencher os dados que faltam"
 
-msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and its button opens the form on that screen, filled from the profile, so the form needs no page of its own. Home lists it under Pending, and the e-mail links to the same screen, so a lost e-mail does not lose the certificate. Without the app, the e-mail links to the form's page, when one is published."
-msgstr "No app, a tela Certificados o lista em Para completar, com os campos que ainda faltam e a data em que o link fecha, e seu botão abre o formulário nessa mesma tela, preenchido pelo perfil, de modo que o formulário não precisa de uma página própria. O Início o lista em Pendências, e o e-mail leva à mesma tela, de modo que um e-mail perdido não perde o certificado. Sem o app, o e-mail leva à página do formulário, quando houver uma publicada."
+msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and its button opens the form on that screen, filled from the profile, so the form needs no page of its own. Home lists it under Pending, and the e-mail links to the same screen, so a lost e-mail does not lose the certificate. Without the app, the e-mail links to the form's page, when one is published. A person who showed the QR in the app does not need to look for it: once the terminal reads the code, the app opens Certificates when the certificate was issued, or the form to complete when data is missing."
+msgstr "No app, a tela Certificados o lista em Para completar, com os campos que ainda faltam e a data em que o link fecha, e seu botão abre o formulário nessa mesma tela, preenchido pelo perfil, de modo que o formulário não precisa de uma página própria. O Início o lista em Pendências, e o e-mail leva à mesma tela, de modo que um e-mail perdido não perde o certificado. Sem o app, o e-mail leva à página do formulário, quando houver uma publicada. Quem mostrou o QR no app não precisa procurá-lo: assim que o terminal lê o código, o app abre Certificados quando o certificado foi emitido, ou o formulário para completar quando falta algum dado."
 
 msgid "Attendance recorded. The certificate reaches your app when the terminal syncs."
 msgstr "Presença registrada. O certificado chega ao seu app quando o terminal sincronizar."
@@ -37880,3 +37880,9 @@ msgstr "Este certificado pertence a outra conta. Entre com a conta que mostrou o
 
 msgid "Your attendance is recorded. Fill in what is missing and send the form to receive the certificate."
 msgstr "Sua presença está registrada. Preencha o que falta e envie o formulário para receber o certificado."
+
+msgid "Certificate issued. Opening your certificates…"
+msgstr "Certificado emitido. Abrindo seus certificados…"
+
+msgid "Attendance recorded. Opening the form to finish your certificate…"
+msgstr "Presença registrada. Abrindo o formulário para concluir seu certificado…"
