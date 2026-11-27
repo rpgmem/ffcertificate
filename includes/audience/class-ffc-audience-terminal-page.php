@@ -643,6 +643,8 @@ final class AudienceTerminalPage {
 						'now'           => __( 'Now', 'ffcertificate' ),
 						'remove'        => __( 'Remove', 'ffcertificate' ),
 						'confirmRemove' => __( 'Tap again to remove', 'ffcertificate' ),
+						/* translators: %s: GPS location name */
+						'follows'       => __( 'Follows %s: what is created for this place joins on its own, and what ends leaves.', 'ffcertificate' ),
 						'add'           => __( 'Add', 'ffcertificate' ),
 						'full'          => __( 'Full', 'ffcertificate' ),
 						'saved'         => __( 'Events updated.', 'ffcertificate' ),

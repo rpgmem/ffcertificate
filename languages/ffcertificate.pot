@@ -36454,9 +36454,6 @@ msgstr ""
 msgid "This operator may not change the terminal's events."
 msgstr ""
 
-msgid "The operator menu has two columns: the actions and the device check on one side, and on the other the events on this terminal, soonest first, with the one checking in now marked Now. An operator who holds ffc_manage_audiences_terminals, or an administrator, may change them there, whoever paired the terminal: Remove takes an event out after a second tap, and Add event lists the events the terminal can take. The rules are those of the app's Change events, a refusal says why on the screen, and the change is written to the activity log in that operator's name. Anyone else who may check people in sees the events without changing them."
-msgstr ""
-
 msgid "Auditorium entrance"
 msgstr ""
 
@@ -37441,4 +37438,10 @@ msgid "To pair: on the terminal, an operator taps the lock, shows the operator Q
 msgstr ""
 
 msgid "Under the terminal path, the tab lists the terminals that hold the event, each with when it was last seen, how many readings it holds unsent and View, which opens Presence terminals, beside how many of those allowed per event are in use. In the side column, Attendance now counts who is present out of those expected and splits the day's attendance by path (terminal, projected QR code and by hand); someone recorded by two paths counts once. While a terminal holds readings it has not sent, a warning names it and when it was last seen, since the list may be incomplete until it does."
+msgstr ""
+
+msgid "Follows %s: what is created for this place joins on its own, and what ends leaves."
+msgstr ""
+
+msgid "The operator menu has two columns: the actions and the device check on one side, and on the other the events on this terminal, soonest first, with the one checking in now marked Now. An operator who holds ffc_manage_audiences_terminals, or an administrator, may change them there, whoever paired the terminal: Remove takes an event out after a second tap, and Add event lists the events the terminal can take. The rules are those of the app's Change events, a refusal says why on the screen, and the change is written to the activity log in that operator's name. Anyone else who may check people in sees the events without changing them. A terminal paired to a place shows the place it follows instead, with no Remove or Add event, since its events are the place's."
 msgstr ""

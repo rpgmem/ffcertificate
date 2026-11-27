@@ -338,6 +338,7 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 			<p class="ffc-terminal-note" data-ffc-terminal-part="queue-summary"></p>
 			<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="queue-list"></ul>
 			<p class="ffc-terminal-error" role="alert" data-ffc-terminal-part="queue-error" hidden></p>
+			<p class="ffc-terminal-note ffc-icon-map-pin" data-ffc-terminal-part="queue-follows" hidden></p>
 			<p class="ffc-terminal-note" data-ffc-terminal-part="queue-locked" hidden><?php esc_html_e( 'Only an operator who may pair terminals changes its events, here or in the app.', 'ffcertificate' ); ?></p>
 			<div class="ffc-terminal-actions" data-ffc-terminal-part="queue-edit" hidden>
 				<?php

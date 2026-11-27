@@ -917,6 +917,8 @@
                 return null;
             }
             state.label = body.label || '';
+            state.location = body.location || '';
+            state.location_name = body.location_name || '';
             state.bookings = body.bookings || [];
             state.schedule = body.schedule || [];
             if (body.expires_at) {
@@ -980,6 +982,10 @@
             }
             var plan = state.schedule || [];
             var bookings = state.bookings || [];
+            // A terminal paired to a place follows it (#2900): its queue is
+            // the place's, so nobody edits it here.
+            var follows = !!state.location;
+            var editable = menuMayEdit && !follows;
             plan.forEach(function (entry) {
                 var meta = [entry.place, entry.hours || entry.opens_label].filter(Boolean).join(' · ');
                 var item = queueItem(entry.title || '', meta);
@@ -990,7 +996,7 @@
                     item.insertBefore(now, item.firstChild);
                     item.classList.add('is-open');
                 }
-                if (menuMayEdit) {
+                if (editable) {
                     var remove = queueButton(queueEdit.remove || '', 'danger', 'cross');
                     var held = undefined !== entry.target ? entry.target : entry.booking_id;
                     remove.setAttribute('data-ffc-terminal-remove', String(held));
@@ -1008,8 +1014,10 @@
                 list.appendChild(item);
             });
             part('queue-summary').textContent = fill(queueEdit.summary || '%1$d / %2$d', [bookings.length, queueEdit.max || 10]);
-            part('queue-edit').hidden = !menuMayEdit;
-            part('queue-locked').hidden = menuMayEdit;
+            part('queue-edit').hidden = !editable;
+            part('queue-locked').hidden = menuMayEdit || follows;
+            part('queue-follows').textContent = follows ? fill(queueEdit.follows || '%s', [state.location_name || state.location]) : '';
+            part('queue-follows').hidden = !follows;
             part('queue-add').hidden = true;
         }
 
@@ -1215,7 +1223,7 @@
                 clockCheck();
                 show('menu');
                 var empty = !(current().bookings || []).length;
-                part(empty && menuMayEdit ? 'queue-open-add' : 'menu-close').focus();
+                part(empty && menuMayEdit && !current().location ? 'queue-open-add' : 'menu-close').focus();
                 armMenu();
                 return result.body;
             });
