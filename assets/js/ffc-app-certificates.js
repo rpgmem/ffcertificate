@@ -142,6 +142,7 @@
         var strings = self.config.strings;
         var card = withClass('article', 'ffc-app-certificate-card');
         var top = withClass('p', 'ffc-app-certificate-meta');
+        top.appendChild(withClass('span', 'ffc-app-certificate-status ffc-app-certificate-status-valid', strings.valid));
         if (self.isNew(item)) {
             top.appendChild(withClass('span', 'ffc-app-certificate-badge', strings.new));
         }
@@ -182,6 +183,7 @@
         }
         var text = withClass('span', 'ffc-app-certificate-text');
         text.appendChild(withClass('span', 'ffc-app-certificate-name', item.form_title || ''));
+        text.appendChild(withClass('span', 'ffc-app-certificate-status ffc-app-certificate-status-valid', strings.valid));
         text.appendChild(withClass('span', 'ffc-app-certificate-when', [item.submission_date, item.auth_code ? format(strings.code, item.auth_code) : ''].filter(Boolean).join(' · ')));
         body.appendChild(text);
         if (item.pdf_url) {

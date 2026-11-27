@@ -41,14 +41,15 @@ $to_complete = isset( $to_complete ) && is_array( $to_complete ) ? $to_complete 
 								?>
 							</p>
 						<?php endif; ?>
-						<?php if ( '' !== ( $ffc_item['code'] ?? '' ) ) : ?>
-							<p class="ffc-app-certificates-complete-meta">
+						<p class="ffc-app-certificates-complete-meta ffc-app-certificates-complete-state">
+							<span class="ffc-app-certificate-status ffc-app-certificate-status-incomplete"><?php esc_html_e( 'Incomplete', 'ffcertificate' ); ?></span>
+							<?php if ( '' !== ( $ffc_item['code'] ?? '' ) ) : ?>
 								<?php
 								/* translators: %s: the certificate's authentication code */
 								echo esc_html( sprintf( __( 'Code %s', 'ffcertificate' ), $ffc_item['code'] ) );
 								?>
-							</p>
-						<?php endif; ?>
+							<?php endif; ?>
+						</p>
 						<p class="ffc-app-certificates-complete-meta">
 							<?php
 							/* translators: %s: the date the completion link closes */
