@@ -77,7 +77,7 @@ const CONFIG = {
 			listEvent: 'Next 7 days', listPlace: 'At this place', noneEvent: 'none', nonePlace: 'nothing here yet',
 			overlap: 'Crosses %1$s, at %2$s', chooseLocation: 'choose a place',
 		},
-		queueEdit: { now: 'Now', remove: 'Remove', confirmRemove: 'Tap again', add: 'Add', full: 'Full', saved: 'Updated.', summary: '%1$d of %2$d events', max: 10 },
+		queueEdit: { follows: 'follows %s', now: 'Now', remove: 'Remove', confirmRemove: 'Tap again', add: 'Add', full: 'Full', saved: 'Updated.', summary: '%1$d of %2$d events', max: 10 },
 		titles: { ffc_terminal_other_event: 'Other event', ffc_presence_code_revoked: 'Phone replaced' },
 		wakeUnsupported: 'cannot keep the screen on',
 		wakeRefused: 'screen on refused',
@@ -192,6 +192,7 @@ function markup() {
 				<p data-ffc-terminal-part="queue-summary"></p>
 				<ul data-ffc-terminal-part="queue-list"></ul>
 				<p data-ffc-terminal-part="queue-error" hidden></p>
+				<p data-ffc-terminal-part="queue-follows" hidden></p>
 				<p data-ffc-terminal-part="queue-locked" hidden></p>
 				<div data-ffc-terminal-part="queue-edit" hidden><button type="button" data-ffc-terminal-part="queue-open-add">Add event</button></div>
 				<div data-ffc-terminal-part="queue-add" hidden>
@@ -686,6 +687,21 @@ describe('reading', () => {
 		await settle();
 		const second = c.calls.filter((call) => 'PUT' === call[0]).pop();
 		expect(JSON.parse(second[2].body).bookings).toEqual([11]);
+	});
+
+	it('names the place a terminal follows in the menu and offers no change to its events (#2900)', async () => {
+		const c = paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'GET self': [200, { label: 'Gate', location: 'loc_a', location_name: 'EMEF Paulo Freire', bookings: [11], schedule: [{ booking_id: 11, title: 'Workshop', hours: '09:00–11:00', open: true }], expires_at: NOW + 7200, expires_label: 'later' }],
+		});
+		await c.controls.refreshSchedule();
+		await submit('FFO1OPERATOR');
+		expect(text('queue-follows')).toBe('follows EMEF Paulo Freire');
+		expect(el.querySelector('[data-ffc-terminal-part="queue-follows"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="queue-edit"]').hidden).toBe(true, 'no Add event');
+		expect(el.querySelector('[data-ffc-terminal-part="queue-locked"]').hidden).toBe(true);
+		expect(el.querySelectorAll('[data-ffc-terminal-remove]')).toHaveLength(0, 'no Remove');
+		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="menu-close"]'));
 	});
 
 	it('says why the site refused a change to the events', async () => {

@@ -660,6 +660,8 @@ class AudienceTerminalRestController {
 			array(
 				'label'         => $terminal['label'],
 				'location'      => $terminal['location_id'],
+				// Its name, for the operator menu: a terminal that follows a place has no queue to edit.
+				'location_name' => self::location_name( $terminal['location_id'] ),
 				'bookings'      => $terminal['targets'],
 				'expires_at'    => $terminal['expires_at'],
 				'expires_label' => DateFormatter::format_datetime( $terminal['expires_at'] ),
