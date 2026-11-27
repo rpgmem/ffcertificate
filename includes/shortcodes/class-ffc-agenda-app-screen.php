@@ -20,6 +20,7 @@ use FreeFormCertificate\Audience\AudiencePresenceEvents;
 use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\ShortcodePage;
+use FreeFormCertificate\Settings\SettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -78,9 +79,9 @@ final class AgendaAppScreen {
 				'nonce'    => wp_create_nonce( 'wp_rest' ),
 				'today'    => current_time( 'Y-m-d' ),
 				'dates'    => DateFormatter::script_config(),
-				'presence' => in_array( 'audience', $tabs, true ) && current_user_can( AudienceAppScreens::PARTICIPANT_CAPABILITY ),
+				'presence' => self::presents(),
 				'book'     => in_array( 'appointments', $tabs, true ) ? self::bookable() : array(),
-				'forms'    => self::forms( $tabs ),
+				'forms'    => self::forms(),
 				'strings'  => array(
 					'loading'   => __( 'Loading your calendar…', 'ffcertificate' ),
 					'failed'    => __( 'Your calendar could not be loaded. Check the connection and try again.', 'ffcertificate' ),
@@ -114,14 +115,25 @@ final class AgendaAppScreen {
 	}
 
 	/**
+	 * Whether this person has the Presence screen: the conditions the app
+	 * checks for it, not the audience tab. A certificate form is open to
+	 * anyone it lists, so a person in no audience group still presents
+	 * their QR for it (#2893).
+	 *
+	 * @return bool
+	 */
+	public static function presents(): bool {
+		return SettingsReader::module_enabled( 'audiences' ) && current_user_can( AudienceAppScreens::PARTICIPANT_CAPABILITY );
+	}
+
+	/**
 	 * The certificate forms a terminal reads that this person may present
 	 * (#2893), as day cards: the same list the Presence screen draws.
 	 *
-	 * @param array<int, string> $tabs The dashboard tabs this person sees.
 	 * @return list<array{date: string, title: string, when: string, issued: bool, ticket: bool, consent: string, terms: string}>
 	 */
-	public static function forms( array $tabs ): array {
-		if ( ! in_array( 'audience', $tabs, true ) || ! current_user_can( AudienceAppScreens::PARTICIPANT_CAPABILITY ) ) {
+	public static function forms(): array {
+		if ( ! self::presents() ) {
 			return array();
 		}
 		$out = array();

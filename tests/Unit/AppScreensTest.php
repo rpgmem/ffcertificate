@@ -335,6 +335,7 @@ class AppScreensTest extends TestCase {
 		// The ids above are calendars, not published certificate forms.
 		Functions\when( 'get_post' )->justReturn( null );
 
+		$this->settings['module_audiences_enabled'] = true;
 		$html = AgendaAppScreen::render( array( 'audience' ) );
 
 		$this->assertStringContainsString( 'data-ffc-app-agenda', $html );
@@ -348,6 +349,19 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( array(), $config['book'], 'no personal calendars without the appointments tab' );
 		$this->assertSame( '2026-11-21', $config['today'] );
 		$this->assertStringContainsString( '%d', $config['strings']['past'] );
+	}
+
+	public function test_the_agenda_offers_presence_by_the_screens_own_conditions_not_the_audience_tab(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->assertFalse( AgendaAppScreen::presents(), 'Audience Calendars off: no Presence screen' );
+		$this->assertSame( array(), AgendaAppScreen::forms() );
+
+		$this->settings['module_audiences_enabled'] = true;
+		$this->assertTrue( AgendaAppScreen::presents(), 'a participant in no audience group still presents a certificate form (#2893)' );
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->assertFalse( AgendaAppScreen::presents(), 'without the participant capability' );
+		$this->assertSame( array(), AgendaAppScreen::forms() );
 	}
 
 	public function test_the_book_links_take_the_apps_address_when_site_pwa_gives_one(): void {

@@ -147,7 +147,7 @@ final class AudiencePresenceEvents {
 				'title'        => $form['title'],
 				'place'        => '',
 				'date'         => $label,
-				'time'         => DateFormatter::format_time( $form['opens'] ) . '–' . DateFormatter::format_time( $form['closes'] ),
+				'time'         => DateFormatter::format_time( $form['opens'] ) . '–' . DateFormatter::format_time( self::last_minute( $form['closes'] ) ),
 				'first_date'   => $day,
 				'last_date'    => $day,
 				'days'         => array(
@@ -168,6 +168,20 @@ final class AudiencePresenceEvents {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * The last minute a form takes readings, for its hours as people read
+	 * them. A form open to 23:59 closes at the next midnight, which would
+	 * read as "00:00"; a window never spans days, so a closing at midnight
+	 * can only be that one (#2893).
+	 *
+	 * @param int $closes Unix time the form closes.
+	 * @return int
+	 */
+	private static function last_minute( int $closes ): int {
+		$local = ( new \DateTimeImmutable( '@' . $closes ) )->setTimezone( wp_timezone() );
+		return '00:00' === $local->format( 'H:i' ) ? $closes - MINUTE_IN_SECONDS : $closes;
 	}
 
 	/**
