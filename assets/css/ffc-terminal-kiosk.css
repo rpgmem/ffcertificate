@@ -1005,6 +1005,14 @@ label.ffc-terminal-setup-choice {
 	display: none;
 }
 
+/* The error that stopped the start (#2910), for the team to report. */
+.ffc-terminal-boot-error {
+	display: block;
+	margin-top: var(--ffc-spacing-md);
+	font-size: var(--ffc-font-size-sm);
+	overflow-wrap: anywhere;
+}
+
 @keyframes ffc-terminal-boot-show {
 	to {
 		visibility: visible;

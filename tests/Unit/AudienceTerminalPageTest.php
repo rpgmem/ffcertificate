@@ -206,6 +206,7 @@ class AudienceTerminalPageTest extends TestCase {
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_add_inline_script' )->justReturn( true );
 		Functions\when( 'wp_print_styles' )->alias( static function ( $handles ) use ( &$printed ) {
 			$printed[] = 'style:' . implode( ',', $handles );
 		} );
@@ -245,6 +246,11 @@ class AudienceTerminalPageTest extends TestCase {
 			$localized[ $handle ] = array( $name, $data );
 			return true;
 		} );
+		$inline = array();
+		Functions\when( 'wp_add_inline_script' )->alias( static function ( $handle, $data, $position = 'after' ) use ( &$inline ) {
+			$inline[] = array( $handle, $position, $data );
+			return true;
+		} );
 		Functions\when( 'wp_print_styles' )->alias( static function ( $handles ) use ( &$printed ) {
 			$printed[] = 'style:' . implode( ',', $handles );
 		} );
@@ -261,6 +267,8 @@ class AudienceTerminalPageTest extends TestCase {
 
 		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="en-US" class="ffc-dark-mode"><head>', $html, 'a terminal is always dark, whatever the site\'s setting (#2780)' );
 		$this->assertStringContainsString( '<body class="ffc-shortcode ffc-terminal-page ffc-terminal-kiosk-page">', $html );
+		$this->assertSame( array( 'ffc-presence-verifier', 'before' ), array_slice( $inline[0], 0, 2 ), 'the error catcher runs before the terminal\'s scripts (#2910)' );
+		$this->assertStringContainsString( 'data-ffc-terminal-part', $inline[0][2] );
 		$this->assertStringContainsString( 'data-ffc-terminal', $html );
 		$this->assertStringContainsString( '<meta name="robots" content="noindex,nofollow,noarchive">', $html );
 		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/?ffc_terminal=manifest">', $html );
@@ -317,6 +325,7 @@ class AudienceTerminalPageTest extends TestCase {
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_add_inline_script' )->justReturn( true );
 		Functions\when( 'wp_print_styles' )->justReturn( null );
 		Functions\when( 'wp_print_scripts' )->justReturn( null );
 		Functions\when( 'esc_url_raw' )->returnArg();

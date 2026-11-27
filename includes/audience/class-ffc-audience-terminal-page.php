@@ -507,6 +507,13 @@ final class AudienceTerminalPage {
 	}
 
 	/**
+	 * Writes a script error into the boot note while it is still shown
+	 * (#2910): the message, the file and the line. Plain ES5, so it runs on
+	 * whatever browser the terminal's own script failed on.
+	 */
+	private const BOOT_ERROR_SCRIPT = "window.addEventListener('error',function(e){var n=document.querySelector('[data-ffc-terminal-part=\\\"boot\\\"]');if(!n||n.hidden){return;}var f=String(e.filename||'').split('?')[0].split('/').pop();var d=document.createElement('code');d.className='ffc-terminal-boot-error';d.textContent=String(e.message||'error')+(f?' ('+f+':'+(e.lineno||0)+')':'');n.appendChild(d);});";
+
+	/**
 	 * The install script: the banner on the page, the states on the install
 	 * page (#2813). It reads its words from the markup, so it needs no data.
 	 *
@@ -545,6 +552,10 @@ final class AudienceTerminalPage {
 			FFC_VERSION,
 			true
 		);
+		// Before the terminal's own scripts (#2910): an error while they load
+		// or start is written into the boot note, so a terminal that cannot
+		// start says why on its own screen, where the team can photograph it.
+		wp_add_inline_script( 'ffc-presence-verifier', self::BOOT_ERROR_SCRIPT, 'before' );
 		wp_enqueue_script(
 			'ffc-terminal-kiosk',
 			FFC_PLUGIN_URL . "assets/js/ffc-terminal-kiosk{$suffix}.js",
