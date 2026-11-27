@@ -206,14 +206,14 @@ class CertificateFormTargetTest extends TestCase {
 		$this->meta[ self::FORM ]['_ffc_form_config'][ CertificateFormTarget::CONFIG_KEY ]['who'] = CertificateFormTarget::WHO_ALLOWLIST;
 		$this->meta[ self::FORM ]['_ffc_form_config']['allowed_users_list']                       = self::CPF;
 		$this->assertTrue( CertificateFormTarget::lists_person( self::FORM, self::CPF ), 'on the allow list' );
-		$this->assertFalse( CertificateFormTarget::lists_person( self::FORM, '12345678909' ), 'off the allow list' );
+		$this->assertFalse( CertificateFormTarget::lists_person( self::FORM, \FreeFormCertificate\Tests\Support\Identifiers::CPF_B ), 'off the allow list' );
 		$this->assertFalse( CertificateFormTarget::lists_person( self::FORM, '' ), 'a list needs the CPF/RF' );
 
 		$this->meta[ self::FORM ]['_ffc_form_config'][ CertificateFormTarget::CONFIG_KEY ]['who'] = CertificateFormTarget::WHO_ANY;
 		$this->meta[ self::FORM ]['_ffc_form_config']['restrictions']                             = array( 'denylist' => '1', 'ticket' => '1', 'password' => '1' );
 		$this->meta[ self::FORM ]['_ffc_form_config']['denied_users_list']                        = self::CPF;
 		$this->assertFalse( CertificateFormTarget::lists_person( self::FORM, self::CPF ), 'on the deny list' );
-		$this->assertTrue( CertificateFormTarget::lists_person( self::FORM, '12345678909' ), 'the ticket and the password never hide a form' );
+		$this->assertTrue( CertificateFormTarget::lists_person( self::FORM, \FreeFormCertificate\Tests\Support\Identifiers::CPF_B ), 'the ticket and the password never hide a form' );
 		$this->assertTrue( CertificateFormTarget::asks_ticket( self::FORM ) );
 	}
 
