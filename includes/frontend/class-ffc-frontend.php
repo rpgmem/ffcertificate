@@ -96,6 +96,11 @@ class Frontend {
 
 		// #836 (P2) — keep the certificate-verification page out of search indexes.
 		add_filter( 'wp_robots', array( $this, 'verification_page_robots' ) );
+		// Inside Site PWA's app the verification page drops Share, Copy link
+		// and Open on the site (#2952): its address carries no certificate,
+		// the token lives in the fragment. Priority 10, two args: the post is
+		// what decides.
+		add_filter( 'site_pwa_post_actions', array( $this, 'app_post_actions' ), 10, 2 );
 
 		add_shortcode( 'ffc_form', array( $this->shortcodes, 'render_form' ) );
 		add_shortcode( 'ffc_verification', array( $this->shortcodes, 'render_verification_page' ) );
@@ -134,15 +139,37 @@ class Frontend {
 			return $robots;
 		}
 
-		$verification_page_id = (int) get_option( 'ffc_verification_page_id', 0 );
-		$is_verification_page = ( $verification_page_id > 0 && (int) $post->ID === $verification_page_id )
-			|| has_shortcode( $post->post_content, 'ffc_verification' );
-
-		if ( $is_verification_page ) {
+		if ( self::is_verification_page( $post ) ) {
 			$robots['noindex'] = true;
 		}
 
 		return $robots;
+	}
+
+	/**
+	 * Whether Site PWA draws Share, Copy link and Open on the site under a
+	 * post (#2952). Not under the verification page: its address names no
+	 * certificate, since the token travels in the fragment, so the three
+	 * would hand out a page that shows someone else nothing. A certificate
+	 * is shared as the downloaded file.
+	 *
+	 * @param bool     $show Whether the app would draw them.
+	 * @param \WP_Post $post The post drawn in the app.
+	 */
+	public function app_post_actions( bool $show, \WP_Post $post ): bool {
+		return $show && ! self::is_verification_page( $post );
+	}
+
+	/**
+	 * The page set as the verification page, or any page carrying
+	 * `[ffc_verification]`.
+	 *
+	 * @param \WP_Post $post The post to test.
+	 */
+	private static function is_verification_page( \WP_Post $post ): bool {
+		$verification_page_id = (int) get_option( 'ffc_verification_page_id', 0 );
+		return ( $verification_page_id > 0 && (int) $post->ID === $verification_page_id )
+			|| has_shortcode( $post->post_content, 'ffc_verification' );
 	}
 
 	/**

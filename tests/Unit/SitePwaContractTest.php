@@ -89,6 +89,7 @@ final class SitePwaContractTest extends TestCase {
 			'identity sources'            => array( 'includes/shortcodes/class-ffc-app-look.php', 'site_pwa_identity_sources', 1 ),
 			'scheme sources'              => array( 'includes/shortcodes/class-ffc-app-look.php', 'site_pwa_scheme_sources', 1 ),
 			'dark root classes'           => array( 'includes/shortcodes/class-ffc-app-look.php', 'site_pwa_dark_root_classes', 1 ),
+			'post actions'                => array( 'includes/frontend/class-ffc-frontend.php', 'site_pwa_post_actions', 2 ),
 		);
 	}
 
@@ -104,7 +105,7 @@ final class SitePwaContractTest extends TestCase {
 	public function test_each_consumer_registers_its_hook( string $path, string $hook, int $arity ): void {
 		$tail = 1 === $arity ? '(?:,\s*10\s*,\s*1\s*)?\)\s*;' : ',\s*10\s*,\s*' . $arity . '\s*\)';
 		$this->assertMatchesRegularExpression(
-			'/add_(?:action|filter)\(\s*\'' . preg_quote( $hook, '/' ) . '\'\s*,\s*array\(\s*self::class\s*,\s*\'[a-z_]+\'\s*\)\s*' . $tail . '/',
+			'/add_(?:action|filter)\(\s*\'' . preg_quote( $hook, '/' ) . '\'\s*,\s*array\(\s*(?:self::class|\$this)\s*,\s*\'[a-z_]+\'\s*\)\s*' . $tail . '/',
 			self::source( $path ),
 			$hook . ' is no longer registered with ' . $arity . ' arguments in ' . $path . '.'
 		);
