@@ -37633,3 +37633,24 @@ msgstr ""
 
 msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and Home lists it under Pending; both open the same link the e-mail carries, so a lost e-mail does not lose the certificate."
 msgstr ""
+
+msgid "Attendance recorded. The certificate reaches your app when the terminal syncs."
+msgstr ""
+
+msgid "Organisers: restore the terminal's connection. Participants: use the form page projected at the event."
+msgstr ""
+
+msgid "Reading is paused: the form on screen asks for a ticket, which needs the connection. Restore it and reading resumes on its own."
+msgstr ""
+
+msgid "Reading paused"
+msgstr ""
+
+msgid "Reading resumes on its own when the connection returns."
+msgstr ""
+
+msgid "This form asks for a ticket, which the terminal checks with the site, and the terminal is offline."
+msgstr ""
+
+msgid "Offline, a form without a ticket keeps each reading with its time and tells the person the certificate reaches the app when the terminal syncs. A form with a ticket shows Reading paused instead, with the reason in the operator menu too, and asks participants to use the form page projected at the event; reading resumes on its own when the connection returns."
+msgstr ""

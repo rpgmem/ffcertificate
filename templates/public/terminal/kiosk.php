@@ -285,6 +285,14 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 		</form>
 	</section>
 
+	<section class="ffc-terminal-view" data-ffc-terminal-view="paused" hidden>
+		<div class="ffc-terminal-badge" aria-hidden="true"><?php echo Icons::svg( 'wifi', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
+		<h2><?php esc_html_e( 'Reading paused', 'ffcertificate' ); ?></h2>
+		<p class="ffc-terminal-lead" role="status"><?php esc_html_e( 'This form asks for a ticket, which the terminal checks with the site, and the terminal is offline.', 'ffcertificate' ); ?></p>
+		<p class="ffc-terminal-lead"><?php esc_html_e( 'Organisers: restore the terminal\'s connection. Participants: use the form page projected at the event.', 'ffcertificate' ); ?></p>
+		<p class="ffc-terminal-note"><?php esc_html_e( 'Reading resumes on its own when the connection returns.', 'ffcertificate' ); ?></p>
+	</section>
+
 	<section class="ffc-terminal-view" data-ffc-terminal-view="between" hidden>
 		<p class="ffc-terminal-kicker"><?php esc_html_e( 'Next event', 'ffcertificate' ); ?></p>
 		<h2 data-ffc-terminal-part="next-title"></h2>
@@ -333,6 +341,7 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 		<p class="ffc-terminal-note"><?php esc_html_e( 'The menu locks again after two minutes without use.', 'ffcertificate' ); ?></p>
 		<p class="ffc-terminal-note ffc-icon-warning" data-ffc-terminal-part="wake-note" hidden></p>
 		<p class="ffc-terminal-note ffc-icon-warning" data-ffc-terminal-part="clock-note" hidden></p>
+		<p class="ffc-terminal-note ffc-icon-warning" data-ffc-terminal-part="paused-note" hidden></p>
 		<div class="ffc-terminal-actions" data-ffc-terminal-part="menu-ask">
 			<?php
 			Button::render(

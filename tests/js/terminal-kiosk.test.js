@@ -83,10 +83,14 @@ const CONFIG = {
 			ffc_terminal_issued: 'Certificate issued', ffc_terminal_already_issued: 'Certificate already issued',
 			ffc_terminal_awaiting_data: 'Attendance recorded', ffc_terminal_ticket_refused: 'Ticket not accepted',
 			ffc_terminal_ticket_required: 'Ticket first',
+			ffc_terminal_ticket_offline: 'Ticket needs the connection', ffc_terminal_certificate_queued: 'Attendance recorded',
 		},
 		ticketHeld: 'Ticket %1$s · %2$d s',
 		ticketEmpty: 'type the ticket',
 		ticketFirst: 'type the ticket, then show the QR',
+		queuedCertificate: 'certificate on sync',
+		pausedLead: 'ticket needs the connection',
+		pausedMenu: 'paused: ticket form offline',
 		wakeUnsupported: 'cannot keep the screen on',
 		wakeRefused: 'screen on refused',
 		check: {
@@ -171,6 +175,7 @@ function markup() {
 					<button type="button" data-ffc-terminal-part="ticket-clear">Clear</button>
 				</form>
 			</section>
+			<section data-ffc-terminal-view="paused" hidden><h2>Reading paused</h2></section>
 			<section data-ffc-terminal-view="between" hidden>
 				<h2 data-ffc-terminal-part="next-title"></h2>
 				<p data-ffc-terminal-part="next-where"></p>
@@ -193,6 +198,7 @@ function markup() {
 				<p data-ffc-terminal-part="queue"></p>
 				<p data-ffc-terminal-part="wake-note" hidden></p>
 				<p data-ffc-terminal-part="clock-note" hidden></p>
+				<p data-ffc-terminal-part="paused-note" hidden></p>
 				<dl data-ffc-terminal-part="device-check"></dl>
 				<div data-ffc-terminal-part="menu-ask">
 					<button type="button" data-ffc-terminal-part="menu-close">Back</button>
@@ -2090,5 +2096,67 @@ describe('certificate forms (#2893)', () => {
 	it('reads the QR alone for an event or a form without a ticket', () => {
 		paired([{ ...FORM, ticket: false }], null);
 		expect(visible(el)).toEqual(['ready']);
+	});
+});
+
+describe('certificate forms offline (#2893)', () => {
+	let el;
+	const FORM = { target: 'certificate_form:12', booking_id: 'certificate_form:12', title: 'Seminar', place: '', opens: NOW - 600, closes: NOW + 1200, closes_label: '10:20', open: true, present: 0, enrolled: 0, ticket: false };
+	const lines = (name) => Array.from(el.querySelectorAll('[data-ffc-terminal-part="' + name + '"] p')).map((p) => p.textContent);
+
+	function terminal(item, link) {
+		el = markup();
+		const listeners = {};
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, bookings: ['certificate_form:12'], schedule: [item], keys: {}, expires_at: NOW + 86400, expires_label: 'later' }) }),
+			online: () => link.up,
+			onOnline: (fn) => { listeners.online = fn; },
+			onOffline: (fn) => { listeners.offline = fn; },
+			subtle: webcrypto.subtle,
+			verifier: { verify: () => Promise.resolve({ ok: true, targetType: 'certificate_form', targetId: 12, userId: 7, name: 'Maria S.' }) },
+		});
+		const controls = T().start(el, CONFIG, e);
+		return { e, controls, listeners };
+	}
+
+	it('pauses reading on a ticket form while offline, says why in the menu, and refuses a QR read meanwhile', () => {
+		terminal({ ...FORM, ticket: true }, { up: false });
+		expect(visible(el)).toEqual(['paused']);
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('warning');
+		expect(el.querySelector('[data-ffc-terminal-part="foot"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="paused-note"]').textContent).toBe('paused: ticket form offline');
+
+		el.querySelector('[data-ffc-terminal-part="reading"]').value = 'FFP1ABC';
+		el.querySelector('[data-ffc-terminal-part="reading-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		expect(lines('result-refused').slice(0, 2)).toEqual(['Ticket needs the connection', 'ticket needs the connection']);
+	});
+
+	it('goes back to the ticket screen once the connection returns', () => {
+		const link = { up: false };
+		const { listeners } = terminal({ ...FORM, ticket: true }, link);
+		expect(visible(el)).toEqual(['paused']);
+		link.up = true;
+		listeners.online();
+		expect(visible(el)).toEqual(['ticket']);
+		expect(el.querySelector('[data-ffc-terminal-part="paused-note"]').hidden).toBe(true);
+		link.up = false;
+		listeners.offline();
+		expect(visible(el)).toEqual(['paused']);
+	});
+
+	it('queues a form without a ticket and says the certificate comes on sync', async () => {
+		const { controls } = terminal(FORM, { up: false });
+		expect(visible(el)).toEqual(['ready']);
+		await controls.read('FFP1ABC');
+		expect(lines('result-ok')[0]).toBe('Attendance recorded');
+		expect(lines('result-ok')[2]).toContain('certificate on sync');
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('saved');
+	});
+
+	it('keeps nothing when a ticket form is read in the moment the connection drops', async () => {
+		const { controls, e } = terminal({ ...FORM, ticket: true }, { up: false });
+		await controls.read('FFP1ABC');
+		expect(lines('result-refused')[0]).toBe('Ticket needs the connection');
+		expect(e.storage.data.has('ffcTerminalQueue')).toBe(false);
 	});
 });

@@ -59,6 +59,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Terminal: certificate results and the ticket before the QR.** A certificate form's reading now shows certificate issued, already issued, attendance recorded with data missing (amber, terminal free for the next person) or the refusal, and a form with a ticket asks for its code first and keeps it for 60 s, so the QR read after it is still fresh (#2893).
 - **Certificate forms in the app's Presence.** A form the terminal reads now lists under Presence for everyone it would accept, with its code ready on its day, marked recorded once issued and with a note when it asks for a ticket; the app keys its choice by type and id (#2893).
 - **Certificates to complete in the app.** A terminal reading that waits on profile data now shows on the app's Certificates screen under To complete, with the fields missing and the closing date, and as a Pending item on Home; both open the link the e-mail carries (#2893).
+- **Terminal offline with certificate forms.** A form without a ticket is queued with its time and says the certificate reaches the app on sync; a form with a ticket pauses reading with the reason on screen and in the operator menu, and resumes when the connection returns (#2893).
 
 ### Changed
 

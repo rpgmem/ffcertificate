@@ -328,7 +328,7 @@
             }
             el.setAttribute('data-ffc-terminal-tone', tone || 'neutral');
             el.setAttribute('data-ffc-terminal-screen', view);
-            part('foot').hidden = !('ready' === view || 'between' === view || 'idle' === view || 'unpaired' === view || 'ticket' === view);
+            part('foot').hidden = !('ready' === view || 'between' === view || 'idle' === view || 'unpaired' === view || 'ticket' === view || 'paused' === view);
             part('help').hidden = 'unpaired' === view;
             part('help-operator').hidden = 'unpaired' !== view;
             if ('unpaired' === view || 'setup' === view) {
@@ -358,6 +358,15 @@
             var visible = !current() && !online() && 'unpaired' === screen;
             note.textContent = visible ? (strings.offlinePairing || '') : '';
             note.hidden = !visible;
+        }
+
+        // The operator menu keeps the reason reading paused (#2893).
+        function pausedNote(on) {
+            var note = part('paused-note');
+            if (note) {
+                note.textContent = on ? (strings.pausedMenu || '') : '';
+                note.hidden = !on;
+            }
         }
 
         function head(title, sub, note) {
@@ -412,6 +421,12 @@
                     ? fill(strings.checkinUntil, [at.current.closes_label || ''])
                     : strings.notOpen;
                 head(at.current.title, [at.current.place, sub].filter(Boolean).join(' · '), counter(at.current));
+                // A ticket is checked with the site, so a form that takes one
+                // pauses reading while the terminal is offline (#2893).
+                if (takesTicket && !online()) {
+                    forgetTicket();
+                    return 'paused';
+                }
                 // A form that takes a ticket asks for its code first, so the
                 // QR read after it is still fresh (#2893).
                 return takesTicket && !ticket.code ? 'ticket' : 'ready';
@@ -434,11 +449,12 @@
 
         function showReady(state) {
             var view = showEvent(state);
+            pausedNote('paused' === view);
             part('label').textContent = state.label || '';
             part('label').hidden = !state.label;
             part('events').textContent = String(strings.events || '%d').replace('%d', String((state.bookings || []).length));
             part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
-            show(view);
+            show(view, 'paused' === view ? 'warning' : '');
             updateQueue();
             if ('ticket' === view) {
                 focusTicket();
@@ -456,7 +472,7 @@
         // to the next check-in, and the switch to reading when it opens.
         function followPlan() {
             var state = current();
-            if (!state || ('ready' !== screen && 'between' !== screen && 'idle' !== screen && 'ticket' !== screen)) {
+            if (!state || ('ready' !== screen && 'between' !== screen && 'idle' !== screen && 'ticket' !== screen && 'paused' !== screen)) {
                 return;
             }
             var view = showEvent(state);
@@ -897,6 +913,13 @@
                 if ((state.bookings || []).indexOf(target) < 0) {
                     return done(refusal('ffc_terminal_other_event'));
                 }
+                var item = whatNow(state.schedule, at).current;
+                if (item && heldKey(item) === target && item.ticket) {
+                    // Read in the moment the connection dropped: a ticket
+                    // needs the site, so nothing is kept (#2893).
+                    return done({ status: 'refused', code: 'ffc_terminal_ticket_offline', message: strings.pausedLead });
+                }
+                var certificate = 'certificate_form' === reading.targetType;
                 var list = queue();
                 var key = reading.userId + ':' + target + ':' + day(at);
                 for (var i = 0; i < list.length; i++) {
@@ -911,7 +934,9 @@
                 if (!saveQueue(list)) {
                     return done({ status: 'refused', message: strings.storage });
                 }
-                return done({ status: 'queued', name: reading.name, message: strings.queued });
+                return done(certificate
+                    ? { status: 'queued', code: 'ffc_terminal_certificate_queued', name: reading.name, message: strings.queuedCertificate }
+                    : { status: 'queued', name: reading.name, message: strings.queued });
             });
         }
 
@@ -1705,6 +1730,10 @@
                 showResult({ status: 'refused', code: 'ffc_terminal_idle', message: strings.idleRefused });
                 return null;
             }
+            if ('paused' === screen) {
+                showResult({ status: 'refused', code: 'ffc_terminal_ticket_offline', message: strings.pausedLead });
+                return null;
+            }
             if ('ticket' === screen) {
                 // A QR read before the ticket would expire while the person
                 // types it; the ticket comes first (#2893).
@@ -2037,6 +2066,7 @@
         if (env.onOnline) {
             env.onOnline(function () {
                 offlineNote();
+                followPlan();
                 sync();
                 refreshRevocations();
                 refreshSchedule();
@@ -2044,7 +2074,10 @@
         }
 
         if (env.onOffline) {
-            env.onOffline(offlineNote);
+            env.onOffline(function () {
+                offlineNote();
+                followPlan();
+            });
         }
 
         var state = current();

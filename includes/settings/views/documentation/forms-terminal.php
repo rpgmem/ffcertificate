@@ -28,6 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<p><?php esc_html_e( 'In the app, the form shows under Presence for everyone the terminal would accept, over the same 7 days, with the code ready for its day; a form that checks a deny or allow list shows only to whom it lets in, and one whose certificate was already issued shows as recorded. A form with a ticket says to have the code ready.', 'ffcertificate' ); ?></p>
 
+	<p><?php esc_html_e( 'Offline, a form without a ticket keeps each reading with its time and tells the person the certificate reaches the app when the terminal syncs. A form with a ticket shows Reading paused instead, with the reason in the operator menu too, and asks participants to use the form page projected at the event; reading resumes on its own when the connection returns.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'A field the profile cannot fill', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives "Complete your certificate". The side box shows the reading hours, the paired terminals and how many certificates the terminal issued.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and Home lists it under Pending; both open the same link the e-mail carries, so a lost e-mail does not lose the certificate.', 'ffcertificate' ); ?></p>
