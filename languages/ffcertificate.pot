@@ -37669,3 +37669,7 @@ msgstr ""
 
 msgid "On the day of a certificate form the event terminal reads, Agenda also shows it as Certificate on the spot, with its hours and Show my QR; a form that asks for a ticket says to have the code ready, a form with a consent field says that showing the QR accepts it, with a link to the full terms, and a form whose certificate was issued shows Certificate issued."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "In the app's bottom bar, Certificates shows how many certificates were issued since the person last opened that screen, counting the last 7 days at most and up to 9+; opening the screen clears it."
+msgstr ""

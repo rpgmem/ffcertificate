@@ -336,6 +336,17 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * How many certificates a user was issued after a moment.
+	 *
+	 * @param int $user_id User.
+	 * @param int $since   Unix time.
+	 * @return int
+	 */
+	public function count_certificates_for_user_since( int $user_id, int $since ): int {
+		return $this->reader->count_certificates_for_user_since( $user_id, $since );
+	}
+
+	/**
 	 * The encrypted CPF and RF of a user's newest submission that carries one.
 	 *
 	 * @param int $user_id User.

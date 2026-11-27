@@ -44,7 +44,7 @@ Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): ever
 
 `SitePwaContractTest` reads this side's source and cannot see the other repository. What crosses the boundary is checked by `.github/scripts/site-pwa-integration-check.php`. It boots a WordPress with both plugins active and asks Site PWA's own classes what this plugin gave them:
 - the `$api` each consumer here speaks against the one Site PWA sends;
-- the screens registered for an administrator, with none refused, More's "My details" opening the Profile screen, and the Notifications section in Preferences, with the date-message toggles while Date Messages is on;
+- the screens registered for an administrator, with none refused, More's "My details" opening the Profile screen, the Certificates screen carrying its badge of new certificates, and the Notifications section in Preferences, with the date-message toggles while Date Messages is on;
 - both look sources under `ffc` and the dark root class;
 - with `--write`, Public Design and Dark Mode read back through `Identity::current()` and `Scheme::current()`, with the options restored afterwards.
 

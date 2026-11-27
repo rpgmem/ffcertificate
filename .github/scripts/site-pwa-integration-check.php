@@ -33,7 +33,8 @@
  *      `_doing_it_wrong()`), More's "My details" opens the Profile screen
  *      where the app has that link, and Preferences carries the
  *      Notifications section, with the date-message toggles exactly while
- *      the Messages tab shows, where the app has sections.
+ *      the Messages tab shows, where the app has sections, and Certificates
+ *      carries its badge callable, where the app draws a bar screen's badge.
  *   4. Both look sources are offered under the id `ffc`, and their readers
  *      answer in Site PWA's shapes; the dark root class is in Site PWA's list.
  *   5. With `--write` only: set this plugin's Public Design and Dark Mode, point
@@ -180,6 +181,16 @@ if ( array() !== $ffc_pwa_admins ) {
 			null !== $ffc_pwa_profile && \SitePwa\App\Screens::link( $ffc_pwa_profile ) === $ffc_pwa_details,
 			'My details opens the Profile screen',
 			$ffc_pwa_details
+		);
+	}
+	// The Certificates badge reaches the bar (#2893); an older app draws
+	// a nav screen's badge nowhere, so there is nothing to check.
+	$ffc_pwa_certificates = \SitePwa\App\Screens::find( 'certificates' );
+	if ( null !== $ffc_pwa_certificates && array_key_exists( 'badge', \SitePwa\App\Navigation::items( '' )[0] ?? array() ) ) {
+		ffc_pwa_report(
+			is_callable( $ffc_pwa_certificates['badge'] ),
+			'Certificates carries its badge of new certificates',
+			is_string( $ffc_pwa_certificates['badge'] ) ? 'a fixed string' : 'not callable'
 		);
 	}
 	// The notification toggles in Preferences (site-pwa#66); an older app
