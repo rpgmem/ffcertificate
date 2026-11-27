@@ -782,6 +782,7 @@ class Loader {
 			$this->ensure_forms_api_submit_cap_granted();
 			$this->ensure_presence_cap_granted();
 			$this->ensure_terminals_cap_granted();
+			$this->ensure_checkin_certificates_cap_granted();
 			$this->ensure_activity_log_export_cap_granted();
 			$this->ensure_url_shortener_export_cap_granted();
 			$this->ensure_date_messages_send_cap_granted();
@@ -963,6 +964,25 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_forms_api_submit_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_checkin_certificates` (#2892) onto
+	 * every user and role already holding `ffc_edit_certificates` or
+	 * `ffc_manage_forms`.
+	 *
+	 * @since 6.52.0
+	 * @return void
+	 */
+	private function ensure_checkin_certificates_cap_granted(): void {
+		$flag = 'ffc_checkin_certificates_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_checkin_certificates_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}

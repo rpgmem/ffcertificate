@@ -184,6 +184,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Edit submission data on issued certificates', 'ffcertificate' ),
 						'description' => __( 'Fix typos on already-issued certificates without holding manage_options.', 'ffcertificate' ),
 					),
+					'ffc_checkin_certificates'  => array(
+						'label'       => __( 'See terminal readings', 'ffcertificate' ),
+						'description' => __( 'See and export what the event terminals read for a certificate form: issued, awaiting profile data and refused, with personal data masked.', 'ffcertificate' ),
+					),
 					'ffc_grade_certificates'    => array(
 						'label'       => __( 'Grade quiz answers', 'ffcertificate' ),
 						'description' => __( 'Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed.', 'ffcertificate' ),
