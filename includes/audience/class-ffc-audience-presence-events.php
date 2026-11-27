@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-type PresencePending array{type: string, key: string, title: string, text: string, detail: string, url?: string, closes?: string}
  * @phpstan-type PresenceDay array{date: string, label: string}
  * @phpstan-type PresenceRecorded array{date: string, time: string}
- * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, days: list<PresenceDay>, recorded: list<PresenceRecorded>, expires: int, ticket: string, attendance: string, needs_ticket?: bool}
+ * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, days: list<PresenceDay>, recorded: list<PresenceRecorded>, expires: int, ticket: string, attendance: string, needs_ticket?: bool, consent?: string, terms?: string}
  */
 final class AudiencePresenceEvents {
 
@@ -162,6 +162,9 @@ final class AudiencePresenceEvents {
 				'attendance'   => '',
 				// The terminal asks for the ticket code before the QR.
 				'needs_ticket' => CertificateFormTarget::asks_ticket( $form['id'] ),
+				// Showing the QR accepts the form's consent field (#2901).
+				'consent'      => CertificateFormTarget::consent_text( $form['id'] ),
+				'terms'        => (string) get_privacy_policy_url(),
 			);
 		}
 		return $out;

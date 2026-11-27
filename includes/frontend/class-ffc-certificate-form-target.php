@@ -350,6 +350,25 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 	}
 
 	/**
+	 * The text of a form's consent field, which presenting the QR accepts
+	 * (#2901), or '' when the form has none. The app shows it before the
+	 * code (#2893).
+	 *
+	 * @param int $form_id Form id.
+	 * @return string
+	 */
+	public static function consent_text( int $form_id ): string {
+		$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
+		foreach ( is_array( $fields ) ? $fields : array() as $field ) {
+			if ( is_array( $field ) && CertificateProfileSource::CONSENT === CertificateProfileSource::of( $field ) ) {
+				$label = isset( $field['label'] ) && is_string( $field['label'] ) ? $field['label'] : '';
+				return trim( wp_strip_all_tags( $label ) );
+			}
+		}
+		return '';
+	}
+
+	/**
 	 * Whether a form asks for a ticket code at the terminal (#2893).
 	 *
 	 * @param int $form_id Form id.

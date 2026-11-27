@@ -162,6 +162,21 @@
 	font-size: var(--ffc-font-size-sm);
 }
 
+/* A certificate form's card (#2893): the ticket and the consent shown
+   before Show my QR. */
+.ffc-app-agenda-note {
+	display: flex;
+	gap: var(--ffc-spacing-xs);
+	align-items: flex-start;
+	margin: 0;
+	color: var(--ffc-text-muted);
+	font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-app-agenda-terms {
+	color: var(--ffc-primary);
+}
+
 .ffc-app-agenda-actions {
 	display: flex;
 	flex-wrap: wrap;

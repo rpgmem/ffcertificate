@@ -237,7 +237,10 @@ class CertificateFormTargetTest extends TestCase {
 			}
 		);
 		Functions\when( 'get_posts' )->justReturn( array( self::FORM ) );
+		Functions\when( 'get_privacy_policy_url' )->justReturn( 'https://example.test/privacy/' );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $text ) => strip_tags( (string) $text ) );
 		$this->meta[ self::FORM ]['_ffc_form_config']['restrictions'] = array( 'ticket' => '1' );
+		$this->meta[ self::FORM ]['_ffc_form_fields'][]                = array( 'name' => 'terms', 'type' => 'checkbox', 'label' => 'I accept the <b>LGPD</b> terms', 'required' => '1', 'profile_source' => \FreeFormCertificate\Frontend\CertificateProfileSource::CONSENT );
 
 		$forms = \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW );
 		$this->assertCount( 1, $forms );
@@ -249,6 +252,8 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( gmmktime( 12, 0, 0, 1, 15, 2027 ), $forms[0]['expires'] );
 		$this->assertTrue( $forms[0]['needs_ticket'] );
 		$this->assertSame( array(), $forms[0]['recorded'] );
+		$this->assertSame( 'I accept the LGPD terms', $forms[0]['consent'], 'showing the QR accepts it, so the app shows it first' );
+		$this->assertSame( 'https://example.test/privacy/', $forms[0]['terms'] );
 		$ticket = \FreeFormCertificate\Audience\AudiencePresenceTicket::verify( \FreeFormCertificate\Core\SigningKeys::unb64( $forms[0]['ticket'] ), self::NOW );
 		$this->assertSame( array( CertificateFormTarget::TYPE, self::FORM, self::USER ), array( $ticket['target_type'], $ticket['target_id'], $ticket['user_id'] ), 'the ticket names this form and this person' );
 

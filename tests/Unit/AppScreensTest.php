@@ -246,6 +246,8 @@ class AppScreensTest extends TestCase {
 		Functions\when( 'get_posts' )->justReturn( array( 11, 12 ) );
 		Functions\when( 'get_the_title' )->alias( static fn( $id ) => 'Calendar ' . $id );
 		Functions\when( 'determine_locale' )->justReturn( 'pt_BR' );
+		// The ids above are calendars, not published certificate forms.
+		Functions\when( 'get_post' )->justReturn( null );
 
 		$html = AgendaAppScreen::render( array( 'audience' ) );
 
@@ -253,6 +255,8 @@ class AppScreensTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-app-view="book"', $html );
 		$this->assertStringContainsString( 'assets/js/ffc-app-agenda', $scripts['ffc-app-agenda'] );
 		$config = $localized['ffc-app-agenda'][1];
+		$this->assertSame( array(), $config['forms'], 'no certificate form open, no form card' );
+		$this->assertArrayHasKey( 'showQr', $config['strings'] );
 		$this->assertSame( array( 'audience' => 'https://example.com/wp-json/ffc/v1/user/audience-bookings' ), $config['routes'], 'only the tabs the person sees' );
 		$this->assertTrue( $config['presence'] );
 		$this->assertSame( array(), $config['book'], 'no personal calendars without the appointments tab' );
