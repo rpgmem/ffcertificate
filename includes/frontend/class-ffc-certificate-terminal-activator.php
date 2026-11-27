@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CertificateTerminalActivator {
 
 	/** Schema revision of the table. Bump it when a column changes (#2430). */
-	public const SCHEMA_REVISION = '1';
+	public const SCHEMA_REVISION = '2';
 
 	/** Option holding the schema revision that was last created. */
 	public const SCHEMA_REVISION_OPTION = 'ffc_certificate_terminal_db_version';
@@ -62,7 +62,9 @@ class CertificateTerminalActivator {
 	 * One row per form and person: the unique key is what makes two
 	 * terminals reading the same person at once keep one row. A reading is
 	 * a record, so deleting the account keeps the row and drops `user_id`
-	 * (CLAUDE.md "Security & PII conventions").
+	 * (CLAUDE.md "Security & PII conventions"). `reserved_code` is the
+	 * certificate code a reading waiting on profile data holds until the
+	 * person completes it (#2938); dbDelta adds it to an existing table.
 	 *
 	 * @return void
 	 */
@@ -84,11 +86,13 @@ class CertificateTerminalActivator {
 			reason varchar(64) NOT NULL DEFAULT '',
 			missing text DEFAULT NULL,
 			submission_id bigint(20) unsigned DEFAULT NULL,
+			reserved_code varchar(20) DEFAULT NULL,
 			updated_at bigint(20) unsigned NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY uq_form_user (form_id, user_id),
 			KEY idx_form_result (form_id, result),
-			KEY idx_user (user_id)
+			KEY idx_user (user_id),
+			KEY idx_reserved_code (reserved_code)
 		) $charset_collate";
 
 		dbDelta( $sql );

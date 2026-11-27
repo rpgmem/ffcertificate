@@ -309,7 +309,7 @@ final class CertificateCompletionLink {
 	 *
 	 * @param int $user_id The signed-in account.
 	 * @param int $now     Unix time.
-	 * @return array{form_id: int, error: string}|null
+	 * @return array{form_id: int, error: string, code: string}|null
 	 */
 	public static function requested( int $user_id, int $now ): ?array {
 		$form_id = absint( \FreeFormCertificate\Core\RequestInput::get_get_string( self::SCREEN_VAR ) );
@@ -322,18 +322,22 @@ final class CertificateCompletionLink {
 			return array(
 				'form_id' => $form_id,
 				'error'   => __( 'This link is not valid.', 'ffcertificate' ),
+				'code'    => '',
 			);
 		}
 		if ( $for !== $user_id ) {
 			return array(
 				'form_id' => $form_id,
 				'error'   => __( 'This certificate belongs to another account. Sign in with the account that showed the QR.', 'ffcertificate' ),
+				'code'    => '',
 			);
 		}
 		$resolved = self::resolve( $form_id, $code, $now );
+		$reading  = $resolved instanceof \WP_Error ? null : CertificateTerminalReadingRepository::for_person( $form_id, $user_id );
 		return array(
 			'form_id' => $form_id,
 			'error'   => $resolved instanceof \WP_Error ? $resolved->get_error_message() : '',
+			'code'    => null === $reading ? '' : self::formatted_code( $reading['reserved_code'] ),
 		);
 	}
 
@@ -345,7 +349,7 @@ final class CertificateCompletionLink {
 	 *
 	 * @param int $user_id Account id.
 	 * @param int $now     Unix time.
-	 * @return list<array{form_id: int, title: string, missing: list<string>, url: string, until: string}>
+	 * @return list<array{form_id: int, title: string, missing: list<string>, url: string, until: string, code: string}>
 	 */
 	public static function pending_for_user( int $user_id, int $now ): array {
 		$out = array();
@@ -359,9 +363,20 @@ final class CertificateCompletionLink {
 				'missing' => CertificateFormTarget::missing_labels( is_array( $fields ) ? array_values( array_filter( $fields, 'is_array' ) ) : array(), $reading['missing'] ),
 				'url'     => $url,
 				'until'   => \FreeFormCertificate\Core\DateFormatter::format_date( self::expires_at( $reading['read_at'] ) ),
+				'code'    => self::formatted_code( $reading['reserved_code'] ),
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * A reserved code as the certificate prints it (#2938), or ''.
+	 *
+	 * @param string $code The stored code.
+	 * @return string
+	 */
+	private static function formatted_code( string $code ): string {
+		return '' === $code ? '' : \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE );
 	}
 
 	/**

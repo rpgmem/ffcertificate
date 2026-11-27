@@ -55,6 +55,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate forms in the app** (#2893, #2926, #2930, #2932). Presence lists every form the terminal reads over 7 days to whoever it would accept, with its code; the Agenda shows it on its day with its hours, what to do at the entrance, the ticket note and the consent before Show my QR; and the Certificates item in the bar counts certificates issued since it was last opened (needs rpgmem/site-pwa#68).
 - **Terminals by place** (#2900). An environment names its GPS location of Settings → Geolocation; a terminal paired to a location holds the location's events and certificate forms for the next 7 days and picks up new ones as they appear; setup lists qualifying certificate forms beside the events.
 - **Documentation: certificates at an event** (#2894). A new topic sets the projected form page, with the form's hours and GPS area to keep out people who are not there, beside the event terminal, and links to the terminal topics.
+- **A terminal reading waiting on profile data fixes the certificate's code.** The code is reserved at the reading and shown in the app; the certificate completed later keeps it, with the reading's time as its issue time (#2938).
 
 ### Changed
 

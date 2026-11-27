@@ -157,12 +157,13 @@ final class CertificatesAppScreen {
 	 * fills the form from the profile and lifts its hours, as on the form's
 	 * page; it enqueues its own scripts as it renders.
 	 *
-	 * @param array{form_id: int, error: string} $requested What the screen was asked to open.
+	 * @param array{form_id: int, error: string, code: string} $requested What the screen was asked to open.
 	 * @return string
 	 */
 	private static function render_completion( array $requested ): string {
 		$ffc_back  = remove_query_arg( array( CertificateCompletionLink::SCREEN_VAR, FormInvite::QUERY_VAR ) );
 		$ffc_error = $requested['error'];
+		$ffc_code  = $requested['code'];
 		$ffc_title = get_the_title( $requested['form_id'] );
 		$ffc_form  = '' === $ffc_error ? do_shortcode( sprintf( '[ffc_form id="%d"]', $requested['form_id'] ) ) : '';
 

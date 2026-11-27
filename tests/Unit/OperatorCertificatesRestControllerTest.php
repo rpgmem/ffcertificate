@@ -230,7 +230,8 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $q ) {
 				if ( 'SELECT id FROM %i WHERE auth_code = %s LIMIT 1' === $q['sql']
-					|| 'SELECT id FROM %i WHERE validation_code = %s LIMIT 1' === $q['sql'] ) {
+					|| 'SELECT id FROM %i WHERE validation_code = %s LIMIT 1' === $q['sql']
+					|| 'SELECT id FROM %i WHERE reserved_code = %s LIMIT 1' === $q['sql'] ) {
 					// No other record holds the drawn code.
 					return null;
 				}
