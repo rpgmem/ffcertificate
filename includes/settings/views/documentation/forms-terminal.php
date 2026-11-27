@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'A field the profile cannot fill', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives "Complete your certificate". The side box shows the reading hours, the paired terminals and how many certificates the terminal issued.', 'ffcertificate' ); ?></p>
-	<p><?php esc_html_e( 'In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and Home lists it under Pending; both open the same link the e-mail carries, so a lost e-mail does not lose the certificate.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and its button opens the form on that screen, filled from the profile, so the form needs no page of its own. Home lists it under Pending, and the e-mail links to the same screen, so a lost e-mail does not lose the certificate. Without the app, the e-mail links to the form\'s page, when one is published.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'The readings screen', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'View readings, in the Terminal tab\'s side box, opens what the terminals read for this form: how many readings, certificates issued, readings awaiting profile data and refusals; a warning for each offline terminal that still holds readings; and the list, searchable by name, e-mail or full RF and filtered by result, with the reading time, the terminal, the reason for a refusal and the certificate\'s validation code.', 'ffcertificate' ); ?></p>

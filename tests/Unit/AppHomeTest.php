@@ -117,6 +117,12 @@ class AppHomeTest extends TestCase {
 		);
 	}
 
+	public function test_a_certificate_with_no_link_leads_to_the_certificates_screen(): void {
+		$items = AppHome::build( array(), null, array(), null, array( array( 'title' => 'Seminar', 'url' => '', 'until' => '22/01/2027' ) ) );
+		$this->assertSame( 'certificates', $items['pending'][0]['screen'] );
+		$this->assertArrayNotHasKey( 'url', $items['pending'][0] );
+	}
+
 	public function test_ffcs_items_join_the_others_and_never_replace_a_next_card_already_set(): void {
 		$theirs = array(
 			'banners' => array( array( 'id' => 'other' ) ),

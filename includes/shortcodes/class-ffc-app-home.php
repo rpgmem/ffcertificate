@@ -195,13 +195,16 @@ final class AppHome {
 		}
 
 		foreach ( $to_complete as $item ) {
+			// Without a link the item leads to the Certificates screen, which
+			// lists it (#2936); Site PWA drops an item with neither.
+			$link    = '' !== $item['url'] ? array( 'url' => $item['url'] ) : array( 'screen' => CertificateCompletionLink::APP_SCREEN );
 			$items[] = array(
 				'label' => __( 'Complete your certificate', 'ffcertificate' ),
 				/* translators: 1: form title, 2: the date the completion link closes */
 				'meta'  => sprintf( __( '%1$s · until %2$s', 'ffcertificate' ), $item['title'], $item['until'] ),
-				'url'   => $item['url'],
-				'icon'  => 'edit',
-				'tone'  => 'warning',
+			) + $link + array(
+				'icon' => 'edit',
+				'tone' => 'warning',
 			);
 		}
 

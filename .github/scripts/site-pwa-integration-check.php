@@ -34,7 +34,8 @@
  *      where the app has that link, and Preferences carries the
  *      Notifications section, with the date-message toggles exactly while
  *      the Messages tab shows, where the app has sections, and Certificates
- *      carries its badge callable, where the app draws a bar screen's badge.
+ *      carries its badge callable, where the app draws a bar screen's badge,
+ *      and is the address a certificate to complete opens (#2936).
  *   4. Both look sources are offered under the id `ffc`, and their readers
  *      answer in Site PWA's shapes; the dark root class is in Site PWA's list.
  *   5. With `--write` only: set this plugin's Public Design and Dark Mode, point
@@ -198,6 +199,17 @@ if ( array() !== $ffc_pwa_admins ) {
 			is_callable( $ffc_pwa_certificates['badge'] ) ? 'callable' : ( is_string( $ffc_pwa_certificates['badge'] ) ? 'a fixed string' : 'not callable' )
 		);
 	}
+	// A certificate waiting on profile data is completed on the Certificates
+	// screen (#2936): the address this plugin builds from Site PWA's routes
+	// must be that screen's own.
+	if ( null !== $ffc_pwa_certificates ) {
+		$ffc_pwa_complete_at = \FreeFormCertificate\Frontend\CertificateCompletionLink::app_screen_url();
+		ffc_pwa_report(
+			untrailingslashit( \SitePwa\App\Screens::link( $ffc_pwa_certificates ) ) === untrailingslashit( $ffc_pwa_complete_at ),
+			'a certificate to complete opens the Certificates screen',
+			$ffc_pwa_complete_at
+		);
+	}
 	// The notification toggles in Preferences (site-pwa#66); an older app
 	// has no such sections.
 	if ( method_exists( '\\SitePwa\\App\\Frame', 'preferenceSections' ) ) {
@@ -314,13 +326,10 @@ if ( $ffc_pwa_write ) {
 // mode only: it publishes a form and records a reading, both removed after.
 if ( $ffc_pwa_write && array() !== $ffc_pwa_admins && class_exists( '\\SitePwa\\App\\Home' ) ) {
 	$ffc_pwa_user    = (int) $ffc_pwa_admins[0];
-	$ffc_pwa_form    = 0;
-	// The completion link needs a page that embeds the form; the filter
-	// names one, so the check publishes no page.
-	$ffc_pwa_landing = static function ( $url, $form_id ) use ( &$ffc_pwa_form ) {
-		return $ffc_pwa_form > 0 && (int) $form_id === $ffc_pwa_form ? home_url( '/ffc-integration-check/' ) : $url;
-	};
-	add_filter( 'ffc_schedule_exception_form_url', $ffc_pwa_landing, 10, 2 );
+	$ffc_pwa_form = 0;
+	// No page embeds the form, on purpose: with Site PWA the certificate is
+	// completed on the app's Certificates screen (#2936), so the item must
+	// reach Home without one.
 	try {
 		$ffc_pwa_form = (int) wp_insert_post(
 			array(
@@ -383,15 +392,14 @@ if ( $ffc_pwa_write && array() !== $ffc_pwa_admins && class_exists( '\\SitePwa\\
 		$ffc_pwa_home  = \SitePwa\App\Home::items( get_userdata( $ffc_pwa_user ) );
 		$ffc_pwa_found = array_filter(
 			$ffc_pwa_home['pending'],
-			static fn( $row ) => false !== strpos( (string) $row['meta'], 'FFC integration check form' ) && 'warning' === $row['tone']
+			static fn( $row ) => false !== strpos( (string) $row['meta'], 'FFC integration check form' ) && 'warning' === $row['tone'] && false !== strpos( (string) ( $row['url'] ?? '' ), '/s/certificates/' )
 		);
 		ffc_pwa_report(
 			array() !== $ffc_pwa_found,
-			'a reading that waits on profile data reaches the app\'s Home as a pending warning item',
+			'a reading that waits on profile data reaches the app\'s Home as a pending item leading to Certificates',
 			(string) wp_json_encode( array_column( $ffc_pwa_home['pending'], 'label' ) )
 		);
 	} finally {
-		remove_filter( 'ffc_schedule_exception_form_url', $ffc_pwa_landing, 10 );
 		if ( $ffc_pwa_form > 0 ) {
 			global $wpdb;
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The check's own row in the plugin's table.

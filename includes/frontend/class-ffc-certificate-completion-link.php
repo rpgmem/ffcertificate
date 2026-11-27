@@ -50,6 +50,20 @@ final class CertificateCompletionLink {
 	/** Prefix that marks a completion code among invitation codes. */
 	public const PREFIX = 'c.';
 
+	/**
+	 * Query variable naming the form the Certificates screen opens (#2936).
+	 *
+	 * @var string
+	 */
+	public const SCREEN_VAR = 'ffc_complete';
+
+	/**
+	 * Id of the app's Certificates screen (`DashboardAppScreens`).
+	 *
+	 * @var string
+	 */
+	public const APP_SCREEN = 'certificates';
+
 	/** Length of the signature, in base64url characters. */
 	private const SIGNATURE_LENGTH = 22;
 
@@ -226,24 +240,101 @@ final class CertificateCompletionLink {
 	}
 
 	/**
-	 * The link for a person, or '' when no published page embeds the form.
+	 * The link for a person, or '' when there is nowhere to complete the form.
 	 *
-	 * It opens the form inside the app when Site PWA can draw the page, so
-	 * the person finishes where they showed the QR; without Site PWA it is
-	 * the form's own page. The app's address keeps a fragment but not a
-	 * query string, so the code is added after the app has answered.
+	 * With Site PWA it is the app's Certificates screen, which opens the form
+	 * itself (#2936): a form used only at the terminal has no page, and the
+	 * person finishes where they showed the QR. Without Site PWA it is the
+	 * form's own page, when one is published.
 	 *
 	 * @param int $form_id Form id.
 	 * @param int $user_id Account id.
 	 * @return string
 	 */
 	public static function link( int $form_id, int $user_id ): string {
+		$screen = self::app_screen_url();
+		if ( '' !== $screen ) {
+			return self::screen_link( $screen, $form_id, $user_id );
+		}
 		$page = ScheduleExceptionAction::find_form_page_url( $form_id );
-		if ( '' === $page ) {
+		return '' === $page ? '' : add_query_arg( FormInvite::QUERY_VAR, self::code( $form_id, $user_id ), $page );
+	}
+
+	/**
+	 * A screen's address with the form and the person's code on it.
+	 *
+	 * @param string $base    The screen's address.
+	 * @param int    $form_id Form id.
+	 * @param int    $user_id Account id.
+	 * @return string
+	 */
+	public static function screen_link( string $base, int $form_id, int $user_id ): string {
+		return add_query_arg(
+			array(
+				self::SCREEN_VAR      => $form_id,
+				FormInvite::QUERY_VAR => self::code( $form_id, $user_id ),
+			),
+			$base
+		);
+	}
+
+	/**
+	 * The address of the app's Certificates screen, or '' without Site PWA.
+	 *
+	 * Site PWA draws a screen at `<app>/s/<id>/` (its `docs/screens.md`), and
+	 * `Routes::url( 'home' )` is the app's address under the prefix the site
+	 * chose. The class is asked for by name and the call is guarded, so an
+	 * older or absent Site PWA leaves the form's page as the link
+	 * (`.claude/rules/pwa-contract.md` "The look: offered, not read").
+	 *
+	 * @param string $routes Site PWA's routes class; a parameter so a test can name a double.
+	 * @return string
+	 */
+	public static function app_screen_url( string $routes = '\\SitePwa\\App\\Routes' ): string {
+		$routes = array( $routes, 'url' );
+		if ( ! is_callable( $routes ) ) {
 			return '';
 		}
-		$url = apply_filters( 'site_pwa_app_url', $page );
-		return add_query_arg( FormInvite::QUERY_VAR, self::code( $form_id, $user_id ), is_string( $url ) && '' !== $url ? $url : $page );
+		$home = call_user_func( $routes, 'home' );
+		return is_string( $home ) && '' !== $home ? trailingslashit( $home ) . 's/' . self::APP_SCREEN . '/' : '';
+	}
+
+	/**
+	 * What the Certificates screen asked to complete, or null when it asked
+	 * for nothing (#2936).
+	 *
+	 * The form opens only for the signed-in person its code was signed for,
+	 * and only while the code is open; otherwise the answer carries the
+	 * reason the screen shows instead.
+	 *
+	 * @param int $user_id The signed-in account.
+	 * @param int $now     Unix time.
+	 * @return array{form_id: int, error: string}|null
+	 */
+	public static function requested( int $user_id, int $now ): ?array {
+		$form_id = absint( \FreeFormCertificate\Core\RequestInput::get_get_string( self::SCREEN_VAR ) );
+		if ( $form_id <= 0 ) {
+			return null;
+		}
+		$code = \FreeFormCertificate\Core\RequestInput::get_get_string( FormInvite::QUERY_VAR );
+		$for  = self::user_of( $code, $form_id );
+		if ( null === $for ) {
+			return array(
+				'form_id' => $form_id,
+				'error'   => __( 'This link is not valid.', 'ffcertificate' ),
+			);
+		}
+		if ( $for !== $user_id ) {
+			return array(
+				'form_id' => $form_id,
+				'error'   => __( 'This certificate belongs to another account. Sign in with the account that showed the QR.', 'ffcertificate' ),
+			);
+		}
+		$resolved = self::resolve( $form_id, $code, $now );
+		return array(
+			'form_id' => $form_id,
+			'error'   => $resolved instanceof \WP_Error ? $resolved->get_error_message() : '',
+		);
 	}
 
 	/**
@@ -259,10 +350,8 @@ final class CertificateCompletionLink {
 	public static function pending_for_user( int $user_id, int $now ): array {
 		$out = array();
 		foreach ( CertificateTerminalReadingRepository::awaiting_for_user( $user_id, $now - self::TTL ) as $reading ) {
-			$url = self::link( $reading['form_id'], $user_id );
-			if ( '' === $url ) {
-				continue;
-			}
+			// Listed even without a link, so nothing waits out of sight (#2936).
+			$url    = self::link( $reading['form_id'], $user_id );
 			$fields = get_post_meta( $reading['form_id'], '_ffc_form_fields', true );
 			$out[]  = array(
 				'form_id' => $reading['form_id'],

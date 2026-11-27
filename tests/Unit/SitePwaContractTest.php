@@ -130,15 +130,20 @@ final class SitePwaContractTest extends TestCase {
 	}
 
 	/**
-	 * The "complete your certificate" link opens the form inside the app
-	 * (#2891), and adds its code after the app answers, because the app's
-	 * address keeps a fragment but drops a query string.
+	 * The "complete your certificate" link opens the app's Certificates
+	 * screen (#2936): it reads Site PWA's routes by name, guarded, and the
+	 * screen id it appends is the one this plugin registers.
 	 */
-	public function test_the_completion_link_asks_the_app_for_its_url_before_adding_the_code(): void {
-		$src    = self::source( 'includes/frontend/class-ffc-certificate-completion-link.php' );
-		$filter = strpos( $src, "apply_filters( 'site_pwa_app_url'" );
-		$this->assertNotFalse( $filter );
-		$this->assertGreaterThan( $filter, strpos( $src, 'add_query_arg( FormInvite::QUERY_VAR', (int) $filter ), 'The code goes on after the app has answered.' );
+	public function test_the_completion_link_names_the_apps_routes_and_the_certificates_screen(): void {
+		$src = self::source( 'includes/frontend/class-ffc-certificate-completion-link.php' );
+		$this->assertStringContainsString( "'\\\\SitePwa\\\\App\\\\Routes'", $src, 'the class name Site PWA ships' );
+		$this->assertStringContainsString( 'is_callable( $routes )', $src, 'an older or absent app falls back to the form page' );
+		$this->assertStringContainsString( "'s/' . self::APP_SCREEN . '/'", $src, 'the screen address docs/screens.md documents' );
+		$this->assertMatchesRegularExpression(
+			"/'" . \FreeFormCertificate\Frontend\CertificateCompletionLink::APP_SCREEN . "'\s*=>\s*array\(/",
+			self::source( 'includes/shortcodes/class-ffc-dashboard-app-screens.php' ),
+			'the screen it opens is registered under that id'
+		);
 	}
 
 	/**

@@ -17,6 +17,7 @@ namespace FreeFormCertificate\Shortcodes;
 
 use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Frontend\CertificateCompletionLink;
+use FreeFormCertificate\Frontend\FormInvite;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 use FreeFormCertificate\Settings\SettingsReader;
 
@@ -123,12 +124,50 @@ final class CertificatesAppScreen {
 			update_user_meta( get_current_user_id(), self::SEEN_META, time() );
 		}
 
+		$user_id = is_user_logged_in() ? get_current_user_id() : 0;
+
+		// Asked to complete one: the form opens here, so a form used only at
+		// the terminal, with no page of its own, can still be finished (#2936).
+		$requested = $user_id > 0 ? CertificateCompletionLink::requested( $user_id, time() ) : null;
+		if ( null !== $requested ) {
+			return self::render_completion( $requested );
+		}
+
 		// Certificates waiting on profile data after a terminal reading
-		// (#2893): drawn here, so a lost e-mail does not lose them.
-		$to_complete = is_user_logged_in() ? CertificateCompletionLink::pending_for_user( get_current_user_id(), time() ) : array();
+		// (#2893): drawn here, so a lost e-mail does not lose them. Each
+		// button opens the form on this screen, whatever the e-mail links to.
+		$to_complete = array();
+		if ( $user_id > 0 ) {
+			$here = remove_query_arg( array( CertificateCompletionLink::SCREEN_VAR, FormInvite::QUERY_VAR ) );
+			foreach ( CertificateCompletionLink::pending_for_user( $user_id, time() ) as $item ) {
+				$item['url']   = CertificateCompletionLink::screen_link( $here, $item['form_id'], $user_id );
+				$to_complete[] = $item;
+			}
+		}
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/public/app/certificates.php';
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * The form a person completes inside the app, or why it does not open.
+	 *
+	 * The `[ffc_form]` shortcode reads the person's code from the address,
+	 * fills the form from the profile and lifts its hours, as on the form's
+	 * page; it enqueues its own scripts as it renders.
+	 *
+	 * @param array{form_id: int, error: string} $requested What the screen was asked to open.
+	 * @return string
+	 */
+	private static function render_completion( array $requested ): string {
+		$ffc_back  = remove_query_arg( array( CertificateCompletionLink::SCREEN_VAR, FormInvite::QUERY_VAR ) );
+		$ffc_error = $requested['error'];
+		$ffc_title = get_the_title( $requested['form_id'] );
+		$ffc_form  = '' === $ffc_error ? do_shortcode( sprintf( '[ffc_form id="%d"]', $requested['form_id'] ) ) : '';
+
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/app/certificate-complete.php';
 		return (string) ob_get_clean();
 	}
 }
