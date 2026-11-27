@@ -75,7 +75,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The app's "My details" opens the Profile screen** (#2880) through Site PWA's `site_pwa_details_screen` filter (rpgmem/site-pwa#56); an older app keeps its own account screen.
 - The app's Preferences screen carries a Notifications section with the appointment reminder and, for an account with the Messages tab, the two date-message toggles; the app's Profile and Messages screens leave them out, and the site's dashboard is unchanged (#2885, rpgmem/site-pwa#66).
 - **Terminal queue takes any attendance target.** A terminal's queue, schedule, overlap rule and reading now go through the attendance target the key names, so a certificate form can join audience bookings on one terminal. Stored queues keep their shape: a booking is still its bare id. No behaviour change for bookings. (#2890)
-- **A terminal is paired at the terminal, by event or by place.** Unpaired, it shows one informational screen with the operator's lock; the operator QR opens setup, By event or By place. The app's Pair terminal, the wp-admin pairing codes and the `POST terminal/pairings` and `POST terminal/pair` routes are gone; a terminal that follows a place names it in its operator menu, with no queue edit (#2900).
+- **A terminal is paired at the terminal, by event or by place.** Unpaired, it shows one informational screen with the operator's lock; the operator QR opens setup, By event or By place. The app's Pair terminal, the wp-admin pairing codes and the `POST terminal/pairings` and `POST terminal/pair` routes are gone; a terminal that follows a place names it in its operator menu, with no queue edit, and an event terminal turns to follow a place from Add event, By place; Terminals shows what the place holds (#2900).
 - **The operator QR counts down to the site clock's 2-minute windows.** Opened at 10:30:30 it shows 1:30, reopening keeps the count, and under 30 s left it shows the next window's code (#2907).
 
 ### Security
@@ -108,6 +108,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A calendar day's name stays inside its box** (#2856): the holiday, booking or available name under a day's number no longer runs past the day and gets clipped on a phone.
 - **Inside the app, a device's Light choice keeps this plugin's screens light** (#2883): Dark Mode treats the app's `data-site-pwa-scheme="light"` mark as off, as it already treated `"dark"` as on.
 - On a phone, a calendar day's badge (holiday, bookings, closed) stays inside the day's square instead of running into the next row; the day is a column that never spills, with tighter lines for the number and the badge (#2887).
+- **The terminal keeps its footer on screen, and says when it could not start.** The install banner no longer pushes the footer, with the operator's lock, below the screen; a terminal whose script fails to start shows a note instead of a blank screen, with what stopped it: a script error, a file that did not load or a missing configuration (#2910, #2912). Its scripts are printed in the page, so a cache can no longer hand a tablet an older script than the page it binds to (#2912).
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 

@@ -1069,7 +1069,84 @@
                     list.appendChild(item);
                 });
                 part('queue-none').hidden = offered.length > 0;
+                renderAddLocations(result.body.locations || []);
                 part('queue-add').hidden = false;
+                return true;
+            });
+        }
+
+        // "By place" in Add event (#2900): the terminal stops holding the
+        // events ticked for it and follows a GPS location from then on.
+        var addLocations = [];
+
+        function addModes() {
+            return Array.prototype.slice.call(part('queue-add-mode').querySelectorAll('input[type="radio"]'));
+        }
+
+        function addMode() {
+            var chosen = addModes().filter(function (radio) { return radio.checked; })[0];
+            return chosen && 'place' === chosen.value ? 'place' : 'event';
+        }
+
+        function renderAddLocations(locations) {
+            addLocations = locations;
+            var select = part('queue-add-location');
+            select.textContent = '';
+            addLocations.forEach(function (location) {
+                var option = el.ownerDocument.createElement('option');
+                option.value = String(location.id);
+                option.textContent = location.name || String(location.id);
+                select.appendChild(option);
+            });
+            select.disabled = !addLocations.length;
+            addModes().forEach(function (radio) {
+                radio.checked = 'event' === radio.value;
+            });
+            renderAddMode();
+        }
+
+        function addLocation() {
+            var chosen = part('queue-add-location').value;
+            return addLocations.filter(function (location) { return location.id === chosen; })[0] || null;
+        }
+
+        function renderAddMode() {
+            var byPlace = 'place' === addMode();
+            part('queue-add-by-event').hidden = byPlace;
+            part('queue-add-by-place').hidden = !byPlace;
+            var location = byPlace ? addLocation() : null;
+            var items = location ? (location.items || []).slice(0, setupMax) : [];
+            var earlier = overlaps(items);
+            var list = part('queue-place-list');
+            list.textContent = '';
+            items.forEach(function (item, index) {
+                list.appendChild(setupRow(item, earlier[index], false));
+            });
+            part('queue-add-no-location').hidden = addLocations.length > 0;
+            part('queue-place-none').hidden = !location || items.length > 0;
+            part('queue-follow').disabled = !location;
+        }
+
+        function followPlace() {
+            armMenu();
+            var location = addLocation();
+            if (!location) {
+                return Promise.resolve(false);
+            }
+            queueError('');
+            part('queue-follow').disabled = true;
+            return terminalRequest('PUT', 'self', { code: menuCode, location: location.id }).then(function (result) {
+                part('queue-follow').disabled = false;
+                if (!result) {
+                    return false;
+                }
+                if (200 !== result.status) {
+                    queueError(result.body.message || strings.failed);
+                    return false;
+                }
+                part('queue-add').hidden = true;
+                applySchedule(result.body);
+                say(queueEdit.saved || '');
                 return true;
             });
         }
@@ -1785,6 +1862,17 @@
 
         part('menu-close').addEventListener('click', closeMenu);
         part('queue-open-add').addEventListener('click', openAdd);
+        addModes().forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                armMenu();
+                renderAddMode();
+            });
+        });
+        part('queue-add-location').addEventListener('change', function () {
+            armMenu();
+            renderAddMode();
+        });
+        part('queue-follow').addEventListener('click', followPlace);
         part('queue-close-add').addEventListener('click', function () {
             armMenu();
             part('queue-add').hidden = true;
@@ -1865,6 +1953,13 @@
             // Left by the pairing codes this terminal no longer takes (#2900).
             store.remove(LOCK_KEY);
             show('idle');
+        }
+
+        // The terminal started (#2910): the note the markup shows until then
+        // tells a terminal whose script failed that it did not start.
+        var boot = el.querySelector('[data-ffc-terminal-part="boot"]');
+        if (boot) {
+            boot.hidden = true;
         }
 
         return { read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, startSetup: startSetup, finishSetup: finishSetup, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
