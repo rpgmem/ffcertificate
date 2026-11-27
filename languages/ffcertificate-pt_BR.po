@@ -37539,3 +37539,6 @@ msgstr "Nenhum local de GPS está definido em Configurações → Geolocalizaç�
 
 msgid "The terminal stops holding the events ticked for it and follows this place from now on: what is created for the place joins on its own, and what ends leaves."
 msgstr "O terminal deixa de ter os eventos marcados para ele e segue este local dali em diante: o que for criado para o local entra sozinho, e o que terminar sai."
+
+msgid "Starting the terminal… If this message stays, the terminal could not start: close it and open it again, and tell the event team if it happens again."
+msgstr "Iniciando o terminal… Se esta mensagem continuar, o terminal não conseguiu iniciar: feche-o e abra de novo, e avise a equipe do evento se acontecer outra vez."

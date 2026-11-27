@@ -260,7 +260,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$html = AudienceTerminalPage::document();
 
 		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="en-US" class="ffc-dark-mode"><head>', $html, 'a terminal is always dark, whatever the site\'s setting (#2780)' );
-		$this->assertStringContainsString( '<body class="ffc-shortcode ffc-terminal-page">', $html );
+		$this->assertStringContainsString( '<body class="ffc-shortcode ffc-terminal-page ffc-terminal-kiosk-page">', $html );
 		$this->assertStringContainsString( 'data-ffc-terminal', $html );
 		$this->assertStringContainsString( '<meta name="robots" content="noindex,nofollow,noarchive">', $html );
 		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/?ffc_terminal=manifest">', $html );

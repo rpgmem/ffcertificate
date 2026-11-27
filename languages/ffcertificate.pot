@@ -37461,3 +37461,6 @@ msgstr ""
 
 msgid "The terminal stops holding the events ticked for it and follows this place from now on: what is created for the place joins on its own, and what ends leaves."
 msgstr ""
+
+msgid "Starting the terminal… If this message stays, the terminal could not start: close it and open it again, and tell the event team if it happens again."
+msgstr ""

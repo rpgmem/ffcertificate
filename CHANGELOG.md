@@ -108,6 +108,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A calendar day's name stays inside its box** (#2856): the holiday, booking or available name under a day's number no longer runs past the day and gets clipped on a phone.
 - **Inside the app, a device's Light choice keeps this plugin's screens light** (#2883): Dark Mode treats the app's `data-site-pwa-scheme="light"` mark as off, as it already treated `"dark"` as on.
 - On a phone, a calendar day's badge (holiday, bookings, closed) stays inside the day's square instead of running into the next row; the day is a column that never spills, with tighter lines for the number and the badge (#2887).
+- **The terminal keeps its footer on screen, and says when it could not start.** The install banner no longer pushes the footer, with the operator's lock, below the screen; a terminal whose script fails to start shows a note instead of a blank screen (#2910).
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 

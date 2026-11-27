@@ -85,6 +85,14 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 		<?php echo Notice::render( 'warning', 'warning', __( 'The check-in terminal needs JavaScript. Turn it on in the browser and open this page again.', 'ffcertificate' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes its own output. ?>
 	</noscript>
 
+	<?php
+	// Shown until the script starts and hides it (#2910): every view and the
+	// footer start hidden, so a script that fails to start would otherwise
+	// leave a blank screen that says nothing. It fades in after a moment, so
+	// a normal start never flashes it.
+	?>
+	<p class="ffc-terminal-boot ffc-icon-info" role="status" data-ffc-terminal-part="boot"><?php esc_html_e( 'Starting the terminal… If this message stays, the terminal could not start: close it and open it again, and tell the event team if it happens again.', 'ffcertificate' ); ?></p>
+
 	<p class="ffc-terminal-status" role="status" aria-live="polite" data-ffc-terminal-part="status"></p>
 	<p class="ffc-terminal-error" role="alert" data-ffc-terminal-part="error" hidden></p>
 	<p class="ffc-terminal-error ffc-terminal-offline" role="status" data-ffc-terminal-part="offline" hidden></p>
