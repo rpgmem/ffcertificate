@@ -334,6 +334,15 @@ class AudienceCheckinEndpoint {
 						'denied'      => __( 'Your location is needed to check in here. Allow it in your browser settings and try again.', 'ffcertificate' ),
 						'unavailable' => __( 'Your location could not be read. Move to an open area and try again.', 'ffcertificate' ),
 						'locating'    => __( 'Reading your location…', 'ffcertificate' ),
+						// Where a refused location is allowed again, by platform
+						// and by browser tab or installed app (#2954).
+						'deniedHow'   => array(
+							'Ios'        => __( 'On iOS: tap the "AA" button in the address bar → Website Settings → Location → Allow.', 'ffcertificate' ),
+							'Android'    => __( 'On Android Chrome: tap the padlock in the address bar → Permissions → Location → Allow.', 'ffcertificate' ),
+							'Desktop'    => __( 'On desktop: click the padlock in the address bar → Site Settings → Location → Allow.', 'ffcertificate' ),
+							'IosApp'     => __( 'In the app on iPhone or iPad: Settings → Privacy & Security → Location Services → Safari Websites → While Using the App.', 'ffcertificate' ),
+							'AndroidApp' => __( 'In the app on Android: touch and hold the app\'s icon → App info → Permissions (or Site settings) → Location → Allow.', 'ffcertificate' ),
+						),
 						'telemetry'   => array(
 							'type' => 'booking',
 							'id'   => $booking_id,

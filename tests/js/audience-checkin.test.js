@@ -34,6 +34,12 @@ describe('ffc-audience-checkin.js', () => {
 		expect(form.elements.ffc_lng.value).toBe('-46.6');
 		expect(form.elements.ffc_accuracy.value).toBe('12');
 		expect(submitSpy).toHaveBeenCalledTimes(1);
+
+		// The native post that follows is let through, never read again.
+		const again = new Event('submit', { cancelable: true });
+		form.dispatchEvent(again);
+		expect(again.defaultPrevented).toBe(false);
+		expect(submitSpy).toHaveBeenCalledTimes(1);
 	});
 
 	it('does not post and says why when the location is refused', () => {
@@ -77,6 +83,7 @@ describe('ffc-audience-checkin.js', () => {
 describe('ffc-audience-checkin.js: the visitor pre-flight (#2040)', () => {
 	const UA = {
 		desktop: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+		android: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36',
 		instagram: 'Mozilla/5.0 (Linux; Android 14; SM-S918B Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.6668.81 Mobile Safari/537.36 Instagram 350.0.0.42.92 Android',
 	};
 	let sent;
@@ -113,6 +120,7 @@ describe('ffc-audience-checkin.js: the visitor pre-flight (#2040)', () => {
 		};
 		window.ffcCheckin = {
 			denied: 'Allow it.',
+			deniedHow: { Desktop: 'Padlock.', Android: 'Chrome padlock.', AndroidApp: 'App info.' },
 			unavailable: 'Not read.',
 			telemetry: { type: 'booking', id: 31 },
 			strings: { secureRequired: 'This check-in needs HTTPS.' },
@@ -174,8 +182,24 @@ describe('ffc-audience-checkin.js: the visitor pre-flight (#2040)', () => {
 
 		const error = form.querySelector('.ffc-checkin-geo-error');
 		expect(error.hidden).toBe(false);
-		expect(error.textContent).toBe('Allow it.');
+		expect(error.textContent).toBe('Allow it. Padlock.');
 		expect(sent).toEqual([{ type: 'booking', id: 31, reason: 'gps_denied' }]);
+	});
+
+	// Inside the installed app there is no address bar (#2954).
+	it('says where to allow the location in the installed app', async () => {
+		device({ ua: 'android', permission: 'denied' });
+		const matchMedia = window.matchMedia;
+		window.matchMedia = (query) => ({ matches: '(display-mode: standalone)' === query });
+		try {
+			page(true);
+			const form = card();
+			loadScript('assets/js/ffc-audience-checkin.js');
+			await flush();
+			expect(form.querySelector('.ffc-checkin-geo-error').textContent).toBe('Allow it. App info.');
+		} finally {
+			window.matchMedia = matchMedia;
+		}
 	});
 
 	it('does not ask about the PDF features a check-in never uses', async () => {

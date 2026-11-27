@@ -60,6 +60,7 @@ function setupForm(formId, geoConfig) {
 				gpsDeniedHowIos: 'iOS instructions',
 				gpsDeniedHowAndroid: 'Android instructions',
 				gpsDeniedHowDesktop: 'Desktop instructions',
+				gpsDeniedHowAndroidApp: 'Android app instructions',
 				gpsTryAnyway: 'Try anyway',
 				gpsPromptTitle: 'We need your location',
 				gpsPromptBody: 'After you tap Continue, the browser will ask.',
@@ -139,6 +140,28 @@ describe('GPS Permissions API pre-check', () => {
 		expect(banner.querySelector('.ffc-notice-text + .ffc-notice-text').textContent).toBe('Desktop instructions');
 		// Only the confirming read ran; the native flow did not.
 		expect(nativeReads()).toHaveLength(0);
+	});
+
+	// The installed app has no address bar (#2954): its own how-to, and the
+	// browser's where the app has none.
+	it('denied in the installed app: names the app\'s settings, falling back to the browser\'s', async () => {
+		Object.defineProperty(navigator, 'userAgent', { configurable: true, value: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/129 Mobile Safari/537.36' });
+		const matchMedia = window.matchMedia;
+		window.matchMedia = (query) => ({ matches: '(display-mode: standalone)' === query });
+		try {
+			stubPermissions('denied');
+			setupForm(7);
+			window.FFCGeofence.init();
+			await settle();
+			const how = () => document.querySelector('[data-ffc-notice="preflight-gps"] .ffc-notice-text + .ffc-notice-text').textContent;
+			expect(how()).toBe('Android app instructions');
+
+			delete window.ffcGeofenceConfig._global.strings.gpsDeniedHowAndroidApp;
+			window.FFCGeofence.handleGpsDeniedBanner(window.$('#ffc-form-7'), {});
+			expect(how()).toBe('Android instructions');
+		} finally {
+			window.matchMedia = matchMedia;
+		}
 	});
 
 	it('denied → "Try anyway" re-enters the native flow (preflight skipped)', async () => {

@@ -40,6 +40,8 @@ class SettingsPathReferenceTest extends TestCase {
 		'Site Settings' => 'Android Chrome settings, in the cookie-blocked help shown to visitors',
 		'Location'      => 'a browser\'s site settings ("Site Settings → Location"), in the geolocation help shown to visitors',
 		'Cookies'       => 'a browser\'s site settings, in the cookie-blocked help shown to visitors',
+		'Apps'          => 'iOS device settings ("Settings → Apps → Safari"), in the terminal\'s camera help (#2954)',
+		'Camera'        => 'a browser\'s site settings ("Website Settings → Camera"), in the terminal\'s camera help (#2954)',
 	);
 
 	protected function setUp(): void {

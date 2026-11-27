@@ -1809,6 +1809,45 @@
             updateQueue();
         }
 
+        // What the browser says of the camera permission (#2954): granted,
+        // prompt or denied, or `unknown` where it cannot be asked (an older
+        // Safari, Firefox), which keeps the camera starting by itself.
+        function cameraPermission() {
+            var permissions = env.permissions;
+            if (!permissions || typeof permissions.query !== 'function') {
+                return Promise.resolve('unknown');
+            }
+            try {
+                return Promise.resolve(permissions.query({ name: 'camera' })).then(function (status) {
+                    return status && status.state ? String(status.state) : 'unknown';
+                }, function () {
+                    return 'unknown';
+                });
+            } catch (e) {
+                return Promise.resolve('unknown');
+            }
+        }
+
+        // The platform's part of a how-to key: Ios, Android or Desktop, then
+        // App on a phone or tablet running the installed app, which has no
+        // address bar to reach the site's settings through.
+        function platformKey() {
+            var ua = String(env.userAgent || '');
+            var os = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && env.touchPoints > 1)
+                ? 'Ios'
+                : (/Android/i.test(ua) ? 'Android' : 'Desktop');
+            var installed = typeof env.standalone === 'function' && env.standalone();
+            return 'Desktop' !== os && installed ? os + 'App' : os;
+        }
+
+        // A refused camera, with where to allow it again on this device.
+        function cameraDenied() {
+            var how = cameraStrings.how || {};
+            var key = platformKey();
+            var step = how[key] || how[key.replace(/App$/, '')] || '';
+            return [cameraStrings.denied || '', step].filter(Boolean).join(' ');
+        }
+
         function stopCamera() {
             if (camera.timer) {
                 env.clearTimeout(camera.timer);
@@ -1963,14 +2002,18 @@
                 });
             }, function (error) {
                 part('camera-start').disabled = false;
-                cameraNote(error && 'NotAllowedError' === error.name ? cameraStrings.denied : cameraStrings.failed);
+                cameraNote(error && 'NotAllowedError' === error.name ? cameraDenied() : cameraStrings.failed);
                 return false;
             });
         }
 
         // With the camera allowed and supported, the ready screen reads with
         // it from the start (#2780); the button stays for a refused or failed
-        // start, which the browser only retries on a gesture.
+        // start, which the browser only retries on a gesture. A camera not
+        // yet allowed is not started by itself (#2954): the note says why
+        // the camera is wanted, and the browser asks on the operator's tap,
+        // where its question has a reason in front of it. A refused one says
+        // where to allow it again.
         function autoCamera() {
             if (!config.camera || camera.stream || camera.asleep || (camera.tried && !camera.resume)) {
                 return Promise.resolve(false);
@@ -1979,9 +2022,22 @@
                 if ('ok' !== support || camera.stream || camera.asleep || (camera.tried && !camera.resume) || CAMERA_SCREENS.indexOf(screen) < 0) {
                     return false;
                 }
-                camera.tried = true;
-                camera.resume = false;
-                return startCamera();
+                return cameraPermission().then(function (state) {
+                    if (camera.stream || camera.asleep || (camera.tried && !camera.resume) || CAMERA_SCREENS.indexOf(screen) < 0) {
+                        return false;
+                    }
+                    camera.tried = true;
+                    camera.resume = false;
+                    if ('prompt' === state) {
+                        cameraNote(cameraStrings.ask || cameraStrings.ready);
+                        return false;
+                    }
+                    if ('denied' === state) {
+                        cameraNote(cameraDenied());
+                        return false;
+                    }
+                    return startCamera();
+                });
             });
         }
 
@@ -2135,6 +2191,23 @@
         });
     }
 
+    /**
+     * Whether the page runs as the installed app (#2954): a standalone or
+     * fullscreen window, or iOS's `navigator.standalone`. There is no
+     * address bar there, so a refused camera names the app's own path.
+     *
+     * @param {Window} view The window.
+     * @returns {boolean}
+     */
+    function installedApp(view) {
+        try {
+            return true === view.navigator.standalone
+                || (typeof view.matchMedia === 'function' && (view.matchMedia('(display-mode: standalone)').matches || view.matchMedia('(display-mode: fullscreen)').matches));
+        } catch (e) {
+            return false;
+        }
+    }
+
     root.FFCTerminal = {
         registerShell: registerShell,
         cleanReading: cleanReading,
@@ -2142,6 +2215,7 @@
         clock: clock,
         duration: duration,
         fill: fill,
+        installedApp: installedApp,
         newDeviceId: newDeviceId,
         wallClock: wallClock,
         readState: readState,
@@ -2171,6 +2245,9 @@
                 secure: !!root.isSecureContext,
                 BarcodeDetector: root.BarcodeDetector,
                 mediaDevices: root.navigator.mediaDevices,
+                permissions: root.navigator.permissions,
+                touchPoints: root.navigator.maxTouchPoints || 0,
+                standalone: function () { return installedApp(root); },
                 onOnline: function (fn) { root.addEventListener('online', fn); },
                 onOffline: function (fn) { root.addEventListener('offline', fn); },
                 wakeLock: root.navigator.wakeLock,

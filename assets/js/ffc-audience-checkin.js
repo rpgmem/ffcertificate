@@ -23,6 +23,23 @@
 	}
 
 	/**
+	 * The refused-location message with where to allow it again on this
+	 * platform, in a browser tab or in the installed app (#2954).
+	 *
+	 * @returns {string}
+	 */
+	function deniedMessage() {
+		var how = strings.deniedHow || {};
+		var platform = window.FFC && window.FFC.Platform;
+		var step = '';
+		if (platform && typeof platform.howKey === 'function') {
+			var key = platform.howKey('');
+			step = how[key] || how[key.replace(/App$/, '')] || '';
+		}
+		return [strings.denied || '', step].filter(Boolean).join(' ');
+	}
+
+	/**
 	 * Run the pre-flight on the page. A step that blocks hides the form
 	 * behind its notice; the location step shows a refused permission under
 	 * the button at once.
@@ -44,7 +61,7 @@
 				ns.Preflight.geoPermission().then(function (answer) {
 					if (answer.state === 'denied') {
 						ns.Preflight.log(ctx, 'gps_denied');
-						fail(strings.denied || '');
+						fail(deniedMessage());
 					}
 				});
 			}
@@ -113,7 +130,7 @@
 					form.submit();
 				},
 				function (geoError) {
-					fail(geoError && 1 === geoError.code ? (strings.denied || '') : (strings.unavailable || ''));
+					fail(geoError && 1 === geoError.code ? deniedMessage() : (strings.unavailable || ''));
 				},
 				{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
 			);

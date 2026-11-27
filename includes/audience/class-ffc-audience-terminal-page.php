@@ -740,7 +740,17 @@ final class AudienceTerminalPage {
 						'reading'     => __( 'Hold the presence code inside the frame.', 'ffcertificate' ),
 						'insecure'    => __( 'The camera needs this page to be served over HTTPS. Use a reader connected to the device.', 'ffcertificate' ),
 						'unsupported' => __( 'This browser cannot read QR codes with the camera. Use a reader connected to the device.', 'ffcertificate' ),
+						'ask'         => __( 'To read presence codes with this device\'s camera, tap Use the camera. The browser asks once: choose Allow. A connected reader works without it.', 'ffcertificate' ),
 						'denied'      => __( 'The camera was not allowed. Allow it in the browser\'s site settings, or use a reader connected to the device.', 'ffcertificate' ),
+						// Where a refused camera is allowed again, by platform
+						// and by browser tab or installed app (#2954).
+						'how'         => array(
+							'Ios'        => __( 'On iPhone or iPad: tap the "AA" button in the address bar → Website Settings → Camera → Allow.', 'ffcertificate' ),
+							'Android'    => __( 'On Android Chrome: tap the padlock in the address bar → Permissions → Camera → Allow.', 'ffcertificate' ),
+							'Desktop'    => __( 'On a computer: click the padlock in the address bar → Site settings → Camera → Allow.', 'ffcertificate' ),
+							'IosApp'     => __( 'In the app on iPhone or iPad: Settings → Apps → Safari → Camera → Allow.', 'ffcertificate' ),
+							'AndroidApp' => __( 'In the app on Android: touch and hold the app\'s icon → App info → Permissions (or Site settings) → Camera → Allow.', 'ffcertificate' ),
+						),
 						'failed'      => __( 'The camera could not be started. Use a reader connected to the device.', 'ffcertificate' ),
 						'asleep'      => __( 'The camera is resting after a minute without a code. Tap Use the camera to read again; a connected reader keeps working.', 'ffcertificate' ),
 					),

@@ -165,6 +165,41 @@
         /** @returns {boolean} A phone or tablet, by the user agent alone. */
         mobile: function() {
             return /Mobi|Android|iPhone|iPad|iPod/i.test(this.ua());
+        },
+
+        /**
+         * Opened from the home screen as an installed app (a standalone or
+         * fullscreen window, or iOS's `navigator.standalone`), where there
+         * is no address bar to reach the site's settings through.
+         *
+         * @returns {boolean}
+         */
+        installed: function() {
+            try {
+                if (typeof navigator !== 'undefined' && true === navigator.standalone) {
+                    return true;
+                }
+                return typeof window.matchMedia === 'function'
+                    && (window.matchMedia('(display-mode: standalone)').matches
+                        || window.matchMedia('(display-mode: fullscreen)').matches);
+            } catch (e) {
+                return false;
+            }
+        },
+
+        /**
+         * The key of a how-to string for this platform (#2954): the prefix,
+         * then `Ios`, `Android` or `Desktop`, then `App` for a phone or
+         * tablet running the installed app, whose settings are reached
+         * another way than a browser tab's.
+         *
+         * @param {string} prefix e.g. `gpsDeniedHow`.
+         * @returns {string}
+         */
+        howKey: function(prefix) {
+            var os = this.os();
+            var key = prefix + os.charAt(0).toUpperCase() + os.slice(1);
+            return 'desktop' !== os && this.installed() ? key + 'App' : key;
         }
     };
 

@@ -93,11 +93,14 @@
                 'gpsDeniedBody',
                 'This site needs your location, but the browser has it set to "block" for this site.'
             );
+            // Inside the installed app there is no address bar (#2954): its
+            // own how-to, falling back to the browser's.
+            const browserKey = platform === 'ios' ? 'gpsDeniedHowIos'
+                : platform === 'android' ? 'gpsDeniedHowAndroid'
+                : 'gpsDeniedHowDesktop';
             const instructions = this.getString(
-                platform === 'ios' ? 'gpsDeniedHowIos'
-                    : platform === 'android' ? 'gpsDeniedHowAndroid'
-                    : 'gpsDeniedHowDesktop',
-                ''
+                window.FFC.Platform.howKey('gpsDeniedHow'),
+                this.getString(browserKey, '')
             );
             const tryAnyway = this.getString('gpsTryAnyway', 'Try anyway');
 
