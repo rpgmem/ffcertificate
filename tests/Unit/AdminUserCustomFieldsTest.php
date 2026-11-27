@@ -1654,7 +1654,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$plain = $this->field( 10, array( 'id' => 3, 'field_key' => 'vinculo' ) );
 
 		$this->assertSame( '518.178-0', ProfileCustomFields::display_value( $rf, \FreeFormCertificate\Tests\Support\Identifiers::RF_A ) );
-		$this->assertSame( '529.982.247-25', ProfileCustomFields::display_value( $cpf, '52998224725' ) );
+		$this->assertSame( '518.178.420-80', ProfileCustomFields::display_value( $cpf, \FreeFormCertificate\Tests\Support\Identifiers::CPF_A ) );
 		$this->assertSame( '12345', ProfileCustomFields::display_value( $rf, '12345' ), 'a value off its shape stays as stored' );
 		$this->assertSame( '1', ProfileCustomFields::display_value( $plain, '1' ) );
 	}
