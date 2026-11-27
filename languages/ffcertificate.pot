@@ -37865,3 +37865,15 @@ msgstr ""
 
 msgid "Inside the app the test is one tap away: Preferences has a Device test section whose Test this device opens it in the app's own frame when Site PWA can draw the verification page. A Mode row says whether the test runs in the installed app or in a browser tab, and a blocked location's help names the app's own settings there, since the app has no address bar."
 msgstr ""
+
+msgid "This CPF or RF belongs to more than one account. Ask an administrator."
+msgstr ""
+
+msgid "Username, e-mail, CPF or RF"
+msgstr ""
+
+msgid "Signing in with a CPF or an RF:"
+msgstr ""
+
+msgid "the login, on the site and in the Site PWA app, and \"Lost your password?\" accept a CPF or an RF, with or without its mask, where they ask for a username. The account is the one the identifier belongs to in the user profiles or the certificate submissions. When one CPF or RF belongs to more than one account, the password decides which one signs in; if more than one of them takes that password, the login says the CPF or RF belongs to more than one account and asks the person to contact an administrator, and the same happens on \"Lost your password?\". Identity Resolution lists those accounts."
+msgstr ""

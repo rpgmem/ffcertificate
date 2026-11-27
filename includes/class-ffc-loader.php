@@ -21,6 +21,7 @@ use FreeFormCertificate\Frontend\Frontend;
 use FreeFormCertificate\API\RestController;
 use FreeFormCertificate\Shortcodes\DashboardShortcode;
 use FreeFormCertificate\UserDashboard\AccessControl;
+use FreeFormCertificate\UserDashboard\IdentifierLogin;
 use FreeFormCertificate\UserDashboard\UserCleanup;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingLoader;
 use FreeFormCertificate\Audience\AudienceLoader;
@@ -434,13 +435,14 @@ class Loader {
 		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
 			( new ReregistrationLoader() )->init();
 		}
-		// UserDashboard has no module loader by design (#563 B3): these two
+		// UserDashboard has no module loader by design (#563 B3): these
 		// init() calls are its only bootstrap wiring. Its larger
 		// Root→UserDashboard surface is capability/role lifecycle
 		// (register_ffc_roles_safe() / ensure_*_caps() below) — orchestrator
 		// responsibility, not module bootstrap, so a loader would narrow
 		// nothing. See CLAUDE.md "Module bootstrap (per-module loaders)".
 		AccessControl::init();
+		IdentifierLogin::init();
 		UserCleanup::init();
 		// WordPress's first / last name back into the plugin's full name.
 		// Not behind is_admin(): wp_update_user() also runs from REST and
