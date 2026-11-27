@@ -3,9 +3,9 @@
  * AudienceAppScreens
  *
  * The attendance screens inside the installable app (#2750): the
- * participant's Presence screen (#2742) and the operator's section: pair a
- * check-in terminal, list and end the operator's terminals, and show the
- * operator's unlock code (#2744).
+ * participant's Presence screen (#2742) and the operator's section: list
+ * and end the operator's terminals, and show the operator's unlock code
+ * (#2744), which is what pairs a terminal on the terminal itself (#2900).
  *
  * Registration goes through Site PWA's `site_pwa_register_screens` action;
  * without that plugin the action never fires and nothing here runs.
@@ -47,8 +47,7 @@ final class AudienceAppScreens {
 	public const OPERATOR_CAPABILITY = 'ffc_checkin_audiences';
 
 	/**
-	 * What the app checks before it shows Pair terminal and My terminals
-	 * (#2828): the terminal capability, on the phone where the account's
+	 * What the app checks before it shows My terminals (#2828): the terminal capability, on the phone where the account's
 	 * presence is active. A meta capability, resolved in {@see map_app_caps()}.
 	 */
 	public const APP_PAIR_CAPABILITY = 'ffc_app_pair_terminals';
@@ -64,7 +63,6 @@ final class AudienceAppScreens {
 	 */
 	private const RENDERERS = array(
 		'presence'           => 'render_presence',
-		'operator-pair'      => 'render_operator_pair',
 		'operator-terminals' => 'render_operator_terminals',
 		'operator-qr'        => 'render_operator_qr',
 	);
@@ -179,9 +177,10 @@ final class AudienceAppScreens {
 	 *
 	 * Manual attendance already exists, on the booking's Attendance screen in
 	 * wp-admin, so it links there; the others draw their own screen.
-	 * Pairing and listing terminals take the terminal capability; the
+	 * Listing terminals takes the terminal capability (a terminal is paired
+	 * on the terminal itself, #2900); the
 	 * operator's unlock code takes the check-in one, because it is what a
-	 * check-in operator shows a terminal. Those three also need the phone
+	 * check-in operator shows a terminal. Those two also need the phone
 	 * where the account's presence is active (#2828), through the app's meta
 	 * capabilities.
 	 *
@@ -197,15 +196,6 @@ final class AudienceAppScreens {
 				'slot'       => 'center',
 				'position'   => 3,
 				'capability' => self::PARTICIPANT_CAPABILITY,
-			),
-			'operator-pair'       => array(
-				'label'      => __( 'Pair terminal', 'ffcertificate' ),
-				'icon'       => 'link',
-				'place'      => 'more',
-				'position'   => 40,
-				'capability' => self::APP_PAIR_CAPABILITY,
-				'section'    => 'operator',
-				'subtitle'   => __( 'Link a tablet to your events', 'ffcertificate' ),
 			),
 			'operator-terminals'  => array(
 				'label'      => __( 'My terminals', 'ffcertificate' ),
@@ -346,15 +336,6 @@ final class AudienceAppScreens {
 	}
 
 	/**
-	 * The Pair terminal screen.
-	 *
-	 * @return string
-	 */
-	public static function render_operator_pair(): string {
-		return self::render_operator( 'pair' );
-	}
-
-	/**
 	 * The My terminals screen.
 	 *
 	 * @return string
@@ -377,7 +358,7 @@ final class AudienceAppScreens {
 	 * `templates/public/terminal/operator.php`, the presence screen's encoder
 	 * for the QR codes, and the script.
 	 *
-	 * @param string $ffc_terminal_mode `pair`, `terminals` or `qr`; the template reads it.
+	 * @param string $ffc_terminal_mode `terminals` or `qr`; the template reads it.
 	 * @return string
 	 */
 	private static function render_operator( string $ffc_terminal_mode ): string {
@@ -419,27 +400,23 @@ final class AudienceAppScreens {
 				'rest'        => esc_url_raw( rest_url( AudienceTerminalRestController::NAMESPACE . '/' . AudienceTerminalRestController::REST_BASE . '/' ) ),
 				'nonce'       => wp_create_nonce( 'wp_rest' ),
 				'maxBookings' => AudienceTerminalPairing::MAX_BOOKINGS,
-				'autoEnd'     => AudienceCheckinSettings::auto_end_hours(),
 				'strings'     => array(
 					'loading'         => __( 'Loading…', 'ffcertificate' ),
 					'failed'          => __( 'The site could not be reached. Check the connection and try again.', 'ffcertificate' ),
 					'pickEvent'       => __( 'Tick at least one event.', 'ffcertificate' ),
 					/* translators: %d: the most events one terminal may serve */
 					'tooMany'         => __( 'A terminal serves at most %d events.', 'ffcertificate' ),
-					'generating'      => __( 'Generating the code…', 'ffcertificate' ),
 					'full'            => __( 'Terminal limit reached', 'ffcertificate' ),
 					/* translators: %d: number of terminals already paired for the event */
 					'held'            => __( 'Terminals: %d', 'ffcertificate' ),
-					/* translators: %s: minutes and seconds left, such as 4:59 */
-					'codeExpires'     => __( 'Expires in %s · single use', 'ffcertificate' ),
-					/* translators: 1: number of events, 2: hours after the last event */
-					'pairSummary'     => __( 'Events: %1$d · ends by itself %2$d h after the last one', 'ffcertificate' ),
 					'expiredCode'     => __( 'This code has expired.', 'ffcertificate' ),
 					'qrLabel'         => __( 'QR code to hold to the terminal\'s reader.', 'ffcertificate' ),
 					/* translators: %d: terminal number */
 					'unnamed'         => __( 'Terminal %d', 'ffcertificate' ),
 					/* translators: %d: number of events */
 					'events'          => __( 'Events: %d', 'ffcertificate' ),
+					/* translators: %s: GPS location name */
+					'follows'         => __( 'Follows %s', 'ffcertificate' ),
 					/* translators: %s: date and time */
 					'seen'            => __( 'Last read: %s', 'ffcertificate' ),
 					'neverSeen'       => __( 'Not used yet.', 'ffcertificate' ),
@@ -456,9 +433,6 @@ final class AudienceAppScreens {
 				),
 			)
 		);
-
-		$ffc_terminal_auto_end         = AudienceCheckinSettings::auto_end_hours();
-		$ffc_terminal_auto_end_options = AudienceCheckinSettings::auto_end_choices( $ffc_terminal_auto_end );
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/public/terminal/operator.php';

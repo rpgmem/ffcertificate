@@ -26,9 +26,9 @@ const CONFIG = {
 	rest: 'https://example.com/wp-json/ffc/v1/terminal/',
 	strings: {
 		idleRefused: 'idle refused',
+		unpairedRefused: 'not paired refused',
 		offlinePairing: 'pairing needs a connection',
 		storage: 'storage',
-		pairing: 'pairing',
 		paired: 'paired',
 		failed: 'failed',
 		events: 'events %d',
@@ -72,8 +72,12 @@ const CONFIG = {
 		connQueue: 'online, %d to send',
 		connOffline: 'offline, %d kept',
 		connCamera: 'camera',
-		setup: { operator: 'by %s', count: '%1$d of %2$d chosen', full: 'full' },
-		queueEdit: { now: 'Now', remove: 'Remove', confirmRemove: 'Tap again', add: 'Add', full: 'Full', saved: 'Updated.', summary: '%1$d of %2$d events', max: 10 },
+		setup: {
+			operator: 'by %s', count: '%1$d of %2$d chosen', full: 'full', kindEvent: 'Event', kindForm: 'Certificate',
+			listEvent: 'Next 7 days', listPlace: 'At this place', noneEvent: 'none', nonePlace: 'nothing here yet',
+			overlap: 'Crosses %1$s, at %2$s', chooseLocation: 'choose a place',
+		},
+		queueEdit: { follows: 'follows %s', now: 'Now', remove: 'Remove', confirmRemove: 'Tap again', add: 'Add', full: 'Full', saved: 'Updated.', summary: '%1$d of %2$d events', max: 10 },
 		titles: { ffc_terminal_other_event: 'Other event', ffc_presence_code_revoked: 'Phone replaced' },
 		wakeUnsupported: 'cannot keep the screen on',
 		wakeRefused: 'screen on refused',
@@ -113,26 +117,29 @@ function markup() {
 			<p data-ffc-terminal-part="offline" hidden></p>
 			<form data-ffc-terminal-part="reading-form"><input data-ffc-terminal-part="reading"><button type="submit">Check in</button></form>
 			<section data-ffc-terminal-view="idle" hidden></section>
-			<section data-ffc-terminal-view="pairing" hidden>
-				<div data-ffc-terminal-camera-slot="pairing"></div>
-				<div data-ffc-terminal-camera-art></div>
-				<form data-ffc-terminal-part="form"><input data-ffc-terminal-part="code"><button type="submit">Pair</button></form>
-				<button type="button" data-ffc-terminal-part="pairing-cancel">Cancel</button>
-			</section>
+			<section data-ffc-terminal-view="unpaired" hidden></section>
 			<section data-ffc-terminal-view="setup" hidden>
 				<p data-ffc-terminal-part="setup-operator"></p>
 				<form data-ffc-terminal-part="setup-form">
-					<select data-ffc-terminal-part="setup-place"><option value="">One by one</option></select>
-					<p data-ffc-terminal-part="setup-count"></p>
-					<ul data-ffc-terminal-part="setup-list"></ul>
-					<p data-ffc-terminal-part="setup-none" hidden></p>
+					<div data-ffc-terminal-part="setup-mode">
+						<input type="radio" name="ffc_terminal_setup_mode" value="event">
+						<input type="radio" name="ffc_terminal_setup_mode" value="place" checked>
+					</div>
+					<div data-ffc-terminal-part="setup-by-place">
+						<select data-ffc-terminal-part="setup-location"></select>
+						<p data-ffc-terminal-part="setup-no-location" hidden></p>
+					</div>
+					<p data-ffc-terminal-part="setup-by-event" hidden></p>
 					<input data-ffc-terminal-part="setup-label">
 					<p data-ffc-terminal-part="setup-error" hidden></p>
 					<button type="submit" data-ffc-terminal-part="setup-submit">Pair</button>
 					<button type="button" data-ffc-terminal-part="setup-cancel">Cancel</button>
+					<h3 data-ffc-terminal-part="setup-list-title"></h3>
+					<p data-ffc-terminal-part="setup-count" hidden></p>
+					<ul data-ffc-terminal-part="setup-list"></ul>
+					<p data-ffc-terminal-part="setup-none" hidden></p>
 				</form>
 			</section>
-			<section data-ffc-terminal-view="locked" hidden><p data-ffc-terminal-part="countdown"></p></section>
 			<section data-ffc-terminal-view="ready" hidden>
 				<div class="ffc-terminal-ready">
 					<div data-ffc-terminal-camera-slot="ready"><div data-ffc-terminal-part="viewfinder" hidden><video data-ffc-terminal-part="camera-video"></video><canvas data-ffc-terminal-part="camera-still" hidden></canvas></div></div>
@@ -163,7 +170,6 @@ function markup() {
 				<div data-ffc-terminal-camera-art></div>
 				<p data-ffc-terminal-part="unlock-wait"></p>
 				<button type="button" data-ffc-terminal-part="unlock-cancel">Cancel</button>
-				<button type="button" data-ffc-terminal-part="unlock-code" hidden>I have a pairing code</button>
 			</section>
 			<section data-ffc-terminal-view="menu" hidden>
 				<h2 data-ffc-terminal-part="operator"></h2>
@@ -186,6 +192,7 @@ function markup() {
 				<p data-ffc-terminal-part="queue-summary"></p>
 				<ul data-ffc-terminal-part="queue-list"></ul>
 				<p data-ffc-terminal-part="queue-error" hidden></p>
+				<p data-ffc-terminal-part="queue-follows" hidden></p>
 				<p data-ffc-terminal-part="queue-locked" hidden></p>
 				<div data-ffc-terminal-part="queue-edit" hidden><button type="button" data-ffc-terminal-part="queue-open-add">Add event</button></div>
 				<div data-ffc-terminal-part="queue-add" hidden>
@@ -196,6 +203,8 @@ function markup() {
 			</section>
 			<footer data-ffc-terminal-part="foot" hidden>
 				<p data-ffc-terminal-part="conn"></p>
+				<p data-ffc-terminal-part="help"></p>
+				<p data-ffc-terminal-part="help-operator" hidden></p>
 				<button type="button" data-ffc-terminal-part="lock" aria-label="Operator area"></button>
 			</footer>
 		</main>`;
@@ -244,12 +253,6 @@ function respond(status, body) {
 const visible = (el) => Array.from(el.querySelectorAll('[data-ffc-terminal-view]')).filter((v) => !v.hidden).map((v) => v.getAttribute('data-ffc-terminal-view'));
 
 describe('helpers', () => {
-	it('keeps only what a pairing code is made of', () => {
-		expect(T().cleanCode(' p-ab12-cd34-ef56\n')).toBe('P-AB12-CD34-EF56');
-		expect(T().cleanCode('<script>')).toBe('SCRIPT');
-		expect(T().cleanCode(null)).toBe('');
-	});
-
 	it('keeps a reading whole, minus the reader\'s line end', () => {
 		expect(T().cleanReading('  ffp1ab $%*+-./:\r\n')).toBe('FFP1AB $%*+-./:');
 	});
@@ -286,96 +289,178 @@ describe('pairing', () => {
 	let el;
 	beforeEach(() => { el = markup(); });
 
-	it('starts locked without events, and reaches the pairing code only from the lock (#2794)', () => {
+	const EVENTS = [
+		{ id: 11, kind: 'event', description: 'Workshop', place: 'Hall', when: 'Mon 09:00', starts: NOW + 100, ends: NOW + 200, ends_time: '12:00' },
+		{ id: 'certificate_form:12', kind: 'form', description: 'Seminar', place: 'School', when: 'Mon 11:00', starts: NOW + 150, ends: NOW + 300, ends_time: '17:00' },
+		{ id: 13, kind: 'event', description: 'Board', place: 'Room 2', when: 'Tue', starts: NOW + 400, ends: NOW + 500, ends_time: '18:00' },
+		{ id: 14, kind: 'event', description: 'Packed', place: 'Hall', full: true, starts: NOW + 600, ends: NOW + 700, ends_time: '19:00' },
+	];
+	const LOCATIONS = [
+		{ id: 'loc_a', name: 'EMEF Paulo Freire', items: EVENTS.slice(0, 2) },
+		{ id: 'loc_b', name: 'Annex', items: [] },
+	];
+	const list = () => Array.from(el.querySelectorAll('[data-ffc-terminal-part="setup-list"] li'));
+	const mode = (value) => {
+		const radio = el.querySelector('[data-ffc-terminal-part="setup-mode"] input[value="' + value + '"]');
+		radio.checked = true;
+		radio.dispatchEvent(new window.Event('change'));
+	};
+	const setupEnv = (calls, answer = respond(201, { token: TOKEN, terminal_id: 7, label: 'Entrance', bookings: [11], expires_at: NOW + 3600, expires_label: 'tonight', keys: {} }), body = { max: 10, name: 'Ana L.', bookings: EVENTS, locations: LOCATIONS }) => env({
+		fetch: (url, options) => {
+			const path = url.replace(CONFIG.rest, '');
+			calls.push([path, options.body ? JSON.parse(options.body) : null]);
+			return 'setup/events' === path ? respond(200, body)() : answer();
+		},
+	});
+
+	it('rests on the not-paired screen, with the lock in the footer and no other way in (#2900)', () => {
 		const controls = T().start(el, CONFIG, env());
-		expect(visible(el)).toEqual(['idle']);
+		expect(visible(el)).toEqual(['unpaired']);
 		expect(el.querySelector('[data-ffc-terminal-part="foot"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="help"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-terminal-part="help-operator"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="head-note"]').textContent).toBe('Not paired');
 		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="reading"]'));
+		expect(controls.pair).toBeUndefined();
 		el.querySelector('[data-ffc-terminal-part="lock"]').click();
 		expect(controls.screen()).toBe('unlock');
-		const link = el.querySelector('[data-ffc-terminal-part="unlock-code"]');
-		expect(link.hidden).toBe(false);
-		link.click();
-		expect(visible(el)).toEqual(['pairing']);
-		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="code"]'));
-		el.querySelector('[data-ffc-terminal-part="pairing-cancel"]').click();
-		expect(visible(el)).toEqual(['idle']);
+		el.querySelector('[data-ffc-terminal-part="unlock-cancel"]').click();
+		expect(visible(el)).toEqual(['unpaired']);
 	});
 
-	it('refuses a presence code while locked, and opens setup on an operator code (#2794)', async () => {
+	it('refuses a presence code or an old pairing code while unpaired, and opens setup on an operator code (#2900)', async () => {
 		const calls = [];
-		const controls = T().start(el, CONFIG, env({
-			fetch: (url, options) => {
-				calls.push(url.replace(CONFIG.rest, ''));
-				return respond(200, { max: 10, name: 'Ana L.', bookings: [] })(url, options);
-			},
-		}));
+		const controls = T().start(el, CONFIG, setupEnv(calls));
 		const form = el.querySelector('[data-ffc-terminal-part="reading-form"]');
-		el.querySelector('[data-ffc-terminal-part="reading"]').value = 'FFP1SOMEONE';
-		form.dispatchEvent(new Event('submit', { cancelable: true }));
-		expect(el.querySelector('[data-ffc-terminal-part="result-refused"]').textContent).toContain(CONFIG.strings.idleRefused);
+		['FFP1SOMEONE', 'P-AB12-CD34-EF56'].forEach((code) => {
+			el.querySelector('[data-ffc-terminal-part="reading"]').value = code;
+			form.dispatchEvent(new Event('submit', { cancelable: true }));
+			expect(el.querySelector('[data-ffc-terminal-part="result-refused"]').textContent).toContain(CONFIG.strings.unpairedRefused);
+		});
 		expect(calls).toEqual([]);
-		await controls.startSetup('FFO1OPERATOR');
-		expect(calls).toEqual(['setup/events']);
+		controls.askUnlock();
+		await controls.unlock('FFO1OPERATOR');
+		expect(calls.map((c) => c[0])).toEqual(['setup/events']);
+		expect(visible(el)).toEqual(['setup']);
 	});
 
-	it('is set up on the terminal with an operator code: events chosen here, no pairing code shown', async () => {
+	it('pairs by place: the location chosen is sent, its items listed with no box to tick', async () => {
 		const calls = [];
-		const events = [
-			{ id: 11, description: 'Workshop', place: 'Hall', place_id: 3, when: 'Mon' },
-			{ id: 12, description: 'Seminar', place: 'Hall', place_id: 3, when: 'Tue' },
-			{ id: 13, description: 'Board', place: 'Room 2', place_id: 4, when: 'Wed' },
-			{ id: 14, description: 'Packed', place: 'Hall', place_id: 3, full: true },
-		];
-		const e = env({
-			fetch: (url, options) => {
-				const path = url.replace(CONFIG.rest, '');
-				calls.push([path, options.body ? JSON.parse(options.body) : null]);
-				if ('setup/events' === path) {
-					return respond(200, { max: 10, name: 'Ana L.', bookings: events })();
-				}
-				return respond(201, { token: TOKEN, terminal_id: 7, label: 'Entrance', bookings: [11, 12], expires_at: NOW + 3600, expires_label: 'tonight', keys: {} })();
-			},
-		});
-		T().start(el, CONFIG, e);
-		// A wedge reader types the operator code into the pairing field.
-		el.querySelector('[data-ffc-terminal-part="code"]').value = 'FFO1ABC$%';
-		el.querySelector('[data-ffc-terminal-part="form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
-		await settle();
+		const e = setupEnv(calls);
+		const controls = T().start(el, CONFIG, e);
+		await controls.startSetup('FFO1ABC$%');
 		expect(calls[0]).toEqual(['setup/events', { code: 'FFO1ABC$%' }]);
-		expect(visible(el)).toEqual(['setup']);
 		expect(el.querySelector('[data-ffc-terminal-part="setup-operator"]').textContent).toBe('by Ana L.');
-		const place = el.querySelector('[data-ffc-terminal-part="setup-place"]');
-		expect(Array.from(place.options).map((o) => o.textContent)).toEqual(['One by one', 'Hall', 'Room 2']);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-mode"] input[value="place"]').checked).toBe(true, 'by place when there is a place');
+		const select = el.querySelector('[data-ffc-terminal-part="setup-location"]');
+		expect(Array.from(select.options).map((o) => o.textContent)).toEqual(['EMEF Paulo Freire', 'Annex']);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-list-title"]').textContent).toBe('At this place');
+		expect(list().map((li) => li.querySelector('strong').textContent)).toEqual(['Workshop', 'Seminar']);
+		expect(el.querySelectorAll('[data-ffc-terminal-part="setup-list"] input').length).toBe(0);
+		expect(list().map((li) => li.querySelector('.ffc-terminal-kind').textContent)).toEqual(['Event', 'Certificate']);
+		expect(list()[1].querySelector('.ffc-terminal-queue-warn').textContent).toBe('Crosses Workshop, at 12:00', 'an item whose hours cross waits for the earlier one');
+		expect(list()[0].querySelector('.ffc-terminal-queue-warn')).toBeNull();
+		expect(el.querySelector('[data-ffc-terminal-part="setup-count"]').hidden).toBe(true);
 
-		place.value = '3';
-		place.dispatchEvent(new window.Event('change'));
-		const checked = Array.from(el.querySelectorAll('[data-ffc-terminal-part="setup-list"] input')).filter((b) => b.checked).map((b) => b.value);
-		expect(checked).toEqual(['11', '12'], 'one place fills the queue, a full event left out');
-		expect(el.querySelector('[data-ffc-terminal-part="setup-count"]').textContent).toBe('2 of 10 chosen');
-		expect(el.querySelector('[data-ffc-terminal-part="setup-list"] input[value="14"]').disabled).toBe(true);
+		select.value = 'loc_b';
+		select.dispatchEvent(new window.Event('change'));
+		expect(list()).toEqual([]);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-none"]').textContent).toBe('nothing here yet');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-none"]').hidden).toBe(false);
 
+		select.value = 'loc_a';
+		select.dispatchEvent(new window.Event('change'));
 		el.querySelector('[data-ffc-terminal-part="setup-label"]').value = 'Entrance';
 		el.querySelector('[data-ffc-terminal-part="setup-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
 		await settle();
 		expect(calls[1][0]).toBe('setup');
-		expect(calls[1][1].bookings).toEqual([11, 12]);
+		expect(calls[1][1].location).toBe('loc_a');
+		expect(calls[1][1].bookings).toBeUndefined();
 		expect(calls[1][1].label).toBe('Entrance');
-		expect(calls[1][1].code).toBe('FFO1ABC$%');
 		expect(calls[1][1].device).toMatch(/^[A-Za-z0-9_-]{16,64}$/);
-		expect(calls.some((c) => 'pair' === c[0])).toBe(false);
 		expect(JSON.parse(e.storage.getItem('ffcTerminal')).token).toBe(TOKEN);
-		expect(visible(el)).not.toContain('setup');
+		expect(visible(el)).toEqual(['ready']);
+		expect(el.querySelector('[data-ffc-terminal-part="status"]').textContent).toBe('paired');
 	});
 
-	it('says why the site refused the setup and keeps the choices', async () => {
+	it('pairs by event: the boxes ticked are sent, a full one cannot be ticked', async () => {
+		const calls = [];
+		const controls = T().start(el, CONFIG, setupEnv(calls));
+		await controls.startSetup('FFO1ABC');
+		mode('event');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-by-place"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-by-event"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-list-title"]').textContent).toBe('Next 7 days');
+		const boxes = Array.from(el.querySelectorAll('[data-ffc-terminal-part="setup-list"] input'));
+		expect(boxes.map((b) => b.value)).toEqual(['11', 'certificate_form:12', '13', '14']);
+		expect(boxes[3].disabled).toBe(true);
+		boxes[0].checked = true;
+		boxes[1].checked = true;
+		boxes[1].dispatchEvent(new window.Event('change'));
+		expect(el.querySelector('[data-ffc-terminal-part="setup-count"]').textContent).toBe('2 of 10 chosen');
+		await controls.finishSetup();
+		expect(calls[1][1].bookings).toEqual([11, 'certificate_form:12']);
+		expect(calls[1][1].location).toBeUndefined();
+		expect(calls.some((c) => 'pair' === c[0])).toBe(false);
+	});
+
+	it('opens by event when no GPS location exists, and says so by place', async () => {
+		const calls = [];
+		const controls = T().start(el, CONFIG, setupEnv(calls, undefined, { max: 10, name: 'Ana L.', bookings: EVENTS, locations: [] }));
+		await controls.startSetup('FFO1ABC');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-mode"] input[value="event"]').checked).toBe(true);
+		mode('place');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-no-location"]').hidden).toBe(false);
+		await controls.finishSetup();
+		expect(el.querySelector('[data-ffc-terminal-part="setup-error"]').textContent).toBe('choose a place');
+		expect(calls.map((c) => c[0])).toEqual(['setup/events']);
+	});
+
+	it('keeps the setup open and says why when a fresh operator code is refused there', async () => {
+		let refuse = false;
+		const calls = [];
 		const e = env({
-			fetch: (url) => (url.endsWith('setup/events')
-				? respond(200, { max: 10, name: 'Ana L.', bookings: [{ id: 11, description: 'Workshop' }] })()
-				: respond(409, { code: 'ffc_terminal_overlap', message: 'Crosses Workshop.' })()),
+			fetch: (url, options) => {
+				calls.push(url.replace(CONFIG.rest, ''));
+				return refuse
+					? respond(403, { message: 'Code expired.' })()
+					: respond(200, { max: 10, name: 'Ana L.', bookings: EVENTS, locations: LOCATIONS })();
+			},
 		});
 		const controls = T().start(el, CONFIG, e);
 		await controls.startSetup('FFO1ABC');
+		el.querySelector('[data-ffc-terminal-part="setup-label"]').value = 'Kept';
+		refuse = true;
+		await controls.startSetup('FFO1NEW');
+		expect(visible(el)).toEqual(['setup']);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-error"]').textContent).toBe('Code expired.');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-label"]').value).toBe('Kept', 'the choices stay');
+		refuse = false;
+		await controls.startSetup('FFO1NEWER');
+		expect(el.querySelector('[data-ffc-terminal-part="setup-error"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-label"]').value).toBe('Kept', 'a renewed code keeps the choices');
+		expect(calls).toEqual(['setup/events', 'setup/events', 'setup/events']);
+	});
+
+	it('on the setup screen a reader renews the operator code and ignores anything else (#2900)', async () => {
+		const calls = [];
+		const controls = T().start(el, CONFIG, setupEnv(calls));
+		await controls.startSetup('FFO1FIRST');
+		const form = el.querySelector('[data-ffc-terminal-part="reading-form"]');
+		['FFP1SOMEONE', 'FFO1RENEWED'].forEach((code) => {
+			el.querySelector('[data-ffc-terminal-part="reading"]').value = code;
+			form.dispatchEvent(new Event('submit', { cancelable: true }));
+		});
+		await settle();
+		expect(visible(el)).toEqual(['setup']);
+		expect(calls.map((c) => c[1].code)).toEqual(['FFO1FIRST', 'FFO1RENEWED']);
+	});
+
+	it('says why the site refused the setup and keeps the choices', async () => {
+		const calls = [];
+		const controls = T().start(el, CONFIG, setupEnv(calls, respond(409, { code: 'ffc_terminal_overlap', message: 'Crosses Workshop.' })));
+		await controls.startSetup('FFO1ABC');
+		mode('event');
 		el.querySelector('[data-ffc-terminal-part="setup-list"] input').checked = true;
 		await controls.finishSetup();
 		expect(visible(el)).toEqual(['setup']);
@@ -383,86 +468,40 @@ describe('pairing', () => {
 		expect(el.querySelector('[data-ffc-terminal-part="setup-list"] input').checked).toBe(true);
 
 		el.querySelector('[data-ffc-terminal-part="setup-cancel"]').click();
-		expect(visible(el)).toEqual(['idle']);
+		expect(visible(el)).toEqual(['unpaired']);
 	});
 
-	it('stays on the pairing screen when the operator may not set terminals up', async () => {
+	it('stays on the not-paired screen when the operator may not set terminals up', async () => {
 		const e = env({ fetch: () => respond(403, { code: 'ffc_operator_queue_not_allowed', message: 'Not allowed.' })() });
 		const controls = T().start(el, CONFIG, e);
 		await controls.startSetup('FFO1ABC');
-		expect(visible(el)).toEqual(['idle']);
+		expect(visible(el)).toEqual(['unpaired']);
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('Not allowed.');
-	});
-
-	it('sends the code with its own id and keeps the token the site returns', async () => {
-		const calls = [];
-		const e = env({
-			fetch: (url, options) => {
-				calls.push([url, options]);
-				return respond(201, { token: TOKEN, terminal_id: 4, label: 'Entrance A', bookings: [11, 12], expires_at: NOW + 3600, expires_label: '15/01/2027 18:00', keys: { k1: 'x' } })();
-			},
-		});
-		T().start(el, CONFIG, e);
-		el.querySelector('[data-ffc-terminal-part="code"]').value = 'p-ab12-cd34-ef56';
-		el.querySelector('[data-ffc-terminal-part="form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
-		await settle();
-
-		expect(calls[0][0]).toBe(CONFIG.rest + 'pair');
-		expect(calls[0][1].credentials).toBe('omit');
-		const sent = JSON.parse(calls[0][1].body);
-		expect(sent.code).toBe('P-AB12-CD34-EF56');
-		expect(sent.device).toBe(e.storage.data.get('ffcTerminalDevice'));
-		expect(visible(el)).toEqual(['ready']);
-		expect(el.querySelector('[data-ffc-terminal-part="label"]').textContent).toBe('Entrance A');
-		expect(el.querySelector('[data-ffc-terminal-part="events"]').textContent).toBe('events 2');
-		expect(el.querySelector('[data-ffc-terminal-part="until"]').textContent).toBe('until 15/01/2027 18:00');
-		expect(JSON.parse(e.storage.data.get('ffcTerminal')).token).toBe(TOKEN);
-	});
-
-	it('counts down a lock and remembers it across a reload', async () => {
-		const e = env({ fetch: respond(429, { message: 'wait', retry_after: 900 }) });
-		await T().start(el, CONFIG, e).pair('P-WRON-GCOD-E000');
-		expect(visible(el)).toEqual(['locked']);
-		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('15:00');
-		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('warning');
-		expect(el.querySelector('[data-ffc-terminal-part="head-note"]').textContent).toBe('Not paired');
-		expect(e.storage.data.get('ffcTerminalLock')).toBe(String(NOW + 900));
-
-		const reloaded = markup();
-		const again = env({ storage: e.storage });
-		again.clock.now = (NOW + 600) * 1000;
-		T().start(reloaded, CONFIG, again);
-		expect(visible(reloaded)).toEqual(['locked']);
-		expect(reloaded.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('5:00');
-
-		again.clock.now = (NOW + 901) * 1000;
-		again.timers[again.timers.length - 1]();
-		expect(visible(reloaded)).toEqual(['idle']);
-		expect(again.storage.data.has('ffcTerminalLock')).toBe(false);
-	});
-
-	it('shows the site\'s refusal and stays on pairing', async () => {
-		const controls = T().start(el, CONFIG, env({ fetch: respond(400, { message: 'This code has expired.' }) }));
-		await controls.pair('P-AB12-CD34-EF56');
-		const error = el.querySelector('[data-ffc-terminal-part="error"]');
-		expect(error.hidden).toBe(false);
-		expect(error.textContent).toBe('This code has expired.');
-		expect(visible(el)).toEqual(['pairing']);
 	});
 
 	it('says the network failed when the site cannot be reached', async () => {
 		const controls = T().start(el, CONFIG, env());
-		await controls.pair('P-AB12-CD34-EF56');
+		await controls.startSetup('FFO1ABC');
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('failed');
 	});
 
 	it('refuses to pair where it cannot keep the pairing', async () => {
 		const storage = { getItem: () => null, setItem: () => { throw new Error('quota'); }, removeItem: () => {} };
-		let fetched = false;
-		const controls = T().start(el, CONFIG, env({ storage, fetch: () => { fetched = true; return respond(201, {})(); } }));
-		await controls.pair('P-AB12-CD34-EF56');
-		expect(fetched).toBe(false);
-		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('storage');
+		const calls = [];
+		const e = setupEnv(calls);
+		e.storage = storage;
+		const controls = T().start(el, CONFIG, { ...e, storage });
+		await controls.startSetup('FFO1ABC');
+		await controls.finishSetup();
+		expect(calls.map((c) => c[0])).toEqual(['setup/events']);
+		expect(el.querySelector('[data-ffc-terminal-part="setup-error"]').textContent).toBe('storage');
+	});
+
+	it('drops the lock an old pairing code left behind', () => {
+		const storage = memoryStorage({ ffcTerminalLock: String(NOW + 900) });
+		T().start(el, CONFIG, env({ storage }));
+		expect(visible(el)).toEqual(['unpaired']);
+		expect(storage.data.has('ffcTerminalLock')).toBe(false);
 	});
 
 	it('opens on the stored pairing, and drops one that expired', () => {
@@ -475,14 +514,23 @@ describe('pairing', () => {
 		later.clock.now = (NOW + 11) * 1000;
 		const reloaded = markup();
 		T().start(reloaded, CONFIG, later);
-		expect(visible(reloaded)).toEqual(['idle']);
+		expect(visible(reloaded)).toEqual(['unpaired']);
 		expect(reloaded.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('expired');
 		expect(storage.data.has('ffcTerminal')).toBe(false);
 	});
 });
 
 describe('a paired terminal with no event left (#2794)', () => {
-	it('rests locked, keeps the lock, and hides the pairing-code link', () => {
+	it('refuses a participant code while it has no event, saying an operator must release it', () => {
+		const el = markup();
+		const state = JSON.stringify({ token: TOKEN, label: 'Entrance A', bookings: [], schedule: [], expires_at: NOW + 3600, expires_label: 'later' });
+		T().start(el, CONFIG, env({ storage: memoryStorage({ ffcTerminal: state }), fetch: () => Promise.reject(new Error('offline')) }));
+		el.querySelector('[data-ffc-terminal-part="reading"]').value = 'FFP1SOMEONE';
+		el.querySelector('[data-ffc-terminal-part="reading-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		expect(el.querySelector('[data-ffc-terminal-part="result-refused"]').textContent).toContain('idle refused');
+	});
+
+	it('rests locked and keeps the lock', () => {
 		const el = markup();
 		const state = JSON.stringify({ token: TOKEN, label: 'Entrance A', bookings: [], schedule: [], expires_at: NOW + 3600, expires_label: 'later' });
 		const controls = T().start(el, CONFIG, env({ storage: memoryStorage({ ffcTerminal: state }), fetch: () => Promise.reject(new Error('offline')) }));
@@ -490,7 +538,7 @@ describe('a paired terminal with no event left (#2794)', () => {
 		expect(el.querySelector('[data-ffc-terminal-part="foot"]').hidden).toBe(false);
 		controls.askUnlock();
 		expect(controls.screen()).toBe('unlock');
-		expect(el.querySelector('[data-ffc-terminal-part="unlock-code"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-terminal-part="help"]').hidden).toBe(false);
 		el.querySelector('[data-ffc-terminal-part="unlock-cancel"]').click();
 		expect(visible(el)).toEqual(['idle']);
 	});
@@ -587,7 +635,7 @@ describe('reading', () => {
 	it('goes back to pairing when the site no longer knows the token', async () => {
 		const { e } = paired({ 'POST readings': [401, { message: 'unpaired' }] });
 		await submit('FFP1ABC');
-		expect(visible(el)).toEqual(['idle']);
+		expect(visible(el)).toEqual(['unpaired']);
 		expect(e.storage.data.has('ffcTerminal')).toBe(false);
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('expired');
 	});
@@ -596,7 +644,7 @@ describe('reading', () => {
 		const { e } = paired({});
 		e.clock.now = (NOW + 3601) * 1000;
 		e.timers[0]();
-		expect(visible(el)).toEqual(['idle']);
+		expect(visible(el)).toEqual(['unpaired']);
 	});
 
 	it('follows the site clock from each answer and says so in the menu when it was off (#2797)', async () => {
@@ -690,6 +738,35 @@ describe('reading', () => {
 		expect(JSON.parse(second[2].body).bookings).toEqual([11]);
 	});
 
+	it('names the place a terminal follows in the menu and offers no change to its events (#2900)', async () => {
+		const c = paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'GET self': [200, { label: 'Gate', location: 'loc_a', location_name: 'EMEF Paulo Freire', bookings: [11], schedule: [{ booking_id: 11, title: 'Workshop', hours: '09:00–11:00', open: true }], expires_at: NOW + 7200, expires_label: 'later' }],
+		});
+		await c.controls.refreshSchedule();
+		await submit('FFO1OPERATOR');
+		expect(text('queue-follows')).toBe('follows EMEF Paulo Freire');
+		expect(el.querySelector('[data-ffc-terminal-part="queue-follows"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="queue-edit"]').hidden).toBe(true, 'no Add event');
+		expect(el.querySelector('[data-ffc-terminal-part="queue-locked"]').hidden).toBe(true);
+		expect(el.querySelectorAll('[data-ffc-terminal-remove]')).toHaveLength(0, 'no Remove');
+		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="menu-close"]'));
+	});
+
+	it('closes the list of events to add without changing the queue', async () => {
+		const c = paired({
+			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
+			'POST self/events': [200, { max: 10, bookings: [{ id: 12, description: 'Seminar' }] }],
+		});
+		await submit('FFO1OPERATOR');
+		el.querySelector('[data-ffc-terminal-part="queue-open-add"]').click();
+		await settle();
+		expect(el.querySelector('[data-ffc-terminal-part="queue-add"]').hidden).toBe(false);
+		el.querySelector('[data-ffc-terminal-part="queue-close-add"]').click();
+		expect(el.querySelector('[data-ffc-terminal-part="queue-add"]').hidden).toBe(true);
+		expect(c.calls.filter((call) => 'PUT' === call[0])).toHaveLength(0);
+	});
+
 	it('says why the site refused a change to the events', async () => {
 		paired({
 			'POST unlock': [200, { name: 'Ana L.', may_edit: true }],
@@ -729,7 +806,7 @@ describe('reading', () => {
 		await settle();
 		const ended = calls.find((c) => c[0] === 'DELETE');
 		expect(JSON.parse(ended[2].body)).toEqual({ code: 'FFO1OPERATOR' });
-		expect(visible(el)).toEqual(['idle']);
+		expect(visible(el)).toEqual(['unpaired']);
 		expect(e.storage.data.has('ffcTerminal')).toBe(false);
 		expect(el.querySelector('[data-ffc-terminal-part="status"]').textContent).toBe('ended');
 	});
@@ -752,7 +829,7 @@ describe('failures and the page boot', () => {
 	it('starts on pairing when the storage refuses to be read', () => {
 		const storage = { getItem: () => { throw new Error('blocked'); }, setItem: () => {}, removeItem: () => { throw new Error('blocked'); } };
 		T().start(el, CONFIG, env({ storage }));
-		expect(visible(el)).toEqual(['idle']);
+		expect(visible(el)).toEqual(['unpaired']);
 	});
 
 	it('refuses to show paired when the token cannot be kept', async () => {
@@ -762,25 +839,21 @@ describe('failures and the page boot', () => {
 			setItem: (k, v) => { if ('ffcTerminal' === k) { throw new Error('quota'); } data.set(k, v); },
 			removeItem: (k) => { data.delete(k); },
 		};
-		const controls = T().start(el, CONFIG, env({ storage, fetch: respond(201, { token: TOKEN, bookings: [1], expires_at: NOW + 60 }) }));
-		await controls.pair('P-AB12-CD34-EF56');
-		expect(visible(el)).toEqual(['idle']);
+		const fetch = (url) => (url.endsWith('setup/events')
+			? respond(200, { max: 10, name: 'Ana L.', bookings: [], locations: [{ id: 'loc_a', name: 'School', items: [] }] })()
+			: respond(201, { token: TOKEN, bookings: [1], expires_at: NOW + 60 })());
+		const controls = T().start(el, CONFIG, env({ storage, fetch }));
+		await controls.startSetup('FFO1ABC');
+		await controls.finishSetup();
+		expect(visible(el)).toEqual(['setup']);
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('storage');
 	});
 
 	it('reads an answer that is not JSON as a refusal', async () => {
 		const fetch = () => Promise.resolve({ status: 502, json: () => Promise.reject(new Error('html')) });
 		const controls = T().start(el, CONFIG, env({ fetch }));
-		await controls.pair('P-AB12-CD34-EF56');
+		await controls.startSetup('FFO1ABC');
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('failed');
-	});
-
-	it('restarts the countdown when a second lock arrives', async () => {
-		const e = env({ fetch: respond(429, { retry_after: 900 }) });
-		const controls = T().start(el, CONFIG, e);
-		await controls.pair('P-WRON-GCOD-E000');
-		await controls.pair('P-WRON-GCOD-E001');
-		expect(el.querySelector('[data-ffc-terminal-part="countdown"]').textContent).toBe('15:00');
 	});
 
 	it('hands the worker the page\'s own stylesheets and scripts when it boots', async () => {
@@ -811,7 +884,7 @@ describe('failures and the page boot', () => {
 		window.ffcTerminal = CONFIG;
 		try {
 			loadScript('assets/js/ffc-terminal-kiosk.js');
-			expect(visible(el)).toEqual(['idle']);
+			expect(visible(el)).toEqual(['unpaired']);
 		} finally {
 			delete window.ffcTerminal;
 		}
@@ -933,7 +1006,7 @@ describe('offline queue', () => {
 		expect(await controls.sync()).toBe(1);
 		expect(storage.data.has('ffcTerminal')).toBe(false);
 		expect(storage.data.has('ffcTerminalQueue')).toBe(false);
-		expect(visible(el)).toEqual(['idle']);
+		expect(visible(el)).toEqual(['unpaired']);
 		expect(el.querySelector('[data-ffc-terminal-part="error"]').textContent).toBe('revoked, queue sent');
 	});
 
@@ -1432,7 +1505,7 @@ describe('camera', () => {
 		expect(feed.tracks[0].stopped).toBe(false);
 		e.clock.now = (NOW + 3601) * 1000;
 		e.timers.forEach((tick) => tick());
-		expect(controls.screen()).toBe('idle');
+		expect(controls.screen()).toBe('unpaired');
 		expect(feed.tracks[0].stopped).toBe(true);
 	});
 
@@ -1488,9 +1561,9 @@ describe('camera', () => {
 		}
 	});
 
-	it('pairs from the camera on the pairing screen and reads the operator code on the unlock screen', async () => {
+	it('reads an operator code with the camera on the unlock screen of an unpaired terminal, and never an old pairing code (#2900)', async () => {
 		el = markup();
-		const frames = [[{ rawValue: 'p-ab12-cd34-ef56' }]];
+		const frames = [[{ rawValue: 'P-AB12-CD34-EF56' }], [{ rawValue: 'FFO1OPERATOR' }]];
 		const calls = [];
 		const e = env({
 			secure: true,
@@ -1505,15 +1578,19 @@ describe('camera', () => {
 		const controls = T().start(el, config(), e);
 		await controls.camera.ready;
 		await settle();
-		expect(controls.screen()).toBe('idle');
+		expect(controls.screen()).toBe('unpaired');
 		controls.askUnlock();
 		await settle();
 		expect(node('viewfinder').parentNode.getAttribute('data-ffc-terminal-camera-slot')).toBe('unlock');
 		expect(el.querySelector('[data-ffc-terminal-view="unlock"] [data-ffc-terminal-camera-art]').hidden).toBe(true);
 		await scanned(e, controls);
 		await settle();
-		expect(calls[0][1]).toBe('pair');
-		expect(JSON.parse(calls[0][2]).code).toBe('P-AB12-CD34-EF56');
+		expect(calls).toEqual([], 'an old pairing code is refused on the terminal');
+		controls.askUnlock();
+		await scanned(e, controls);
+		await settle();
+		expect(calls.map((c) => c[1])).toEqual(['setup/events']);
+		expect(JSON.parse(calls[0][2]).code).toBe('FFO1OPERATOR');
 	});
 
 	it('moves the viewfinder to the unlock screen', async () => {
@@ -1735,7 +1812,7 @@ describe('offline shell (#2783)', () => {
 			onOffline: (fn) => { handlers.offline = fn; },
 		}));
 		const note = el.querySelector('[data-ffc-terminal-part="offline"]');
-		expect(controls.screen()).toBe('idle');
+		expect(controls.screen()).toBe('unpaired');
 		expect(note.hidden).toBe(false);
 		expect(note.textContent).toBe('pairing needs a connection');
 

@@ -235,24 +235,6 @@
 	font-size: var(--ffc-font-size-sm);
 }
 
-/* The discreet way to a typed pairing code, under the unlock prompt of an
-   unpaired terminal (#2794). */
-.ffc-terminal-link {
-	padding: var(--ffc-spacing-2xs);
-	border: 0;
-	background: none;
-	color: var(--ffc-terminal-soft);
-	font: inherit;
-	font-size: var(--ffc-font-size-sm);
-	text-decoration: underline;
-	cursor: pointer;
-}
-
-.ffc-terminal-link:focus-visible {
-	outline: 2px solid var(--ffc-border-focus);
-	outline-offset: 2px;
-}
-
 .ffc-terminal-kicker {
 	color: var(--ffc-terminal-soft);
 	font-size: var(--ffc-font-size-lg);
@@ -341,15 +323,6 @@
 	letter-spacing: 0.02em;
 }
 
-/* Pairing: the typed code beside its button. */
-.ffc-terminal-pair {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--ffc-spacing-md);
-	align-items: flex-end;
-	justify-content: center;
-}
-
 .ffc-terminal-field {
 	display: flex;
 	flex-direction: column;
@@ -362,7 +335,8 @@
 	font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-terminal-field input {
+.ffc-terminal-field input,
+.ffc-terminal-field select {
 	width: 340px;
 	max-width: 80vw;
 	min-height: 52px;
@@ -372,10 +346,7 @@
 	border-radius: var(--ffc-radius-md);
 	background: var(--ffc-bg-input);
 	color: var(--ffc-text);
-	font-size: var(--ffc-font-size-2xl);
-	font-variant-numeric: tabular-nums;
-	letter-spacing: 0.12em;
-	text-transform: uppercase;
+	font-size: var(--ffc-font-size-lg);
 }
 
 .ffc-terminal .ffc-btn {
@@ -858,31 +829,85 @@
 	}
 }
 
-/* Setting the terminal up on the terminal itself (#2780): the queue of the
-   app's Pair terminal, as a list to tick. */
-.ffc-terminal-setup-form {
-	display: flex;
-	flex-direction: column;
+/* Setting the terminal up on the terminal itself (#2780, #2900): the choice
+   and its fields on one side, what the terminal will read on the other. */
+.ffc-terminal-view.ffc-terminal-setup:not([hidden]) {
+	justify-content: flex-start;
 	gap: var(--ffc-spacing-lg);
-	width: 100%;
-	max-width: 720px;
 	text-align: start;
 }
 
-.ffc-terminal-setup-form fieldset {
+.ffc-terminal-setup-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+	width: 100%;
+	max-width: 1180px;
+}
+
+.ffc-terminal-setup-form {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--ffc-spacing-xl);
+	width: 100%;
+	max-width: 1180px;
+	text-align: start;
+}
+
+.ffc-terminal-setup-main {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-md);
+	min-width: 0;
+}
+
+.ffc-terminal-setup-main .ffc-terminal-actions {
+	justify-content: flex-start;
+}
+
+.ffc-terminal-setup-by-place {
 	display: flex;
 	flex-direction: column;
 	gap: var(--ffc-spacing-sm);
+}
+
+.ffc-terminal-setup-by-place[hidden] {
+	display: none;
+}
+
+.ffc-terminal-setup-main .ffc-terminal-field input,
+.ffc-terminal-setup-main .ffc-terminal-field select {
+	width: 100%;
+	max-width: none;
+}
+
+.ffc-terminal-setup-items {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+	min-width: 0;
+	padding: var(--ffc-spacing-lg);
+	border: 1px solid var(--ffc-border);
+	border-radius: var(--ffc-radius-lg);
+	background: var(--ffc-bg-alt);
+	color: var(--ffc-text);
+}
+
+.ffc-terminal-setup-items h3 {
 	margin: 0;
-	padding: 0;
-	border: 0;
+	font-size: var(--ffc-font-size-lg);
 }
 
 .ffc-terminal-setup-choice {
 	display: flex;
 	flex: 1 1 auto;
-	align-items: center;
+	align-items: flex-start;
 	gap: var(--ffc-spacing-sm);
+}
+
+label.ffc-terminal-setup-choice {
 	cursor: pointer;
 }
 
@@ -892,6 +917,35 @@
 	flex: none;
 }
 
+/* What an item is: an event or a certificate form. */
+.ffc-terminal-kind {
+	flex: none;
+	padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+	border-radius: var(--ffc-radius-sm);
+	font-size: var(--ffc-font-size-xs);
+	font-weight: 700;
+}
+
+.ffc-terminal-kind-event {
+	background: var(--ffc-info-bg);
+	color: var(--ffc-info-text);
+}
+
+.ffc-terminal-kind-form {
+	background: var(--ffc-success-bg);
+	color: var(--ffc-success-text);
+}
+
+.ffc-terminal-queue-warn {
+	color: var(--ffc-warning-text);
+	font-size: var(--ffc-font-size-sm);
+}
+
+@media (max-width: 900px) {
+	.ffc-terminal-setup-form {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
 
 /*
  * Install banner on the terminal page and the install page itself (#2813).

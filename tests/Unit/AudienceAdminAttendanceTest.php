@@ -1092,7 +1092,7 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/<div class="card ffc-checkin-save" data-ffc-vtab-only="checkin"><button type="submit"[^>]*form="ffc-checkin-form">Save changes<\/button>/', $html );
 		$this->assertStringContainsString( '2 of 3 allowed in this event', $html );
 		$this->assertStringContainsString( 'Entrance A', $html );
-		$this->assertStringContainsString( 'Pair terminal', $html );
+		$this->assertStringNotContainsString( 'Pair terminal', $html, 'a terminal is paired on the terminal itself (#2900)' );
 		$this->assertStringContainsString( '3 waiting to be sent', $html );
 		$this->assertStringContainsString( '1 terminal has not sent its readings yet (Entrance B, seen at', $html );
 		$this->assertMatchesRegularExpression( '/Projected QR code<\/dt><dd class="ffc-facts__value">1</', $html );

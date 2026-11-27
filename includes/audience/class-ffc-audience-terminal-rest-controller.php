@@ -28,10 +28,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * `ffc/v1/terminal/*`.
  *
- * - `POST pairings` — an operator generates a pairing code.
- * - `POST pair` — a terminal trades a code for its token. It runs without a
- *   login on purpose: the terminal never holds a person's account. What
- *   guards it is the code (single use, five minutes) and the lockout.
+ * - `POST setup/events`, `POST setup` — an unpaired terminal is set up on
+ *   the terminal itself, by event or by place (#2780, #2900). They run
+ *   without a login on purpose: the terminal never holds a person's
+ *   account. What guards them is the operator code.
  * - `GET terminals` — the operator's terminals; an administrator sees all.
  * - `DELETE terminals/{id}` — end one.
  * - `PUT terminals/{id}` — change the events it holds (#2746).
@@ -68,38 +68,8 @@ class AudienceTerminalRestController {
 	 * @return void
 	 */
 	public function register_routes(): void {
-		register_rest_route(
-			self::NAMESPACE,
-			'/' . self::REST_BASE . '/pairings',
-			array(
-				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'create_pairing' ),
-				'permission_callback' => array( $this, 'check_manage_permission' ),
-				'args'                => array(
-					'bookings' => array(
-						'type'              => 'array',
-						'required'          => true,
-						'items'             => array( 'type' => array( 'integer', 'string' ) ),
-						'sanitize_callback' => array( self::class, 'sanitize_targets' ),
-					),
-					'label'    => array(
-						'type'              => 'string',
-						'default'           => '',
-						'sanitize_callback' => 'sanitize_text_field',
-					),
-					// Hours after the last event the terminal ends itself (#2781).
-					'auto_end' => array(
-						'type'     => 'integer',
-						'required' => false,
-						'minimum'  => 1,
-						'maximum'  => AudienceCheckinSettings::AUTO_END_HOURS_MAX,
-					),
-				),
-			)
-		);
-
-		// Setting a terminal up on the terminal itself (#2780): the operator
-		// code is the guard, as a pairing code is for /pair.
+		// Setting a terminal up on the terminal itself (#2780), the only way
+		// a terminal is paired (#2900): the operator code is the guard.
 		register_rest_route(
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/setup/events',
@@ -157,28 +127,6 @@ class AudienceTerminalRestController {
 						'required' => false,
 						'minimum'  => 1,
 						'maximum'  => AudienceCheckinSettings::AUTO_END_HOURS_MAX,
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/' . self::REST_BASE . '/pair',
-			array(
-				'methods'             => \WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'pair' ),
-				'permission_callback' => array( $this, 'check_pair_permission' ),
-				'args'                => array(
-					'code'   => array(
-						'type'              => 'string',
-						'required'          => true,
-						'sanitize_callback' => array( self::class, 'sanitize_code' ),
-					),
-					'device' => array(
-						'type'              => 'string',
-						'required'          => true,
-						'sanitize_callback' => array( AudiencePresenceRestController::class, 'sanitize_b64' ),
 					),
 				),
 			)
@@ -404,9 +352,9 @@ class AudienceTerminalRestController {
 	}
 
 	/**
-	 * Pairing is open to an anonymous caller: the terminal has no account.
-	 * The code and {@see AudienceTerminalLockout} are the guard, both checked
-	 * in {@see self::pair()}.
+	 * Setup is open to an anonymous caller: the terminal has no account. The
+	 * operator code is the guard, checked in {@see self::setup_events()} and
+	 * {@see self::setup()}.
 	 *
 	 * @return bool
 	 */
@@ -426,59 +374,7 @@ class AudienceTerminalRestController {
 	}
 
 	/**
-	 * Generate a pairing code.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function create_pairing( \WP_REST_Request $request ) {
-		$bookings = self::sanitize_targets( $request->get_param( 'bookings' ) );
-		$label    = $request->get_param( 'label' );
-		$result   = AudienceTerminalPairing::create_code( get_current_user_id(), $bookings, is_string( $label ) ? $label : '', time(), self::auto_end_of( $request ) );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		return new \WP_REST_Response( $result, 201, array( 'Cache-Control' => 'no-store' ) );
-	}
-
-	/**
-	 * Trade a code for a terminal token.
-	 *
-	 * @param \WP_REST_Request $request Request.
-	 * @return \WP_REST_Response|\WP_Error
-	 */
-	public function pair( \WP_REST_Request $request ) {
-		$now    = time();
-		$code   = $request->get_param( 'code' );
-		$device = $request->get_param( 'device' );
-		$result = AudienceTerminalPairing::pair(
-			is_string( $code ) ? $code : '',
-			is_string( $device ) ? $device : '',
-			IpAddress::fingerprint( ClientIpResolver::resolve() ),
-			$now
-		);
-		if ( is_wp_error( $result ) ) {
-			$data = $result->get_error_data();
-			if ( is_array( $data ) && isset( $data['retry_after'] ) && is_int( $data['retry_after'] ) ) {
-				$response = new \WP_REST_Response(
-					array(
-						'code'        => $result->get_error_code(),
-						'message'     => $result->get_error_message(),
-						'retry_after' => $data['retry_after'],
-					),
-					429
-				);
-				$response->header( 'Retry-After', (string) $data['retry_after'] );
-				return $response;
-			}
-			return $result;
-		}
-		return self::paired_response( $result, $now );
-	}
-
-	/**
-	 * What a terminal keeps once it is paired, by a code or set up on the
-	 * terminal itself.
+	 * What a terminal keeps once it is set up on the terminal itself.
 	 *
 	 * @param array $result What {@see AudienceTerminalPairing::pair()} returned.
 	 * @param int   $now    Unix time.
@@ -493,7 +389,7 @@ class AudienceTerminalRestController {
 
 	/**
 	 * The events an unpaired terminal may be set up with, on an operator's
-	 * code (#2780): the list the app's Pair terminal shows.
+	 * code (#2780), and the GPS locations it may follow (#2900).
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 * @return \WP_REST_Response|\WP_Error
@@ -574,7 +470,7 @@ class AudienceTerminalRestController {
 	 * same choice reaches both kinds of item; like the events, only what is
 	 * open today or later, within the same days, ever shows.
 	 *
-	 * @return list<array{id: int|string, kind: string, description: string, place: string, place_id: int, location_ids: list<string>, when: string, starts: int, terminals: int, full: bool}>
+	 * @return list<array{id: int|string, kind: string, description: string, place: string, place_id: int, location_ids: list<string>, when: string, starts: int, ends: int, ends_time: string, terminals: int, full: bool}>
 	 */
 	public static function offered_bookings( int $now ): array {
 		$today  = wp_date( 'Y-m-d', $now );
@@ -608,6 +504,8 @@ class AudienceTerminalRestController {
 				'location_ids' => self::environment_location( (int) ( $booking->environment_id ?? 0 ) ),
 				'when'         => self::when( $booking ),
 				'starts'       => self::starts( $booking ),
+				'ends'         => $end,
+				'ends_time'    => DateFormatter::format_time( $end ),
 				'terminals'    => $held,
 				'full'         => $held >= $limit,
 			);
@@ -626,6 +524,8 @@ class AudienceTerminalRestController {
 				/* translators: 1: day, 2: opening time, 3: closing time */
 				'when'         => sprintf( __( '%1$s, %2$s–%3$s', 'ffcertificate' ), DateFormatter::format_date( $form['opens'] ), DateFormatter::format_time( $form['opens'] ), DateFormatter::format_time( $form['closes'] ) ),
 				'starts'       => $form['opens'],
+				'ends'         => $form['closes'],
+				'ends_time'    => DateFormatter::format_time( $form['closes'] ),
 				'terminals'    => $held,
 				'full'         => $held >= $limit,
 			);
@@ -760,6 +660,8 @@ class AudienceTerminalRestController {
 			array(
 				'label'         => $terminal['label'],
 				'location'      => $terminal['location_id'],
+				// Its name, for the operator menu: a terminal that follows a place has no queue to edit.
+				'location_name' => self::location_name( $terminal['location_id'] ),
 				'bookings'      => $terminal['targets'],
 				'expires_at'    => $terminal['expires_at'],
 				'expires_label' => DateFormatter::format_datetime( $terminal['expires_at'] ),
@@ -987,7 +889,7 @@ class AudienceTerminalRestController {
 	 * @return \WP_Error
 	 */
 	private static function not_paired(): \WP_Error {
-		return new \WP_Error( 'ffc_terminal_unpaired', __( 'This terminal is no longer paired. Ask an operator for a new pairing code.', 'ffcertificate' ), array( 'status' => 401 ) );
+		return new \WP_Error( 'ffc_terminal_unpaired', __( 'This terminal is no longer paired. An operator pairs it again at the lock.', 'ffcertificate' ), array( 'status' => 401 ) );
 	}
 
 	/**
@@ -1067,13 +969,15 @@ class AudienceTerminalRestController {
 	 *
 	 * @param array $terminal Terminal row.
 	 * @phpstan-param TerminalRow $terminal
-	 * @return array{id: int, label: string, bookings: list<int|string>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, paired_label: string, expires_label: string, last_seen_label: string}
+	 * @return array{id: int, label: string, bookings: list<int|string>, location: string, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, paired_label: string, expires_label: string, last_seen_label: string}
 	 */
 	public static function present( array $terminal ): array {
 		return array(
 			'id'              => $terminal['id'],
 			'label'           => $terminal['label'],
 			'bookings'        => $terminal['targets'],
+			// The GPS location a terminal follows (#2900), by name; '' for one paired by event.
+			'location'        => self::location_name( $terminal['location_id'] ),
 			'paired_by'       => $terminal['paired_by'],
 			'paired_at'       => $terminal['paired_at'],
 			'expires_at'      => $terminal['expires_at'],
@@ -1085,6 +989,20 @@ class AudienceTerminalRestController {
 	}
 
 	/**
+	 * A GPS location's name, or its id when it is no longer listed.
+	 *
+	 * @param string $location_id GPS location id, or ''.
+	 * @return string
+	 */
+	public static function location_name( string $location_id ): string {
+		if ( '' === $location_id ) {
+			return '';
+		}
+		$found = GeofenceLocationRegistry::get_by_ids( array( $location_id ) );
+		return array() === $found ? $location_id : (string) ( $found[0]['name'] ?? $location_id );
+	}
+
+	/**
 	 * Target keys from a list (#2890): a booking id, or `type:id` for any
 	 * other target; anything else is dropped.
 	 *
@@ -1093,16 +1011,6 @@ class AudienceTerminalRestController {
 	 */
 	public static function sanitize_targets( $value ): array {
 		return TerminalTargetKey::clean( is_array( $value ) ? $value : array() );
-	}
-
-	/**
-	 * Keep the characters a pairing code is made of.
-	 *
-	 * @param mixed $value Raw value.
-	 * @return string
-	 */
-	public static function sanitize_code( $value ): string {
-		return is_string( $value ) ? substr( (string) preg_replace( '/[^A-Za-z0-9-]/', '', $value ), 0, 32 ) : '';
 	}
 
 	/**

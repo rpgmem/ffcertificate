@@ -1,16 +1,14 @@
 /**
  * The operator's terminal screens in the app (#2744).
  *
- * One script for the three screens the template draws, chosen by the root's
+ * One script for the two screens the template draws, chosen by the root's
  * `data-ffc-terminal-operator`:
  *
- * - `pair`: tick the events, or switch to By place and fill them from one
- *   place (#2746), choose how long after the last event the terminal ends
- *   by itself (#2781), name it, generate a one-time pairing code and show
- *   it as a QR code beside a summary of what it pairs, with its countdown;
  * - `terminals`: the operator's active terminals, each with Change events
- *   (#2746) and End behind an inline confirmation;
- * - `qr`: the operator's own unlock code, renewed before it expires.
+ *   (#2746), unless it follows a GPS location (#2900), and End behind an
+ *   inline confirmation;
+ * - `qr`: the operator's own unlock code, renewed before it expires. It is
+ *   what pairs a terminal, on the terminal itself (#2900).
  *
  * Every date arrives formatted by the site. The QR is drawn by the presence
  * screen's encoder (`FFCPresence.qrSvg`).
@@ -157,7 +155,7 @@
             tick();
         }
 
-        // Pair terminal ------------------------------------------------------
+        // Choosing events ----------------------------------------------------
 
         /**
          * Draw one checkbox per event into a container.
@@ -177,7 +175,6 @@
                 check.value = String(booking.id);
                 check.checked = mine;
                 check.disabled = !!booking.full && !mine;
-                check.setAttribute('data-place', String(booking.place_id || 0));
                 var text = el.ownerDocument.createElement('span');
                 var title = el.ownerDocument.createElement('strong');
                 title.textContent = booking.description || '';
@@ -193,158 +190,11 @@
             });
         }
 
-        /**
-         * The places the events are at, in the order they first appear.
-         *
-         * @param {Array<object>} bookings Events.
-         * @return {Array<{id: number, name: string}>}
-         */
-        function places(bookings) {
-            var seen = {};
-            var out = [];
-            bookings.forEach(function (booking) {
-                var id = Number(booking.place_id) || 0;
-                if (id > 0 && !seen[id]) {
-                    seen[id] = true;
-                    out.push({ id: id, name: booking.place || '' });
-                }
-            });
-            return out;
-        }
-
-        /**
-         * Tick the events at one place, soonest first, up to the limit, and
-         * untick the rest; the events arrive soonest first.
-         *
-         * @param {HTMLElement} list Container.
-         * @param {string} place Place id, or '' to leave the choice alone.
-         * @return {number} Events ticked.
-         */
-        function fillByPlace(list, place) {
-            if (!place) {
-                return 0;
-            }
-            var max = config.maxBookings || 10;
-            var count = 0;
-            Array.prototype.forEach.call(list.querySelectorAll('input[type="checkbox"]'), function (box) {
-                box.checked = !box.disabled && box.getAttribute('data-place') === place && count < max;
-                if (box.checked) {
-                    count++;
-                }
-            });
-            return count;
-        }
-
-        function loadEvents() {
-            say(strings.loading);
-            return request('GET', 'bookings').then(function (result) {
-                say('');
-                var list = part('events');
-                list.textContent = '';
-                if (!result.ok) {
-                    fail(problem(result));
-                    return [];
-                }
-                var bookings = result.body.bookings || [];
-                part('events-empty').hidden = bookings.length > 0;
-                drawEvents(list, bookings, []);
-                var select = part('place');
-                if (select) {
-                    select.textContent = '';
-                    places(bookings).forEach(function (place) {
-                        var option = el.ownerDocument.createElement('option');
-                        option.value = String(place.id);
-                        option.textContent = place.name;
-                        select.appendChild(option);
-                    });
-                    part('queue-mode').hidden = select.options.length < 1;
-                    setQueueMode('pick');
-                }
-                return bookings;
-            });
-        }
-
-        /**
-         * The queue's mode: `pick` ticks the events one by one; `place`
-         * shows the place list and ticks that place's events.
-         *
-         * @param {string} value `pick` or `place`.
-         */
-        function setQueueMode(value) {
-            var radios = el.querySelectorAll('input[name="ffc_terminal_queue"]');
-            Array.prototype.forEach.call(radios, function (radio) {
-                radio.checked = radio.value === value;
-            });
-            var byPlace = 'place' === value;
-            part('by-place').hidden = !byPlace;
-            if (byPlace) {
-                fillByPlace(part('events'), part('place').value);
-            }
-        }
-
-        /**
-         * The hours chosen for the terminal to end by itself, or 0 for the
-         * Check-in settings.
-         *
-         * @return {number}
-         */
-        function autoEnd() {
-            var checked = el.querySelector('input[name="ffc_terminal_auto_end"]:checked');
-            return checked ? (parseInt(checked.value, 10) || 0) : 0;
-        }
-
+        // A key as the site writes it: a booking by its bare id, any other
+        // target as type:id (#2890), so a form survives the round trip.
         function chosen(list) {
-            var boxes = (list || part('events')).querySelectorAll('input[type="checkbox"]:checked');
-            return Array.prototype.map.call(boxes, function (b) { return parseInt(b.value, 10); });
-        }
-
-        function generate() {
-            var ids = chosen();
-            if (!ids.length) {
-                fail(strings.pickEvent);
-                return Promise.resolve(null);
-            }
-            if (ids.length > (config.maxBookings || 10)) {
-                fail(fill(strings.tooMany, [config.maxBookings || 10]));
-                return Promise.resolve(null);
-            }
-            fail('');
-            say(strings.generating);
-            var button = part('generate');
-            button.disabled = true;
-            var body = { bookings: ids, label: part('label').value || '' };
-            var hours = autoEnd();
-            if (hours > 0) {
-                body.auto_end = hours;
-            }
-            return request('POST', 'pairings', body).then(function (result) {
-                button.disabled = false;
-                say('');
-                if (!result.ok || !result.body.code) {
-                    fail(problem(result));
-                    return null;
-                }
-                part('form').hidden = true;
-                part('result').hidden = false;
-                part('code').textContent = result.body.code;
-                part('summary').textContent = fill(strings.pairSummary, [ids.length, hours || config.autoEnd || 0]);
-                drawQr(result.body.code);
-                countdown(Number(result.body.expires_at) || now(), strings.codeExpires);
-                return result.body;
-            });
-        }
-
-        function again() {
-            if (ticker) {
-                env.clearInterval(ticker);
-                ticker = null;
-            }
-            part('result').hidden = true;
-            part('form').hidden = false;
-            part('qr').innerHTML = '';
-            part('code').textContent = '';
-            part('summary').textContent = '';
-            return loadEvents();
+            var boxes = list.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.prototype.map.call(boxes, function (b) { return /^\d+$/.test(b.value) ? Number(b.value) : b.value; });
         }
 
         // My terminals -------------------------------------------------------
@@ -355,7 +205,9 @@
             var get = function (name) { return item.querySelector('[data-ffc-op-item="' + name + '"]'); };
             item.setAttribute('data-terminal-id', String(terminal.id));
             get('label').textContent = terminal.label || fill(strings.unnamed, [terminal.id]);
-            get('events').textContent = fill(strings.events, [(terminal.bookings || []).length]);
+            get('events').textContent = terminal.location ? fill(strings.follows, [terminal.location]) : fill(strings.events, [(terminal.bookings || []).length]);
+            // A terminal paired to a place follows it: its events are not chosen.
+            get('edit').hidden = !!terminal.location;
             get('seen').textContent = terminal.last_seen_label ? fill(strings.seen, [terminal.last_seen_label]) : strings.neverSeen;
             get('until').textContent = fill(strings.until, [terminal.expires_label || '']);
             get('end').addEventListener('click', function () {
@@ -500,28 +352,7 @@
         }
 
         var ready;
-        if ('pair' === mode) {
-            part('form').addEventListener('submit', function (event) {
-                event.preventDefault();
-                generate();
-            });
-            part('again').addEventListener('click', function () {
-                again();
-            });
-            if (part('place')) {
-                part('place').addEventListener('change', function () {
-                    fillByPlace(part('events'), part('place').value);
-                });
-                Array.prototype.forEach.call(el.querySelectorAll('input[name="ffc_terminal_queue"]'), function (radio) {
-                    radio.addEventListener('change', function () {
-                        if (radio.checked) {
-                            setQueueMode(radio.value);
-                        }
-                    });
-                });
-            }
-            ready = loadEvents();
-        } else if ('terminals' === mode) {
+        if ('terminals' === mode) {
             ready = loadTerminals();
         } else {
             ready = operatorCode();
@@ -529,11 +360,7 @@
 
         return {
             ready: ready,
-            generate: generate,
-            again: again,
             reload: loadTerminals,
-            fillByPlace: fillByPlace,
-            setQueueMode: setQueueMode,
             operatorCode: operatorCode
         };
     }

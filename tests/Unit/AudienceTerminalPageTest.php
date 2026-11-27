@@ -266,10 +266,17 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/?ffc_terminal=manifest">', $html );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="queue-list"', $html, 'the operator menu lists the terminal\'s events (#2780)' );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="queue-open-add"', $html );
-		foreach ( array( 'pairing', 'setup', 'locked', 'ready', 'between', 'result', 'unlock', 'menu' ) as $view ) {
+		foreach ( array( 'idle', 'unpaired', 'setup', 'ready', 'between', 'result', 'unlock', 'menu' ) as $view ) {
 			$this->assertStringContainsString( 'data-ffc-terminal-view="' . $view . '"', $html, $view );
 		}
-		$this->assertStringContainsString( 'id="ffc-terminal-code"', $html );
+		foreach ( array( 'pairing', 'locked' ) as $view ) {
+			$this->assertStringNotContainsString( 'data-ffc-terminal-view="' . $view . '"', $html, 'pairing starts at the terminal\'s lock, never from a typed code (#2900)' );
+		}
+		$this->assertStringNotContainsString( 'id="ffc-terminal-code"', $html );
+		$this->assertStringNotContainsString( 'data-ffc-terminal-part="unlock-code"', $html );
+		$this->assertMatchesRegularExpression( '/name="ffc_terminal_setup_mode"[^>]*value="event"/', $html, 'setup pairs by event' );
+		$this->assertMatchesRegularExpression( '/name="ffc_terminal_setup_mode"[^>]*value="place"/', $html, 'or by place' );
+		$this->assertStringContainsString( 'data-ffc-terminal-part="setup-location"', $html );
 		$this->assertStringContainsString( 'id="ffc-terminal-reading"', $html );
 		$this->assertMatchesRegularExpression( '/role="status"[^>]*data-ffc-terminal-part="result-ok"/', $html, 'a recorded result is announced politely' );
 		$this->assertMatchesRegularExpression( '/role="alert"[^>]*data-ffc-terminal-part="result-refused"/', $html, 'a refusal is announced at once' );
@@ -290,7 +297,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( array( 'ready', 'reading', 'insecure', 'unsupported', 'denied', 'failed', 'asleep' ), array_keys( $config['strings']['camera'] ) );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="camera-start"', $html );
 		$this->assertMatchesRegularExpression( '/<video[^>]*playsinline[^>]*muted/', $html, 'the viewfinder plays inline and silent' );
-		$this->assertSame( array( 'offlinePairing', 'storage', 'pairing', 'paired', 'failed', 'events', 'until', 'expired', 'revoked', 'operator', 'clockOff', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'idleRefused', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'setup', 'queueEdit', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'offlinePairing', 'storage', 'paired', 'failed', 'events', 'until', 'expired', 'revoked', 'operator', 'clockOff', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'idleRefused', 'unpairedRefused', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'setup', 'queueEdit', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
 	}
 
 	public function test_the_camera_follows_its_option(): void {
