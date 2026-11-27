@@ -524,14 +524,37 @@ final class AudienceTerminalPage {
 	 * @return void
 	 */
 	private static function enqueue_install_script(): void {
-		$suffix = AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-terminal-install',
-			FFC_PLUGIN_URL . "assets/js/ffc-terminal-install{$suffix}.js",
-			array(),
-			FFC_VERSION,
-			true
-		);
+		self::enqueue_page_script( 'ffc-terminal-install', array() );
+	}
+
+	/**
+	 * Put one of the terminal's scripts in the page itself (#2912).
+	 *
+	 * The terminal's markup and its scripts change together, and the page is
+	 * never cached (`send_headers()`), while a script served from its own address
+	 * can be: a tablet with no account was handed a kiosk script days older
+	 * than the page under the new `?ver=`, so it looked for a part the markup
+	 * no longer had and stopped with a blank screen. Printed in the document,
+	 * a script always matches the markup it arrived with, offline too, since
+	 * the worker keeps the document. The handle has an empty source, so WordPress
+	 * still prints its dependencies, its data and its inline scripts in order.
+	 *
+	 * @param string   $handle Handle, which is also the file's name under `assets/js/`.
+	 * @param string[] $deps   Handles printed first.
+	 * @phpstan-param non-empty-string $handle
+	 * @phpstan-param array<non-empty-string> $deps
+	 * @return void
+	 */
+	private static function enqueue_page_script( string $handle, array $deps ): void {
+		wp_enqueue_script( $handle, '', $deps, FFC_VERSION, true );
+		$file = FFC_PLUGIN_DIR . 'assets/js/' . $handle . AssetHelper::asset_suffix() . '.js';
+		$code = is_readable( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A file of the plugin's own, read from disk.
+		if ( '' === $code ) {
+			return;
+		}
+		// The file's name in what an error reports, so the boot note says which
+		// script stopped (#2910).
+		wp_add_inline_script( $handle, $code . "\n//# sourceURL=" . $handle . '.js' );
 	}
 
 	/**
@@ -548,25 +571,12 @@ final class AudienceTerminalPage {
 		self::enqueue_sheet();
 		self::enqueue_install_script();
 
-		$suffix = AssetHelper::asset_suffix();
-		wp_enqueue_script(
-			'ffc-presence-verifier',
-			FFC_PLUGIN_URL . "assets/js/ffc-presence-verifier{$suffix}.js",
-			array(),
-			FFC_VERSION,
-			true
-		);
+		self::enqueue_page_script( 'ffc-presence-verifier', array() );
 		// Before the terminal's own scripts (#2910): an error while they load
 		// or start is written into the boot note, so a terminal that cannot
 		// start says why on its own screen, where the team can photograph it.
 		wp_add_inline_script( 'ffc-presence-verifier', self::BOOT_ERROR_SCRIPT, 'before' );
-		wp_enqueue_script(
-			'ffc-terminal-kiosk',
-			FFC_PLUGIN_URL . "assets/js/ffc-terminal-kiosk{$suffix}.js",
-			array( 'ffc-presence-verifier' ),
-			FFC_VERSION,
-			true
-		);
+		self::enqueue_page_script( 'ffc-terminal-kiosk', array( 'ffc-presence-verifier' ) );
 		wp_localize_script(
 			'ffc-terminal-kiosk',
 			'ffcTerminal',
