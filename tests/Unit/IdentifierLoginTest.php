@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Tests\Support\FakeCredentials;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use FreeFormCertificate\UserDashboard\IdentifierLogin;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -22,9 +23,9 @@ class IdentifierLoginTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	private const CPF = '529.982.247-25';
+	private const CPF = '518.178.420-80';
 
-	private const RF = '123.456-7';
+	private const RF = '518.178-0';
 
 	/** @var mixed The $wpdb the test replaced. */
 	private $wpdb_backup = null;
@@ -94,15 +95,15 @@ class IdentifierLoginTest extends TestCase {
 
 	public function test_only_a_cpf_or_an_rf_is_read_as_one(): void {
 		$this->assertSame( 'cpf_hash', IdentifierLogin::identifier_hash( self::CPF )[0] ?? null );
-		$this->assertSame( 'cpf_hash', IdentifierLogin::identifier_hash( '52998224725' )[0] ?? null );
+		$this->assertSame( 'cpf_hash', IdentifierLogin::identifier_hash( Identifiers::CPF_A )[0] ?? null );
 		$this->assertSame( 'rf_hash', IdentifierLogin::identifier_hash( self::RF )[0] ?? null );
 		$this->assertSame(
-			IdentifierLogin::identifier_hash( '52998224725' ),
+			IdentifierLogin::identifier_hash( Identifiers::CPF_A ),
 			IdentifierLogin::identifier_hash( self::CPF ),
 			'the mask does not change the hash'
 		);
 
-		foreach ( array( '', 'maria', 'maria@example.org', '12345', '123456789012', 'cpf 52998224725', '529982247-2x' ) as $input ) {
+		foreach ( array( '', 'maria', 'maria@example.org', '12345', '123456789012', 'cpf 51817842080', '518178420-8x' ) as $input ) {
 			$this->assertNull( IdentifierLogin::identifier_hash( $input ), $input );
 		}
 	}
@@ -121,7 +122,7 @@ class IdentifierLoginTest extends TestCase {
 		$this->own( 'rf', self::RF, array( 9 ), 'wp_ffc_submissions' );
 		$this->passwords[9] = FakeCredentials::PASSWORD;
 
-		$user = IdentifierLogin::authenticate( null, '1234567', FakeCredentials::PASSWORD );
+		$user = IdentifierLogin::authenticate( null, Identifiers::RF_A, FakeCredentials::PASSWORD );
 
 		$this->assertSame( 9, $user->ID );
 	}
@@ -132,7 +133,7 @@ class IdentifierLoginTest extends TestCase {
 		$core               = new \WP_Error( 'invalid_username', 'core' );
 
 		$this->assertSame( $core, IdentifierLogin::authenticate( $core, self::CPF, 'fake-wrong' ) );
-		$this->assertSame( $core, IdentifierLogin::authenticate( $core, '111.444.777-35', FakeCredentials::PASSWORD ), 'an unknown CPF answers the same' );
+		$this->assertSame( $core, IdentifierLogin::authenticate( $core, '204.569.420-84', FakeCredentials::PASSWORD ), 'an unknown CPF answers the same' );
 	}
 
 	public function test_the_password_settles_a_cpf_two_accounts_share(): void {
