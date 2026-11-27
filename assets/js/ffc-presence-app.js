@@ -739,11 +739,23 @@
         });
     };
 
+    /**
+     * An item's key in the list: `type:id`, because a booking and a
+     * certificate form may share an id (#2893).
+     *
+     * @param {Object} event
+     * @return {string}
+     */
+    function itemKey(event) {
+        return (event.target_type || 'audience_booking') + ':' + event.target_id;
+    }
+
     App.prototype.current = function () {
         var events = this.waiting();
-        var chosen = this.state.chosen;
+        var chosen = String(this.state.chosen || '');
         for (var i = 0; i < events.length; i++) {
-            if (String(events[i].target_id) === String(chosen)) {
+            // A choice kept before #2893 holds the bare booking id.
+            if (itemKey(events[i]) === chosen || ('audience_booking' === events[i].target_type && String(events[i].target_id) === chosen)) {
                 return events[i];
             }
         }
@@ -780,9 +792,9 @@
             select.textContent = '';
             waiting.forEach(function (event) {
                 var option = document.createElement('option');
-                option.value = String(event.target_id);
+                option.value = itemKey(event);
                 option.textContent = [event.title, event.date, event.time].filter(Boolean).join(' · ');
-                option.selected = current && current.target_id === event.target_id;
+                option.selected = !!current && itemKey(current) === itemKey(event);
                 select.appendChild(option);
             });
             select.hidden = waiting.length === 0;
@@ -851,6 +863,10 @@
         if (when) {
             when.textContent = event ? [event.date, event.time, event.place].filter(Boolean).join(' · ') : '';
             when.hidden = !event;
+        }
+        var ticket = this.part('needs-ticket');
+        if (ticket) {
+            ticket.hidden = !(event && event.needs_ticket);
         }
     };
 
@@ -954,7 +970,7 @@
             self.drawn = '';
             return Promise.resolve(null);
         }
-        if (self.drawn === event.target_id + '@' + windowStart) {
+        if (self.drawn === itemKey(event) + '@' + windowStart) {
             return Promise.resolve(null);
         }
         if (self.state.expires < nowSeconds) {
@@ -962,7 +978,7 @@
             self.say(strings.expired);
             return Promise.resolve(null);
         }
-        var drawing = event.target_id + '@' + windowStart;
+        var drawing = itemKey(event) + '@' + windowStart;
         self.drawn = drawing;
         return buildCode({
             attestation: fromB64url(self.state.attestation),

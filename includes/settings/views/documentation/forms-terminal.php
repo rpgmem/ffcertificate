@@ -26,6 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Who may receive at the terminal', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Any account, or only the people on the Security tab\'s allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code before the QR and keeps it for 60 seconds, each code once, and pauses reading while it is offline. The result names what happened: certificate issued, already issued, attendance recorded with data still missing (in amber, the terminal free for the next person), or refused with the reason.', 'ffcertificate' ); ?></p>
 
+	<p><?php esc_html_e( 'In the app, the form shows under Presence for everyone the terminal would accept, over the same 7 days, with the code ready for its day; a form that checks a deny or allow list shows only to whom it lets in, and one whose certificate was already issued shows as recorded. A form with a ticket says to have the code ready.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'A field the profile cannot fill', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives "Complete your certificate". The side box shows the reading hours, the paired terminals and how many certificates the terminal issued.', 'ffcertificate' ); ?></p>
 

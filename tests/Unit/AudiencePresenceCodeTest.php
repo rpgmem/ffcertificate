@@ -317,6 +317,8 @@ class AudiencePresenceCodeTest extends TestCase {
 		);
 		$backup          = $GLOBALS['wpdb'] ?? null;
 		$GLOBALS['wpdb'] = $wpdb;
+		// No certificate form is open (#2893); the forms have their own test.
+		Functions\when( 'get_posts' )->justReturn( array() );
 
 		try {
 			$events = AudiencePresenceEvents::for_user( 7, self::NOW );
@@ -357,6 +359,8 @@ class AudiencePresenceCodeTest extends TestCase {
 		);
 		$backup          = $GLOBALS['wpdb'] ?? null;
 		$GLOBALS['wpdb'] = $wpdb;
+		// No certificate form is open (#2893); the forms have their own test.
+		Functions\when( 'get_posts' )->justReturn( array() );
 
 		try {
 			$events = AudiencePresenceEvents::for_user( 7, self::NOW );

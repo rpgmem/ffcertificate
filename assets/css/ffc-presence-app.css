@@ -278,3 +278,9 @@
 	font-weight: 600;
 	color: inherit;
 }
+
+/* A certificate form that asks for a ticket (#2893): the code comes first. */
+.ffc-presence-needs-ticket {
+	color: var(--ffc-warning-text);
+	font-weight: 600;
+}
