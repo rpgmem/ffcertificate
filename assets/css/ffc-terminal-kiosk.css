@@ -863,6 +863,10 @@
 	min-width: 0;
 }
 
+.ffc-terminal-setup-main .ffc-terminal-actions {
+	justify-content: flex-start;
+}
+
 .ffc-terminal-setup-by-place {
 	display: flex;
 	flex-direction: column;
