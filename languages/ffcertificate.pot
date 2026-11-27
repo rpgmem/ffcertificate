@@ -36536,22 +36536,13 @@ msgstr ""
 msgid "Open PDF"
 msgstr ""
 
-msgid "Share"
-msgstr ""
-
-msgid "Link copied."
-msgstr ""
-
-msgid "This phone cannot share the link. Open the PDF and share it from there."
-msgstr ""
-
 msgid "Downloading is not available for this account."
 msgstr ""
 
 msgid "Search by course or code"
 msgstr ""
 
-msgid "Certificates in the app is its own screen rather than the dashboard table: a search by course or code, the newest certificate as a card (marked New for its first 7 days) with Open PDF and Share, and the others as rows that open their PDF. It reads the same list as the dashboard, so downloading follows the same permissions."
+msgid "Certificates in the app is its own screen rather than the dashboard table: a search by course or code, the newest certificate as a card (marked New for its first 7 days) with Open PDF, and the others as rows that open their PDF. It reads the same list as the dashboard, so downloading follows the same permissions."
 msgstr ""
 
 msgid "Loading your calendar…"
@@ -36573,9 +36564,6 @@ msgid "Presence QR"
 msgstr ""
 
 msgid "Fill in the form · until %s"
-msgstr ""
-
-msgid "New booking"
 msgstr ""
 
 msgid "No calendar is open for booking here. Book from the calendar's page on the site."
@@ -36917,7 +36905,7 @@ msgstr ""
 msgid "With the Site PWA plugin installed, the dashboard also appears inside its installable app, one screen per part: Agenda (personal appointments and audience bookings), Presence, raised in the middle of the bar, and Certificates in the bottom navigation, and Messages, Reregistration, Recruitment and Profile under More. Each screen appears only to an account that has the matching tab. On the phone where the account's presence is active, the app also lists Pair terminal and My terminals to holders of ffc_manage_audiences_terminals, and Operator QR to holders of ffc_checkin_audiences; on any other phone, and until presence is activated, they stay out of More. Manual attendance, for holders of ffc_checkin_audiences, opens Audience Bookings in wp-admin. Without Site PWA nothing changes."
 msgstr ""
 
-msgid "Agenda in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book, or New booking, lists the personal calendars that a published page lets the person book; a calendar opens inside the app when Site PWA can draw its page, and on the site otherwise. It reads the same lists as the dashboard."
+msgid "Agenda in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book lists the personal calendars that a published page lets the person book; a calendar opens inside the app when Site PWA can draw its page, and on the site otherwise. It reads the same lists as the dashboard."
 msgstr ""
 
 msgid "The app's Home shows what the plugin knows is next for the person: \"Attendance confirmed at\" an event recorded in the last 7 days, as a line they can dismiss; their next booking in the coming 7 days, with Presence QR and Details; and, under Pending, each post-event form still open, each reregistration they can still submit with its deadline, and a certificate issued in the last 7 days. Each item opens the matching screen, and one the account cannot open is left out."
@@ -37807,7 +37795,11 @@ msgid "Attendance recorded. Opening the form to finish your certificate…"
 msgstr ""
 
 #: includes/frontend/class-ffc-form-field-renderer.php
-msgid "From your profile. The certificate carries the full number."
+msgid "From your registration. The certificate carries the full number."
+msgstr ""
+
+#: includes/frontend/class-ffc-form-field-renderer.php
+msgid "From your registration."
 msgstr ""
 
 msgid "Hold the screen up to a terminal's reader to unlock its operator menu."

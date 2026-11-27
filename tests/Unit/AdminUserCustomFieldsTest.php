@@ -1643,4 +1643,19 @@ class AdminUserCustomFieldsTest extends TestCase {
 			ProfileCustomFields::display_value( $field, $value )
 		);
 	}
+
+	/**
+	 * A CPF, CIN or RF reads with its punctuation once revealed (#2946); a
+	 * value that does not fit its shape, and any other field, reads as stored.
+	 */
+	public function test_a_revealed_document_reads_with_its_punctuation(): void {
+		$rf    = $this->field( 10, array( 'id' => 1, 'field_key' => 'rf' ) );
+		$cpf   = $this->field( 10, array( 'id' => 2, 'field_key' => 'cpf_cin', 'field_mask' => 'cpf' ) );
+		$plain = $this->field( 10, array( 'id' => 3, 'field_key' => 'vinculo' ) );
+
+		$this->assertSame( '518.178-0', ProfileCustomFields::display_value( $rf, \FreeFormCertificate\Tests\Support\Identifiers::RF_A ) );
+		$this->assertSame( '518.178.420-80', ProfileCustomFields::display_value( $cpf, \FreeFormCertificate\Tests\Support\Identifiers::CPF_A ) );
+		$this->assertSame( '12345', ProfileCustomFields::display_value( $rf, '12345' ), 'a value off its shape stays as stored' );
+		$this->assertSame( '1', ProfileCustomFields::display_value( $plain, '1' ) );
+	}
 }

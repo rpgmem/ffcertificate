@@ -112,9 +112,6 @@ final class CertificatesAppScreen {
 					/* translators: %s: the certificate's authentication code */
 					'code'     => __( 'Code %s', 'ffcertificate' ),
 					'open'     => __( 'Open PDF', 'ffcertificate' ),
-					'share'    => __( 'Share', 'ffcertificate' ),
-					'copied'   => __( 'Link copied.', 'ffcertificate' ),
-					'noShare'  => __( 'This phone cannot share the link. Open the PDF and share it from there.', 'ffcertificate' ),
 					'noAccess' => __( 'Downloading is not available for this account.', 'ffcertificate' ),
 				),
 			)

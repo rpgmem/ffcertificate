@@ -37,6 +37,20 @@
     box-shadow: 0 0 0 3px var(--ffc-focus-ring);
 }
 
+/* A value the form was given and the person cannot change — the name and
+   e-mail of an invitation, what the profile answers on a completion (#2946):
+   a quiet ground and no pointer for typing, so it reads as settled. */
+.ffc-shortcode .ffc-input[readonly],
+.ffc-shortcode .ffc-input:disabled {
+    background-color: var(--ffc-bg-alt) !important;
+    color: var(--ffc-text);
+    cursor: default;
+}
+
+.ffc-shortcode .ffc-field-hint-locked::before {
+    margin-right: var(--ffc-spacing-2xs);
+}
+
 .ffc-shortcode textarea.ffc-input,
 .ffc-shortcode.ffc-form-wrapper textarea.ffc-input,
 .ffc-shortcode .ffc-form-field textarea.ffc-textarea {

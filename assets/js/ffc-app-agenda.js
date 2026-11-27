@@ -160,12 +160,6 @@
                 self.view(tab.getAttribute('data-ffc-app-view'));
             });
         });
-        var fresh = self.part('new');
-        if (fresh) {
-            fresh.addEventListener('click', function () {
-                self.view('book');
-            });
-        }
         self.drawBook();
         self.say(strings.loading);
         var routes = self.config.routes || {};
