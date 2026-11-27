@@ -35765,9 +35765,6 @@ msgstr ""
 msgid "A terminal is a tablet or computer at the entrance that reads participants' presence codes. It never signs in with anyone's account. An operator who holds ffc_manage_audiences_terminals chooses the events it will serve, up to 10, each ending within the next 7 days, and generates a pairing code. The code reads P-XXXX-XXXX-XXXX, lives five minutes, pairs one terminal once, and the site keeps only a hash of it; it is shown as a QR code to hold up to the terminal's reader, or typed."
 msgstr ""
 
-msgid "An operator QR code, signed by the site and valid for two minutes, unlocks a paired terminal's menu. Anyone who runs check-ins can show one; it pairs nothing."
-msgstr ""
-
 
 msgid "Check-in terminals"
 msgstr ""
@@ -37500,4 +37497,7 @@ msgid "A terminal can also be paired to a GPS location of Settings → Geolocati
 msgstr ""
 
 msgid "Terminals paired to the location"
+msgstr ""
+
+msgid "An operator QR code, signed by the site, unlocks a paired terminal's menu. It lives in two-minute windows of the site's clock (10:30, 10:32, …): opened at 10:30:30 it counts down from 1:30, reopening the screen keeps the same count, and with under 30 seconds left the next window's code is shown. Anyone who runs check-ins can show one; it pairs nothing."
 msgstr ""

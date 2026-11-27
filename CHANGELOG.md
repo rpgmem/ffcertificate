@@ -75,6 +75,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The app's "My details" opens the Profile screen** (#2880) through Site PWA's `site_pwa_details_screen` filter (rpgmem/site-pwa#56); an older app keeps its own account screen.
 - The app's Preferences screen carries a Notifications section with the appointment reminder and, for an account with the Messages tab, the two date-message toggles; the app's Profile and Messages screens leave them out, and the site's dashboard is unchanged (#2885, rpgmem/site-pwa#66).
 - **Terminal queue takes any attendance target.** A terminal's queue, schedule, overlap rule and reading now go through the attendance target the key names, so a certificate form can join audience bookings on one terminal. Stored queues keep their shape: a booking is still its bare id. No behaviour change for bookings. (#2890)
+- **The operator QR counts down to the site clock's 2-minute windows.** Opened at 10:30:30 it shows 1:30, reopening keeps the count, and under 30 s left it shows the next window's code (#2907).
 
 ### Security
 

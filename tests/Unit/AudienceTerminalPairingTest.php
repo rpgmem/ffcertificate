@@ -378,6 +378,17 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertNull( AudienceOperatorCode::issue( 0, self::NOW ) );
 	}
 
+	public function test_an_operator_code_expires_on_the_windows_of_the_site_clock(): void {
+		// 1800000000 is a 2-minute boundary; 30 s into the window, 90 s are left.
+		$this->assertSame( 0, self::NOW % AudienceOperatorCode::TTL );
+		$this->assertSame( self::NOW + 120, AudienceOperatorCode::expiry( self::NOW + 30 ), 'opened at :30 it counts down from 1:30, not 2:00' );
+		$this->assertSame( AudienceOperatorCode::expiry( self::NOW + 30 ), AudienceOperatorCode::expiry( self::NOW + 60 ), 'reopened in the same window, the same end' );
+		$this->assertSame( self::NOW + 120, AudienceOperatorCode::expiry( self::NOW + 90 ), 'exactly the margin left is still this window' );
+		$this->assertSame( self::NOW + 240, AudienceOperatorCode::expiry( self::NOW + 91 ), 'under the margin, the next window' );
+		$this->assertSame( self::NOW + 120, AudienceOperatorCode::expiry( self::NOW ), 'at the boundary, a full window' );
+		$this->assertSame( self::NOW + 120, AudienceOperatorCode::issue( self::OPERATOR, self::NOW + 45 )['expires_at'] );
+	}
+
 	// ---- Routes -----------------------------------------------------------
 
 	public function test_pairing_routes_need_the_terminals_capability_and_the_rest_nonce(): void {

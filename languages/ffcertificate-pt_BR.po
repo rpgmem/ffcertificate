@@ -35844,9 +35844,6 @@ msgstr "Um terminal atende no máximo %d eventos."
 msgid "A terminal is a tablet or computer at the entrance that reads participants' presence codes. It never signs in with anyone's account. An operator who holds ffc_manage_audiences_terminals chooses the events it will serve, up to 10, each ending within the next 7 days, and generates a pairing code. The code reads P-XXXX-XXXX-XXXX, lives five minutes, pairs one terminal once, and the site keeps only a hash of it; it is shown as a QR code to hold up to the terminal's reader, or typed."
 msgstr "Um terminal é um tablet ou computador na entrada que lê os códigos de presença dos participantes. Ele nunca entra com a conta de ninguém. Um operador com ffc_manage_audiences_terminals escolhe os eventos que ele vai atender, até 10, cada um terminando nos próximos 7 dias, e gera um código de pareamento. O código tem a forma P-XXXX-XXXX-XXXX, vale cinco minutos, pareia um terminal uma única vez, e o site guarda só um hash dele; ele aparece como QR code para aproximar do leitor do terminal, ou é digitado."
 
-msgid "An operator QR code, signed by the site and valid for two minutes, unlocks a paired terminal's menu. Anyone who runs check-ins can show one; it pairs nothing."
-msgstr "Um QR code de operador, assinado pelo site e válido por dois minutos, desbloqueia o menu de um terminal pareado. Quem conduz check-ins pode mostrar um; ele não pareia nada."
-
 
 msgid "Check-in terminals"
 msgstr "Terminais de check-in"
@@ -37580,3 +37577,6 @@ msgstr "Um terminal também pode ser pareado a um local de GPS de Configuraçõe
 
 msgid "Terminals paired to the location"
 msgstr "Terminais pareados ao local"
+
+msgid "An operator QR code, signed by the site, unlocks a paired terminal's menu. It lives in two-minute windows of the site's clock (10:30, 10:32, …): opened at 10:30:30 it counts down from 1:30, reopening the screen keeps the same count, and with under 30 seconds left the next window's code is shown. Anyone who runs check-ins can show one; it pairs nothing."
+msgstr "Um QR code de operador, assinado pelo site, destrava o menu de um terminal pareado. Ele vale em janelas de dois minutos do relógio do site (10:30, 10:32, …): aberto às 10:30:30 a contagem começa em 1:30, reabrir a tela mantém a mesma contagem, e com menos de 30 segundos restantes já aparece o código da janela seguinte. Qualquer pessoa que registra presença pode mostrar um; ele não pareia nada."
