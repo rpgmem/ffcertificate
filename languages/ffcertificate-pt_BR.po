@@ -37919,3 +37919,27 @@ msgstr "No app no Android: toque e segure o ícone do app → Informações do a
 
 msgid "The camera starts by itself only once the browser allows it. Until then the terminal says why it wants the camera and waits for Use the camera, so the browser's question comes after a reason; a refused camera shows where to allow it again on that device, in a browser tab or in the installed app."
 msgstr "A câmera só liga sozinha depois que o navegador a permite. Até lá, o terminal diz por que precisa da câmera e espera o toque em Usar a câmera, para que a pergunta do navegador venha depois de um motivo; uma câmera recusada mostra onde permiti-la de novo naquele aparelho, numa aba do navegador ou no app instalado."
+
+msgid "Installed app"
+msgstr "App instalado"
+
+msgid "Browser tab"
+msgstr "Aba do navegador"
+
+msgid "Turn on Settings → Privacy & Security → Location Services, then set Safari Websites to \"While Using the App\". Close the app and open it again."
+msgstr "Ative Ajustes → Privacidade e Segurança → Serviços de Localização e defina Sites do Safari como \"Durante o Uso do App\". Feche o app e abra de novo."
+
+msgid "Turn on the phone's Location in the quick settings. Then touch and hold the app's icon → App info → Permissions (or Site settings) → Location → Allow, and open the app again."
+msgstr "Ative a Localização do celular nas configurações rápidas. Depois toque e segure o ícone do app → Informações do app → Permissões (ou Configurações do site) → Localização → Permitir, e abra o app de novo."
+
+msgid "Device test"
+msgstr "Teste do aparelho"
+
+msgid "Check whether this phone can read your location, download a certificate and pass the form protections, with how to fix what fails."
+msgstr "Confira se este celular consegue ler sua localização, baixar um certificado e passar pelas proteções dos formulários, com o que fazer para corrigir o que falhar."
+
+msgid "Test this device"
+msgstr "Testar este aparelho"
+
+msgid "Inside the app the test is one tap away: Preferences has a Device test section whose Test this device opens it in the app's own frame when Site PWA can draw the verification page. A Mode row says whether the test runs in the installed app or in a browser tab, and a blocked location's help names the app's own settings there, since the app has no address bar."
+msgstr "Dentro do app o teste fica a um toque: Preferências tem a seção Teste do aparelho, cujo botão Testar este aparelho o abre no próprio app quando o Site PWA consegue desenhar a página de verificação. Uma linha Modo diz se o teste roda no app instalado ou numa aba do navegador, e a ajuda de uma localização bloqueada indica as configurações do próprio app nesse caso, já que o app não tem barra de endereço."

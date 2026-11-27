@@ -37841,3 +37841,27 @@ msgstr ""
 
 msgid "The camera starts by itself only once the browser allows it. Until then the terminal says why it wants the camera and waits for Use the camera, so the browser's question comes after a reason; a refused camera shows where to allow it again on that device, in a browser tab or in the installed app."
 msgstr ""
+
+msgid "Installed app"
+msgstr ""
+
+msgid "Browser tab"
+msgstr ""
+
+msgid "Turn on Settings → Privacy & Security → Location Services, then set Safari Websites to \"While Using the App\". Close the app and open it again."
+msgstr ""
+
+msgid "Turn on the phone's Location in the quick settings. Then touch and hold the app's icon → App info → Permissions (or Site settings) → Location → Allow, and open the app again."
+msgstr ""
+
+msgid "Device test"
+msgstr ""
+
+msgid "Check whether this phone can read your location, download a certificate and pass the form protections, with how to fix what fails."
+msgstr ""
+
+msgid "Test this device"
+msgstr ""
+
+msgid "Inside the app the test is one tap away: Preferences has a Device test section whose Test this device opens it in the app's own frame when Site PWA can draw the verification page. A Mode row says whether the test runs in the installed app or in a browser tab, and a blocked location's help names the app's own settings there, since the app has no address bar."
+msgstr ""

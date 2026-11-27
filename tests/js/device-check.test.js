@@ -7,10 +7,11 @@ import { loadScript } from './helpers.js';
 
 const UA = {
 	desktop: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+	android: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36',
 	instagram: 'Mozilla/5.0 (Linux; Android 14; SM-S918B Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.6668.81 Mobile Safari/537.36 Instagram 350.0.0.42.92 Android',
 };
 
-const KEYS = ['secure', 'browser', 'cookies', 'location', 'pdf'];
+const KEYS = ['secure', 'browser', 'mode', 'cookies', 'location', 'pdf'];
 const flush = () => new Promise((r) => setTimeout(r, 10));
 const define = (target, name, value) => Object.defineProperty(target, name, { value, configurable: true });
 
@@ -85,6 +86,30 @@ describe('device check (#2040)', () => {
 		expect(row('location').state).toBe('fail');
 		await run({ permission: 'granted' });
 		expect(row('location').state).toBe('ok');
+	});
+
+	// Inside the installed app there is no address bar (#2956): the mode row
+	// says where the test runs, and a blocked location names the app's path.
+	it('says it runs in the installed app, and names the app\'s path for a blocked location', async () => {
+		const matchMedia = window.matchMedia;
+		window.ffcDeviceCheck.strings = { helpLocationAndroid: 'Padlock path.', helpLocationAndroidApp: 'App info path.', modeApp: 'Installed app', modeTab: 'Browser tab' };
+		try {
+			window.matchMedia = (query) => ({ matches: '(display-mode: standalone)' === query });
+			await run({ ua: 'android', permission: 'denied', error: { code: 1 } });
+			expect(row('mode')).toEqual({ state: 'ok', text: 'Installed app' });
+			expect(document.querySelector('[data-ffc-check="location"] .ffc-device-check-fix').textContent).toBe('App info path.');
+
+			delete window.ffcDeviceCheck.strings.helpLocationAndroidApp;
+			await run({ ua: 'android', permission: 'denied', error: { code: 1 } });
+			expect(document.querySelector('[data-ffc-check="location"] .ffc-device-check-fix').textContent).toBe('Padlock path.');
+
+			window.matchMedia = () => ({ matches: false });
+			await run({ ua: 'android', permission: 'denied', error: { code: 1 } });
+			expect(row('mode')).toEqual({ state: 'ok', text: 'Browser tab' });
+			expect(document.querySelector('[data-ffc-check="location"] .ffc-device-check-fix').textContent).toBe('Padlock path.');
+		} finally {
+			window.matchMedia = matchMedia;
+		}
 	});
 
 	it('believes the device over a "denied" it contradicts (#2048)', async () => {

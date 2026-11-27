@@ -63,8 +63,8 @@ class DeviceCheckTest extends TestCase {
 
 		// Grouped by subject, the PDF last (#2062).
 		preg_match_all( '/data-ffc-check="([a-z]+)"/', $html, $rows );
-		$this->assertSame( array( 'secure', 'connection', 'server', 'browser', 'cookies', 'storage', 'captcha', 'device', 'clock', 'locale', 'location', 'screen', 'theme', 'pdf' ), $rows[1] );
-		$this->assertSame( 14, substr_count( $html, 'class="ffc-device-check-result"' ) );
+		$this->assertSame( array( 'secure', 'connection', 'server', 'browser', 'mode', 'cookies', 'storage', 'captcha', 'device', 'clock', 'locale', 'location', 'screen', 'theme', 'pdf' ), $rows[1] );
+		$this->assertSame( 15, substr_count( $html, 'class="ffc-device-check-result"' ) );
 		$this->assertStringContainsString( '<noscript><div class="ffc-notice ffc-notice-warning"', $html );
 		// The notice a stopped script cannot show sits in the page, for the
 		// stylesheet to reveal, and the verdict has its box (#2062).
@@ -105,7 +105,7 @@ class DeviceCheckTest extends TestCase {
 		$this->assertSame(
 			array(
 				'network'     => array( 'secure', 'connection', 'server' ),
-				'browser'     => array( 'browser', 'cookies', 'storage' ),
+				'browser'     => array( 'browser', 'mode', 'cookies', 'storage' ),
 				'protections' => array( 'captcha', 'device' ),
 				'device'      => array( 'clock', 'locale', 'location' ),
 				'display'     => array( 'screen', 'theme' ),
