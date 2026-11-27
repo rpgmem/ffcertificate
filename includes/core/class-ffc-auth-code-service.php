@@ -113,6 +113,21 @@ class AuthCodeService {
 				)
 			);
 
+			if ( $exists ) {
+				continue;
+			}
+
+			// Check the codes terminal readings reserved for certificates
+			// still waiting on profile data (#2938).
+			$table_readings = $wpdb->prefix . 'ffc_certificate_terminal_readings';
+			$exists         = $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT id FROM %i WHERE reserved_code = %s LIMIT 1',
+					$table_readings,
+					$code
+				)
+			);
+
 			if ( ! $exists ) {
 				return $code;
 			}

@@ -384,14 +384,21 @@ class SubmissionPersister {
 					$submission_data['auth_code'] = $reprint_result['data']['auth_code'];
 				}
 			} else {
-				// New submission - save to database.
+				// New submission - save to database. A certificate completed
+				// through a terminal reading's link takes the code the reading
+				// reserved and the reading's time as its issue time (#2938).
+				$reserved = self::reserved_by_reading( $ctx );
+				if ( null !== $reserved ) {
+					$submission_data['auth_code'] = $reserved['code'];
+				}
 				$submission_id = $this->submission_handler->process_submission(
 					$form_id,
 					$form_post_title,
 					$submission_data,
 					$user_email,
 					$fields_config,
-					$form_config
+					$form_config,
+					null !== $reserved ? array( 'submission_date' => $reserved['read_at'] ) : array()
 				);
 
 				if ( is_wp_error( $submission_id ) ) {
@@ -408,7 +415,7 @@ class SubmissionPersister {
 				}
 
 				// The submission's instant, as the row stores it (#2695).
-				$real_submission_date = (string) time();
+				$real_submission_date = (string) ( null !== $reserved ? $reserved['read_at'] : time() );
 
 				// The row holds the ticket now, so it leaves the list (#2341).
 				$this->settle_ticket( $ctx );
@@ -670,6 +677,28 @@ class SubmissionPersister {
 			),
 			0,
 			$submission_id
+		);
+	}
+
+	/**
+	 * The code and moment a terminal reading reserved for this person's
+	 * certificate, when the submission completes it through its link
+	 * (#2938), or null.
+	 *
+	 * @param SubmissionContext $ctx Submission context.
+	 * @return array{code: string, read_at: int}|null
+	 */
+	private static function reserved_by_reading( SubmissionContext $ctx ): ?array {
+		if ( null === $ctx->invite || empty( $ctx->invite['completion'] ) ) {
+			return null;
+		}
+		$reading = \FreeFormCertificate\Frontend\CertificateTerminalReadingRepository::for_person( $ctx->form_id, (int) $ctx->invite['user_id'] );
+		if ( null === $reading || \FreeFormCertificate\Frontend\CertificateTerminalReadingRepository::AWAITING_DATA !== $reading['result'] || '' === $reading['reserved_code'] ) {
+			return null;
+		}
+		return array(
+			'code'    => $reading['reserved_code'],
+			'read_at' => $reading['read_at'],
 		);
 	}
 }

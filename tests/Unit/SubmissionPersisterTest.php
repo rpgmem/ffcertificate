@@ -51,6 +51,9 @@ class SubmissionPersisterTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var array<string, mixed>|null The terminal reading the readings lookup returns (#2938). */
+	private ?array $reading_row = null;
+
 	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
 	private $wpdb_backup;
 
@@ -124,6 +127,10 @@ class SubmissionPersisterTest extends TestCase {
 			function ( $q ) {
 				if ( false !== strpos( $q['sql'], 'ticket_hash = %s' ) || false !== strpos( $q['sql'], 'data LIKE %s' ) ) {
 					return null;
+				}
+				// A terminal reading of the person, when the test sets one (#2938).
+				if ( false !== strpos( $q['sql'], 'form_id = %d AND user_id = %d' ) ) {
+					return $this->reading_row;
 				}
 				// The one CPF/RF lookup a submission runs (#2241), shared by
 				// the reprint and the quiz attempt count.
@@ -315,6 +322,52 @@ class SubmissionPersisterTest extends TestCase {
 		$again = $this->ctx( array( 'invite' => $invite ) );
 		$persister->apply( $again );
 		$this->assertTrue( $again->is_reprint, 'Opening the link again after answering reprints the certificate.' );
+	}
+
+	public function test_a_certificate_completed_through_a_reading_keeps_the_code_and_time_it_reserved(): void {
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Form' ) );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		$read_at           = 1_790_000_000;
+		$this->reading_row = array(
+			'id'            => 3,
+			'form_id'       => 1,
+			'user_id'       => 7,
+			'terminal_id'   => 2,
+			'read_at'       => $read_at,
+			'result'        => 'awaiting_data',
+			'reason'        => '',
+			'missing'       => '["school"]',
+			'submission_id' => null,
+			'reserved_code' => 'ABCD1234EFGH',
+			'updated_at'    => $read_at,
+		);
+		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
+
+		$repo    = null;
+		$handler = $this->handlerWithRepo( $repo );
+		$handler->shouldReceive( 'process_submission' )->once()->andReturnUsing(
+			function ( $form_id, $title, &$data, $email, $fields, $config, $options = array() ) use ( $read_at ) {
+				$this->assertSame( 'ABCD1234EFGH', $data['auth_code'], 'the code the reading reserved' );
+				$this->assertSame( array( 'submission_date' => $read_at ), $options, 'issued at the reading' );
+				return 556;
+			}
+		);
+
+		$ctx = $this->ctx(
+			array(
+				'invite' => array(
+					'booking_id' => 0,
+					'user_id'    => 7,
+					'name'       => 'Ana',
+					'email'      => 'a@b.com',
+					'event'      => 'Workshop',
+					'completion' => true,
+				),
+			)
+		);
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertSame( (string) $read_at, $ctx->real_submission_date );
 	}
 
 	public function test_normal_flow_consumes_ticket(): void {

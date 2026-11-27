@@ -1118,6 +1118,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 				// The auth-code uniqueness checks, and the profile-row lookup.
 				if ( preg_match( '/^SELECT id FROM wp_ffc_(submissions|reregistration_submissions) WHERE auth_code = \S+ LIMIT 1$/', (string) $sql )
 					|| preg_match( '/^SELECT id FROM wp_ffc_self_scheduling_appointments WHERE validation_code = \S+ LIMIT 1$/', (string) $sql )
+					|| preg_match( '/^SELECT id FROM wp_ffc_certificate_terminal_readings WHERE reserved_code = \S+ LIMIT 1$/', (string) $sql )
 					|| 'SELECT id FROM wp_ffc_user_profiles WHERE user_id = 7' === $sql
 					// Who else holds an identifier the sync would write (#2688): nobody.
 					|| preg_match( '/^SELECT user_id FROM wp_ffc_(user_profiles|submissions) WHERE \((cpf|rf)_hash = \S+\) AND user_id IS NOT NULL LIMIT 1$/', (string) $sql )

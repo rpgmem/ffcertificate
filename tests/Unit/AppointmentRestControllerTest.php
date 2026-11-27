@@ -384,7 +384,9 @@ class AppointmentRestControllerTest extends TestCase {
 				}
 				// The writer's validation code is unique across the three tables that carry one.
 				if ( preg_match( "/^SELECT id FROM `wp_ffc_(submissions|reregistration_submissions)` WHERE auth_code = '[A-Z0-9]{12}' LIMIT 1$/", $sql )
-					|| preg_match( "/^SELECT id FROM `" . self::APPOINTMENTS . "` WHERE validation_code = '[A-Z0-9]{12}' LIMIT 1$/", $sql ) ) {
+					|| preg_match( "/^SELECT id FROM `" . self::APPOINTMENTS . "` WHERE validation_code = '[A-Z0-9]{12}' LIMIT 1$/", $sql )
+					// And the codes terminal readings reserved (#2938).
+					|| preg_match( "/^SELECT id FROM `wp_ffc_certificate_terminal_readings` WHERE reserved_code = '[A-Z0-9]{12}' LIMIT 1$/", $sql ) ) {
 					return null;
 				}
 				$this->unexpected[] = 'get_var: ' . $sql;

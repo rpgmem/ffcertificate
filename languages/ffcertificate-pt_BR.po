@@ -37312,8 +37312,8 @@ msgstr "O terminal do evento lê o QR do app do participante e emite o certifica
 msgid "The form editor's Terminal tab lets an event terminal read the QR in the participant's app and issue the certificate at once, from the profile. The form still accepts entries on the site at the same time."
 msgstr "A aba Terminal do editor do formulário permite que o terminal do evento leia o QR do app do participante e emita o certificado na hora, com os dados do perfil. O formulário continua aceitando envio pelo site ao mesmo tempo."
 
-msgid "The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\". The side box shows the reading hours, the paired terminals and how many certificates the terminal issued."
-msgstr "A aba aponta cada campo obrigatório sem fonte no perfil. Quem não tiver esse dado tem a presença registrada e recebe \"Complete seu certificado\". A caixa lateral mostra o horário de leitura, os terminais pareados e quantos certificados o terminal emitiu."
+msgid "The tab names each required field with no profile source. Whoever lacks it has the attendance recorded and receives \"Complete your certificate\". The certificate's code is fixed at that reading, and the certificate completed later keeps it, with the reading's time as its issue time. The side box shows the reading hours, the paired terminals and how many certificates the terminal issued."
+msgstr "A aba aponta cada campo obrigatório sem fonte no perfil. Quem não tiver esse dado tem a presença registrada e recebe \"Complete seu certificado\". O código do certificado fica fixado nessa leitura, e o certificado completado depois o mantém, com o horário da leitura como data de emissão. A caixa lateral mostra o horário de leitura, os terminais pareados e quantos certificados o terminal emitiu."
 
 msgid "The terminal reads while the form is open: the date and hours are the Time tab's, with no window of their own. To turn it on, the opening and closing must fall on the same day."
 msgstr "O terminal lê enquanto o formulário está aberto: a data e o horário são os da aba Horário, sem janela própria. Para ligar, a abertura e o fechamento precisam cair no mesmo dia."
@@ -37880,6 +37880,10 @@ msgstr "Este certificado pertence a outra conta. Entre com a conta que mostrou o
 
 msgid "Your attendance is recorded. Fill in what is missing and send the form to receive the certificate."
 msgstr "Sua presença está registrada. Preencha o que falta e envie o formulário para receber o certificado."
+
+#. translators: %s: the certificate's authentication code
+msgid "Certificate code %s, kept from the reading."
+msgstr "Código do certificado %s, mantido desde a leitura."
 
 msgid "Certificate issued. Opening your certificates…"
 msgstr "Certificado emitido. Abrindo seus certificados…"

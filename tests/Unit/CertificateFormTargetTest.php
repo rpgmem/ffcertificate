@@ -71,6 +71,8 @@ class CertificateFormTargetTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_salt' )->justReturn( FakeCredentials::WP_SALT );
 		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		// A reading waiting on data reserves its certificate code (#2938).
+		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
 		Functions\when( 'date_i18n' )->alias( static fn( string $format, $ts = null ) => gmdate( $format, (int) ( $ts ?? time() ) ) );
 		Functions\when( 'get_option' )->alias(
@@ -600,6 +602,22 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( array(), CertificateCompletionLink::pending_for_user( self::USER, self::NOW + CertificateCompletionLink::TTL + 1 ), 'the link closed' );
 	}
 
+	public function test_a_reading_waiting_on_data_reserves_one_code_and_keeps_it(): void {
+		Functions\when( 'is_email' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( array( 'ffc_form:' . self::FORM => 0 ) );
+		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'label' => 'School', 'type' => 'text', 'required' => '1' );
+
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+		$code = $this->db->rows[0]['reserved_code'] ?? '';
+		$this->assertMatchesRegularExpression( '/^[A-Z0-9]{12}$/', $code, 'the code is fixed at the reading (#2938)' );
+
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+		$this->assertSame( $code, $this->db->rows[0]['reserved_code'], 'a second reading keeps it' );
+
+		$items = CertificateCompletionLink::pending_for_user( self::USER, self::NOW + 3600 );
+		$this->assertSame( 'C-' . substr( $code, 0, 4 ) . '-' . substr( $code, 4, 4 ) . '-' . substr( $code, 8, 4 ), $items[0]['code'], 'the card shows it as the certificate prints it' );
+	}
+
 	public function test_the_certificate_it_issues_spends_the_link(): void {
 		Functions\when( 'is_email' )->justReturn( true );
 		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'type' => 'text', 'required' => '1' );
@@ -707,10 +725,10 @@ class CertificateFormTargetTest extends TestCase {
 		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'label' => 'School', 'type' => 'text', 'required' => '1' );
 		$this->target()->terminal_read( self::FORM, $this->reading() );
 
-		$this->assertSame(
-			array( 'form_id' => self::FORM, 'error' => '' ),
-			CertificateCompletionLink::requested( self::USER, self::NOW + 3600 )
-		);
+		$opened = CertificateCompletionLink::requested( self::USER, self::NOW + 3600 );
+		$this->assertSame( self::FORM, $opened['form_id'] );
+		$this->assertSame( '', $opened['error'] );
+		$this->assertStringStartsWith( 'C-', $opened['code'], 'the screen shows the code the reading reserved' );
 		$this->assertStringContainsString( 'another account', CertificateCompletionLink::requested( self::USER + 1, self::NOW + 3600 )['error'] );
 		$this->assertStringContainsString( 'expired', CertificateCompletionLink::requested( self::USER, self::NOW + CertificateCompletionLink::TTL + 1 )['error'] );
 
