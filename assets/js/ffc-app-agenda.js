@@ -63,6 +63,25 @@
         if ('cancelled' === row.status) {
             return null;
         }
+        if ('certificate' === kind) {
+            // A certificate form a terminal reads (#2893): one day, issued on
+            // the spot from the presence QR.
+            return {
+                kind: kind,
+                date: String(row.date || ''),
+                last: String(row.date || ''),
+                title: row.title || '',
+                when: row.when || '',
+                status: row.issued ? 'issued' : 'open',
+                past: false,
+                receipt: '',
+                attendance: null,
+                form: null,
+                ticket: !!row.ticket,
+                consent: row.consent || '',
+                terms: row.terms || ''
+            };
+        }
         if ('appointment' === kind) {
             return {
                 kind: kind,
@@ -159,6 +178,7 @@
                 return (data && data.bookings || []).map(function (row) { return normalise(row, 'audience'); });
             }));
         }
+        loads.push(Promise.resolve((self.config.forms || []).map(function (row) { return normalise(row, 'certificate'); })));
         return Promise.all(loads).then(function (lists) {
             self.items = [].concat.apply([], lists).filter(Boolean);
             self.say('');
@@ -227,7 +247,11 @@
         if (today) {
             chips.appendChild(this.chip(strings.today, 'accent'));
         }
-        if (item.attendance && item.attendance.met) {
+        if ('certificate' === item.kind) {
+            chips.appendChild('issued' === item.status
+                ? this.chip(strings.issued, 'success')
+                : this.chip(strings.onTheSpot, 'info'));
+        } else if (item.attendance && item.attendance.met) {
             chips.appendChild(this.chip(item.attendance.detail || item.attendance.label || '', 'success'));
         } else if ('pending' === item.status) {
             chips.appendChild(this.chip(strings.pending, 'warning'));
@@ -239,7 +263,29 @@
         if (item.when) {
             body.appendChild(withClass('p', 'ffc-app-agenda-when', item.when));
         }
+        if ('certificate' === item.kind && 'issued' !== item.status) {
+            if (item.ticket) {
+                body.appendChild(withClass('p', 'ffc-app-agenda-note ffc-icon-ticket', strings.ticket));
+            }
+            // Showing the QR accepts the form's consent field (#2901), so
+            // the card says so before the button.
+            if (item.consent) {
+                var consent = withClass('p', 'ffc-app-agenda-note ffc-icon-shield', format(strings.consent, item.consent));
+                if (item.terms) {
+                    consent.appendChild(root.document.createTextNode(' '));
+                    var terms = withClass('a', 'ffc-app-agenda-terms', strings.terms);
+                    terms.href = item.terms;
+                    consent.appendChild(terms);
+                }
+                body.appendChild(consent);
+            }
+        }
         var actions = withClass('p', 'ffc-app-agenda-actions');
+        if ('certificate' === item.kind && 'issued' !== item.status && this.config.presence && this.presenceUrl) {
+            var show = withClass('a', 'ffc-app-agenda-action ffc-icon-qr', strings.showQr);
+            show.href = this.presenceUrl;
+            actions.appendChild(show);
+        }
         if ('audience' === item.kind && !item.past && this.config.presence && this.presenceUrl) {
             var qr = withClass('a', 'ffc-app-agenda-action ffc-icon-qr', strings.presence);
             qr.href = this.presenceUrl;

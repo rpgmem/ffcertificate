@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Shortcodes;
 
 use FreeFormCertificate\Audience\AudienceAppScreens;
+use FreeFormCertificate\Audience\AudiencePresenceEvents;
 use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\ShortcodePage;
@@ -79,6 +80,7 @@ final class AgendaAppScreen {
 				'dates'    => DateFormatter::script_config(),
 				'presence' => in_array( 'audience', $tabs, true ) && current_user_can( AudienceAppScreens::PARTICIPANT_CAPABILITY ),
 				'book'     => in_array( 'appointments', $tabs, true ) ? self::bookable() : array(),
+				'forms'    => self::forms( $tabs ),
 				'strings'  => array(
 					'loading'   => __( 'Loading your calendar…', 'ffcertificate' ),
 					'failed'    => __( 'Your calendar could not be loaded. Check the connection and try again.', 'ffcertificate' ),
@@ -95,6 +97,13 @@ final class AgendaAppScreen {
 					'receipt'   => __( 'Receipt', 'ffcertificate' ),
 					'newOne'    => __( 'New booking', 'ffcertificate' ),
 					'noBook'    => __( 'No calendar is open for booking here. Book from the calendar\'s page on the site.', 'ffcertificate' ),
+					'onTheSpot' => __( 'Certificate on the spot', 'ffcertificate' ),
+					'issued'    => __( 'Certificate issued', 'ffcertificate' ),
+					'showQr'    => __( 'Show my QR', 'ffcertificate' ),
+					'ticket'    => __( 'Have your ticket code ready: the terminal asks for it before the QR.', 'ffcertificate' ),
+					/* translators: %s: the text of the form's consent field */
+					'consent'   => __( 'Showing the QR accepts: %s', 'ffcertificate' ),
+					'terms'     => __( 'Read the full terms', 'ffcertificate' ),
 				),
 			)
 		);
@@ -102,6 +111,32 @@ final class AgendaAppScreen {
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/public/app/agenda.php';
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * The certificate forms a terminal reads that this person may present
+	 * (#2893), as day cards: the same list the Presence screen draws.
+	 *
+	 * @param array<int, string> $tabs The dashboard tabs this person sees.
+	 * @return list<array{date: string, title: string, when: string, issued: bool, ticket: bool, consent: string, terms: string}>
+	 */
+	public static function forms( array $tabs ): array {
+		if ( ! in_array( 'audience', $tabs, true ) || ! current_user_can( AudienceAppScreens::PARTICIPANT_CAPABILITY ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( AudiencePresenceEvents::certificate_forms( get_current_user_id(), time() ) as $form ) {
+			$out[] = array(
+				'date'    => $form['first_date'],
+				'title'   => $form['title'],
+				'when'    => $form['time'],
+				'issued'  => array() !== $form['recorded'],
+				'ticket'  => ! empty( $form['needs_ticket'] ),
+				'consent' => (string) ( $form['consent'] ?? '' ),
+				'terms'   => (string) ( $form['terms'] ?? '' ),
+			);
+		}
+		return $out;
 	}
 
 	/**

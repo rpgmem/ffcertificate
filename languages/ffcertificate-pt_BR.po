@@ -37733,6 +37733,21 @@ msgstr "Este formulário pede ingresso, que o terminal confere com o site, e o t
 msgid "Offline, a form without a ticket keeps each reading with its time and tells the person the certificate reaches the app when the terminal syncs. A form with a ticket shows Reading paused instead, with the reason in the operator menu too, and asks participants to use the form page projected at the event; reading resumes on its own when the connection returns."
 msgstr "Offline, um formulário sem ingresso guarda cada leitura com o seu horário e avisa a pessoa que o certificado chega ao app quando o terminal sincronizar. Um formulário com ingresso mostra Leitura pausada, com o motivo também no menu do operador, e indica aos participantes a página do formulário projetada no evento; a leitura volta sozinha quando a conexão retorna."
 
+msgid "Certificate on the spot"
+msgstr "Certificado na hora"
+
+msgid "Read the full terms"
+msgstr "Ler os termos completos"
+
+msgid "Show my QR"
+msgstr "Mostrar meu QR"
+
+msgid "Showing the QR accepts: %s"
+msgstr "Mostrar o QR aceita: %s"
+
+msgid "On the day of a certificate form the event terminal reads, Agenda also shows it as Certificate on the spot, with its hours and Show my QR; a form that asks for a ticket says to have the code ready, a form with a consent field says that showing the QR accepts it, with a link to the full terms, and a form whose certificate was issued shows Certificate issued."
+msgstr "No dia de um formulário de certificado que o terminal do evento lê, a Agenda também o mostra como Certificado na hora, com o horário e Mostrar meu QR; um formulário que pede ingresso avisa para ter o código em mãos, um formulário com campo de consentimento diz que mostrar o QR o aceita, com um link para os termos completos, e um formulário cujo certificado foi emitido aparece como Certificado emitido."
+
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "In the app's bottom bar, Certificates shows how many certificates were issued since the person last opened that screen, counting the last 7 days at most and up to 9+; opening the screen clears it."
 msgstr "Na barra inferior do app, Certificados mostra quantos certificados foram emitidos desde a última vez que a pessoa abriu essa tela, contando no máximo os últimos 7 dias e até 9+; abrir a tela zera o número."

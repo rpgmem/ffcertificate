@@ -8,7 +8,8 @@ import { loadScript } from './helpers.js';
 const STRINGS = {
 	loading: 'loading', failed: 'failed', empty: 'empty', past: 'Held (%d)', today: 'Today', confirmed: 'Confirmed',
 	enrolled: 'Enrolled', pending: 'Pending', presence: 'Presence QR', form: 'Form · until %s', receipt: 'Receipt',
-	newOne: 'New booking', noBook: 'no book',
+	newOne: 'New booking', noBook: 'no book', onTheSpot: 'Certificate on the spot', issued: 'Certificate issued',
+	showQr: 'Show my QR', ticket: 'bring your ticket', consent: 'Showing the QR accepts: %s', terms: 'Read the terms',
 };
 const DATES = {
 	months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
@@ -120,6 +121,33 @@ describe('app agenda screen', () => {
 
 		delete window.ffcAppAgenda;
 		expect(window.FFCAppAgenda.boot()).toEqual([]);
+	});
+
+	it('draws a certificate form on its day with Show my QR, the ticket note and the consent before the button (#2893)', async () => {
+		window.ffcAppAgenda.forms = [
+			{ date: '2026-11-21', title: 'Seminar', when: '09:00–12:00', issued: false, ticket: true, consent: 'I accept the LGPD terms', terms: 'https://example.org/privacy' },
+			{ date: '2026-11-24', title: 'Workshop', when: '14:00–17:00', issued: true, ticket: false, consent: '', terms: '' },
+		];
+		const el = markup();
+		window.FFCAppAgenda.boot({ fetch: fetchBoth(), presenceUrl: 'https://example.org/app/s/presence/' });
+		await settle();
+		const cards = Array.from(el.querySelectorAll('[data-ffc-app-part="list"] > li'));
+		const seminar = cards.find((c) => 'Seminar' === c.querySelector('h3').textContent);
+		expect(seminar.classList.contains('ffc-app-agenda-today')).toBe(true);
+		expect(Array.from(seminar.querySelectorAll('.ffc-app-agenda-chip')).map((c) => c.textContent)).toEqual(['Today', 'Certificate on the spot']);
+		expect(seminar.querySelector('.ffc-app-agenda-when').textContent).toBe('09:00–12:00');
+		const notes = Array.from(seminar.querySelectorAll('.ffc-app-agenda-note')).map((n) => n.textContent);
+		expect(notes).toEqual(['bring your ticket', 'Showing the QR accepts: I accept the LGPD terms Read the terms']);
+		expect(seminar.querySelector('.ffc-app-agenda-terms').getAttribute('href')).toBe('https://example.org/privacy');
+		const show = seminar.querySelector('.ffc-icon-qr');
+		expect(show.textContent).toBe('Show my QR');
+		expect(show.getAttribute('href')).toBe('https://example.org/app/s/presence/');
+		expect(seminar.querySelector('.ffc-app-agenda-note').compareDocumentPosition(show) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+		const workshop = cards.find((c) => 'Workshop' === c.querySelector('h3').textContent);
+		expect(workshop.querySelector('.ffc-app-agenda-chip').textContent).toBe('Certificate issued');
+		expect(workshop.querySelector('.ffc-icon-qr')).toBeNull();
+		expect(workshop.querySelector('.ffc-app-agenda-note')).toBeNull();
 	});
 
 	it('reads a wall-clock date without a timezone shift', () => {
