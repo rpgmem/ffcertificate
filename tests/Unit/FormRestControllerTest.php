@@ -227,7 +227,7 @@ class FormRestControllerTest extends TestCase {
 				if ( false !== strpos( $sql, 'SELECT COUNT(*) FROM %i WHERE email_hash=%s' ) ) {
 					return '0';
 				}
-				if ( false !== strpos( $sql, 'SELECT id FROM %i WHERE auth_code = %s' ) || false !== strpos( $sql, 'SELECT id FROM %i WHERE validation_code = %s' ) ) {
+				if ( false !== strpos( $sql, 'SELECT id FROM %i WHERE auth_code = %s' ) || false !== strpos( $sql, 'SELECT id FROM %i WHERE validation_code = %s' ) || false !== strpos( $sql, 'SELECT id FROM %i WHERE reserved_code = %s' ) ) {
 					// The generated code is free.
 					return null;
 				}
