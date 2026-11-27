@@ -37545,3 +37545,103 @@ msgstr "Iniciando o terminal… Se esta mensagem continuar, o terminal não cons
 
 msgid "A terminal that does not start shows \"Starting the terminal…\" under its header and keeps it there, with what stopped it below: a script error with its file and line, a file that did not load, which of the terminal's parts are present, the browser and its version, and the time. A photo of that note is what the team sends when a terminal will not start."
 msgstr "Um terminal que não inicia mostra \"Iniciando o terminal…\" sob o cabeçalho e o mantém ali, com o que o impediu logo abaixo: um erro de script com arquivo e linha, um arquivo que não carregou, quais partes do terminal estão presentes, o navegador e sua versão, e o horário. Uma foto desse aviso é o que a equipe envia quando um terminal não inicia."
+
+msgid "%s terminal"
+msgid_plural "%s terminals"
+msgstr[0] "%s terminal"
+msgstr[1] "%s terminais"
+
+msgid "A person read twice shows once, with the result of the first valid reading. The RF is masked; a holder of ffc_view_certificates_pii reveals it, and every reveal is recorded in the activity log. The screen needs ffc_checkin_certificates, held by Certificates - Submissions Operator and above, Certificates - Forms Manager and FFC Administrator."
+msgstr "Uma pessoa lida duas vezes aparece uma vez, com o resultado da primeira leitura válida. O RF fica mascarado; quem tem ffc_view_certificates_pii o revela, e cada revelação fica registrada no registro de atividades. A tela exige ffc_checkin_certificates, que têm Certificados - Submissões - Operador e acima, Certificados - Formulários - Gestor e o FFC Administrador."
+
+msgid "A ticket needs a connection"
+msgstr "O ticket precisa de conexão"
+
+msgid "Account deleted"
+msgstr "Conta excluída"
+
+msgid "All results"
+msgstr "Todos os resultados"
+
+msgid "Awaiting data"
+msgstr "Aguardando dado"
+
+msgid "Awaiting profile data"
+msgstr "Aguardando dado do perfil"
+
+msgid "Back to the form"
+msgstr "Voltar ao formulário"
+
+msgid "Certificates issued"
+msgstr "Certificados emitidos"
+
+msgid "Issued"
+msgstr "Emitido"
+
+msgid "Missing: %s"
+msgstr "Falta: %s"
+
+msgid "Name, e-mail or RF"
+msgstr "Nome, e-mail ou RF"
+
+msgid "No reading matches."
+msgstr "Nenhuma leitura corresponde."
+
+msgid "Not allowed on this form"
+msgstr "Não permitido neste formulário"
+
+msgid "Personal data is masked; Reveal is recorded in the activity log. A person read twice shows once, with the result of the first valid reading."
+msgstr "Dados pessoais mascarados; cada Revelar fica no registro de atividades. Uma pessoa lida duas vezes aparece uma vez, com o resultado da primeira leitura válida."
+
+msgid "Search person"
+msgstr "Buscar pessoa"
+
+msgid "See terminal readings"
+msgstr "Ver leituras do terminal"
+
+msgid "See what the event terminals read for a certificate form: issued, awaiting profile data and refused, with personal data masked."
+msgstr "Ver o que os terminais do evento leram para um formulário de certificado: emitidos, aguardando dado do perfil e recusados, com os dados pessoais mascarados."
+
+msgid "Submission limit reached"
+msgstr "Limite de submissões atingido"
+
+msgid "Terminal Reader RF Revealed"
+msgstr "RF de Pessoa Lida no Terminal Revelado"
+
+msgid "Terminal readings"
+msgstr "Leituras do terminal"
+
+msgid "Terminal readings · %s"
+msgstr "Leituras do terminal · %s"
+
+msgid "The form was closed"
+msgstr "O formulário estava fechado"
+
+msgid "The readings screen"
+msgstr "A tela de leituras"
+
+msgid "The terminal %1$s is offline with %2$s reading in its queue. The certificates are issued when it syncs, with the time of each reading."
+msgid_plural "The terminal %1$s is offline with %2$s readings in its queue. The certificates are issued when it syncs, with the time of each reading."
+msgstr[0] "O terminal %1$s está offline com %2$s leitura na fila. Os certificados saem quando ele sincronizar, com o horário de cada leitura."
+msgstr[1] "O terminal %1$s está offline com %2$s leituras na fila. Os certificados saem quando ele sincronizar, com o horário de cada leitura."
+
+msgid "The ticket was refused"
+msgstr "O ticket foi recusado"
+
+msgid "This form does not exist."
+msgstr "Este formulário não existe."
+
+msgid "View readings"
+msgstr "Ver leituras"
+
+msgid "View readings, in the Terminal tab's side box, opens what the terminals read for this form: how many readings, certificates issued, readings awaiting profile data and refusals; a warning for each offline terminal that still holds readings; and the list, searchable by name, e-mail or full RF and filtered by result, with the reading time, the terminal, the reason for a refusal and the certificate's validation code."
+msgstr "Ver leituras, na caixa lateral da aba Terminal, abre o que os terminais leram para este formulário: quantas leituras, certificados emitidos, leituras aguardando dado do perfil e recusas; um aviso para cada terminal offline que ainda guarda leituras; e a lista, que se busca por nome, e-mail ou RF completo e se filtra por resultado, com o horário da leitura, o terminal, o motivo de uma recusa e o código de validação do certificado."
+
+msgid "Waiting on profile data"
+msgstr "Aguardando dado do perfil"
+
+msgid "You do not have permission to see the terminal readings."
+msgstr "Você não tem permissão para ver as leituras do terminal."
+
+msgid "form open from %1$s to %2$s"
+msgstr "formulário aberto de %1$s a %2$s"

@@ -175,5 +175,15 @@ final class FormEditorTerminalMetabox {
 		</dl>
 		<p class="description"><?php esc_html_e( 'To pair: on the terminal, an operator taps the lock, shows the operator QR and chooses this form, or the place it names.', 'ffcertificate' ); ?></p>
 		<?php
+		if ( CertificateReadingsPage::can_view() ) {
+			AdminUI::render_button(
+				array(
+					'label' => __( 'View readings', 'ffcertificate' ),
+					'icon'  => 'user-check',
+					'href'  => CertificateReadingsPage::url( $form_id ),
+					'class' => 'ffc-btn-block',
+				)
+			);
+		}
 	}
 }

@@ -51,7 +51,7 @@ class PiiTierConsistencyTest extends TestCase {
 		$method->setAccessible( true );
 		$configs = $method->invoke( new AdminAjax() );
 		$this->assertSame(
-			array( 'submission', 'appointment', 'reregistration', 'audience_account', 'user_profile', 'date_messages_person', 'activity_log', 'certificate_signer', 'rate_limit_log' ),
+			array( 'submission', 'appointment', 'reregistration', 'audience_account', 'user_profile', 'date_messages_person', 'activity_log', 'certificate_signer', 'certificate_reading', 'rate_limit_log' ),
 			array_keys( $configs ),
 			'Every reveal type.'
 		);

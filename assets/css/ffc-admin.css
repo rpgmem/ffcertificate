@@ -2260,3 +2260,78 @@ td .ffc-restriction-label {
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
 }
+
+/* ==========================================================================
+   Certificate terminal readings (#2892)
+   ========================================================================== */
+
+.ffc-page-certificate-readings .ffc-readings-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-md);
+}
+
+.ffc-page-certificate-readings .ffc-readings-subtitle {
+    margin: 0;
+    color: var(--ffc-text-muted);
+}
+
+.ffc-page-certificate-readings .ffc-readings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-page-certificate-readings .ffc-readings-scroll {
+    overflow-x: auto;
+}
+
+/* A pill per result, with a dot, as the terminals screen draws its states. */
+.ffc-page-certificate-readings .ffc-reading-result {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    border: 1px solid transparent;
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ffc-page-certificate-readings .ffc-reading-result::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: var(--ffc-radius-full);
+    background: currentColor;
+}
+
+.ffc-page-certificate-readings .ffc-reading-result-issued {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-certificate-readings .ffc-reading-result-awaiting-data {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-page-certificate-readings .ffc-reading-result-refused {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+@media (forced-colors: active) {
+    .ffc-page-certificate-readings .ffc-reading-result {
+        border-color: CanvasText;
+    }
+}
+
+.ffc-page-certificate-readings .ffc-readings-note {
+    margin-top: var(--ffc-spacing-md);
+}

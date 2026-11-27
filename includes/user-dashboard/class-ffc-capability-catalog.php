@@ -186,7 +186,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_checkin_certificates'  => array(
 						'label'       => __( 'See terminal readings', 'ffcertificate' ),
-						'description' => __( 'See and export what the event terminals read for a certificate form: issued, awaiting profile data and refused, with personal data masked.', 'ffcertificate' ),
+						'description' => __( 'See what the event terminals read for a certificate form: issued, awaiting profile data and refused, with personal data masked.', 'ffcertificate' ),
 					),
 					'ffc_grade_certificates'    => array(
 						'label'       => __( 'Grade quiz answers', 'ffcertificate' ),

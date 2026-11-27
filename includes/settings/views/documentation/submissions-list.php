@@ -46,6 +46,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>ffc_view_certificates</code></td><td><?php esc_html_e( 'See the submissions list (read-only). Its data preview masks personal values such as phone and birth date.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_edit_certificates</code></td><td><?php esc_html_e( 'Open and save the submission edit screen.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_grade_certificates</code></td><td><?php esc_html_e( 'Grade the open answers of a quiz attempt awaiting grading, from the submission edit screen.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>ffc_checkin_certificates</code></td><td><?php esc_html_e( 'See what the event terminals read for a certificate form: issued, awaiting profile data and refused, with personal data masked.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_manage_certificates</code></td><td><?php esc_html_e( 'Trash / restore and bulk actions, including "Move to form…" (offered when the list is filtered to a single form) and "Send link by e-mail", which sends a link only to the submissions that never received one. Also changing which WordPress user owns a submission.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_delete_certificates</code></td><td><?php esc_html_e( 'Delete submissions permanently (required on top of manage).', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_export_certificates</code></td><td><?php esc_html_e( 'Run the CSV export.', 'ffcertificate' ); ?></td></tr>

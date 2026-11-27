@@ -1027,6 +1027,38 @@ class AdminAjaxTest extends TestCase {
 		$ajax->reveal_pii();
 	}
 
+	/**
+	 * A person a terminal read for a certificate form (#2892): the RF of their
+	 * profile, behind the readings screen's cap and the certificates PII cap,
+	 * audited.
+	 */
+	public function test_reveal_pii_a_terminal_readers_rf_from_the_profile(): void {
+		$this->account( 9, 'joao@example.test', 'João Lima' );
+		$this->user_meta[9] = array( \FreeFormCertificate\Core\CertificateSigners::RF_META_KEY => Encryption::encrypt( '5181780' ) );
+		$this->tables['wp_ffc_certificate_terminal_readings'][4] = array(
+			'id'          => 4,
+			'form_id'     => 12,
+			'user_id'     => 9,
+			'terminal_id' => 2,
+			'read_at'     => 1700000000,
+			'result'      => 'issued',
+			'reason'      => '',
+			'missing'     => null,
+			'updated_at'  => 1700000000,
+		);
+		$this->post_reveal( 'certificate_reading', 4, 'rf' );
+		$this->viewer_caps[] = 'ffc_checkin_certificates';
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+
+		$this->assertSame( array( 'field' => 'rf', 'value' => '518.178-0' ), $this->reveal() );
+		$this->assertAuditedOnce( 'certificate_reading_pii_revealed', array( 'field_key' => 'rf' ), self::VIEWER, 4, 'certificate_reading' );
+
+		$this->post_reveal( 'certificate_reading', 5, 'rf' );
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$ajax->reveal_pii();
+	}
+
 	public function test_reveal_pii_an_activity_log_entrys_details_in_clear(): void {
 		$this->post_reveal( 'activity_log', 31, 'context' );
 		$this->store(

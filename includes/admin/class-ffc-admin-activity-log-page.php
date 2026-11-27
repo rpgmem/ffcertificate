@@ -317,6 +317,7 @@ class AdminActivityLogPage {
 			'certificate_signing_failed'                   => __( 'Certificate Not Signed', 'ffcertificate' ),
 			'certificates_resigned'                        => __( 'Certificates Signed Again', 'ffcertificate' ),
 			'certificate_signer_pii_revealed'              => __( 'Certificate Signer RF Revealed', 'ffcertificate' ),
+			'certificate_reading_pii_revealed'             => __( 'Terminal Reader RF Revealed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
 			'custom_field_locked_change_refused'           => __( 'Answered Field Change Refused', 'ffcertificate' ),
 

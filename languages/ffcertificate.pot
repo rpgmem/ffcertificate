@@ -37467,3 +37467,103 @@ msgstr ""
 
 msgid "A terminal that does not start shows \"Starting the terminal…\" under its header and keeps it there, with what stopped it below: a script error with its file and line, a file that did not load, which of the terminal's parts are present, the browser and its version, and the time. A photo of that note is what the team sends when a terminal will not start."
 msgstr ""
+
+msgid "%s terminal"
+msgid_plural "%s terminals"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "A person read twice shows once, with the result of the first valid reading. The RF is masked; a holder of ffc_view_certificates_pii reveals it, and every reveal is recorded in the activity log. The screen needs ffc_checkin_certificates, held by Certificates - Submissions Operator and above, Certificates - Forms Manager and FFC Administrator."
+msgstr ""
+
+msgid "A ticket needs a connection"
+msgstr ""
+
+msgid "Account deleted"
+msgstr ""
+
+msgid "All results"
+msgstr ""
+
+msgid "Awaiting data"
+msgstr ""
+
+msgid "Awaiting profile data"
+msgstr ""
+
+msgid "Back to the form"
+msgstr ""
+
+msgid "Certificates issued"
+msgstr ""
+
+msgid "Issued"
+msgstr ""
+
+msgid "Missing: %s"
+msgstr ""
+
+msgid "Name, e-mail or RF"
+msgstr ""
+
+msgid "No reading matches."
+msgstr ""
+
+msgid "Not allowed on this form"
+msgstr ""
+
+msgid "Personal data is masked; Reveal is recorded in the activity log. A person read twice shows once, with the result of the first valid reading."
+msgstr ""
+
+msgid "Search person"
+msgstr ""
+
+msgid "See terminal readings"
+msgstr ""
+
+msgid "See what the event terminals read for a certificate form: issued, awaiting profile data and refused, with personal data masked."
+msgstr ""
+
+msgid "Submission limit reached"
+msgstr ""
+
+msgid "Terminal Reader RF Revealed"
+msgstr ""
+
+msgid "Terminal readings"
+msgstr ""
+
+msgid "Terminal readings · %s"
+msgstr ""
+
+msgid "The form was closed"
+msgstr ""
+
+msgid "The readings screen"
+msgstr ""
+
+msgid "The terminal %1$s is offline with %2$s reading in its queue. The certificates are issued when it syncs, with the time of each reading."
+msgid_plural "The terminal %1$s is offline with %2$s readings in its queue. The certificates are issued when it syncs, with the time of each reading."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "The ticket was refused"
+msgstr ""
+
+msgid "This form does not exist."
+msgstr ""
+
+msgid "View readings"
+msgstr ""
+
+msgid "View readings, in the Terminal tab's side box, opens what the terminals read for this form: how many readings, certificates issued, readings awaiting profile data and refusals; a warning for each offline terminal that still holds readings; and the list, searchable by name, e-mail or full RF and filtered by result, with the reading time, the terminal, the reason for a refusal and the certificate's validation code."
+msgstr ""
+
+msgid "Waiting on profile data"
+msgstr ""
+
+msgid "You do not have permission to see the terminal readings."
+msgstr ""
+
+msgid "form open from %1$s to %2$s"
+msgstr ""

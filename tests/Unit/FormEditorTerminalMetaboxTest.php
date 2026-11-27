@@ -65,6 +65,7 @@ class FormEditorTerminalMetaboxTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		unset( $GLOBALS['wpdb'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -135,5 +136,37 @@ class FormEditorTerminalMetaboxTest extends TestCase {
 		$this->assertStringNotContainsString( 'Division.', $html );
 		$this->assertStringContainsString( 'href="#ffc-tab-builder"', $html );
 		$this->assertSame( array( 'School unit' ), CertificateFormTarget::unfilled_required( $this->meta['_ffc_form_fields'] ) );
+	}
+
+	/**
+	 * The side box leads to the readings screen only for whoever may see it
+	 * (#2892).
+	 *
+	 * @param array<int, string> $caps Capabilities the viewer holds.
+	 */
+	private function render_side( array $caps ): string {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, $caps, true ) );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.test/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'esc_url' )->returnArg();
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$GLOBALS['wpdb'] = $wpdb;
+		$post            = Mockery::mock( 'WP_Post' );
+		$post->ID        = 44;
+		ob_start();
+		( new FormEditorTerminalMetabox() )->render_side( $post );
+		return (string) ob_get_clean();
+	}
+
+	public function test_the_side_box_links_to_the_readings_for_whoever_may_see_them(): void {
+		$html = $this->render_side( array( 'ffc_checkin_certificates' ) );
+		$this->assertStringContainsString( 'View readings', $html );
+		$this->assertStringContainsString( 'page=ffc-certificate-readings&form_id=44', $html );
+
+		$this->assertStringNotContainsString( 'View readings', $this->render_side( array( 'ffc_edit_certificates' ) ) );
 	}
 }

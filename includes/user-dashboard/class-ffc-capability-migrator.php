@@ -1388,6 +1388,7 @@ class CapabilityMigrator {
 			self::forms_api_submit_cap_grant_map(),
 			self::presence_cap_grant_map(),
 			self::terminals_cap_grant_map(),
+			self::checkin_certificates_cap_grant_map(),
 		);
 		foreach ( $multiple as $map ) {
 			foreach ( $map as $source => $targets ) {
