@@ -36621,23 +36621,14 @@ msgstr "Código %s"
 msgid "Open PDF"
 msgstr "Abrir PDF"
 
-msgid "Share"
-msgstr "Compartilhar"
-
-msgid "Link copied."
-msgstr "Link copiado."
-
-msgid "This phone cannot share the link. Open the PDF and share it from there."
-msgstr "Este aparelho não consegue compartilhar o link. Abra o PDF e compartilhe por lá."
-
 msgid "Downloading is not available for this account."
 msgstr "O download não está disponível para esta conta."
 
 msgid "Search by course or code"
 msgstr "Buscar por curso ou código"
 
-msgid "Certificates in the app is its own screen rather than the dashboard table: a search by course or code, the newest certificate as a card (marked New for its first 7 days) with Open PDF and Share, and the others as rows that open their PDF. It reads the same list as the dashboard, so downloading follows the same permissions."
-msgstr "No app, Certificados é uma tela própria, em vez da tabela do painel: uma busca por curso ou código, o certificado mais recente como cartão (marcado como Novo nos primeiros 7 dias) com Abrir PDF e Compartilhar, e os demais como linhas que abrem o PDF. Ela lê a mesma lista do painel, então o download segue as mesmas permissões."
+msgid "Certificates in the app is its own screen rather than the dashboard table: a search by course or code, the newest certificate as a card (marked New for its first 7 days) with Open PDF, and the others as rows that open their PDF. It reads the same list as the dashboard, so downloading follows the same permissions."
+msgstr "No app, Certificados é uma tela própria, em vez da tabela do painel: uma busca por curso ou código, o certificado mais recente como cartão (marcado como Novo nos primeiros 7 dias) com Abrir PDF, e os demais como linhas que abrem o PDF. Ela lê a mesma lista do painel, então o download segue as mesmas permissões."
 
 msgid "Loading your calendar…"
 msgstr "Carregando sua agenda…"
@@ -36659,9 +36650,6 @@ msgstr "QR de presença"
 
 msgid "Fill in the form · until %s"
 msgstr "Responder formulário · até %s"
-
-msgid "New booking"
-msgstr "Nova reserva"
 
 msgid "No calendar is open for booking here. Book from the calendar's page on the site."
 msgstr "Nenhuma agenda está aberta para reserva aqui. Reserve pela página da agenda no site."
@@ -37002,8 +36990,8 @@ msgstr "Prazo até %s"
 msgid "With the Site PWA plugin installed, the dashboard also appears inside its installable app, one screen per part: Agenda (personal appointments and audience bookings), Presence, raised in the middle of the bar, and Certificates in the bottom navigation, and Messages, Reregistration, Recruitment and Profile under More. Each screen appears only to an account that has the matching tab. On the phone where the account's presence is active, the app also lists Pair terminal and My terminals to holders of ffc_manage_audiences_terminals, and Operator QR to holders of ffc_checkin_audiences; on any other phone, and until presence is activated, they stay out of More. Manual attendance, for holders of ffc_checkin_audiences, opens Audience Bookings in wp-admin. Without Site PWA nothing changes."
 msgstr "Com o plugin Site PWA instalado, o painel aparece também dentro do app instalável, uma tela por parte: Agenda (agendamentos pessoais e reservas de público-alvo), Presença, em destaque no centro da barra, e Certificados na navegação inferior, e Mensagens, Recadastramento, Recrutamento e Perfil em Mais. Cada tela aparece só para a conta que tem a aba correspondente. No celular em que a presença da conta está ativa, o app lista também Parear terminal e Meus terminais para quem tem ffc_manage_audiences_terminals, e QR do operador para quem tem ffc_checkin_audiences; em qualquer outro celular, e enquanto a presença não for ativada, elas não aparecem em Mais. Presença manual, para quem tem ffc_checkin_audiences, abre Reservas de Público-alvo no wp-admin. Sem o Site PWA nada muda."
 
-msgid "Agenda in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book, or New booking, lists the personal calendars that a published page lets the person book; a calendar opens inside the app when Site PWA can draw its page, and on the site otherwise. It reads the same lists as the dashboard."
-msgstr "No app, Agenda é uma tela própria, em vez das tabelas do painel: Minhas reservas mostra um cartão por dia, com hoje em destaque, o status ou a presença como etiqueta e o próximo passo na própria linha (o código de presença de um evento, o formulário pós-evento, o comprovante de um agendamento); o que já aconteceu fica num grupo recolhido. Agendar, ou Nova reserva, lista as agendas pessoais que uma página publicada permite reservar; uma agenda abre dentro do app quando o Site PWA consegue desenhar a página dela, e no site nos demais casos. Ela lê as mesmas listas do painel."
+msgid "Agenda in the app is its own screen rather than the dashboard tables: My bookings shows one card per day, today highlighted, with the status or the attendance as a chip and the next step inline (the presence code for an event, its post-event form, an appointment's receipt); what already took place folds into one group. Book lists the personal calendars that a published page lets the person book; a calendar opens inside the app when Site PWA can draw its page, and on the site otherwise. It reads the same lists as the dashboard."
+msgstr "No app, Agenda é uma tela própria, em vez das tabelas do painel: Minhas reservas mostra um cartão por dia, com hoje em destaque, o status ou a presença como etiqueta e o próximo passo na própria linha (o código de presença de um evento, o formulário pós-evento, o comprovante de um agendamento); o que já aconteceu fica num grupo recolhido. Agendar lista as agendas pessoais que uma página publicada permite reservar; uma agenda abre dentro do app quando o Site PWA consegue desenhar a página dela, e no site nos demais casos. Ela lê as mesmas listas do painel."
 
 msgid "The app's Home shows what the plugin knows is next for the person: \"Attendance confirmed at\" an event recorded in the last 7 days, as a line they can dismiss; their next booking in the coming 7 days, with Presence QR and Details; and, under Pending, each post-event form still open, each reregistration they can still submit with its deadline, and a certificate issued in the last 7 days. Each item opens the matching screen, and one the account cannot open is left out."
 msgstr "O Início do app mostra o que o plugin sabe que vem a seguir para a pessoa: \"Presença confirmada em\" um evento registrado nos últimos 7 dias, como uma linha que ela pode dispensar; a próxima reserva nos próximos 7 dias, com QR de presença e Detalhes; e, em Pendências, cada formulário pós-evento ainda aberto, cada recadastramento que ela ainda pode enviar, com o prazo, e um certificado emitido nos últimos 7 dias. Cada item abre a tela correspondente, e o que a conta não pode abrir fica de fora."
@@ -37891,5 +37879,9 @@ msgid "Attendance recorded. Opening the form to finish your certificate…"
 msgstr "Presença registrada. Abrindo o formulário para concluir seu certificado…"
 
 #: includes/frontend/class-ffc-form-field-renderer.php
-msgid "From your profile. The certificate carries the full number."
-msgstr "Do seu perfil. O certificado leva o número completo."
+msgid "From your registration. The certificate carries the full number."
+msgstr "Do seu cadastro. O certificado leva o número completo."
+
+#: includes/frontend/class-ffc-form-field-renderer.php
+msgid "From your registration."
+msgstr "Do seu cadastro."

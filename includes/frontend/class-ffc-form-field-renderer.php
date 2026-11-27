@@ -47,7 +47,10 @@ final class FormFieldRenderer {
 		$label   = (string) ( $field['label'] ?? '' );
 		$default = (string) ( $field['default_value'] ?? '' );
 		$is_req  = ! empty( $field['required'] );
-		$hint    = $this->hint( $field );
+		$locked  = ! empty( $field['locked'] );
+		// A locked field is not typed into, so it says where its value came
+		// from instead of how long it may be (#2946).
+		$hint    = $locked ? __( 'From your registration.', 'ffcertificate' ) : $this->hint( $field );
 		$hint_id = $name . '-hint';
 
 		if ( ! empty( $field['profile_held'] ) ) {
@@ -69,7 +72,7 @@ final class FormFieldRenderer {
 				</label>
 				<?php
 				$counter = $this->render_control( $field, $type, $name, $default, $is_req, '' === $hint ? '' : $hint_id );
-				$this->render_foot( $name, $hint, $hint_id, $counter );
+				$this->render_foot( $name, $hint, $hint_id, $locked ? null : $counter, $locked );
 				?>
 			</div>
 			<?php
@@ -103,7 +106,7 @@ final class FormFieldRenderer {
 			</label>
 			<input class="ffc-input" type="text" id="<?php echo esc_attr( $id ); ?>" value="<?php echo esc_attr( $masked ); ?>" readonly aria-readonly="true" aria-describedby="<?php echo esc_attr( $id . '-hint' ); ?>">
 			<div class="ffc-field-foot">
-				<p class="ffc-field-hint" id="<?php echo esc_attr( $id . '-hint' ); ?>"><?php esc_html_e( 'From your profile. The certificate carries the full number.', 'ffcertificate' ); ?></p>
+				<p class="ffc-field-hint ffc-field-hint-locked ffc-icon-lock" id="<?php echo esc_attr( $id . '-hint' ); ?>"><?php esc_html_e( 'From your registration. The certificate carries the full number.', 'ffcertificate' ); ?></p>
 			</div>
 		</div>
 		<?php
@@ -168,7 +171,8 @@ final class FormFieldRenderer {
 				<?php endforeach; ?>
 			</div>
 			<?php
-			$this->render_foot( $name, $hint, $hint_id, $is_checkbox && $max_select > 0 ? '' : null );
+			$locked = ! empty( $field['locked'] );
+			$this->render_foot( $name, $hint, $hint_id, ! $locked && $is_checkbox && $max_select > 0 ? '' : null, $locked );
 			?>
 		</fieldset>
 		<?php
@@ -288,14 +292,16 @@ final class FormFieldRenderer {
 	 * @param string      $hint_id Hint element id.
 	 * @param string|null $counter The counter's first reading ('' when the
 	 *                             script writes it); null for no counter.
+	 * @param bool        $locked  Whether the field holds a value it was given,
+	 *                             which the hint then says with a lock.
 	 */
-	private function render_foot( string $name, string $hint, string $hint_id, ?string $counter ): void {
+	private function render_foot( string $name, string $hint, string $hint_id, ?string $counter, bool $locked = false ): void {
 		if ( '' === $hint && null === $counter ) {
 			return;
 		}
 		echo '<div class="ffc-field-foot">';
 		if ( '' !== $hint ) {
-			printf( '<p class="ffc-field-hint" id="%s">%s</p>', esc_attr( $hint_id ), esc_html( $hint ) );
+			printf( '<p class="ffc-field-hint%s" id="%s">%s</p>', $locked ? ' ffc-field-hint-locked ffc-icon-lock' : '', esc_attr( $hint_id ), esc_html( $hint ) );
 		}
 		if ( null !== $counter ) {
 			printf(

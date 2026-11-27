@@ -119,7 +119,6 @@
         "noscript": [],
         "hooks": [
             "data-ffc-captcha-context",
-            "data-ffc-counter-for",
             "data-ffc-full-name",
             "data-ffc-notice"
         ],

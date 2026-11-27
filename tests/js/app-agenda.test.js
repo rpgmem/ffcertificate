@@ -8,7 +8,7 @@ import { loadScript } from './helpers.js';
 const STRINGS = {
 	loading: 'loading', failed: 'failed', empty: 'empty', past: 'Held (%d)', today: 'Today', confirmed: 'Confirmed',
 	enrolled: 'Enrolled', pending: 'Pending', presence: 'Presence QR', form: 'Form · until %s', receipt: 'Receipt',
-	newOne: 'New booking', noBook: 'no book', onTheSpot: 'Certificate on the spot', issued: 'Certificate issued',
+	noBook: 'no book', onTheSpot: 'Certificate on the spot', issued: 'Certificate issued',
 	showQr: 'Show my QR', ticket: 'bring your ticket', consent: 'Showing the QR accepts: %s', terms: 'Read the terms',
 	howTo: 'show your QR at the entrance', toComplete: 'To complete', recorded: 'Attendance recorded, fill in the rest',
 	completeIn: 'Complete in Certificates', viewIn: 'View in Certificates',
@@ -41,7 +41,6 @@ function markup() {
 				<h2 data-ffc-app-part="month"></h2>
 				<details data-ffc-app-part="past" hidden><summary data-ffc-app-part="past-label"></summary><ol data-ffc-app-part="past-list"></ol></details>
 				<ol data-ffc-app-part="list"></ol>
-				<button data-ffc-app-part="new"></button>
 			</div>
 			<div data-ffc-app-panel="book" hidden><ul data-ffc-app-part="book"></ul></div>
 		</div>`;
@@ -91,11 +90,12 @@ describe('app agenda screen', () => {
 		expect(card.querySelector('.ffc-icon-qr')).toBeNull();
 	});
 
-	it('switches to Book from the tab or from New booking, and lists the calendars', async () => {
+	it('switches to Book from its tab, and lists the calendars', async () => {
 		const el = markup();
 		window.FFCAppAgenda.boot({ fetch: fetchBoth(), presenceUrl: 'x' });
 		await settle();
-		el.querySelector('[data-ffc-app-part="new"]').click();
+		expect(el.querySelector('[data-ffc-app-part="new"]'), 'the Book tab is the one way in').toBeNull();
+		el.querySelector('[data-ffc-app-view="book"]').click();
 		expect(el.querySelector('[data-ffc-app-panel="book"]').hidden).toBe(false);
 		expect(el.querySelector('[data-ffc-app-panel="mine"]').hidden).toBe(true);
 		expect(el.querySelector('[data-ffc-app-view="book"]').getAttribute('aria-selected')).toBe('true');
