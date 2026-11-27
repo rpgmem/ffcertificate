@@ -1006,7 +1006,7 @@ label.ffc-terminal-setup-choice {
 }
 
 /* The error that stopped the start (#2910), for the team to report. */
-.ffc-terminal-boot-error {
+.ffc-terminal-boot code {
 	display: block;
 	margin-top: var(--ffc-spacing-md);
 	font-size: var(--ffc-font-size-sm);
