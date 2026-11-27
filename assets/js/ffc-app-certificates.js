@@ -142,6 +142,7 @@
         var strings = self.config.strings;
         var card = withClass('article', 'ffc-app-certificate-card');
         var top = withClass('p', 'ffc-app-certificate-meta');
+        top.appendChild(withClass('span', 'ffc-app-certificate-status ffc-app-certificate-status-valid', strings.valid));
         if (self.isNew(item)) {
             top.appendChild(withClass('span', 'ffc-app-certificate-badge', strings.new));
         }

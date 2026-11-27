@@ -289,6 +289,7 @@ class AppScreensTest extends TestCase {
 				'missing' => array( 'School' ),
 				'url'     => 'https://example.test/seminar/?ffc_invite=c.x',
 				'until'   => '22/01/2027',
+				'code'    => 'EWFV-1MZK-DUAD',
 			),
 		);
 
@@ -300,6 +301,7 @@ class AppScreensTest extends TestCase {
 		$this->assertStringContainsString( 'Seminar', $html );
 		$this->assertStringContainsString( 'Missing: School', $html );
 		$this->assertStringContainsString( '22/01/2027', $html );
+		$this->assertMatchesRegularExpression( '/ffc-app-certificate-status-incomplete">Incomplete<\/span>\s*Code EWFV-1MZK-DUAD/', $html, 'the state beside the code' );
 		$this->assertStringContainsString( 'href="https://example.test/seminar/?ffc_invite=c.x"', $html );
 		$this->assertLessThan( strpos( $html, 'type="search"' ), strpos( $html, 'To complete' ), 'above the issued certificates' );
 	}
@@ -315,6 +317,7 @@ class AppScreensTest extends TestCase {
 		$ffc_title = 'Seminar';
 		$ffc_error = '';
 		$ffc_form  = '<form class="ffc-submission-form"></form>';
+		$ffc_code  = 'EWFV-1MZK-DUAD';
 
 		ob_start();
 		include dirname( __DIR__, 2 ) . '/templates/public/app/certificate-complete.php';
@@ -323,6 +326,8 @@ class AppScreensTest extends TestCase {
 		$this->assertStringContainsString( 'href="https://example.test/app/s/certificates/"', $open, 'a way back to the list' );
 		$this->assertStringContainsString( 'Seminar', $open );
 		$this->assertStringContainsString( '<form class="ffc-submission-form">', $open );
+		$this->assertMatchesRegularExpression( '/ffc-app-certificate-status-incomplete">Incomplete<\/span>\s*Code EWFV-1MZK-DUAD/', $open, 'the state beside the code' );
+		$this->assertStringNotContainsString( 'reading', $open, 'where the code came from is not the person\'s concern' );
 
 		$ffc_error = 'This link has expired.';
 		ob_start();

@@ -36609,6 +36609,9 @@ msgstr "Nenhum certificado corresponde à busca."
 msgid "New"
 msgstr "Novo"
 
+msgid "Valid"
+msgstr "Válido"
+
 msgid "Issued on %s"
 msgstr "Emitido em %s"
 
@@ -37880,10 +37883,6 @@ msgstr "Este certificado pertence a outra conta. Entre com a conta que mostrou o
 
 msgid "Your attendance is recorded. Fill in what is missing and send the form to receive the certificate."
 msgstr "Sua presença está registrada. Preencha o que falta e envie o formulário para receber o certificado."
-
-#. translators: %s: the certificate's authentication code
-msgid "Certificate code %s, kept from the reading."
-msgstr "Código do certificado %s, mantido desde a leitura."
 
 msgid "Certificate issued. Opening your certificates…"
 msgstr "Certificado emitido. Abrindo seus certificados…"
