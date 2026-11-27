@@ -100,6 +100,10 @@ final class CertificatesAppScreen {
 				'rest'    => esc_url_raw( rest_url( 'ffc/v1/user/certificates' ) ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),
 				'newDays' => self::NEW_DAYS,
+				// The verification page, and its address inside the app when
+				// Site PWA can draw it (#2950): a certificate then opens in
+				// the app's frame, without the theme around it.
+				'verify'  => self::verification_addresses(),
 				'strings' => array(
 					'loading'  => __( 'Loading your certificates…', 'ffcertificate' ),
 					'failed'   => __( 'Your certificates could not be loaded. Check the connection and try again.', 'ffcertificate' ),
@@ -146,6 +150,23 @@ final class CertificatesAppScreen {
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/public/app/certificates.php';
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * The verification page's address on the site and inside the app.
+	 *
+	 * Without Site PWA, or for a page it cannot draw, both are the site's,
+	 * and the screen keeps opening the certificate on the site.
+	 *
+	 * @return array{page: string, app: string}
+	 */
+	public static function verification_addresses(): array {
+		$page = \FreeFormCertificate\Generators\MagicLinkHelper::get_verification_page_url();
+		$app  = (string) apply_filters( 'site_pwa_app_url', $page );
+		return array(
+			'page' => $page,
+			'app'  => '' === $app ? $page : $app,
+		);
 	}
 
 	/**

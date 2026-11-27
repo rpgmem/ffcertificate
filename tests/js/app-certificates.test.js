@@ -99,6 +99,28 @@ describe('app certificates screen', () => {
 		expect(el.querySelector('.ffc-icon-share'), 'the certificate travels as the file').toBeNull();
 	});
 
+	it('opens a certificate inside the app when the verification page opens there', async () => {
+		window.ffcAppCertificates.verify = { page: 'https://example.org/v/', app: 'https://example.org/app/?p=9' };
+		const certs = [{ ...CERTS[0], pdf_url: 'https://example.org/v/#token=abc' }, { ...CERTS[1], pdf_url: 'https://example.org/v/#token=def' }];
+		const el = markup();
+		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: certs }), now: () => NOW * 1000 });
+		await settle();
+		const open = el.querySelector('.ffc-app-certificate-card a.ffc-btn-primary');
+		expect(open.getAttribute('href')).toBe('https://example.org/app/?p=9#token=abc');
+		expect(open.getAttribute('target'), 'the app keeps its frame').toBeNull();
+		expect(el.querySelector('.ffc-app-certificate-row a').getAttribute('href')).toBe('https://example.org/app/?p=9#token=def');
+	});
+
+	it('keeps the site address when the app cannot draw the verification page', async () => {
+		window.ffcAppCertificates.verify = { page: 'https://example.org/v/', app: 'https://example.org/v/' };
+		const el = markup();
+		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: CERTS }), now: () => NOW * 1000 });
+		await settle();
+		const open = el.querySelector('.ffc-app-certificate-card a.ffc-btn-primary');
+		expect(open.getAttribute('href')).toBe('https://example.org/v/3');
+		expect(open.getAttribute('target')).toBe('_blank');
+	});
+
 	it('says when there is nothing, and when the site does not answer', async () => {
 		let el = markup();
 		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: [] }), now: () => NOW * 1000 });

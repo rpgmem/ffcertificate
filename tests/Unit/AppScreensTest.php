@@ -169,6 +169,8 @@ class AppScreensTest extends TestCase {
 		Functions\when( 'esc_url_raw' )->returnArg();
 		Functions\when( 'rest_url' )->alias( static fn( $path ) => 'https://example.com/wp-json/' . $path );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.com' . $path );
+		Filters\expectApplied( 'site_pwa_app_url' )->with( 'https://example.com/valid/' )->andReturn( 'https://example.com/app/?p=9' );
 
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		$opened = CallLog::record( 'update_user_meta', true );
@@ -186,6 +188,14 @@ class AppScreensTest extends TestCase {
 		$config = $localized['ffc-app-certificates'][1];
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/user/certificates', $config['rest'] );
 		$this->assertSame( CertificatesAppScreen::NEW_DAYS, $config['newDays'] );
+		$this->assertSame(
+			array(
+				'page' => 'https://example.com/valid/',
+				'app'  => 'https://example.com/app/?p=9',
+			),
+			$config['verify'],
+			'a certificate opens in the app when Site PWA can draw the verification page'
+		);
 		$this->assertStringContainsString( '%s', $config['strings']['issued'] );
 	}
 
