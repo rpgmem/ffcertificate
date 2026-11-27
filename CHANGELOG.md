@@ -82,6 +82,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - The Site PWA integration check covers the certificate form items and the Certificates badge (#2928, #2926).
 - The app's Certificates screen says a certificate's state: a **Valid** badge on the featured certificate, and an **Incomplete** badge beside the code of one waiting on profile data, where the screen used to say the code was kept from the reading (#2942).
 - In the app, a field the form was given (an invitation's name and e-mail, what the profile answers on a completion) reads as locked, with a lock and "From your registration" in place of the counter; the Certificates card loses Share, since a certificate travels as its file; Agenda loses New booking, the Book tab being the one way in; a revealed CPF, CIN or RF on the profile reads with its punctuation (#2946).
+- The app's Operator QR takes the Presence screen's look: the accent stage, the code on its white card, a bar that runs down with the code, "New code in m:ss" and three tips (#2948).
 
 ### Security
 

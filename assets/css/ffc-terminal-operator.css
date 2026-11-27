@@ -56,9 +56,54 @@
 	font-weight: 600;
 }
 
-.ffc-terminal-operator-unlock {
-	align-items: center;
+/* The operator's code on the Presence screen's stage (#2948): the accent,
+   the code on its white card, the rotation bar and three tips. */
+.ffc-terminal-operator-stage {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-lg);
+	padding: var(--ffc-spacing-2xl) var(--ffc-spacing-lg);
+	border-radius: var(--ffc-radius-lg);
+	background: var(--ffc-primary);
+	color: var(--ffc-text-on-primary);
+}
+
+.ffc-terminal-operator-stage-title {
+	margin: 0;
+	color: inherit;
+	font-size: var(--ffc-font-size-xl);
 	text-align: center;
+}
+
+.ffc-terminal-operator-rotation {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-xs);
+	width: 100%;
+	max-width: 320px;
+	margin: 0 auto;
+}
+
+.ffc-terminal-operator-progress {
+	width: 100%;
+	height: 6px;
+	accent-color: var(--ffc-text-on-primary);
+}
+
+.ffc-terminal-operator-tips {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ffc-spacing-sm);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-terminal-operator-tips li {
+	display: flex;
+	align-items: center;
+	gap: var(--ffc-spacing-sm);
 }
 
 .ffc-terminal-operator-event {
@@ -82,6 +127,8 @@
 	width: 100%;
 	max-width: 320px;
 	margin: 0 auto;
+	overflow: hidden;
+	border-radius: var(--ffc-radius-lg);
 	aspect-ratio: 1;
 }
 
@@ -93,7 +140,8 @@
 }
 
 .ffc-terminal-operator-countdown {
-	color: var(--ffc-warning-text);
+	color: inherit;
+	font-size: var(--ffc-font-size-sm);
 	font-variant-numeric: tabular-nums;
 	text-align: center;
 }

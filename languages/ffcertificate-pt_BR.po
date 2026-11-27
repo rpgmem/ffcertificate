@@ -35976,9 +35976,6 @@ msgstr "Seus terminais ativos: %1$d. O site permite %2$d ao mesmo tempo, e %3$d 
 msgid "Active terminals on the site: %1$d. The site allows %2$d at a time, and %3$d per event."
 msgstr "Terminais ativos no site: %1$d. O site permite %2$d ao mesmo tempo, e %3$d por evento."
 
-msgid "A new code appears before this one expires in %s."
-msgstr "Um novo código aparece antes que este expire em %s."
-
 msgid "The check-in terminal needs JavaScript. Turn it on in the browser and open this page again."
 msgstr "O terminal de check-in precisa de JavaScript. Ative-o no navegador e abra esta página de novo."
 
@@ -36005,9 +36002,6 @@ msgstr "Encerrar este terminal? Ele para de fazer check-in na hora."
 
 msgid "Keep"
 msgstr "Manter"
-
-msgid "Hold this code to a terminal's reader to unlock its operator menu. It changes every two minutes and works only for you."
-msgstr "Aproxime este código do leitor de um terminal para desbloquear o menu de operador. Ele muda a cada dois minutos e só funciona para você."
 
 
 msgid "%1$s, %2$s–%3$s"
@@ -37885,3 +37879,16 @@ msgstr "Do seu cadastro. O certificado leva o número completo."
 #: includes/frontend/class-ffc-form-field-renderer.php
 msgid "From your registration."
 msgstr "Do seu cadastro."
+
+msgid "Hold the screen up to a terminal's reader to unlock its operator menu."
+msgstr "Aproxime a tela do leitor de um terminal para destravar o menu de operador."
+
+msgid "It works only for you."
+msgstr "Só funciona para você."
+
+msgid "A screenshot will not do: the code changes every two minutes."
+msgstr "Um print não serve: o código muda a cada dois minutos."
+
+#. translators: %s: minutes and seconds left, such as 1:59
+msgid "New code in %s"
+msgstr "Novo código em %s"

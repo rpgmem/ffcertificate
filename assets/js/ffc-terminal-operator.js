@@ -140,8 +140,16 @@
                 env.clearInterval(ticker);
                 ticker = null;
             }
+            // The bar runs down over the code's life, as on Presence (#2948).
+            var bar = part('progress');
+            if (bar) {
+                bar.setAttribute('max', String(Math.max(1, until - now())));
+            }
             var tick = function () {
                 var left = until - now();
+                if (bar) {
+                    bar.setAttribute('value', String(Math.max(0, left)));
+                }
                 part('countdown').textContent = left > 0 ? fill(template, [clock(left)]) : (strings.expiredCode || '');
                 if (left <= 0) {
                     env.clearInterval(ticker);
