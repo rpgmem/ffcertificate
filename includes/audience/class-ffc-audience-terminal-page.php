@@ -536,7 +536,7 @@ final class AudienceTerminalPage {
 	 * than the page under the new `?ver=`, so it looked for a part the markup
 	 * no longer had and stopped with a blank screen. Printed in the document,
 	 * a script always matches the markup it arrived with, offline too, since
-	 * the worker keeps the document. The handle has an empty source, so WordPress
+	 * the worker keeps the document. The handle has no source, so WordPress
 	 * still prints its dependencies, its data and its inline scripts in order.
 	 *
 	 * @param string   $handle Handle, which is also the file's name under `assets/js/`.
@@ -546,7 +546,12 @@ final class AudienceTerminalPage {
 	 * @return void
 	 */
 	private static function enqueue_page_script( string $handle, array $deps ): void {
-		wp_enqueue_script( $handle, '', $deps, FFC_VERSION, true );
+		// Registered with no source (`false`), then enqueued: WordPress
+		// registers a handle only when it has a source or is registered
+		// explicitly, so enqueueing with an empty source prints nothing at all
+		// (#2918).
+		wp_register_script( $handle, false, $deps, FFC_VERSION, true );
+		wp_enqueue_script( $handle );
 		$file = FFC_PLUGIN_DIR . 'assets/js/' . $handle . AssetHelper::asset_suffix() . '.js';
 		$code = is_readable( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A file of the plugin's own, read from disk.
 		if ( '' === $code ) {

@@ -205,6 +205,7 @@ class AudienceTerminalPageTest extends TestCase {
 		Functions\when( 'wp_style_is' )->justReturn( false );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_add_inline_script' )->justReturn( true );
 		Functions\when( 'wp_print_styles' )->alias( static function ( $handles ) use ( &$printed ) {
@@ -239,8 +240,13 @@ class AudienceTerminalPageTest extends TestCase {
 		Functions\when( 'wp_enqueue_style' )->alias( static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
 			$enqueued[ 'style:' . $handle ] = array( $src, $deps );
 		} );
-		Functions\when( 'wp_enqueue_script' )->alias( static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
-			$enqueued[ $handle ] = array( $src, $deps );
+		$registered = array();
+		Functions\when( 'wp_register_script' )->alias( static function ( $handle, $src, $deps = array() ) use ( &$registered ) {
+			$registered[ $handle ] = array( $src, $deps );
+			return true;
+		} );
+		Functions\when( 'wp_enqueue_script' )->alias( static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued, &$registered ) {
+			$enqueued[ $handle ] = $registered[ $handle ] ?? array( $src, $deps );
 		} );
 		Functions\when( 'wp_localize_script' )->alias( static function ( $handle, $name, $data ) use ( &$localized ) {
 			$localized[ $handle ] = array( $name, $data );
@@ -279,7 +285,8 @@ class AudienceTerminalPageTest extends TestCase {
 		}
 		$this->assertSame( array( 'ffc-terminal-install', 'ffc-presence-verifier', 'ffc-terminal-kiosk' ), array_keys( $code ), 'every script of the terminal is in the page (#2912)' );
 		foreach ( $code as $handle => $source ) {
-			$this->assertSame( '', $enqueued[ $handle ][0] ?? null, $handle . ' has no address of its own, so no cache can hand back an older copy' );
+			$this->assertFalse( $registered[ $handle ][0] ?? null, $handle . ' is registered with no address of its own, so no cache can hand back an older copy' );
+			$this->assertArrayHasKey( $handle, $enqueued, $handle . ' is enqueued after it is registered: an enqueue with an empty source registers nothing and prints nothing (#2918)' );
 			$this->assertStringStartsWith( (string) file_get_contents( FFC_PLUGIN_DIR . 'assets/js/' . $handle . \FreeFormCertificate\Core\AssetHelper::asset_suffix() . '.js' ), $source, $handle . ' is the file itself' );
 			$this->assertStringEndsWith( "\n//# sourceURL=" . $handle . '.js', $source, 'an error names the script it came from' );
 		}
@@ -338,6 +345,7 @@ class AudienceTerminalPageTest extends TestCase {
 		Functions\when( 'wp_style_is' )->justReturn( false );
 		Functions\when( 'wp_enqueue_style' )->justReturn( null );
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+		Functions\when( 'wp_register_script' )->justReturn( true );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_add_inline_script' )->justReturn( true );
 		Functions\when( 'wp_print_styles' )->justReturn( null );
