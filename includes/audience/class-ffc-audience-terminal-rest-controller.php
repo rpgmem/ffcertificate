@@ -574,7 +574,7 @@ class AudienceTerminalRestController {
 	 * same choice reaches both kinds of item; like the events, only what is
 	 * open today or later, within the same days, ever shows.
 	 *
-	 * @return list<array{id: int|string, kind: string, description: string, place: string, place_id: int, location_ids: list<string>, when: string, starts: int, terminals: int, full: bool}>
+	 * @return list<array{id: int|string, kind: string, description: string, place: string, place_id: int, location_ids: list<string>, when: string, starts: int, ends: int, ends_time: string, terminals: int, full: bool}>
 	 */
 	public static function offered_bookings( int $now ): array {
 		$today  = wp_date( 'Y-m-d', $now );
@@ -608,6 +608,8 @@ class AudienceTerminalRestController {
 				'location_ids' => self::environment_location( (int) ( $booking->environment_id ?? 0 ) ),
 				'when'         => self::when( $booking ),
 				'starts'       => self::starts( $booking ),
+				'ends'         => $end,
+				'ends_time'    => DateFormatter::format_time( $end ),
 				'terminals'    => $held,
 				'full'         => $held >= $limit,
 			);
@@ -626,6 +628,8 @@ class AudienceTerminalRestController {
 				/* translators: 1: day, 2: opening time, 3: closing time */
 				'when'         => sprintf( __( '%1$s, %2$s–%3$s', 'ffcertificate' ), DateFormatter::format_date( $form['opens'] ), DateFormatter::format_time( $form['opens'] ), DateFormatter::format_time( $form['closes'] ) ),
 				'starts'       => $form['opens'],
+				'ends'         => $form['closes'],
+				'ends_time'    => DateFormatter::format_time( $form['closes'] ),
 				'terminals'    => $held,
 				'full'         => $held >= $limit,
 			);

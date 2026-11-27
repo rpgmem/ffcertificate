@@ -1,14 +1,11 @@
 /**
  * Check-in terminal page (#2744, #2745).
  *
- * Starts on "Waiting for pairing". The operator holds the pairing QR code to
- * the terminal's reader, which types the code into the focused field and
- * presses Enter, or someone types it. The terminal sends the code with an id
- * it generated for itself once, and keeps the token the site returns.
- *
- * Wrong codes are counted on the site; a lock is answered with HTTP 429 and
- * the seconds to wait, which the page counts down and remembers across a
- * reload.
+ * Unpaired, it rests on "This terminal is not paired" (#2900). An operator
+ * taps the lock and holds their operator QR code to the reader, then pairs
+ * the terminal there, by event or by place (a GPS location it then follows).
+ * The terminal sends an id it generated for itself once, and keeps the token
+ * the site returns.
  *
  * Once paired, the reader types each presence code into the reading field
  * and the site answers with the result (#2745), which the page writes into
@@ -61,7 +58,7 @@
     var CAPTURE_MS = 450;
     // The screens whose code the camera reads, each with its own place for
     // the viewfinder (#2786).
-    var CAMERA_SCREENS = ['pairing', 'ready', 'unlock'];
+    var CAMERA_SCREENS = ['ready', 'unlock'];
 
     /**
      * A storage that may refuse: a private window or blocked site data.
@@ -113,17 +110,6 @@
     }
 
     /**
-     * A pairing code as read or typed: what is left once a reader's stray
-     * characters are dropped.
-     *
-     * @param {string} raw Raw text.
-     * @return {string}
-     */
-    function cleanCode(raw) {
-        return String(raw || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 32);
-    }
-
-    /**
      * The key a queue names a target by (#2890), as the site writes it
      * (`TerminalTargetKey`): an audience booking is its bare id, which is
      * what every queue held before; any other target is `type:id`.
@@ -146,16 +132,6 @@
     function cleanTargetKey(value) {
         var text = String(value);
         return /^\d+$/.test(text) ? Number(text) : text;
-    }
-
-    /**
-     * Whether a reading is shaped like a pairing code, P-XXXX-XXXX-XXXX.
-     *
-     * @param {string} code Cleaned code.
-     * @return {boolean}
-     */
-    function isPairingCode(code) {
-        return /^P-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code);
     }
 
     /**
@@ -322,7 +298,6 @@
             });
         };
         var part = function (name) { return el.querySelector('[data-ffc-terminal-part="' + name + '"]'); };
-        var timer = null;
 
         function say(text) {
             part('status').textContent = text || '';
@@ -337,26 +312,27 @@
         var screen = '';
 
         // One screen at a time (#2780). The tone colours the whole display:
-        // green for a reading recorded, red for one refused, amber for a
-        // paused pairing, the neutral dark ground otherwise.
+        // green for a reading recorded, red for one refused, the neutral
+        // dark ground otherwise. An unpaired terminal always rests on the
+        // same informational screen (#2900): pairing starts at the lock.
         function show(view, tone) {
+            if ('idle' === view && !current()) {
+                view = 'unpaired';
+            }
             screen = view;
             var views = el.querySelectorAll('[data-ffc-terminal-view]');
             for (var i = 0; i < views.length; i++) {
                 views[i].hidden = views[i].getAttribute('data-ffc-terminal-view') !== view;
             }
-            el.setAttribute('data-ffc-terminal-tone', tone || ('locked' === view ? 'warning' : 'neutral'));
+            el.setAttribute('data-ffc-terminal-tone', tone || 'neutral');
             el.setAttribute('data-ffc-terminal-screen', view);
-            part('foot').hidden = !('ready' === view || 'between' === view || 'idle' === view);
-            if ('pairing' === view || 'locked' === view || 'setup' === view || ('idle' === view && !current())) {
+            part('foot').hidden = !('ready' === view || 'between' === view || 'idle' === view || 'unpaired' === view);
+            part('help').hidden = 'unpaired' === view;
+            part('help-operator').hidden = 'unpaired' !== view;
+            if ('unpaired' === view || 'setup' === view) {
                 head(strings.terminalTitle, '', strings.notPaired);
             }
-            if ('pairing' === view) {
-                var input = part('code');
-                input.value = '';
-                input.focus();
-            }
-            if ('idle' === view) {
+            if ('idle' === view || 'unpaired' === view) {
                 // A wedge reader still types here: an operator code opens
                 // the operator area, anything else is refused (#2794).
                 focusReading();
@@ -377,7 +353,7 @@
             if (!note) {
                 return;
             }
-            var visible = !current() && !online() && ('pairing' === screen || 'idle' === screen);
+            var visible = !current() && !online() && 'unpaired' === screen;
             note.textContent = visible ? (strings.offlinePairing || '') : '';
             note.hidden = !visible;
         }
@@ -391,7 +367,7 @@
         }
 
         function tickClock() {
-            part('clock').textContent = 'pairing' === screen || 'locked' === screen ? '' : wallClock(clockNow());
+            part('clock').textContent = wallClock(clockNow());
         }
 
         function device() {
@@ -1184,7 +1160,6 @@
                 part('unlock-wait').textContent = fill(strings.unlockWait, [Math.ceil(left / 1000)]);
             };
             show('unlock');
-            part('unlock-code').hidden = !!current();
             wait();
             unlockTimer = env.setInterval(wait, 1000);
             focusReading();
@@ -1272,70 +1247,8 @@
             });
         }
 
-        function lockUntil(until) {
-            if (timer) {
-                env.clearInterval(timer);
-                timer = null;
-            }
-            var tick = function () {
-                var left = until - now();
-                if (left <= 0) {
-                    env.clearInterval(timer);
-                    timer = null;
-                    store.remove(LOCK_KEY);
-                    say('');
-                    show('idle');
-                    return;
-                }
-                part('countdown').textContent = clock(left);
-            };
-            show('locked');
-            tick();
-            if (until > now()) {
-                timer = env.setInterval(tick, 1000);
-            }
-        }
-
-        function pair(code) {
-            var id = device();
-            if (!id) {
-                fail(strings.storage);
-                return Promise.resolve(null);
-            }
-            fail('');
-            say(strings.pairing);
-            return fetchClock(config.rest + 'pair', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'omit',
-                body: JSON.stringify({ code: code, device: id })
-            }).then(function (response) {
-                return response.json().catch(function () { return {}; }).then(function (body) {
-                    return { status: response.status, body: body || {} };
-                });
-            }).then(function (result) {
-                if (201 === result.status && result.body.token) {
-                    return keepPairing(result.body);
-                }
-                say('');
-                if (429 === result.status) {
-                    var until = now() + Math.max(1, Number(result.body.retry_after) || 60);
-                    store.set(LOCK_KEY, String(until));
-                    lockUntil(until);
-                    return null;
-                }
-                fail(result.body.message || strings.failed);
-                show('pairing');
-                return null;
-            }, function () {
-                say('');
-                fail(strings.failed);
-                return null;
-            });
-        }
-
-        // What a pairing answer leaves on the terminal, from a pairing code or
-        // from the setup on the terminal itself (#2780).
+        // What a pairing answer leaves on the terminal: the setup on the
+        // terminal itself is the only way in (#2780, #2900).
         function keepPairing(body) {
             var state = {
                 token: body.token,
@@ -1358,12 +1271,15 @@
             return state;
         }
 
-        // Setting the terminal up on the terminal itself (#2780): an operator
-        // who may pair terminals shows their operator code on the pairing
-        // screen, chooses the events here, and the terminal pairs at once.
-        // A pairing code is made and spent on the site; none is shown.
+        // Setting the terminal up on the terminal itself (#2780, #2900): an
+        // operator who may pair terminals unlocks it with their operator code,
+        // then pairs it by event (the items ticked) or by place (a GPS
+        // location, which the terminal then follows). A pairing code is made
+        // and spent on the site; none is shown.
         var setupCode = '';
         var setupMax = 10;
+        var setupItems = [];
+        var setupLocations = [];
         var setupStrings = strings.setup || {};
 
         function publicRequest(path, body) {
@@ -1386,11 +1302,23 @@
             part('setup-error').hidden = !text;
         }
 
+        function setupModes() {
+            return Array.prototype.slice.call(part('setup-mode').querySelectorAll('input[type="radio"]'));
+        }
+
+        function setupMode() {
+            var chosen = setupModes().filter(function (radio) { return radio.checked; })[0];
+            return chosen && 'event' === chosen.value ? 'event' : 'place';
+        }
+
         function setupChecks() {
             return Array.prototype.slice.call(part('setup-list').querySelectorAll('input[type="checkbox"]'));
         }
 
         function setupCount() {
+            if ('event' !== setupMode()) {
+                return;
+            }
             var checks = setupChecks();
             var chosen = checks.filter(function (box) { return box.checked; }).length;
             checks.forEach(function (box) {
@@ -1399,50 +1327,102 @@
             part('setup-count').textContent = fill(setupStrings.count || '%1$d / %2$d', [chosen, setupMax]);
         }
 
-        function renderSetup(events) {
-            var list = part('setup-list');
-            var place = part('setup-place');
-            list.textContent = '';
-            while (place.options.length > 1) {
-                place.remove(1);
-            }
-            var places = {};
-            events.forEach(function (event) {
-                var item = el.ownerDocument.createElement('li');
-                item.className = 'ffc-terminal-queue-item';
-                var label = el.ownerDocument.createElement('label');
-                label.className = 'ffc-terminal-setup-choice';
-                var box = el.ownerDocument.createElement('input');
+        // The item the terminal shows before this one, when their hours
+        // cross: it waits until that one closes (#2900).
+        function overlaps(items) {
+            var before = null;
+            return items.map(function (item) {
+                var earlier = before && Number(item.starts) < Number(before.ends) ? before : null;
+                if (!before || Number(item.ends) > Number(before.ends)) {
+                    before = item;
+                }
+                return earlier;
+            });
+        }
+
+        function setupRow(item, earlier, choosable) {
+            var doc = el.ownerDocument;
+            var row = doc.createElement('li');
+            row.className = 'ffc-terminal-queue-item';
+            var holder = doc.createElement(choosable ? 'label' : 'div');
+            holder.className = 'ffc-terminal-setup-choice';
+            if (choosable) {
+                var box = doc.createElement('input');
                 box.type = 'checkbox';
-                box.value = String(event.id);
-                box.setAttribute('data-ffc-terminal-place', String(event.place_id || 0));
-                if (event.full) {
+                box.value = String(item.id);
+                if (item.full) {
                     box.setAttribute('data-ffc-terminal-full', '');
                 }
                 box.addEventListener('change', setupCount);
-                var text = el.ownerDocument.createElement('span');
-                text.className = 'ffc-terminal-queue-text';
-                var name = el.ownerDocument.createElement('strong');
-                name.textContent = event.description || '';
-                var meta = el.ownerDocument.createElement('span');
-                meta.className = 'ffc-terminal-queue-meta';
-                meta.textContent = [event.place, event.when, event.full ? setupStrings.full : ''].filter(Boolean).join(' · ');
-                text.appendChild(name);
-                text.appendChild(meta);
-                label.appendChild(box);
-                label.appendChild(text);
-                item.appendChild(label);
-                list.appendChild(item);
-                if (event.place_id && !places[event.place_id]) {
-                    places[event.place_id] = event.place || String(event.place_id);
-                    var option = el.ownerDocument.createElement('option');
-                    option.value = String(event.place_id);
-                    option.textContent = places[event.place_id];
-                    place.appendChild(option);
-                }
+                holder.appendChild(box);
+            }
+            var kind = doc.createElement('span');
+            kind.className = 'ffc-terminal-kind ffc-terminal-kind-' + ('form' === item.kind ? 'form' : 'event');
+            kind.textContent = 'form' === item.kind ? setupStrings.kindForm : setupStrings.kindEvent;
+            var text = doc.createElement('span');
+            text.className = 'ffc-terminal-queue-text';
+            var name = doc.createElement('strong');
+            name.textContent = item.description || '';
+            var meta = doc.createElement('span');
+            meta.className = 'ffc-terminal-queue-meta';
+            meta.textContent = [item.when, item.place, item.full ? setupStrings.full : ''].filter(Boolean).join(' · ');
+            text.appendChild(name);
+            text.appendChild(meta);
+            if (earlier) {
+                var warn = doc.createElement('span');
+                warn.className = 'ffc-terminal-queue-warn';
+                warn.textContent = fill(setupStrings.overlap || '%1$s %2$s', [earlier.description || '', earlier.ends_time || '']);
+                text.appendChild(warn);
+            }
+            holder.appendChild(kind);
+            holder.appendChild(text);
+            row.appendChild(holder);
+            return row;
+        }
+
+        function setupLocation() {
+            var chosen = part('setup-location').value;
+            return setupLocations.filter(function (location) { return location.id === chosen; })[0] || null;
+        }
+
+        function renderSetupList() {
+            var byPlace = 'place' === setupMode();
+            var list = part('setup-list');
+            var location = byPlace ? setupLocation() : null;
+            var items = byPlace ? (location ? (location.items || []).slice(0, setupMax) : []) : setupItems;
+            var earlier = overlaps(items);
+            list.textContent = '';
+            items.forEach(function (item, index) {
+                list.appendChild(setupRow(item, earlier[index], !byPlace));
             });
-            part('setup-none').hidden = events.length > 0;
+            part('setup-by-place').hidden = !byPlace;
+            part('setup-by-event').hidden = byPlace;
+            part('setup-no-location').hidden = !byPlace || setupLocations.length > 0;
+            part('setup-count').hidden = byPlace;
+            part('setup-list-title').textContent = byPlace ? setupStrings.listPlace : setupStrings.listEvent;
+            part('setup-none').textContent = byPlace ? setupStrings.nonePlace : setupStrings.noneEvent;
+            part('setup-none').hidden = items.length > 0;
             setupCount();
+        }
+
+        function renderSetup(body) {
+            setupItems = body.bookings || [];
+            setupLocations = body.locations || [];
+            var select = part('setup-location');
+            select.textContent = '';
+            setupLocations.forEach(function (location) {
+                var option = el.ownerDocument.createElement('option');
+                option.value = String(location.id);
+                option.textContent = location.name || String(location.id);
+                select.appendChild(option);
+            });
+            select.disabled = !setupLocations.length;
+            // By place when there is a place to pair to, by event otherwise.
+            var mode = setupLocations.length ? 'place' : 'event';
+            setupModes().forEach(function (radio) {
+                radio.checked = radio.value === mode;
+            });
+            renderSetupList();
         }
 
         function startSetup(code) {
@@ -1462,9 +1442,8 @@
                 part('setup-operator').textContent = fill(setupStrings.operator || '%s', [result.body.name || '']);
                 setupError('');
                 if (fresh) {
-                    renderSetup(result.body.bookings || []);
                     part('setup-label').value = '';
-                    part('setup-place').value = '';
+                    renderSetup(result.body);
                     show('setup');
                 }
                 return true;
@@ -1477,10 +1456,20 @@
                 setupError(strings.storage);
                 return Promise.resolve(null);
             }
-            var bookings = setupChecks().filter(function (box) { return box.checked; }).map(function (box) { return cleanTargetKey(box.value); });
+            var body = { code: setupCode, device: id, label: part('setup-label').value };
+            if ('place' === setupMode()) {
+                var location = setupLocation();
+                if (!location) {
+                    setupError(setupStrings.chooseLocation);
+                    return Promise.resolve(null);
+                }
+                body.location = location.id;
+            } else {
+                body.bookings = setupChecks().filter(function (box) { return box.checked; }).map(function (box) { return cleanTargetKey(box.value); });
+            }
             setupError('');
             part('setup-submit').disabled = true;
-            return publicRequest('setup', { code: setupCode, device: id, bookings: bookings, label: part('setup-label').value }).then(function (result) {
+            return publicRequest('setup', body).then(function (result) {
                 part('setup-submit').disabled = false;
                 if (201 === result.status && result.body.token) {
                     setupCode = '';
@@ -1491,18 +1480,13 @@
             });
         }
 
-        part('setup-place').addEventListener('change', function () {
-            var chosen = part('setup-place').value;
-            var count = 0;
-            setupChecks().forEach(function (box) {
-                var take = '' !== chosen && box.getAttribute('data-ffc-terminal-place') === chosen && !box.hasAttribute('data-ffc-terminal-full') && count < setupMax;
-                box.checked = take;
-                if (take) {
-                    count++;
-                }
+        setupModes().forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                setupError('');
+                renderSetupList();
             });
-            setupCount();
         });
+        part('setup-location').addEventListener('change', renderSetupList);
         part('setup-form').addEventListener('submit', function (event) {
             event.preventDefault();
             finishSetup();
@@ -1510,20 +1494,6 @@
         part('setup-cancel').addEventListener('click', function () {
             setupCode = '';
             show('idle');
-        });
-
-        part('form').addEventListener('submit', function (event) {
-            event.preventDefault();
-            var raw = part('code').value;
-            if (0 === cleanReading(raw).indexOf(OPERATOR_PREFIX)) {
-                part('code').value = '';
-                startSetup(cleanReading(raw));
-                return;
-            }
-            var code = cleanCode(raw);
-            if (code) {
-                pair(code);
-            }
         });
 
         function take(raw) {
@@ -1535,14 +1505,11 @@
                 return unlock(code);
             }
             if (!current()) {
-                // Unpaired: a pairing code read here pairs, anything else
-                // waits for an operator (#2794).
-                var pairing = cleanCode(raw);
-                if (isPairingCode(pairing)) {
-                    return pair(pairing);
-                }
+                // Unpaired: only an operator code does anything (#2900).
+                showResult({ status: 'refused', code: 'ffc_terminal_unpaired', message: strings.unpairedRefused });
+                return null;
             }
-            if ('idle' === screen || !current()) {
+            if ('idle' === screen) {
                 showResult({ status: 'refused', code: 'ffc_terminal_idle', message: strings.idleRefused });
                 return null;
             }
@@ -1684,23 +1651,13 @@
             });
         }
 
-        // What a code read by the camera does on the screen in front: pair on
-        // the pairing screen, nothing while pairing is paused, read or unlock
-        // everywhere else.
+        // What a code read by the camera does on the screen in front: on the
+        // setup screen only an operator code counts (it renews the setup),
+        // everywhere else it reads or unlocks.
         function handle(raw) {
-            if ('locked' === screen) {
-                return null;
-            }
-            var reading = cleanReading(raw);
-            if ('pairing' === screen || 'setup' === screen || ('unlock' === screen && !current())) {
-                if (0 === reading.indexOf(OPERATOR_PREFIX)) {
-                    return startSetup(reading);
-                }
-                var code = 'setup' !== screen ? cleanCode(raw) : '';
-                if ('unlock' === screen && !isPairingCode(code)) {
-                    return take(raw);
-                }
-                return code ? pair(code) : null;
+            if ('setup' === screen) {
+                var reading = cleanReading(raw);
+                return 0 === reading.indexOf(OPERATOR_PREFIX) ? startSetup(reading) : null;
             }
             return take(raw);
         }
@@ -1713,7 +1670,7 @@
             return detectFrame().then(function (codes) {
                 var raw = codes && codes.length ? String(codes[0].rawValue || '') : '';
                 var at = env.now();
-                if (raw && 'locked' !== screen && (raw !== camera.last || at - camera.lastAt >= CAMERA_REPEAT_MS)) {
+                if (raw && (raw !== camera.last || at - camera.lastAt >= CAMERA_REPEAT_MS)) {
                     camera.last = raw;
                     camera.lastAt = at;
                     camera.activeAt = at;
@@ -1827,14 +1784,6 @@
         });
         part('lock').addEventListener('click', askUnlock);
         part('unlock-cancel').addEventListener('click', leaveUnlock);
-        part('pairing-cancel').addEventListener('click', function () {
-            fail('');
-            show('idle');
-        });
-        part('unlock-code').addEventListener('click', function () {
-            stopUnlockWait();
-            show('pairing');
-        });
         part('menu-end').addEventListener('click', function () {
             part('menu-ask').hidden = true;
             part('menu-confirm').hidden = false;
@@ -1906,16 +1855,12 @@
                 store.remove(STATE_KEY);
                 fail(strings.expired);
             }
-            var locked = Number(store.get(LOCK_KEY)) || 0;
-            if (locked > now()) {
-                lockUntil(locked);
-            } else {
-                store.remove(LOCK_KEY);
-                show('idle');
-            }
+            // Left by the pairing codes this terminal no longer takes (#2900).
+            store.remove(LOCK_KEY);
+            show('idle');
         }
 
-        return { pair: pair, read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, startSetup: startSetup, finishSetup: finishSetup, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
+        return { read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, startSetup: startSetup, finishSetup: finishSetup, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 
     /**
@@ -1949,7 +1894,6 @@
 
     root.FFCTerminal = {
         registerShell: registerShell,
-        cleanCode: cleanCode,
         cleanReading: cleanReading,
         cleanTargetKey: cleanTargetKey,
         clock: clock,
