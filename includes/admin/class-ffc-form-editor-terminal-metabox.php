@@ -47,7 +47,10 @@ final class FormEditorTerminalMetabox {
 		$form_id  = (int) $post->ID;
 		$settings = CertificateFormTarget::settings( $form_id );
 		$blocker  = CertificateFormTarget::cannot_enable( $form_id );
-		$refuses  = null !== $blocker && ! $settings['enabled'];
+		// The switch is on by default (#2900); a form that cannot take the
+		// terminal shows it off and refuses it, with the reason.
+		$on       = $settings['enabled'] && null === $blocker;
+		$refuses  = null !== $blocker;
 		$fields   = get_post_meta( $form_id, '_ffc_form_fields', true );
 		$fields   = is_array( $fields ) ? array_values( array_filter( $fields, 'is_array' ) ) : array();
 		$unfilled = CertificateFormTarget::unfilled_required( $fields );
@@ -59,7 +62,7 @@ final class FormEditorTerminalMetabox {
 			array(
 				'name'        => 'ffc_config[' . CertificateFormTarget::CONFIG_KEY . '][enabled]',
 				'id'          => self::TOGGLE_ID,
-				'checked'     => $settings['enabled'],
+				'checked'     => $on,
 				'disabled'    => $refuses,
 				'label'       => __( 'Issue at the terminal', 'ffcertificate' ),
 				'description' => null !== $blocker ? $blocker->get_error_message() : '',
@@ -151,18 +154,18 @@ final class FormEditorTerminalMetabox {
 	 * @return void
 	 */
 	public function render_side( WP_Post $post ): void {
-		$form_id  = (int) $post->ID;
-		$settings = CertificateFormTarget::settings( $form_id );
-		$window   = CertificateFormTarget::window( $form_id );
-		$hours    = null === $window
+		$form_id = (int) $post->ID;
+		$on      = CertificateFormTarget::settings( $form_id )['enabled'] && null === CertificateFormTarget::cannot_enable( $form_id );
+		$window  = CertificateFormTarget::window( $form_id );
+		$hours   = null === $window
 			? '—'
 			: DateFormatter::format_time( $window['opens'] ) . '–' . DateFormatter::format_time( $window['closes'] );
-		$paired   = $settings['enabled'] ? \FreeFormCertificate\Audience\AudienceTerminalReader::count_active_for_target( TerminalTargetKey::of( CertificateFormTarget::TYPE, $form_id ), time() ) : 0;
-		$issued   = CertificateTerminalReadingRepository::counts( $form_id )[ CertificateTerminalReadingRepository::ISSUED ];
+		$paired  = $on ? \FreeFormCertificate\Audience\AudienceTerminalReader::count_active_for_target( TerminalTargetKey::of( CertificateFormTarget::TYPE, $form_id ), time() ) : 0;
+		$issued  = CertificateTerminalReadingRepository::counts( $form_id )[ CertificateTerminalReadingRepository::ISSUED ];
 		?>
 		<dl class="ffc-facts">
 			<dt class="ffc-facts__label"><?php esc_html_e( 'Terminal', 'ffcertificate' ); ?></dt>
-			<dd class="ffc-facts__value<?php echo $settings['enabled'] ? ' is-on' : ''; ?>"><?php echo esc_html( $settings['enabled'] ? __( 'On', 'ffcertificate' ) : __( 'Off', 'ffcertificate' ) ); ?></dd>
+			<dd class="ffc-facts__value<?php echo $on ? ' is-on' : ''; ?>"><?php echo esc_html( $on ? __( 'On', 'ffcertificate' ) : __( 'Off', 'ffcertificate' ) ); ?></dd>
 			<dt class="ffc-facts__label"><?php esc_html_e( 'Reading', 'ffcertificate' ); ?></dt>
 			<dd class="ffc-facts__value"><?php echo esc_html( $hours ); ?></dd>
 			<dt class="ffc-facts__label"><?php esc_html_e( 'Paired terminals', 'ffcertificate' ); ?></dt>

@@ -263,6 +263,31 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( 3, $data[ CertificateFormTarget::CONSENT_TERMINAL_KEY ], 'by the terminal that read it' );
 	}
 
+	public function test_a_form_that_never_set_the_switch_takes_the_terminal(): void {
+		$this->meta[ self::FORM ]['_ffc_form_config'] = array( 'restrictions' => array() );
+		$this->assertTrue( CertificateFormTarget::settings( self::FORM )['enabled'], 'on by default' );
+		$this->assertNull( CertificateFormTarget::unavailable( self::FORM ) );
+
+		$this->meta[ self::FORM ]['_ffc_form_config'] = array( CertificateFormTarget::CONFIG_KEY => array( 'enabled' => '' ) );
+		$this->assertFalse( CertificateFormTarget::settings( self::FORM )['enabled'], 'an explicit off stays off' );
+	}
+
+	public function test_only_forms_open_today_or_later_are_offered_soonest_first(): void {
+		Functions\when( 'get_posts' )->justReturn( array( self::FORM ) );
+		$this->meta[ self::FORM ]['_ffc_geofence_config'] += array(
+			'geo_area_source'       => 'locations',
+			'geo_area_location_ids' => array( 'loc_a', '' ),
+		);
+
+		$offered = CertificateFormTarget::offered( self::NOW, 7 );
+		$this->assertCount( 1, $offered );
+		$this->assertSame( self::FORM, $offered[0]['id'] );
+		$this->assertSame( array( 'loc_a' ), $offered[0]['location_ids'] );
+
+		$this->assertSame( array(), CertificateFormTarget::offered( $offered[0]['closes'], 7 ), 'a form that closed is never offered' );
+		$this->assertSame( array(), CertificateFormTarget::offered( $offered[0]['opens'] - 9 * DAY_IN_SECONDS, 7 ), 'nor one beyond the days ahead' );
+	}
+
 	public function test_someone_who_already_submitted_on_the_site_gets_that_certificate(): void {
 		$target = $this->target(
 			array(

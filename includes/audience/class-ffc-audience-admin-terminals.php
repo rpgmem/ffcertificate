@@ -747,7 +747,7 @@ class AudienceAdminTerminals {
 	 *
 	 * @param array $events   Events from offered_bookings().
 	 * @param array $held_ids Target keys already held: ticked, and open even when full.
-	 * @phpstan-param list<array{id: int, description: string, place: string, place_id: int, when: string, terminals: int, full: bool}> $events
+	 * @phpstan-param list<array{id: int|string, kind: string, description: string, place: string, place_id: int, when: string, starts: int, terminals: int, full: bool}> $events
 	 * @phpstan-param list<int|string> $held_ids
 	 * @return void
 	 */
