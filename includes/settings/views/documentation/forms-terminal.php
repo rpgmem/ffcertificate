@@ -33,5 +33,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'The readings screen', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'View readings, in the Terminal tab\'s side box, opens what the terminals read for this form: how many readings, certificates issued, readings awaiting profile data and refusals; a warning for each offline terminal that still holds readings; and the list, searchable by name, e-mail or full RF and filtered by result, with the reading time, the terminal, the reason for a refusal and the certificate\'s validation code.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Export CSV writes the same list, with the search and the result filter on screen, for any number of readings. The RF comes masked unless the exporter holds ffc_view_certificates_pii; a file with it in clear is recorded in the activity log.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'A person read twice shows once, with the result of the first valid reading. The RF is masked; a holder of ffc_view_certificates_pii reveals it, and every reveal is recorded in the activity log. The screen needs ffc_checkin_certificates, held by Certificates - Submissions Operator and above, Certificates - Forms Manager and FFC Administrator.', 'ffcertificate' ); ?></p>
 </div>

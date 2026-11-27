@@ -153,6 +153,42 @@ final class CertificateTerminalReadingRepository {
 	}
 
 	/**
+	 * One batch of a form's readings for the CSV export (#2892): a keyset on
+	 * the row id, newest first, so a reading recorded during a long export
+	 * neither repeats nor shifts a row.
+	 *
+	 * @param int            $form_id  Form id.
+	 * @param string         $result   One of the result constants, or ''.
+	 * @param list<int>|null $user_ids Only these accounts, or null for everyone.
+	 * @param int            $cursor   Exclusive upper bound of the row id.
+	 * @param int            $size     Rows per batch.
+	 * @return list<ReadingPageRow>
+	 */
+	public static function export_batch( int $form_id, string $result, ?array $user_ids, int $cursor, int $size ): array {
+		global $wpdb;
+
+		if ( array() === $user_ids ) {
+			return array();
+		}
+		$where = self::where( $form_id, $result, $user_ids );
+		$sql   = 'SELECT r.*, s.auth_code FROM %i r LEFT JOIN %i s ON s.id = r.submission_id WHERE ' . $where['sql'] . ' AND r.id < %d ORDER BY r.id DESC LIMIT %d';
+		$args  = array_merge(
+			array( CertificateTerminalActivator::table(), \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table() ),
+			$where['args'],
+			array( $cursor, max( 1, $size ) )
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $sql holds only placeholders and literal column names (where()); $args carries one value per placeholder.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( is_array( $row ) ) {
+				$out[] = self::shape( $row ) + array( 'auth_code' => \FreeFormCertificate\Core\ArrayValue::string( $row, 'auth_code' ) );
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * How many readings {@see self::page()} pages through.
 	 *
 	 * @param int            $form_id  Form id.
