@@ -2068,6 +2068,25 @@ describe('certificate forms (#2893)', () => {
 		expect(calls.some((c) => 'readings' === c[1])).toBe(false);
 	});
 
+	it('keeps no ticket once the item has closed', async () => {
+		const { e } = paired([{ ...FORM, ticket: true }], null);
+		e.clock.now = (FORM.closes + 1) * 1000;
+		await submit('ticket', 'TK-48');
+		expect(el.querySelector('[data-ffc-terminal-part="ticket-held"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-terminal-part="ticket-held-text"]').textContent).toBe('');
+	});
+
+	it('draws a result with no name, and a refusal with no message or title of its own', async () => {
+		paired([FORM], { status: 'recorded', code: 'ffc_terminal_recorded', message: '', name: '' });
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-ok')[0]).toBe('Recorded');
+		expect(lines('result-ok')).toHaveLength(2, 'no name line');
+
+		paired([FORM], { status: 'refused', code: 'ffc_terminal_unknown' });
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-refused')).toEqual(['Refused', 'failed', 'ask the team']);
+	});
+
 	it('reads the QR alone for an event or a form without a ticket', () => {
 		paired([{ ...FORM, ticket: false }], null);
 		expect(visible(el)).toEqual(['ready']);
