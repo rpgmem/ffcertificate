@@ -1867,6 +1867,13 @@
             show('idle');
         }
 
+        // The terminal started (#2910): the note the markup shows until then
+        // tells a terminal whose script failed that it did not start.
+        var boot = el.querySelector('[data-ffc-terminal-part="boot"]');
+        if (boot) {
+            boot.hidden = true;
+        }
+
         return { read: read, unlock: unlock, endSelf: endSelf, closeMenu: closeMenu, openAdd: openAdd, saveEvents: saveEvents, startSetup: startSetup, finishSetup: finishSetup, state: current, sync: sync, queue: queue, refreshRevocations: refreshRevocations, refreshSchedule: refreshSchedule, keepAwake: keepAwake, deviceCheck: deviceCheck, askUnlock: askUnlock, screen: function () { return screen; }, camera: { ready: cameraReady, start: startCamera, stop: stopCamera, scan: scan } };
     }
 

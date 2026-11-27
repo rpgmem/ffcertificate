@@ -448,7 +448,9 @@ final class AudienceTerminalPage {
 		echo '<link rel="manifest" href="' . esc_url( self::manifest_url() ) . '">';
 		echo '<title>' . esc_html__( 'Check-in terminal', 'ffcertificate' ) . ' — ' . esc_html( get_bloginfo( 'name' ) ) . '</title>';
 		wp_print_styles( array( 'ffc-terminal-kiosk' ) );
-		echo '</head><body class="ffc-shortcode ffc-terminal-page">';
+		// The kiosk's own body class: it lays the install banner and the
+		// kiosk out as one screen (#2910); the install page scrolls.
+		echo '</head><body class="ffc-shortcode ffc-terminal-page ffc-terminal-kiosk-page">';
 		$ffc_terminal_logo        = (string) get_site_icon_url( 96 );
 		$ffc_terminal_install_url = self::install_url();
 		include FFC_PLUGIN_DIR . 'templates/public/terminal/kiosk.php';

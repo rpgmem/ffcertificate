@@ -967,6 +967,49 @@ label.ffc-terminal-setup-choice {
 	display: none;
 }
 
+/* The banner and the kiosk share one screen (#2910): the kiosk takes the
+   height left under the banner instead of a full viewport below it, which
+   pushed the footer, and the operator's lock, off screen. */
+.ffc-terminal-kiosk-page {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+	height: 100dvh;
+	margin: 0;
+	overflow: hidden;
+}
+
+.ffc-terminal-kiosk-page > .ffc-terminal-install-banner {
+	flex: none;
+}
+
+.ffc-terminal-kiosk-page > .ffc-terminal {
+	flex: 1 1 auto;
+	min-height: 0;
+	height: auto;
+}
+
+/* Until the script starts (#2910). It appears only after a moment, so a
+   normal start never shows it; one that fails leaves it on screen. */
+.ffc-terminal-boot {
+	margin: auto var(--ffc-spacing-2xl);
+	color: var(--ffc-terminal-soft);
+	font-size: var(--ffc-font-size-lg);
+	text-align: center;
+	opacity: 0;
+	animation: ffc-terminal-boot-show 0s linear 3s forwards;
+}
+
+.ffc-terminal-boot[hidden] {
+	display: none;
+}
+
+@keyframes ffc-terminal-boot-show {
+	to {
+		opacity: 1;
+	}
+}
+
 .ffc-terminal-install-banner p {
 	flex: 1 1 320px;
 	min-width: 0;

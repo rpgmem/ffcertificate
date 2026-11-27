@@ -37445,3 +37445,6 @@ msgstr ""
 
 msgid "The operator menu has two columns: the actions and the device check on one side, and on the other the events on this terminal, soonest first, with the one checking in now marked Now. An operator who holds ffc_manage_audiences_terminals, or an administrator, may change them there, whoever paired the terminal: Remove takes an event out after a second tap, and Add event lists the events the terminal can take. The rules are those of the app's Change events, a refusal says why on the screen, and the change is written to the activity log in that operator's name. Anyone else who may check people in sees the events without changing them. A terminal paired to a place shows the place it follows instead, with no Remove or Add event, since its events are the place's."
 msgstr ""
+
+msgid "Starting the terminal… If this message stays, the terminal could not start: close it and open it again, and tell the event team if it happens again."
+msgstr ""

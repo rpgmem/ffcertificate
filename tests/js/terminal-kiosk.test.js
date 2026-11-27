@@ -190,6 +190,7 @@ function markup() {
 				<p data-ffc-terminal-part="events"></p>
 				<p data-ffc-terminal-part="until"></p>
 				<p data-ffc-terminal-part="queue-summary"></p>
+				<p data-ffc-terminal-part="boot">Starting</p>
 				<ul data-ffc-terminal-part="queue-list"></ul>
 				<p data-ffc-terminal-part="queue-error" hidden></p>
 				<p data-ffc-terminal-part="queue-follows" hidden></p>
@@ -751,6 +752,11 @@ describe('reading', () => {
 		expect(el.querySelector('[data-ffc-terminal-part="queue-locked"]').hidden).toBe(true);
 		expect(el.querySelectorAll('[data-ffc-terminal-remove]')).toHaveLength(0, 'no Remove');
 		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="menu-close"]'));
+	});
+
+	it('hides the starting note once the terminal has started (#2910)', () => {
+		paired({});
+		expect(el.querySelector('[data-ffc-terminal-part="boot"]').hidden).toBe(true);
 	});
 
 	it('closes the list of events to add without changing the queue', async () => {
