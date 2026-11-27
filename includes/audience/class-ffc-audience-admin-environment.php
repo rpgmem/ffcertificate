@@ -716,6 +716,8 @@ class AudienceAdminEnvironment {
 				<dd class="ffc-facts__value"><?php echo esc_html( array() === $environments ? '—' : implode( ', ', $environments ) ); ?></dd>
 				<dt class="ffc-facts__label"><?php esc_html_e( 'Certificate forms', 'ffcertificate' ); ?></dt>
 				<dd class="ffc-facts__value"><?php echo esc_html( (string) count( $forms ) ); ?></dd>
+				<dt class="ffc-facts__label"><?php esc_html_e( 'Terminals paired to the location', 'ffcertificate' ); ?></dt>
+				<dd class="ffc-facts__value"><?php echo esc_html( (string) AudienceTerminalReader::count_active_for_location( $id, time() ) ); ?></dd>
 			</dl>
 		</div>
 		<?php

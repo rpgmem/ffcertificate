@@ -24,8 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for terminals and the pairing codes that create them.
  *
- * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, targets: list<int|string>, removed: array<int|string, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, auto_end_hours: int|null, refused_after_revocation: int, revoked_at: int|null, revoked_by: int|null}
- * @phpstan-type PairingRow array{id: int, code_hash: string, targets: list<int|string>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null, auto_end_hours: int|null}
+ * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, targets: list<int|string>, removed: array<int|string, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, auto_end_hours: int|null, refused_after_revocation: int, location_id: string, revoked_at: int|null, revoked_by: int|null}
+ * @phpstan-type PairingRow array{id: int, code_hash: string, targets: list<int|string>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null, auto_end_hours: int|null, location_id: string}
  *
  * @since 6.50.0
  */
@@ -157,6 +157,20 @@ class AudienceTerminalReader {
 	}
 
 	/**
+	 * How many active terminals follow a GPS location (#2900).
+	 *
+	 * @param string $location_id GPS location id.
+	 * @param int    $now         Unix time.
+	 * @return int
+	 */
+	public static function count_active_for_location( string $location_id, int $now ): int {
+		if ( '' === $location_id ) {
+			return 0;
+		}
+		return count( array_filter( self::active_terminals( $now ), static fn( array $terminal ): bool => $location_id === $terminal['location_id'] ) );
+	}
+
+	/**
 	 * The active terminals that hold a target (#2748), as an event's
 	 * Check-in tab lists them.
 	 *
@@ -197,6 +211,7 @@ class AudienceTerminalReader {
 			'readings'                 => ArrayValue::int( $row, 'readings' ),
 			'auto_end_hours'           => self::nullable_int( $row, 'auto_end_hours' ),
 			'refused_after_revocation' => ArrayValue::int( $row, 'refused_after_revocation' ),
+			'location_id'              => ArrayValue::string( $row, 'location_id' ),
 			'revoked_at'               => self::nullable_int( $row, 'revoked_at' ),
 			'revoked_by'               => self::nullable_int( $row, 'revoked_by' ),
 		);
@@ -220,6 +235,7 @@ class AudienceTerminalReader {
 			'used_at'        => self::nullable_int( $row, 'used_at' ),
 			'terminal_id'    => self::nullable_int( $row, 'terminal_id' ),
 			'auto_end_hours' => self::nullable_int( $row, 'auto_end_hours' ),
+			'location_id'    => ArrayValue::string( $row, 'location_id' ),
 		);
 	}
 

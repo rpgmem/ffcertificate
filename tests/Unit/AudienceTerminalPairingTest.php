@@ -9,8 +9,10 @@ use FreeFormCertificate\Audience\AudienceAdminTerminals;
 use FreeFormCertificate\Audience\AudienceOperatorCode;
 use FreeFormCertificate\Audience\AudiencePresenceAttestation;
 use FreeFormCertificate\Audience\AudienceTerminalLockout;
+use FreeFormCertificate\Audience\AudienceTerminalLocation;
 use FreeFormCertificate\Audience\AudienceTerminalPairing;
 use FreeFormCertificate\Audience\AudienceTerminalReader;
+use FreeFormCertificate\Audience\AudienceTerminalSchedule;
 use FreeFormCertificate\Audience\AudienceTerminalRestController;
 use FreeFormCertificate\Audience\AudienceTerminalWriter;
 use FreeFormCertificate\Core\Base45;
@@ -498,6 +500,118 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( array( 'certificate_form:900', 21 ), array_column( $data['bookings'], 'id' ), 'the form opens first, so it is listed first' );
 		$this->assertSame( array( 'form', 'event' ), array_column( $data['bookings'], 'kind' ) );
 		$this->assertSame( 'Inclusive Education Seminar', $data['bookings'][0]['description'] );
+	}
+
+	public function test_a_terminal_paired_to_a_location_takes_what_it_holds_and_follows_it(): void {
+		$this->locate();
+		$this->listed( 41, 5 );
+		$this->listed( 42, 6 );
+
+		$code = AudienceTerminalPairing::create_code( self::OPERATOR, array(), '', self::NOW, null, 'loc_a' );
+		$this->assertIsArray( $code );
+		$this->assertSame( array( 41 ), $code['bookings'], 'only the event of an environment linked to the location' );
+		$result = AudienceTerminalPairing::pair( $code['code'], self::DEVICE, self::ADDRESS, self::NOW + 1 );
+		$this->assertIsArray( $result );
+		$this->assertSame( AudienceTerminalLocation::expiry( self::NOW + 1 ), $result['expires_at'], 'it does not end after the event' );
+		$terminal = AudienceTerminalReader::terminal( $result['terminal_id'] );
+		$this->assertSame( 'loc_a', $terminal['location_id'] );
+
+		// An event created later for the location joins on the next request.
+		$this->listed( 43, 5 );
+		$followed = AudienceTerminalLocation::follow( $terminal, self::NOW + 100 );
+		$this->assertSame( array( 41, 43 ), $followed['targets'] );
+		$this->assertSame( array( 41, 43 ), AudienceTerminalReader::terminal( $result['terminal_id'] )['targets'] );
+
+		// Within the minute it is not rebuilt again.
+		$this->listed( 44, 5 );
+		$this->assertSame( array( 41, 43 ), AudienceTerminalLocation::follow( $followed, self::NOW + 110 )['targets'] );
+
+		$refused = AudienceTerminalPairing::update_bookings( $result['terminal_id'], array( 41 ), self::OPERATOR, true, self::NOW + 120 );
+		$this->assertInstanceOf( \WP_Error::class, $refused );
+		$this->assertSame( 'ffc_terminal_follows_location', $refused->get_error_code(), 'its queue is the location\'s' );
+	}
+
+	public function test_a_location_that_does_not_exist_is_refused(): void {
+		$this->locate();
+		$code = AudienceTerminalPairing::create_code( self::OPERATOR, array(), '', self::NOW, null, 'loc_gone' );
+		$this->assertInstanceOf( \WP_Error::class, $code );
+		$this->assertSame( 'ffc_terminal_location', $code->get_error_code() );
+	}
+
+	public function test_overlapping_items_are_shown_one_at_a_time(): void {
+		$entry = static fn( string $key, int $opens, int $closes ): array => array(
+			'target'       => $key,
+			'booking_id'   => $key,
+			'title'        => $key,
+			'place'        => '',
+			'date'         => '2027-01-15',
+			'opens'        => $opens,
+			'closes'       => $closes,
+			'opens_label'  => '',
+			'opens_time'   => '',
+			'closes_label' => '',
+			'hours'        => '',
+			'open'         => true,
+			'present'      => 0,
+			'enrolled'     => 0,
+		);
+		$method = new \ReflectionMethod( AudienceTerminalSchedule::class, 'one_at_a_time' );
+		$method->setAccessible( true );
+
+		$plan = $method->invoke( null, array( $entry( 'a', 100, 200 ), $entry( 'b', 150, 300 ), $entry( 'c', 160, 190 ) ), 170 );
+
+		$this->assertSame( array( 'a', 'b' ), array_column( $plan, 'target' ), 'one the earlier item covers is not shown' );
+		$this->assertSame( 200, $plan[1]['opens'], 'the later item waits for the earlier to close' );
+		$this->assertFalse( $plan[1]['open'], 'and is not open before then' );
+	}
+
+	/**
+	 * One GPS location, loc_a, with environment 5 linked to it and 6 not.
+	 */
+	private function locate(): void {
+		$this->options['ffc_geofence_locations'] = array(
+			array(
+				'id'   => 'loc_a',
+				'name' => 'EMEF Paulo Freire',
+			),
+		);
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		Functions\when( 'wp_cache_get' )->alias(
+			function ( $key, $group = '' ) {
+				if ( 1 !== preg_match( '/^id_(\d+)$/', (string) $key, $m ) ) {
+					return false;
+				}
+				if ( 'ffc_audience_environments' === $group ) {
+					return (object) array(
+						'id'          => (int) $m[1],
+						'name'        => 'Room ' . $m[1],
+						'location_id' => 5 === (int) $m[1] ? 'loc_a' : '',
+					);
+				}
+				return $this->bookings[ (int) $m[1] ] ?? false;
+			}
+		);
+	}
+
+	/**
+	 * A booking tomorrow in an environment, in the list the terminal offers.
+	 *
+	 * @param int $id          Booking id.
+	 * @param int $environment Environment id.
+	 */
+	private function listed( int $id, int $environment ): void {
+		$day = gmdate( 'Y-m-d', self::NOW + DAY_IN_SECONDS );
+		$this->booking( $id, $day, 'active', '09:00:00', '12:00:00' );
+		$this->tables->booking_list[] = (object) array(
+			'id'               => $id,
+			'description'      => 'Event ' . $id,
+			'environment_id'   => $environment,
+			'environment_name' => 'Room ' . $environment,
+			'booking_date'     => $day,
+			'end_date'         => null,
+			'start_time'       => '09:00:00',
+			'end_time'         => '12:00:00',
+		);
 	}
 
 	public function test_the_event_list_shows_the_stored_day_and_hours_on_a_site_west_of_utc(): void {

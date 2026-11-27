@@ -184,6 +184,39 @@ final class AudienceTerminalSchedule {
 			}
 		}
 		usort( $out, static fn( array $a, array $b ): int => array( $a['opens'], is_int( $a['target'] ) ? 0 : 1, $a['target'] ) <=> array( $b['opens'], is_int( $b['target'] ) ? 0 : 1, $b['target'] ) );
+		return self::one_at_a_time( $out, $now );
+	}
+
+	/**
+	 * Items that overlap wait for the earlier one to close (#2900).
+	 *
+	 * A terminal paired to a location may hold items whose windows cross.
+	 * The terminal shows one at a time: an item that opens while an earlier
+	 * one is still open is shown from the moment that one closes, and one
+	 * the earlier item covers entirely is not shown. Each reading names its
+	 * own item, so this decides only what the screen shows.
+	 *
+	 * @param array $entries Plan entries, in the order they open.
+	 * @param int   $now     Unix time.
+	 * @phpstan-param list<PlanEntry> $entries
+	 * @return list<PlanEntry>
+	 */
+	private static function one_at_a_time( array $entries, int $now ): array {
+		$out  = array();
+		$busy = 0;
+		foreach ( $entries as $entry ) {
+			if ( $entry['closes'] <= $busy ) {
+				continue;
+			}
+			if ( $entry['opens'] < $busy ) {
+				$entry['opens']       = $busy;
+				$entry['opens_label'] = DateFormatter::format_datetime( $busy );
+				$entry['opens_time']  = DateFormatter::format_time( $busy );
+				$entry['open']        = $entry['open'] && $busy <= $now;
+			}
+			$busy  = $entry['closes'];
+			$out[] = $entry;
+		}
 		return $out;
 	}
 

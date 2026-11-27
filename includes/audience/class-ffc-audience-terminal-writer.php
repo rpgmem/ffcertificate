@@ -36,10 +36,11 @@ class AudienceTerminalWriter {
 	 * @param int      $now       Unix time.
 	 * @param int      $expires   Unix time.
 	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself; null for the Check-in settings.
+	 * @param string   $location_id    The GPS location the terminal follows (#2900), or ''.
 	 * @phpstan-param list<int|string> $bookings
 	 * @return int The new row's id, or 0 on failure.
 	 */
-	public static function create_pairing( string $code_hash, array $bookings, string $label, int $by, int $now, int $expires, ?int $auto_end_hours = null ): int {
+	public static function create_pairing( string $code_hash, array $bookings, string $label, int $by, int $now, int $expires, ?int $auto_end_hours = null, string $location_id = '' ): int {
 		$wpdb = self::db();
 		$ok   = $wpdb->insert(
 			AudienceTerminalReader::pairings_table(),
@@ -51,8 +52,9 @@ class AudienceTerminalWriter {
 				'created_at'     => $now,
 				'expires_at'     => $expires,
 				'auto_end_hours' => $auto_end_hours,
+				'location_id'    => $location_id,
 			),
-			array( '%s', '%s', '%s', '%d', '%d', '%d', '%d' )
+			array( '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s' )
 		);
 		return false === $ok ? 0 : (int) $wpdb->insert_id;
 	}
@@ -103,10 +105,11 @@ class AudienceTerminalWriter {
 	 * @param int      $now         Unix time.
 	 * @param int      $expires     Unix time.
 	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself; null for the Check-in settings.
+	 * @param string   $location_id    The GPS location the terminal follows (#2900), or ''.
 	 * @phpstan-param list<int|string> $bookings
 	 * @return int The new row's id, or 0 on failure.
 	 */
-	public static function create_terminal( string $token_hash, string $device_hash, string $label, array $bookings, ?int $by, int $now, int $expires, ?int $auto_end_hours = null ): int {
+	public static function create_terminal( string $token_hash, string $device_hash, string $label, array $bookings, ?int $by, int $now, int $expires, ?int $auto_end_hours = null, string $location_id = '' ): int {
 		$wpdb = self::db();
 		$ok   = $wpdb->insert(
 			AudienceTerminalReader::terminals_table(),
@@ -119,8 +122,9 @@ class AudienceTerminalWriter {
 				'paired_at'      => $now,
 				'expires_at'     => $expires,
 				'auto_end_hours' => $auto_end_hours,
+				'location_id'    => $location_id,
 			),
-			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s' )
 		);
 		return false === $ok ? 0 : (int) $wpdb->insert_id;
 	}

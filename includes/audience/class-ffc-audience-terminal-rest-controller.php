@@ -137,9 +137,15 @@ class AudienceTerminalRestController {
 					),
 					'bookings' => array(
 						'type'              => 'array',
-						'required'          => true,
+						'required'          => false,
 						'items'             => array( 'type' => array( 'integer', 'string' ) ),
 						'sanitize_callback' => array( self::class, 'sanitize_targets' ),
+					),
+					// A GPS location the terminal follows instead (#2900).
+					'location' => array(
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_text_field',
 					),
 					'label'    => array(
 						'type'              => 'string',
@@ -500,10 +506,12 @@ class AudienceTerminalRestController {
 		$user = get_userdata( $operator['user_id'] );
 		return new \WP_REST_Response(
 			array(
-				'bookings' => self::offered_bookings( time() ),
-				'max'      => AudienceTerminalPairing::MAX_BOOKINGS,
-				'name'     => $user instanceof \WP_User ? AudiencePresenceAttestation::display_name( $user ) : '',
-				'expires'  => $operator['expires'],
+				'bookings'  => self::offered_bookings( time() ),
+				// The GPS locations and what each holds, for "By place" (#2900).
+				'locations' => AudienceTerminalLocation::locations( time() ),
+				'max'       => AudienceTerminalPairing::MAX_BOOKINGS,
+				'name'      => $user instanceof \WP_User ? AudiencePresenceAttestation::display_name( $user ) : '',
+				'expires'   => $operator['expires'],
 			),
 			200,
 			array( 'Cache-Control' => 'no-store' )
@@ -527,7 +535,8 @@ class AudienceTerminalRestController {
 		$now    = time();
 		$label  = $request->get_param( 'label' );
 		$device = $request->get_param( 'device' );
-		$code   = AudienceTerminalPairing::create_code( $operator['user_id'], self::sanitize_targets( $request->get_param( 'bookings' ) ), is_string( $label ) ? $label : '', $now, self::auto_end_of( $request ) );
+		$place  = $request->get_param( 'location' );
+		$code   = AudienceTerminalPairing::create_code( $operator['user_id'], self::sanitize_targets( $request->get_param( 'bookings' ) ), is_string( $label ) ? $label : '', $now, self::auto_end_of( $request ), is_string( $place ) ? sanitize_text_field( $place ) : '' );
 		if ( is_wp_error( $code ) ) {
 			return $code;
 		}
@@ -565,7 +574,7 @@ class AudienceTerminalRestController {
 	 * same choice reaches both kinds of item; like the events, only what is
 	 * open today or later, within the same days, ever shows.
 	 *
-	 * @return list<array{id: int|string, kind: string, description: string, place: string, place_id: int, when: string, starts: int, terminals: int, full: bool}>
+	 * @return list<array{id: int|string, kind: string, description: string, place: string, place_id: int, location_ids: list<string>, when: string, starts: int, terminals: int, full: bool}>
 	 */
 	public static function offered_bookings( int $now ): array {
 		$today  = wp_date( 'Y-m-d', $now );
@@ -591,15 +600,16 @@ class AudienceTerminalRestController {
 			}
 			$held     = AudienceTerminalReader::count_active_for_target( $id, $now );
 			$events[] = array(
-				'id'          => $id,
-				'kind'        => 'event',
-				'description' => (string) $booking->description,
-				'place'       => (string) ( $booking->environment_name ?? '' ),
-				'place_id'    => (int) ( $booking->environment_id ?? 0 ),
-				'when'        => self::when( $booking ),
-				'starts'      => self::starts( $booking ),
-				'terminals'   => $held,
-				'full'        => $held >= $limit,
+				'id'           => $id,
+				'kind'         => 'event',
+				'description'  => (string) $booking->description,
+				'place'        => (string) ( $booking->environment_name ?? '' ),
+				'place_id'     => (int) ( $booking->environment_id ?? 0 ),
+				'location_ids' => self::environment_location( (int) ( $booking->environment_id ?? 0 ) ),
+				'when'         => self::when( $booking ),
+				'starts'       => self::starts( $booking ),
+				'terminals'    => $held,
+				'full'         => $held >= $limit,
 			);
 		}
 		foreach ( CertificateFormTarget::offered( $now, AudienceTerminalPairing::DAYS_AHEAD ) as $form ) {
@@ -607,20 +617,33 @@ class AudienceTerminalRestController {
 			$held     = AudienceTerminalReader::count_active_for_target( $key, $now );
 			$names    = array_map( static fn( array $location ): string => (string) ( $location['name'] ?? '' ), GeofenceLocationRegistry::get_by_ids( $form['location_ids'] ) );
 			$events[] = array(
-				'id'          => $key,
-				'kind'        => 'form',
-				'description' => $form['title'],
-				'place'       => implode( ', ', array_filter( $names ) ),
-				'place_id'    => 0,
+				'id'           => $key,
+				'kind'         => 'form',
+				'description'  => $form['title'],
+				'place'        => implode( ', ', array_filter( $names ) ),
+				'place_id'     => 0,
+				'location_ids' => $form['location_ids'],
 				/* translators: 1: day, 2: opening time, 3: closing time */
-				'when'        => sprintf( __( '%1$s, %2$s–%3$s', 'ffcertificate' ), DateFormatter::format_date( $form['opens'] ), DateFormatter::format_time( $form['opens'] ), DateFormatter::format_time( $form['closes'] ) ),
-				'starts'      => $form['opens'],
-				'terminals'   => $held,
-				'full'        => $held >= $limit,
+				'when'         => sprintf( __( '%1$s, %2$s–%3$s', 'ffcertificate' ), DateFormatter::format_date( $form['opens'] ), DateFormatter::format_time( $form['opens'] ), DateFormatter::format_time( $form['closes'] ) ),
+				'starts'       => $form['opens'],
+				'terminals'    => $held,
+				'full'         => $held >= $limit,
 			);
 		}
 		usort( $events, static fn( array $a, array $b ): int => $a['starts'] <=> $b['starts'] );
 		return $events;
+	}
+
+	/**
+	 * The GPS location an environment is linked to (#2900), as a list.
+	 *
+	 * @param int $environment_id Environment id.
+	 * @return list<string>
+	 */
+	private static function environment_location( int $environment_id ): array {
+		$environment = $environment_id > 0 ? AudienceEnvironmentRepository::get_by_id( $environment_id ) : null;
+		$location    = null === $environment ? '' : (string) ( $environment->location_id ?? '' );
+		return '' === $location ? array() : array( $location );
 	}
 
 	/**
@@ -730,9 +753,13 @@ class AudienceTerminalRestController {
 			return self::not_paired();
 		}
 		$now = time();
+		// A terminal paired to a location takes what the location holds
+		// now (#2900): an item created after the pairing joins here.
+		$terminal = AudienceTerminalLocation::follow( $terminal, $now );
 		return new \WP_REST_Response(
 			array(
 				'label'         => $terminal['label'],
+				'location'      => $terminal['location_id'],
 				'bookings'      => $terminal['targets'],
 				'expires_at'    => $terminal['expires_at'],
 				'expires_label' => DateFormatter::format_datetime( $terminal['expires_at'] ),

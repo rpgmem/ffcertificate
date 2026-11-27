@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '24';
+	public const SCHEMA_REVISION = '25';
 
 	/**
 	 * Option holding the revision last applied.
@@ -634,6 +634,7 @@ class AudienceActivator {
             readings int(10) unsigned NOT NULL DEFAULT 0,
             auto_end_hours smallint(5) unsigned DEFAULT NULL,
             refused_after_revocation int(10) unsigned NOT NULL DEFAULT 0,
+            location_id varchar(64) NOT NULL DEFAULT '',
             revoked_at bigint(20) unsigned DEFAULT NULL,
             revoked_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
@@ -675,6 +676,7 @@ class AudienceActivator {
             used_at bigint(20) unsigned DEFAULT NULL,
             terminal_id bigint(20) unsigned DEFAULT NULL,
             auto_end_hours smallint(5) unsigned DEFAULT NULL,
+            location_id varchar(64) NOT NULL DEFAULT '',
             PRIMARY KEY (id),
             UNIQUE KEY uq_code (code_hash),
             KEY idx_expires (expires_at)
@@ -1214,12 +1216,16 @@ class AudienceActivator {
 		$pairings = $wpdb->prefix . 'ffc_audience_terminal_pairings';
 		if ( self::table_exists( $pairings ) ) {
 			self::add_column_if_missing( $pairings, 'auto_end_hours', 'smallint(5) unsigned DEFAULT NULL', 'terminal_id' );
-			if ( ! self::has_columns( $pairings, array( 'auto_end_hours' ) ) ) {
+			// The GPS location a terminal follows (#2900); empty for one
+			// paired to chosen events.
+			self::add_column_if_missing( $pairings, 'location_id', "varchar(64) NOT NULL DEFAULT ''", 'auto_end_hours' );
+			if ( ! self::has_columns( $pairings, array( 'auto_end_hours', 'location_id' ) ) ) {
 				return false;
 			}
 		}
+		self::add_column_if_missing( $table_name, 'location_id', "varchar(64) NOT NULL DEFAULT ''", 'refused_after_revocation' );
 
-		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings', 'auto_end_hours', 'refused_after_revocation' ) );
+		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings', 'auto_end_hours', 'refused_after_revocation', 'location_id' ) );
 	}
 
 	/**
