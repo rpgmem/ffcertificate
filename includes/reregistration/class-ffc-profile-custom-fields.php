@@ -252,14 +252,13 @@ final class ProfileCustomFields {
 		if ( '' === $text || null === $kind ) {
 			return $text;
 		}
-		$digits = preg_replace( '/\D/', '', $text ) ?? '';
-		if ( 11 === strlen( $digits ) && ( DocumentFormatter::MASK_CPF === $kind || DocumentFormatter::MASK_CIN === $kind ) ) {
-			return DocumentFormatter::format_cpf( $digits );
+		// The formatters return the bare digits for a value off their shape,
+		// which is only right when the value had that shape.
+		$formatted = DocumentFormatter::MASK_RF === $kind ? DocumentFormatter::format_rf( $text ) : '';
+		if ( DocumentFormatter::MASK_CPF === $kind || DocumentFormatter::MASK_CIN === $kind ) {
+			$formatted = DocumentFormatter::format_cpf( $text );
 		}
-		if ( 7 === strlen( $digits ) && DocumentFormatter::MASK_RF === $kind ) {
-			return DocumentFormatter::format_rf( $digits );
-		}
-		return $text;
+		return str_contains( $formatted, '-' ) ? $formatted : $text;
 	}
 
 	/**
