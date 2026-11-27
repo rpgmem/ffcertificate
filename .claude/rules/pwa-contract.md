@@ -4,6 +4,7 @@ paths:
   - "includes/shortcodes/class-ffc-app-home.php"
   - "includes/shortcodes/class-ffc-app-look.php"
   - "includes/core/class-ffc-public-design.php"
+  - "includes/frontend/class-ffc-frontend.php"
   - "includes/settings/class-ffc-settings-reader.php"
   - "includes/admin/class-ffc-settings-save-handler.php"
   - "assets/js/ffc-dark-mode.js"
@@ -26,6 +27,7 @@ Site PWA (`rpgmem/site-pwa`, epic #2738) turns the site into an installable app,
 | `site_pwa_home` | filter, `( array $home, WP_User $user, int $api )` | `Shortcodes\AppHome` |
 | `site_pwa_lock_required` | filter, `( bool $required, WP_User $user )` | `AudienceAppScreens` |
 | `site_pwa_app_url` | filter, `( string $url )` | `Shortcodes\AgendaAppScreen`, `Frontend\VerificationHandler` (for the app's Certificates screen) |
+| `site_pwa_post_actions` | filter, `( bool $show, WP_Post $post )` | `Frontend\Frontend` (off under the verification page, #2952) |
 | `site_pwa_identity_sources` | filter, `( array $sources )` | `Shortcodes\AppLook` |
 | `site_pwa_scheme_sources` | filter, `( array $sources )` | `AppLook` |
 | `site_pwa_dark_root_classes` | filter, `( array $classes )` | `AppLook` |

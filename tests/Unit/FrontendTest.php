@@ -689,6 +689,24 @@ class FrontendTest extends TestCase {
 		$this->assertArrayNotHasKey( 'noindex', $result );
 	}
 
+	public function test_the_app_draws_no_share_actions_under_the_verification_page(): void {
+		$page               = Mockery::mock( 'WP_Post' );
+		$page->ID           = 55;
+		$page->post_content = 'No shortcode here.';
+		$other               = Mockery::mock( 'WP_Post' );
+		$other->ID           = 10;
+		$other->post_content = 'Just a regular page.';
+
+		Functions\when( 'get_option' )->justReturn( 55 );
+		Functions\when( 'has_shortcode' )->justReturn( false );
+
+		$frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+
+		$this->assertFalse( $frontend->app_post_actions( true, $page ) );
+		$this->assertTrue( $frontend->app_post_actions( true, $other ) );
+		$this->assertFalse( $frontend->app_post_actions( false, $other ), 'Another plugin turning them off wins.' );
+	}
+
 	/**
 	 * The public CSV download runs the browser check too (#2030): its
 	 * script waits for the pre-flight and receives the same switch and
