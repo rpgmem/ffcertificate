@@ -319,6 +319,47 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 	}
 
 	/**
+	 * Whether a person's app lists a form (#2893): the deny list and the
+	 * allow list, as the terminal applies them, judged on the person's
+	 * CPF/RF. The ticket and the password are left out, since the person
+	 * brings the first and the terminal stands for the second. A form that
+	 * checks no list is listed for anyone signed in, like an open event.
+	 *
+	 * @param int    $form_id Form id.
+	 * @param string $cpf_rf  The person's CPF/RF, digits only, or ''.
+	 * @return bool
+	 */
+	public static function lists_person( int $form_id, string $cpf_rf ): bool {
+		$config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$config = is_array( $config ) ? $config : array();
+		$checks = isset( $config['restrictions'] ) && is_array( $config['restrictions'] ) ? $config['restrictions'] : array();
+		unset( $checks['password'], $checks['ticket'] );
+		if ( self::WHO_ALLOWLIST === self::settings( $form_id )['who'] ) {
+			$checks['allowlist'] = '1';
+		}
+		$lists = ( isset( $checks['allowlist'] ) && '1' === (string) $checks['allowlist'] ) || ( isset( $checks['denylist'] ) && '1' === (string) $checks['denylist'] );
+		if ( ! $lists ) {
+			return true;
+		}
+		if ( '' === $cpf_rf ) {
+			return false;
+		}
+		$config['restrictions'] = $checks;
+		$verdict                = AccessRestrictionChecker::check( $config, $cpf_rf, '', $form_id, '' );
+		return ! empty( $verdict['allowed'] );
+	}
+
+	/**
+	 * Whether a form asks for a ticket code at the terminal (#2893).
+	 *
+	 * @param int $form_id Form id.
+	 * @return bool
+	 */
+	public static function asks_ticket( int $form_id ): bool {
+		return self::takes_ticket( self::restrictions( $form_id ) );
+	}
+
+	/**
 	 * The GPS locations a form's geolocation names, when its GPS area reads
 	 * from Settings → Geolocation.
 	 *

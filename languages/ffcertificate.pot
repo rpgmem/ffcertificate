@@ -35635,7 +35635,7 @@ msgstr ""
 msgid "This presence code was not made by the phone it names."
 msgstr ""
 
-msgid "You have no event in the next 7 days. Open this screen while online to update the list."
+msgid "You have no event or certificate in the next 7 days. Open this screen while online to update the list."
 msgstr ""
 
 msgid "Your presence code. Hold it up to the terminal's reader."
@@ -37599,4 +37599,13 @@ msgid "Ticket not accepted"
 msgstr ""
 
 msgid "Type the code of the ticket you received, then show your phone's QR code."
+msgstr ""
+
+msgid "Event or certificate"
+msgstr ""
+
+msgid "Have your ticket code ready: the terminal asks for it before the QR."
+msgstr ""
+
+msgid "In the app, the form shows under Presence for everyone the terminal would accept, over the same 7 days, with the code ready for its day; a form that checks a deny or allow list shows only to whom it lets in, and one whose certificate was already issued shows as recorded. A form with a ticket says to have the code ready."
 msgstr ""

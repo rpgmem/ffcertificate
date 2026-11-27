@@ -57,6 +57,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A terminal can follow a GPS location.** Paired to a location, it holds the location's events and certificate forms, today or later within 7 days; an item created later joins when it asks for its schedule, and overlapping items show one at a time (#2900).
 - **A certificate form's terminal readings.** View readings, in the form's Terminal tab, lists what the terminals read: counts, offline terminals holding readings, a search by person and a result filter, with the RF masked behind the audited Reveal. The new `ffc_checkin_certificates` capability gates it (#2892).
 - **Terminal: certificate results and the ticket before the QR.** A certificate form's reading now shows certificate issued, already issued, attendance recorded with data missing (amber, terminal free for the next person) or the refusal, and a form with a ticket asks for its code first and keeps it for 60 s, so the QR read after it is still fresh (#2893).
+- **Certificate forms in the app's Presence.** A form the terminal reads now lists under Presence for everyone it would accept, with its code ready on its day, marked recorded once issued and with a note when it asks for a ticket; the app keys its choice by type and id (#2893).
 
 ### Changed
 

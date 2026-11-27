@@ -65,6 +65,7 @@ function markup() {
 				<p data-ffc-presence-part="when"></p>
 				<div data-ffc-presence-part="picker" hidden><select data-ffc-presence-part="event"></select></div>
 				<p data-ffc-presence-part="attendance" hidden></p>
+				<p data-ffc-presence-part="needs-ticket" hidden></p>
 				<p data-ffc-presence-part="empty" hidden></p>
 				<p data-ffc-presence-part="upcoming" hidden></p>
 				<div data-ffc-presence-part="card"><div data-ffc-presence-part="qr"></div></div>
@@ -477,7 +478,7 @@ describe('presence app screen', () => {
 		const [app] = boot(memoryStore(state), vi.fn(() => Promise.reject(new Error('offline'))));
 		await settle();
 		const holder = el.querySelector('[data-ffc-presence-part="qr"]');
-		expect(app.drawn).toBe('42@' + (NOW - (NOW % 15)));
+		expect(app.drawn).toBe('audience_booking:42@' + (NOW - (NOW % 15)));
 		expect(el.querySelector('[data-ffc-presence-part="countdown"]').textContent.split(' · ')[0]).toBe('next ' + (15 - (NOW % 15)));
 		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('value')).toBe(String(15 - (NOW % 15)), 'the bar drains with the rotation');
 		expect(el.querySelector('[data-ffc-presence-part="progress"]').getAttribute('max')).toBe('15');
@@ -490,12 +491,41 @@ describe('presence app screen', () => {
 		expect(await app.draw()).toMatch(/^FFP1/);
 
 		const select = el.querySelector('[data-ffc-presence-part="event"]');
-		select.value = '43';
+		select.value = 'audience_booking:43';
 		select.dispatchEvent(new Event('change'));
 		await settle();
-		expect(app.state.chosen).toBe('43');
+		expect(app.state.chosen).toBe('audience_booking:43');
 		expect(el.querySelector('[data-ffc-presence-part="title"]').textContent).toBe(app.current().title || '', 'the heading follows the chosen event');
-		expect(app.drawn.startsWith('43@')).toBe(true);
+		expect(app.drawn.startsWith('audience_booking:43@')).toBe(true);
+		app.stop();
+	});
+
+	it('lists a certificate form beside a booking of the same id, and says when it asks for a ticket (#2893)', async () => {
+		const form = { target_type: 'certificate_form', target_id: 42, title: 'Seminar', date: '16/01', time: '09:00–12:00', ticket: 'AQ', needs_ticket: true };
+		const { state } = await deviceState({ events: [EVENTS[0], form], chosen: '43' });
+		const el = markup();
+		const [app] = boot(memoryStore(state), vi.fn(() => Promise.reject(new Error('offline'))));
+		await settle();
+		const select = el.querySelector('[data-ffc-presence-part="event"]');
+		expect(Array.from(select.options).map((o) => o.value)).toEqual(['audience_booking:42', 'certificate_form:42']);
+		expect(el.querySelector('[data-ffc-presence-part="needs-ticket"]').hidden).toBe(true, 'the booking asks for no ticket');
+
+		select.value = 'certificate_form:42';
+		select.dispatchEvent(new Event('change'));
+		await settle();
+		expect(app.current()).toBe(form);
+		expect(el.querySelector('[data-ffc-presence-part="title"]').textContent).toBe('Seminar');
+		expect(el.querySelector('[data-ffc-presence-part="needs-ticket"]').hidden).toBe(false);
+		expect(app.drawn.startsWith('certificate_form:42@')).toBe(true);
+		app.stop();
+	});
+
+	it('keeps a booking chosen before items carried their type', async () => {
+		const { state } = await deviceState({ chosen: '43' });
+		markup();
+		const [app] = boot(memoryStore(state), vi.fn(() => Promise.reject(new Error('offline'))));
+		await settle();
+		expect(app.current().target_id).toBe(43);
 		app.stop();
 	});
 
@@ -651,7 +681,7 @@ describe('presence app attendance (#2749)', () => {
 		expect(app.offset).toBe(40500, 'the middle of the site\'s second, against the middle of the round trip');
 		expect(store.data.get('device').clockOffset).toBe(40500);
 		const site15 = NOW + 40;
-		expect(app.drawn).toBe('42@' + (site15 - (site15 % 15)));
+		expect(app.drawn).toBe('audience_booking:42@' + (site15 - (site15 % 15)));
 		app.stop();
 	});
 
@@ -685,7 +715,7 @@ describe('presence app attendance (#2749)', () => {
 		expect(attendance.textContent).toBe('Present: 2 of 3 days');
 
 		const select = el.querySelector('[data-ffc-presence-part="event"]');
-		select.value = '43';
+		select.value = 'audience_booking:43';
 		select.dispatchEvent(new Event('change'));
 		await settle();
 		expect(attendance.hidden).toBe(true);
@@ -808,8 +838,8 @@ describe('presence app: the code on the event day only (#2842)', () => {
 			event(44, [day(1)]),
 		]);
 		expect(app.timer).not.toBeNull();
-		expect(app.drawn.startsWith('42@')).toBe(true);
-		expect(Array.from(el.querySelectorAll('option')).map((o) => o.value)).toEqual(['42', '43']);
+		expect(app.drawn.startsWith('audience_booking:42@')).toBe(true);
+		expect(Array.from(el.querySelectorAll('option')).map((o) => o.value)).toEqual(['audience_booking:42', 'audience_booking:43']);
 		expect(part(el, 'picker').hidden).toBe(false);
 		expect(part(el, 'also').textContent).toBe('Also: Event 41');
 		expect(part(el, 'recorded').hidden).toBe(true);
@@ -882,7 +912,7 @@ describe('presence app: the code on the event day only (#2842)', () => {
 		const old = { target_type: 'audience_booking', target_id: 43, title: 'Old', ticket: '', first_date: day(2) };
 		const { el, app } = await start([old, kept]);
 		expect(app.current().target_id).toBe(42);
-		expect(Array.from(el.querySelectorAll('option')).map((o) => o.value)).toEqual(['42']);
+		expect(Array.from(el.querySelectorAll('option')).map((o) => o.value)).toEqual(['audience_booking:42']);
 		app.stop();
 	});
 });

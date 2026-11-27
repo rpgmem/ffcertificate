@@ -14,6 +14,8 @@ namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\SigningKeys;
+use FreeFormCertificate\Frontend\CertificateFormTarget;
+use FreeFormCertificate\Frontend\CertificateTerminalReadingRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-type PresencePending array{type: string, key: string, title: string, text: string, detail: string, url?: string, closes?: string}
  * @phpstan-type PresenceDay array{date: string, label: string}
  * @phpstan-type PresenceRecorded array{date: string, time: string}
- * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, days: list<PresenceDay>, recorded: list<PresenceRecorded>, expires: int, ticket: string, attendance: string}
+ * @phpstan-type PresenceEvent array{target_type: string, target_id: int, title: string, place: string, date: string, time: string, first_date: string, last_date: string, days: list<PresenceDay>, recorded: list<PresenceRecorded>, expires: int, ticket: string, attendance: string, needs_ticket?: bool}
  */
 final class AudiencePresenceEvents {
 
@@ -90,11 +92,79 @@ final class AudiencePresenceEvents {
 			$event['recorded']   = self::recorded( $lines );
 			$events[]            = $event;
 		}
+		foreach ( self::certificate_forms( $user_id, $now ) as $form ) {
+			$events[] = $form;
+		}
 		usort(
 			$events,
 			static fn( array $a, array $b ): int => array( $a['first_date'], $a['target_id'] ) <=> array( $b['first_date'], $b['target_id'] )
 		);
 		return $events;
+	}
+
+	/**
+	 * The certificate forms a terminal reads that the person may present
+	 * (#2893): open over the same horizon, with the terminal on, and passing
+	 * the form's deny and allow lists. A form needs no enrolment, so without
+	 * this the app had no code to show for it. A form whose certificate the
+	 * terminal already issued to the person lists it as recorded, so the app
+	 * shows the line instead of a code that has nothing left to do.
+	 *
+	 * @param int $user_id User.
+	 * @param int $now     Unix time.
+	 * @return list<PresenceEvent>
+	 */
+	public static function certificate_forms( int $user_id, int $now ): array {
+		$offered = CertificateFormTarget::offered( $now, self::DAYS_AHEAD );
+		if ( array() === $offered ) {
+			return array();
+		}
+		$cpf_rf = CertificateFormTarget::person( $user_id )['cpf_rf'];
+		$out    = array();
+		foreach ( $offered as $form ) {
+			if ( ! CertificateFormTarget::lists_person( $form['id'], $cpf_rf ) ) {
+				continue;
+			}
+			$ticket = AudiencePresenceTicket::issue( $user_id, CertificateFormTarget::TYPE, $form['id'], $form['closes'] );
+			if ( null === $ticket ) {
+				continue;
+			}
+			$day      = (string) wp_date( 'Y-m-d', $form['opens'] );
+			$label    = DateFormatter::format_wallclock_date( $day );
+			$label    = '' === $label ? $day : $label;
+			$reading  = CertificateTerminalReadingRepository::for_person( $form['id'], $user_id );
+			$recorded = null !== $reading && CertificateTerminalReadingRepository::ISSUED === $reading['result']
+				? array(
+					array(
+						'date' => $day,
+						'time' => DateFormatter::format_time( $reading['read_at'] ),
+					),
+				)
+				: array();
+			$out[]    = array(
+				'target_type'  => CertificateFormTarget::TYPE,
+				'target_id'    => $form['id'],
+				'title'        => $form['title'],
+				'place'        => '',
+				'date'         => $label,
+				'time'         => DateFormatter::format_time( $form['opens'] ) . '–' . DateFormatter::format_time( $form['closes'] ),
+				'first_date'   => $day,
+				'last_date'    => $day,
+				'days'         => array(
+					array(
+						'date'  => $day,
+						'label' => $label,
+					),
+				),
+				'recorded'     => $recorded,
+				'expires'      => $form['closes'],
+				'ticket'       => SigningKeys::b64( $ticket ),
+				'attendance'   => '',
+				// The terminal asks for the ticket code before the QR.
+				'needs_ticket' => CertificateFormTarget::asks_ticket( $form['id'] ),
+			);
+		}
+		return $out;
 	}
 
 	/**

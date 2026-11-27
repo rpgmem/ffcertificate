@@ -75,11 +75,12 @@ use FreeFormCertificate\Core\Notice;
 				<p class="ffc-presence-when" data-ffc-presence-part="when"></p>
 			</div>
 			<div class="ffc-presence-picker" data-ffc-presence-part="picker" hidden>
-				<label class="ffc-presence-label" for="ffc-presence-event"><?php esc_html_e( 'Event', 'ffcertificate' ); ?></label>
+				<label class="ffc-presence-label" for="ffc-presence-event"><?php esc_html_e( 'Event or certificate', 'ffcertificate' ); ?></label>
 				<select id="ffc-presence-event" class="ffc-presence-event" data-ffc-presence-part="event"></select>
 			</div>
 			<p class="ffc-presence-attendance ffc-icon-checkmark" data-ffc-presence-part="attendance" hidden></p>
-			<p class="ffc-presence-empty" data-ffc-presence-part="empty" hidden><?php esc_html_e( 'You have no event in the next 7 days. Open this screen while online to update the list.', 'ffcertificate' ); ?></p>
+			<p class="ffc-presence-needs-ticket ffc-icon-ticket" data-ffc-presence-part="needs-ticket" hidden><?php esc_html_e( 'Have your ticket code ready: the terminal asks for it before the QR.', 'ffcertificate' ); ?></p>
+			<p class="ffc-presence-empty" data-ffc-presence-part="empty" hidden><?php esc_html_e( 'You have no event or certificate in the next 7 days. Open this screen while online to update the list.', 'ffcertificate' ); ?></p>
 			<p class="ffc-presence-upcoming ffc-icon-calendar" data-ffc-presence-part="upcoming" hidden></p>
 			<div class="ffc-presence-card" data-ffc-presence-part="card">
 				<div class="ffc-presence-qr" data-ffc-presence-part="qr"></div>

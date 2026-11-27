@@ -35714,8 +35714,8 @@ msgstr "Este código de presença é antigo. Mostre o código do celular de novo
 msgid "This presence code was not made by the phone it names."
 msgstr "Este código de presença não foi gerado pelo celular que ele indica."
 
-msgid "You have no event in the next 7 days. Open this screen while online to update the list."
-msgstr "Você não tem evento nos próximos 7 dias. Abra esta tela com internet para atualizar a lista."
+msgid "You have no event or certificate in the next 7 days. Open this screen while online to update the list."
+msgstr "Você não tem evento nem certificado nos próximos 7 dias. Abra esta tela com internet para atualizar a lista."
 
 msgid "Your presence code. Hold it up to the terminal's reader."
 msgstr "O seu código de presença. Aproxime-o do leitor do terminal."
@@ -37678,3 +37678,12 @@ msgstr "Ingresso não aceito"
 
 msgid "Type the code of the ticket you received, then show your phone's QR code."
 msgstr "Digite o código do ingresso que você recebeu e depois mostre o QR do seu celular."
+
+msgid "Event or certificate"
+msgstr "Evento ou certificado"
+
+msgid "Have your ticket code ready: the terminal asks for it before the QR."
+msgstr "Tenha o código do seu ingresso em mãos: o terminal pede antes do QR."
+
+msgid "In the app, the form shows under Presence for everyone the terminal would accept, over the same 7 days, with the code ready for its day; a form that checks a deny or allow list shows only to whom it lets in, and one whose certificate was already issued shows as recorded. A form with a ticket says to have the code ready."
+msgstr "No app, o formulário aparece em Presença para todos que o terminal aceitaria, nos mesmos 7 dias, com o código pronto para o seu dia; um formulário que confere lista de bloqueados ou de permitidos aparece só para quem ele deixa entrar, e um cujo certificado já foi emitido aparece como registrado. Um formulário com ingresso avisa para ter o código em mãos."

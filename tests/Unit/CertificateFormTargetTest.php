@@ -199,6 +199,67 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertTrue( $this->target()->terminal_entry( self::FORM, $window, self::NOW )['ticket'], 'the terminal asks for the ticket before the QR (#2893)' );
 	}
 
+	public function test_the_app_lists_a_form_for_everyone_unless_a_list_leaves_the_person_out(): void {
+		$this->assertTrue( CertificateFormTarget::lists_person( self::FORM, self::CPF ), 'no list: like an open event' );
+		$this->assertTrue( CertificateFormTarget::lists_person( self::FORM, '' ), 'no list needs no CPF/RF' );
+
+		$this->meta[ self::FORM ]['_ffc_form_config'][ CertificateFormTarget::CONFIG_KEY ]['who'] = CertificateFormTarget::WHO_ALLOWLIST;
+		$this->meta[ self::FORM ]['_ffc_form_config']['allowed_users_list']                       = self::CPF;
+		$this->assertTrue( CertificateFormTarget::lists_person( self::FORM, self::CPF ), 'on the allow list' );
+		$this->assertFalse( CertificateFormTarget::lists_person( self::FORM, '12345678909' ), 'off the allow list' );
+		$this->assertFalse( CertificateFormTarget::lists_person( self::FORM, '' ), 'a list needs the CPF/RF' );
+
+		$this->meta[ self::FORM ]['_ffc_form_config'][ CertificateFormTarget::CONFIG_KEY ]['who'] = CertificateFormTarget::WHO_ANY;
+		$this->meta[ self::FORM ]['_ffc_form_config']['restrictions']                             = array( 'denylist' => '1', 'ticket' => '1', 'password' => '1' );
+		$this->meta[ self::FORM ]['_ffc_form_config']['denied_users_list']                        = self::CPF;
+		$this->assertFalse( CertificateFormTarget::lists_person( self::FORM, self::CPF ), 'on the deny list' );
+		$this->assertTrue( CertificateFormTarget::lists_person( self::FORM, '12345678909' ), 'the ticket and the password never hide a form' );
+		$this->assertTrue( CertificateFormTarget::asks_ticket( self::FORM ) );
+	}
+
+	public function test_the_presence_list_carries_the_form_with_a_ticket_and_marks_a_certificate_issued(): void {
+		$options = array( 'ffc_settings' => array( 'time_format' => 'H:i', 'date_format' => 'Y-m-d' ) );
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( &$options ) {
+				return array_key_exists( $key, $options ) ? $options[ $key ] : $default;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$options ) {
+				$options[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'add_option' )->alias(
+			static function ( $key, $value ) use ( &$options ) {
+				$options[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'get_posts' )->justReturn( array( self::FORM ) );
+		$this->meta[ self::FORM ]['_ffc_form_config']['restrictions'] = array( 'ticket' => '1' );
+
+		$forms = \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW );
+		$this->assertCount( 1, $forms );
+		$this->assertSame( CertificateFormTarget::TYPE, $forms[0]['target_type'] );
+		$this->assertSame( self::FORM, $forms[0]['target_id'] );
+		$this->assertSame( '2027-01-15', $forms[0]['first_date'] );
+		$this->assertSame( array( array( 'date' => '2027-01-15', 'label' => '2027-01-15' ) ), $forms[0]['days'] );
+		$this->assertSame( '09:00–12:00', $forms[0]['time'] );
+		$this->assertSame( gmmktime( 12, 0, 0, 1, 15, 2027 ), $forms[0]['expires'] );
+		$this->assertTrue( $forms[0]['needs_ticket'] );
+		$this->assertSame( array(), $forms[0]['recorded'] );
+		$ticket = \FreeFormCertificate\Audience\AudiencePresenceTicket::verify( \FreeFormCertificate\Core\SigningKeys::unb64( $forms[0]['ticket'] ), self::NOW );
+		$this->assertSame( array( CertificateFormTarget::TYPE, self::FORM, self::USER ), array( $ticket['target_type'], $ticket['target_id'], $ticket['user_id'] ), 'the ticket names this form and this person' );
+
+		$this->db->rows[] = array( 'id' => 1, 'form_id' => self::FORM, 'user_id' => self::USER, 'terminal_id' => 3, 'read_at' => gmmktime( 9, 30, 0, 1, 15, 2027 ), 'result' => 'issued', 'reason' => '', 'missing' => null, 'submission_id' => 9, 'updated_at' => self::NOW );
+		$again = \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW );
+		$this->assertSame( array( array( 'date' => '2027-01-15', 'time' => '09:30' ) ), $again[0]['recorded'], 'issued: the app shows the line, not a code' );
+
+		$this->meta[ self::FORM ]['_ffc_form_config'][ CertificateFormTarget::CONFIG_KEY ]['who'] = CertificateFormTarget::WHO_ALLOWLIST;
+		$this->assertSame( array(), \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW ), 'off the allow list: not listed' );
+	}
+
 	public function test_attendance_by_hand_writes_nothing(): void {
 		$this->assertSame( 'failed', $this->target()->record( self::FORM, self::USER, self::NOW, 'manual', 5 ) );
 	}
