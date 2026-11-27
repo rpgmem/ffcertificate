@@ -684,7 +684,17 @@ final class AudienceTerminalPage {
 						'summary'       => __( '%1$d of %2$d events', 'ffcertificate' ),
 						'max'           => AudienceTerminalPairing::MAX_BOOKINGS,
 					),
+					/* translators: 1: the ticket code typed, 2: seconds left to show the QR */
+					'ticketHeld'      => __( 'Ticket %1$s · show your QR within %2$d s', 'ffcertificate' ),
+					'ticketEmpty'     => __( 'Type the code of your ticket.', 'ffcertificate' ),
+					'ticketFirst'     => __( 'This form asks for a ticket. Type its code first, then show your QR.', 'ffcertificate' ),
 					'titles'          => array(
+						'ffc_terminal_issued'              => __( 'Certificate issued', 'ffcertificate' ),
+						'ffc_terminal_already_issued'      => __( 'Certificate already issued', 'ffcertificate' ),
+						'ffc_terminal_awaiting_data'       => __( 'Attendance recorded', 'ffcertificate' ),
+						'ffc_terminal_ticket_required'     => __( 'Ticket needed', 'ffcertificate' ),
+						'ffc_terminal_ticket_refused'      => __( 'Ticket not accepted', 'ffcertificate' ),
+						'ffc_terminal_ticket_offline'      => __( 'Ticket needs the connection', 'ffcertificate' ),
 						'ffc_terminal_not_today'           => __( 'No check-in today', 'ffcertificate' ),
 						'ffc_terminal_path_off'            => __( 'No terminal check-in', 'ffcertificate' ),
 						'ffc_terminal_window_not_open'     => __( 'Check-in not open yet', 'ffcertificate' ),

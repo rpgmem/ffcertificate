@@ -78,7 +78,15 @@ const CONFIG = {
 			overlap: 'Crosses %1$s, at %2$s', chooseLocation: 'choose a place',
 		},
 		queueEdit: { follows: 'follows %s', now: 'Now', remove: 'Remove', confirmRemove: 'Tap again', add: 'Add', full: 'Full', saved: 'Updated.', summary: '%1$d of %2$d events', max: 10 },
-		titles: { ffc_terminal_other_event: 'Other event', ffc_presence_code_revoked: 'Phone replaced' },
+		titles: {
+			ffc_terminal_other_event: 'Other event', ffc_presence_code_revoked: 'Phone replaced',
+			ffc_terminal_issued: 'Certificate issued', ffc_terminal_already_issued: 'Certificate already issued',
+			ffc_terminal_awaiting_data: 'Attendance recorded', ffc_terminal_ticket_refused: 'Ticket not accepted',
+			ffc_terminal_ticket_required: 'Ticket first',
+		},
+		ticketHeld: 'Ticket %1$s · %2$d s',
+		ticketEmpty: 'type the ticket',
+		ticketFirst: 'type the ticket, then show the QR',
 		wakeUnsupported: 'cannot keep the screen on',
 		wakeRefused: 'screen on refused',
 		check: {
@@ -146,6 +154,7 @@ function markup() {
 					<div data-ffc-terminal-part="art"></div>
 					<h2 data-ffc-terminal-part="ready-title"></h2>
 					<p data-ffc-terminal-part="ready-lead"></p>
+					<div data-ffc-terminal-part="ticket-held" hidden><p data-ffc-terminal-part="ticket-held-text"></p><button type="button" data-ffc-terminal-part="ticket-cancel">Another ticket</button></div>
 					<ul data-ffc-terminal-part="camera-tips" hidden></ul>
 					<div data-ffc-terminal-part="camera" hidden>
 						<p data-ffc-terminal-part="camera-note"></p>
@@ -153,6 +162,14 @@ function markup() {
 						<button type="button" data-ffc-terminal-part="camera-stop" hidden>Stop</button>
 					</div>
 				</div>
+			</section>
+			<section data-ffc-terminal-view="ticket" hidden>
+				<form data-ffc-terminal-part="ticket-form">
+					<input data-ffc-terminal-part="ticket-code">
+					<p data-ffc-terminal-part="ticket-error" hidden></p>
+					<button type="submit">Confirm</button>
+					<button type="button" data-ffc-terminal-part="ticket-clear">Clear</button>
+				</form>
 			</section>
 			<section data-ffc-terminal-view="between" hidden>
 				<h2 data-ffc-terminal-part="next-title"></h2>
@@ -1949,5 +1966,129 @@ describe('offline shell (#2783)', () => {
 		expect(await T().registerShell({ worker: '/terminal/sw.js' }, { serviceWorker: container, secure: true, assets })).toBe(false);
 		const inactive = { register: () => Promise.resolve({}), ready: Promise.resolve({ active: null }) };
 		expect(await T().registerShell({ worker: '/terminal/sw.js' }, { serviceWorker: inactive, secure: true, assets })).toBe(false);
+	});
+});
+
+describe('certificate forms (#2893)', () => {
+	let el;
+	const FORM = { target: 'certificate_form:12', booking_id: 'certificate_form:12', title: 'Seminar', place: '', opens: NOW - 600, closes: NOW + 1200, closes_label: '10:20', open: true, present: 0, enrolled: 0, ticket: false };
+	const lines = (name) => Array.from(el.querySelectorAll('[data-ffc-terminal-part="' + name + '"] p')).map((p) => p.textContent);
+
+	function paired(schedule, answer) {
+		el = markup();
+		const calls = [];
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, label: 'Entrance A', bookings: ['certificate_form:12'], schedule, expires_at: NOW + 86400, expires_label: 'later' }) }),
+			online: () => true,
+			fetch: (url, options) => {
+				const path = url.replace(CONFIG.rest, '');
+				calls.push([options.method, path, options.body ? JSON.parse(options.body) : null]);
+				return 'readings' === path && answer ? respond(200, answer)() : Promise.reject(new Error('offline'));
+			},
+		});
+		const controls = T().start(el, CONFIG, e);
+		return { e, calls, controls };
+	}
+
+	const submit = async (form, value) => {
+		el.querySelector('[data-ffc-terminal-part="' + ('reading' === form ? 'reading' : 'ticket-code') + '"]').value = value;
+		el.querySelector('[data-ffc-terminal-part="' + form + '-form"]').dispatchEvent(new window.Event('submit', { cancelable: true }));
+		await settle();
+	};
+
+	it('names an issued certificate with the server\'s own detail, in green', async () => {
+		paired([FORM], { status: 'recorded', code: 'ffc_terminal_issued', message: 'Certificate issued. It is in the app.', name: 'Maria S.', time: '10:02' });
+		expect(visible(el)).toEqual(['ready']);
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-ok')).toEqual(['Certificate issued', 'Maria S.', '10:02 · Certificate issued. It is in the app.']);
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('ok');
+	});
+
+	it('shows a certificate already issued in blue, and missing data in the warm tone, never as a refusal', async () => {
+		paired([FORM], { status: 'already', code: 'ffc_terminal_already_issued', message: 'You already have it.', name: 'Maria S.' });
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-ok')[0]).toBe('Certificate already issued');
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('saved');
+
+		paired([FORM], { status: 'pending', code: 'ffc_terminal_awaiting_data', message: 'Finish it on your phone: the terminal is free.', name: 'João P.' });
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-ok')[0]).toBe('Attendance recorded');
+		expect(lines('result-ok')[1]).toBe('João P.');
+		expect(lines('result-ok')[2]).toContain('the terminal is free');
+		expect(lines('result-refused')).toEqual([]);
+		expect(el.getAttribute('data-ffc-terminal-tone')).toBe('warning');
+	});
+
+	it('asks for the ticket before the QR, and sends both together', async () => {
+		const { calls } = paired([{ ...FORM, ticket: true }], { status: 'recorded', code: 'ffc_terminal_issued', message: 'Issued.', name: 'Maria S.' });
+		expect(visible(el)).toEqual(['ticket']);
+		expect(document.activeElement).toBe(el.querySelector('[data-ffc-terminal-part="ticket-code"]'));
+		expect(el.querySelector('[data-ffc-terminal-part="foot"]').hidden).toBe(false);
+
+		await submit('ticket', ' ');
+		expect(el.querySelector('[data-ffc-terminal-part="ticket-error"]').textContent).toBe('type the ticket');
+		expect(visible(el)).toEqual(['ticket']);
+
+		await submit('ticket', 'tk-48');
+		expect(visible(el)).toEqual(['ready']);
+		expect(el.querySelector('[data-ffc-terminal-part="ticket-held"]').hidden).toBe(false);
+		expect(el.querySelector('[data-ffc-terminal-part="ticket-held-text"]').textContent).toBe('Ticket TK-48 · 60 s');
+
+		await submit('reading', 'FFP1ABC');
+		expect(calls.find((c) => 'readings' === c[1])[2]).toEqual({ code: 'FFP1ABC', ticket_code: 'TK-48' });
+		expect(lines('result-ok')[0]).toBe('Certificate issued');
+	});
+
+	it('forgets the ticket after a result, so the next person types their own', async () => {
+		const { e } = paired([{ ...FORM, ticket: true }], { status: 'refused', code: 'ffc_terminal_ticket_refused', message: 'This ticket was already used.', name: '' });
+		await submit('ticket', 'TK-48');
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-refused').slice(0, 2)).toEqual(['Ticket not accepted', 'This ticket was already used.']);
+		const [back] = e.timeouts.find((t) => 5000 === t[1]);
+		back();
+		expect(visible(el)).toEqual(['ticket']);
+	});
+
+	it('goes back to the ticket screen when no QR follows within a minute, and on Another ticket', async () => {
+		const { e } = paired([{ ...FORM, ticket: true }], null);
+		await submit('ticket', 'TK-48');
+		const [expire] = e.timeouts.find((t) => 60000 === t[1]);
+		expire();
+		expect(visible(el)).toEqual(['ticket']);
+
+		await submit('ticket', 'TK-49');
+		el.querySelector('[data-ffc-terminal-part="ticket-cancel"]').click();
+		expect(visible(el)).toEqual(['ticket']);
+	});
+
+	it('refuses a QR read on the ticket screen and sends nothing', async () => {
+		const { calls } = paired([{ ...FORM, ticket: true }], null);
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-refused').slice(0, 2)).toEqual(['Ticket first', 'type the ticket, then show the QR']);
+		expect(calls.some((c) => 'readings' === c[1])).toBe(false);
+	});
+
+	it('keeps no ticket once the item has closed', async () => {
+		const { e } = paired([{ ...FORM, ticket: true }], null);
+		e.clock.now = (FORM.closes + 1) * 1000;
+		await submit('ticket', 'TK-48');
+		expect(el.querySelector('[data-ffc-terminal-part="ticket-held"]').hidden).toBe(true);
+		expect(el.querySelector('[data-ffc-terminal-part="ticket-held-text"]').textContent).toBe('');
+	});
+
+	it('draws a result with no name, and a refusal with no message or title of its own', async () => {
+		paired([FORM], { status: 'recorded', code: 'ffc_terminal_recorded', message: '', name: '' });
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-ok')[0]).toBe('Recorded');
+		expect(lines('result-ok')).toHaveLength(2, 'no name line');
+
+		paired([FORM], { status: 'refused', code: 'ffc_terminal_unknown' });
+		await submit('reading', 'FFP1ABC');
+		expect(lines('result-refused')).toEqual(['Refused', 'failed', 'ask the team']);
+	});
+
+	it('reads the QR alone for an event or a form without a ticket', () => {
+		paired([{ ...FORM, ticket: false }], null);
+		expect(visible(el)).toEqual(['ready']);
 	});
 });

@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-import-type Verdict from TerminalVerdict
  * @phpstan-type TerminalWindow array{date: string, opens: int, closes: int}
- * @phpstan-type TerminalEntry array{title: string, place: string, hours: string, open: bool, closes: int, present: int, enrolled: int}
+ * @phpstan-type TerminalEntry array{title: string, place: string, hours: string, open: bool, closes: int, present: int, enrolled: int, ticket?: bool}
  * @phpstan-type TerminalReading array{user_id: int, name: string, ticket: bool, at: int, terminal_id: int, queued: bool, ticket_code: string}
  */
 interface TerminalTargetInterface extends AttendanceTargetInterface {

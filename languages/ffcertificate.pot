@@ -37218,7 +37218,7 @@ msgstr ""
 msgid "Who may receive at the terminal"
 msgstr ""
 
-msgid "Any account, or only the people on the Security tab's allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline."
+msgid "Any account, or only the people on the Security tab's allow list. The deny list, the submission limits and the ticket apply to a reading; the password and the GPS area do not, because standing at the terminal proves both. With the ticket on, the terminal asks for the code before the QR and keeps it for 60 seconds, each code once, and pauses reading while it is offline. The result names what happened: certificate issued, already issued, attendance recorded with data still missing (in amber, the terminal free for the next person), or refused with the reason."
 msgstr ""
 
 msgid "From the Security tab, the deny list, the submission limits and the ticket apply to a reading: with the ticket on, the terminal asks for the code after the QR, each code once, and pauses reading while it is offline. The password and the GPS area do not apply: standing at the terminal proves both."
@@ -37575,4 +37575,37 @@ msgid "The export failed. Try again."
 msgstr ""
 
 msgid "Export CSV writes the same list, with the search and the result filter on screen, for any number of readings. The RF comes masked unless the exporter holds ffc_view_certificates_pii; a file with it in clear is recorded in the activity log."
+msgstr ""
+
+msgid "Another ticket"
+msgstr ""
+
+msgid "Certificate already issued"
+msgstr ""
+
+msgid "The ticket is kept for 60 s. If no QR is shown by then, the terminal asks again and nothing is recorded."
+msgstr ""
+
+msgid "This form asks for a ticket"
+msgstr ""
+
+msgid "This form asks for a ticket. Type its code first, then show your QR."
+msgstr ""
+
+msgid "Ticket %1$s · show your QR within %2$d s"
+msgstr ""
+
+msgid "Ticket code"
+msgstr ""
+
+msgid "Ticket needed"
+msgstr ""
+
+msgid "Ticket needs the connection"
+msgstr ""
+
+msgid "Ticket not accepted"
+msgstr ""
+
+msgid "Type the code of the ticket you received, then show your phone's QR code."
 msgstr ""
