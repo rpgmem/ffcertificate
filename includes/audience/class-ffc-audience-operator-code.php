@@ -57,14 +57,37 @@ final class AudienceOperatorCode {
 	public const DOMAIN = "FFC-OPERATOR-UNLOCK\x00";
 
 	/**
-	 * How long a code lives, in seconds.
+	 * The window a code belongs to, in seconds (#2907). Codes expire on the
+	 * site clock's window boundaries (10:30:00, 10:32:00, …), so reopening
+	 * the screen within a window shows the time that window has left
+	 * rather than a fresh full count.
 	 */
 	public const TTL = 120;
+
+	/**
+	 * The least a fresh code may have left, in seconds: below it the code
+	 * of the next window is issued, since the app asks for a new one 20 s
+	 * before expiry and a nearly spent code would be replaced at once.
+	 */
+	public const MIN_LEFT = 30;
 
 	/**
 	 * Clock tolerance on the verifying side, in seconds.
 	 */
 	public const SKEW = 60;
+
+	/**
+	 * When a code issued now expires: the end of the current window, or of
+	 * the next one when this one has under {@see self::MIN_LEFT} left. A
+	 * code therefore lives between MIN_LEFT and TTL + MIN_LEFT seconds.
+	 *
+	 * @param int $now Unix time.
+	 * @return int Unix time.
+	 */
+	public static function expiry( int $now ): int {
+		$end = ( intdiv( $now, self::TTL ) + 1 ) * self::TTL;
+		return $end - $now < self::MIN_LEFT ? $end + self::TTL : $end;
+	}
 
 	/**
 	 * Sign a code for an operator.
@@ -77,7 +100,7 @@ final class AudienceOperatorCode {
 		if ( $user_id <= 0 ) {
 			return null;
 		}
-		$expires  = $now + self::TTL;
+		$expires  = self::expiry( $now );
 		$site_key = AudiencePresenceKeys::ensure_active();
 		if ( '' === $site_key ) {
 			return null;

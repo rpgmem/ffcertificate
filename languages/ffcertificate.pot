@@ -35759,7 +35759,7 @@ msgstr ""
 msgid "A terminal holds at most %d events."
 msgstr ""
 
-msgid "An operator QR code, signed by the site and valid for two minutes, unlocks a paired terminal's menu. Anyone who runs check-ins can show one; it pairs nothing."
+msgid "An operator QR code, signed by the site, unlocks a paired terminal's menu. It lives in two-minute windows of the site's clock (10:30, 10:32, …): opened at 10:30:30 it counts down from 1:30, reopening the screen keeps the same count, and with under 30 seconds left the next window's code is shown. Anyone who runs check-ins can show one; it pairs nothing."
 msgstr ""
 
 
@@ -37359,7 +37359,7 @@ msgstr ""
 msgid "Crosses %1$s: it starts when that one closes, at %2$s."
 msgstr ""
 
-msgid "Each item on the setup screen says whether it is an event or a certificate form, when it runs and where; one whose hours cross an earlier one says it waits for that one to close. A pairing code is still made and spent on the site, so the limits, the activity log and the terminal's attribution to that operator are kept, but no code is ever shown and none can be typed. The operator code lasts two minutes: if it expires before the choice is made, hold a fresh one to the reader and the choices stay. My terminals in the app has Change events on each terminal paired by event, which the terminal picks up within a minute; a terminal paired to a place shows the place it follows instead. During a check-in window the terminal shows only the item it checks in now, and whether its organiser has opened check-in; between windows it shows the next one and when its check-in opens."
+msgid "Each item on the setup screen says whether it is an event or a certificate form, when it runs and where; one whose hours cross an earlier one says it waits for that one to close. A pairing code is still made and spent on the site, so the limits, the activity log and the terminal's attribution to that operator are kept, but no code is ever shown and none can be typed. The operator code lasts until the end of its two-minute window: if it expires before the choice is made, hold a fresh one to the reader and the choices stay. My terminals in the app has Change events on each terminal paired by event, which the terminal picks up within a minute; a terminal paired to a place shows the place it follows instead. During a check-in window the terminal shows only the item it checks in now, and whether its organiser has opened check-in; between windows it shows the next one and when its check-in opens."
 msgstr ""
 
 msgid "Every pairing, refusal and ended terminal is written to the activity log, never with a code or the token. An operator sees the terminals they paired; an administrator sees all of them."
