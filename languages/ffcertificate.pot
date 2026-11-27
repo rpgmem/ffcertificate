@@ -37567,3 +37567,12 @@ msgstr ""
 
 msgid "form open from %1$s to %2$s"
 msgstr ""
+
+msgid "Detail"
+msgstr ""
+
+msgid "The export failed. Try again."
+msgstr ""
+
+msgid "Export CSV writes the same list, with the search and the result filter on screen, for any number of readings. The RF comes masked unless the exporter holds ffc_view_certificates_pii; a file with it in clear is recorded in the activity log."
+msgstr ""
