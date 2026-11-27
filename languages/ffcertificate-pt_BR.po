@@ -37892,3 +37892,30 @@ msgstr "Um print não serve: o código muda a cada dois minutos."
 #. translators: %s: minutes and seconds left, such as 1:59
 msgid "New code in %s"
 msgstr "Novo código em %s"
+
+msgid "In the app on iPhone or iPad: Settings → Privacy & Security → Location Services → Safari Websites → While Using the App."
+msgstr "No app no iPhone ou iPad: Ajustes → Privacidade e Segurança → Serviços de Localização → Sites do Safari → Durante o Uso do App."
+
+msgid "In the app on Android: touch and hold the app's icon → App info → Permissions (or Site settings) → Location → Allow."
+msgstr "No app no Android: toque e segure o ícone do app → Informações do app → Permissões (ou Configurações do site) → Localização → Permitir."
+
+msgid "To read presence codes with this device's camera, tap Use the camera. The browser asks once: choose Allow. A connected reader works without it."
+msgstr "Para ler os códigos de presença com a câmera deste aparelho, toque em Usar a câmera. O navegador pergunta uma vez: escolha Permitir. Um leitor conectado funciona sem ela."
+
+msgid "On iPhone or iPad: tap the \"AA\" button in the address bar → Website Settings → Camera → Allow."
+msgstr "No iPhone ou iPad: toque no botão \"AA\" na barra de endereço → Ajustes do Site → Câmera → Permitir."
+
+msgid "On Android Chrome: tap the padlock in the address bar → Permissions → Camera → Allow."
+msgstr "No Android Chrome: toque no cadeado na barra de endereço → Permissões → Câmera → Permitir."
+
+msgid "On a computer: click the padlock in the address bar → Site settings → Camera → Allow."
+msgstr "No computador: clique no cadeado na barra de endereço → Configurações do site → Câmera → Permitir."
+
+msgid "In the app on iPhone or iPad: Settings → Apps → Safari → Camera → Allow."
+msgstr "No app no iPhone ou iPad: Ajustes → Apps → Safari → Câmera → Permitir."
+
+msgid "In the app on Android: touch and hold the app's icon → App info → Permissions (or Site settings) → Camera → Allow."
+msgstr "No app no Android: toque e segure o ícone do app → Informações do app → Permissões (ou Configurações do site) → Câmera → Permitir."
+
+msgid "The camera starts by itself only once the browser allows it. Until then the terminal says why it wants the camera and waits for Use the camera, so the browser's question comes after a reason; a refused camera shows where to allow it again on that device, in a browser tab or in the installed app."
+msgstr "A câmera só liga sozinha depois que o navegador a permite. Até lá, o terminal diz por que precisa da câmera e espera o toque em Usar a câmera, para que a pergunta do navegador venha depois de um motivo; uma câmera recusada mostra onde permiti-la de novo naquele aparelho, numa aba do navegador ou no app instalado."

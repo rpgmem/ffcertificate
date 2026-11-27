@@ -958,6 +958,9 @@ class Frontend {
 				'gpsDeniedHowIos'           => __( 'On iOS: tap the "AA" button in the address bar → Website Settings → Location → Allow.', 'ffcertificate' ),
 				'gpsDeniedHowAndroid'       => __( 'On Android Chrome: tap the padlock in the address bar → Permissions → Location → Allow.', 'ffcertificate' ),
 				'gpsDeniedHowDesktop'       => __( 'On desktop: click the padlock in the address bar → Site Settings → Location → Allow.', 'ffcertificate' ),
+				// Inside the installed app there is no address bar (#2954).
+				'gpsDeniedHowIosApp'        => __( 'In the app on iPhone or iPad: Settings → Privacy & Security → Location Services → Safari Websites → While Using the App.', 'ffcertificate' ),
+				'gpsDeniedHowAndroidApp'    => __( 'In the app on Android: touch and hold the app\'s icon → App info → Permissions (or Site settings) → Location → Allow.', 'ffcertificate' ),
 				'gpsTryAnyway'              => __( 'Try anyway', 'ffcertificate' ),
 				'gpsPromptTitle'            => __( 'We need your location', 'ffcertificate' ),
 				'gpsPromptBody'             => __( 'This site needs to confirm you are at the venue. After you tap "Continue", your browser will ask for permission.', 'ffcertificate' ),

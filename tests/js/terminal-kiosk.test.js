@@ -1421,9 +1421,11 @@ describe('camera', () => {
 		reading: 'hold it in the frame',
 		insecure: 'needs https',
 		unsupported: 'cannot read qr',
+		ask: 'tap to use the camera',
 		denied: 'not allowed',
 		failed: 'could not start',
 		asleep: 'camera resting',
+		how: { Ios: 'ios tab', Android: 'android tab', Desktop: 'desktop tab', IosApp: 'ios app', AndroidApp: 'android app' },
 	};
 	const config = (camera = true) => ({ ...CONFIG, camera, strings: { ...CONFIG.strings, camera: CAMERA } });
 	const text = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]').textContent;
@@ -1728,13 +1730,63 @@ describe('camera', () => {
 		let c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.reject(denied) } });
 		await c.controls.camera.ready;
 		expect(await c.controls.camera.start()).toBe(false);
-		expect(text('camera-note')).toBe('not allowed');
+		expect(text('camera-note')).toBe('not allowed desktop tab');
 		expect(node('camera-start').disabled).toBe(false);
 
 		c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.reject(new Error('busy')) } });
 		await c.controls.camera.ready;
 		expect(await c.controls.camera.start()).toBe(false);
 		expect(text('camera-note')).toBe('could not start');
+	});
+
+	// The browser asks for the camera only after the note says why (#2954).
+	it('waits for a tap when the camera is not allowed yet, and starts by itself once it is', async () => {
+		let starts = 0;
+		const media = { getUserMedia: () => { starts += 1; return Promise.resolve(stream()); } };
+		const permissions = (state) => ({ query: ({ name }) => Promise.resolve({ state: 'camera' === name ? state : 'denied' }) });
+
+		let c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: media, permissions: permissions('prompt') });
+		await c.controls.camera.ready;
+		await settle();
+		expect(starts).toBe(0);
+		expect(text('camera-note')).toBe('tap to use the camera');
+		expect(node('camera-start').hidden).toBe(false);
+		expect(await c.controls.camera.start()).toBe(true);
+		expect(starts).toBe(1);
+
+		starts = 0;
+		c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: media, permissions: permissions('granted') });
+		await c.controls.camera.ready;
+		await settle();
+		expect(starts).toBe(1);
+		expect(text('camera-note')).toBe('hold it in the frame');
+
+		starts = 0;
+		c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: media, permissions: { query: () => Promise.reject(new TypeError('camera')) } });
+		await c.controls.camera.ready;
+		await settle();
+		expect(starts).toBe(1);
+	});
+
+	it('says where to allow a refused camera on this device, in a tab or in the installed app', async () => {
+		const denied = Object.assign(new Error('no'), { name: 'NotAllowedError' });
+		const android = 'Mozilla/5.0 (Linux; Android 14; Tab) AppleWebKit/537.36 Chrome/120 Safari/537.36';
+		const ipad = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17 Safari/605.1.15';
+
+		let c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.reject(denied) }, permissions: { query: () => Promise.resolve({ state: 'denied' }) }, userAgent: android, standalone: () => true });
+		await c.controls.camera.ready;
+		await settle();
+		expect(text('camera-note')).toBe('not allowed android app');
+
+		c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.reject(denied) }, userAgent: ipad, touchPoints: 5, standalone: () => false });
+		await c.controls.camera.ready;
+		await settle();
+		expect(text('camera-note')).toBe('not allowed ios tab');
+
+		c = paired({ BarcodeDetector: detectorClass(Promise.resolve(['qr_code']), []), mediaDevices: { getUserMedia: () => Promise.reject(denied) }, userAgent: 'Mozilla/5.0 (Windows NT 10.0) Chrome/120', standalone: () => true });
+		await c.controls.camera.ready;
+		await settle();
+		expect(text('camera-note')).toBe('not allowed desktop tab');
 	});
 
 	it('stops the camera when the pairing ends', async () => {

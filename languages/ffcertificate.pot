@@ -37814,3 +37814,30 @@ msgstr ""
 #. translators: %s: minutes and seconds left, such as 1:59
 msgid "New code in %s"
 msgstr ""
+
+msgid "In the app on iPhone or iPad: Settings → Privacy & Security → Location Services → Safari Websites → While Using the App."
+msgstr ""
+
+msgid "In the app on Android: touch and hold the app's icon → App info → Permissions (or Site settings) → Location → Allow."
+msgstr ""
+
+msgid "To read presence codes with this device's camera, tap Use the camera. The browser asks once: choose Allow. A connected reader works without it."
+msgstr ""
+
+msgid "On iPhone or iPad: tap the \"AA\" button in the address bar → Website Settings → Camera → Allow."
+msgstr ""
+
+msgid "On Android Chrome: tap the padlock in the address bar → Permissions → Camera → Allow."
+msgstr ""
+
+msgid "On a computer: click the padlock in the address bar → Site settings → Camera → Allow."
+msgstr ""
+
+msgid "In the app on iPhone or iPad: Settings → Apps → Safari → Camera → Allow."
+msgstr ""
+
+msgid "In the app on Android: touch and hold the app's icon → App info → Permissions (or Site settings) → Camera → Allow."
+msgstr ""
+
+msgid "The camera starts by itself only once the browser allows it. Until then the terminal says why it wants the camera and waits for Use the camera, so the browser's question comes after a reason; a refused camera shows where to allow it again on that device, in a browser tab or in the installed app."
+msgstr ""
