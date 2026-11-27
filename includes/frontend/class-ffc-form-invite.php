@@ -137,7 +137,8 @@ final class FormInvite {
 	 * A completion link (#2944) also carries the CPF/RF the profile holds,
 	 * drawn masked and posted by nobody: {@see Submission\InviteGuard} writes
 	 * the real value. The fields that fill from the profile take what it
-	 * holds and stay editable.
+	 * holds, locked as well; only what the profile cannot answer is left
+	 * open.
 	 *
 	 * @param array<int, array<string, mixed>> $fields Stored fields.
 	 * @param array<string, mixed>             $invite Resolved invite.
@@ -158,18 +159,61 @@ final class FormInvite {
 			}
 		}
 
-		if ( $invite['completion'] ) {
-			$profile = CertificateProfileSource::values( $invite['user_id'], array_values( $fields ) );
-			foreach ( $fields as $i => $field ) {
-				$value = array() === $profile ? null : CertificateProfileSource::value_for( $field, $profile );
-				if ( CertificateProfileSource::CONSENT === CertificateProfileSource::of( $field ) || null === $value ) {
-					continue;
-				}
-				$fields[ $i ]['default_value'] = is_array( $value ) ? (string) reset( $value ) : (string) $value;
+		$held = self::profile_values( $fields, $invite );
+		foreach ( $fields as $i => $field ) {
+			$name = (string) ( $field['name'] ?? '' );
+			if ( isset( $held[ $name ] ) ) {
+				$fields[ $i ]['default_value'] = is_array( $held[ $name ] ) ? (string) reset( $held[ $name ] ) : $held[ $name ];
+				$fields[ $i ]['locked']        = true;
 			}
 		}
 
 		return $fields;
+	}
+
+	/**
+	 * What a completion link's form takes from the profile, by field name.
+	 *
+	 * Only the fields set to fill from the profile, and only those the
+	 * profile answers: what it cannot answer stays for the person to fill.
+	 * The form draws these locked and {@see Submission\InviteGuard} writes
+	 * them again, so the profile is what the certificate carries (#2944).
+	 *
+	 * @param array<int, array<string, mixed>> $fields Stored fields.
+	 * @param array<string, mixed>             $invite Resolved invite.
+	 * @phpstan-param Invite $invite
+	 * @return array<string, string|list<string>>
+	 */
+	public static function profile_values( array $fields, array $invite ): array {
+		if ( ! $invite['completion'] ) {
+			return array();
+		}
+		return self::pick_profile_values( $fields, CertificateProfileSource::values( $invite['user_id'], array_values( $fields ) ) );
+	}
+
+	/**
+	 * The fields a profile answers, by name, from what it holds.
+	 *
+	 * @param array<int, array<string, mixed>> $fields  Stored fields.
+	 * @param array<string, string>            $profile Source => value, from {@see CertificateProfileSource::values()}.
+	 * @return array<string, string|list<string>>
+	 */
+	public static function pick_profile_values( array $fields, array $profile ): array {
+		if ( array() === $profile ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $fields as $field ) {
+			$name = (string) ( $field['name'] ?? '' );
+			if ( '' === $name || CertificateProfileSource::CONSENT === CertificateProfileSource::of( $field ) ) {
+				continue;
+			}
+			$value = CertificateProfileSource::value_for( $field, $profile );
+			if ( null !== $value ) {
+				$out[ $name ] = $value;
+			}
+		}
+		return $out;
 	}
 
 	/**

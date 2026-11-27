@@ -156,6 +156,10 @@ final class FormFieldRenderer {
 						if ( ! $is_checkbox && $is_req ) {
 							echo ' required aria-required="true"';
 						}
+						// A locked choice cannot be readonly; the server writes its value (#2944).
+						if ( ! empty( $field['locked'] ) ) {
+							echo ' disabled';
+						}
 						checked( $default, $choice );
 						?>
 						>
@@ -222,9 +226,11 @@ final class FormFieldRenderer {
 
 		if ( 'select' === $type ) {
 			printf(
-				'<select class="ffc-input"%1$s%2$s>',
+				'<select class="ffc-input"%1$s%2$s%3$s>',
 				$common, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value is escaped while $common is built above.
-				FormField::shuffles( $field ) ? ' data-ffc-shuffle="1"' : ''
+				FormField::shuffles( $field ) ? ' data-ffc-shuffle="1"' : '',
+				// A select ignores readonly: a locked one is disabled and the server writes its value (#2944).
+				! empty( $field['locked'] ) ? ' disabled' : ''
 			);
 			printf( '<option value="">%s</option>', esc_html__( 'Select...', 'ffcertificate' ) );
 			foreach ( FormField::choices( $field ) as $choice ) {

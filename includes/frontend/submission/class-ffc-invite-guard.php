@@ -64,6 +64,11 @@ class InviteGuard {
 			$ctx->submission_data['cpf_rf'] = $invite['cpf_rf'];
 			$ctx->val_cpf                   = $invite['cpf_rf'];
 		}
+		// The fields the profile answers are drawn locked, and the profile is
+		// what is kept: an edited page cannot change them either.
+		foreach ( FormInvite::profile_values( $ctx->fields_config, $invite ) as $name => $value ) {
+			$ctx->submission_data[ $name ] = $value;
+		}
 
 		$ctx->user_email = \FreeFormCertificate\Core\DataSanitizer::normalize_email( $invite['email'] );
 		$ctx->invite     = $invite;

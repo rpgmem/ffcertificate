@@ -177,6 +177,34 @@ class FormInviteTest extends TestCase {
 		$this->assertSame( Identifiers::RF_A, $ctx->val_cpf );
 	}
 
+	public function test_only_what_the_profile_answers_is_taken_and_what_it_lacks_stays_open(): void {
+		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $k ) ) );
+		$fields = array(
+			array( 'name' => 'school', 'type' => 'select', 'options' => 'North, South', 'profile_source' => 'field:escola' ),
+			array( 'name' => 'unit', 'type' => 'text', 'profile_source' => 'field:unidade' ),
+			array( 'name' => 'notes', 'type' => 'text' ),
+		);
+
+		$picked = FormInvite::pick_profile_values( $fields, array( 'field:escola' => 'South' ) );
+
+		$this->assertSame( array( 'school' => 'South' ), $picked, 'the unit the profile lacks and the plain field stay for the person' );
+		$this->assertSame( array(), FormInvite::profile_values( $fields, self::INVITE ), 'only a completion link takes from the profile' );
+	}
+
+	public function test_a_locked_choice_is_disabled_since_readonly_does_nothing_on_it(): void {
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'selected' )->alias( static fn( $a, $b, $echo = true ) => (string) $a === (string) $b ? ' selected' : '' );
+		$field = array( 'name' => 'school', 'label' => 'School', 'type' => 'select', 'options' => 'North, South', 'default_value' => 'South', 'locked' => true );
+
+		$html = ( new \FreeFormCertificate\Frontend\FormFieldRenderer() )->render( $field, 'select' );
+
+		$this->assertMatchesRegularExpression( '/<select[^>]* disabled>/', $html );
+		unset( $field['locked'] );
+		$this->assertDoesNotMatchRegularExpression( '/<select[^>]* disabled>/', ( new \FreeFormCertificate\Frontend\FormFieldRenderer() )->render( $field, 'select' ) );
+	}
+
 	public function test_the_guard_refuses_a_refused_invitation(): void {
 		Filters\expectApplied( FormInvite::FILTER )->andReturn( new \WP_Error( 'identity_taken', 'Not yours.' ) );
 
