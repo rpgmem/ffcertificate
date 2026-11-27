@@ -433,8 +433,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( array( 3, 7, 'certificate_form:5' ), AudienceTerminalRestController::sanitize_targets( array( '3', 7, 'x', -1, 3, 'certificate_form:5', 'certificate_form:0', 'Bad:1' ) ) );
 		$this->assertSame( 'TK-48', AudienceTerminalRestController::sanitize_ticket_code( ' tk-48<> ' ), 'a typed ticket code keeps what a ticket is made of' );
 		$this->assertSame( '', AudienceTerminalRestController::sanitize_ticket_code( array( 'x' ) ) );
-		$this->assertSame( 'P-AB12-CD34script', AudienceTerminalRestController::sanitize_code( 'P-AB12-CD34<script>' ) );
-		$this->assertSame( '', AudienceTerminalRestController::sanitize_code( array( 'P' ) ) );
+		$this->assertSame( '', $shown['location'], 'a terminal paired by event follows no place' );
 	}
 
 	public function test_the_event_list_offers_bookings_still_running_with_their_terminal_count(): void {
@@ -1172,53 +1171,32 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 'Revoked by Account #' . self::OPERATOR, AudienceAdminTerminals::state_text( $terminal, AudienceAdminTerminals::STATE_REVOKED ) );
 	}
 
-	public function test_an_operator_pairs_a_terminal_from_the_admin_and_sees_the_code_once(): void {
+	public function test_the_admin_list_names_the_place_a_terminal_follows_and_offers_no_queue_edit(): void {
+		$this->locate();
+		$paired = $this->paired( array( 11 ), self::DEVICE );
+		$this->tables->terminals[ $paired['terminal_id'] ]['location_id'] = 'loc_a';
+		$this->tables->terminals[ $paired['terminal_id'] ]['expires_at']  = time() + HOUR_IN_SECONDS;
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( self::OPERATOR );
 		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
-		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url, $more = null ) => is_array( $args ) ? $url . '?' . http_build_query( $args ) : $more . '?' . $args . '=' . $url );
 		foreach ( array( 'esc_url', 'esc_attr', 'esc_html', 'esc_html__', 'esc_attr__' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
 		}
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
-		Functions\when( 'checked' )->alias( static fn( $a, $b = true, $echo = true ) => $a === $b ? ' checked="checked"' : '' );
-		Functions\when( 'disabled' )->alias( static fn( $a, $b = true, $echo = true ) => $a === $b ? ' disabled="disabled"' : '' );
-		Functions\when( 'selected' )->alias( static fn( $a, $b = true, $echo = true ) => (string) $a === (string) $b ? ' selected="selected"' : '' );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.com' . $path );
 		$screen = new AudienceAdminTerminals( 'ffc-scheduling' );
-		// The screen pairs at the real clock, so the event is tomorrow by it.
-		$this->booking( 13, gmdate( 'Y-m-d', time() + DAY_IN_SECONDS ) );
 
-		$_GET  = array( 'page' => 'ffc-scheduling-terminals', 'pair' => '1' );
-		$_POST = array(
-			'ffc_action'          => 'terminals_admin',
-			'ffc_terminals_nonce' => 'nonce',
-			'op'                  => 'pair',
-			'bookings'            => array( '13' ),
-			'label'               => 'Front desk',
-			'auto_end'            => '4',
-		);
-		try {
-			$screen->handle_actions();
-			ob_start();
-			$screen->render_page();
-			$html = (string) ob_get_clean();
-		} finally {
-			$_GET  = array();
-			$_POST = array();
-		}
+		ob_start();
+		$screen->render_page();
+		$html = (string) ob_get_clean();
 
-		$pairing = array_values( $this->tables->pairings )[0];
-		$this->assertSame( 4, $pairing['auto_end_hours'] );
-		$this->assertSame( 'Front desk', $pairing['label'] );
-		$this->assertMatchesRegularExpression( '/P-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/', $html, 'the code is shown' );
-		$this->assertStringContainsString( '<svg', $html, 'as a QR' );
-		$this->assertStringContainsString( 'single use', $html );
-		$this->assertStringNotContainsString( 'P-', json_encode( $this->transients ), 'never kept beyond the response' );
+		$this->assertStringContainsString( 'Follows EMEF Paulo Freire', $html );
+		$this->assertStringNotContainsString( 'Edit queue', $html, 'its queue is the place\'s' );
+		$this->assertSame( 'EMEF Paulo Freire', AudienceTerminalRestController::present( AudienceTerminalReader::terminal( $paired['terminal_id'] ) )['location'] );
 	}
 
 	public function test_the_screen_draws_the_cards_the_list_and_the_editor(): void {
@@ -1267,7 +1245,8 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertStringContainsString( '2 refused after revocation', $html, 'readings a revoked terminal took too late (#2802)' );
 		$this->assertStringContainsString( 'later ones are refused, counted here and written to the activity log', $html );
 		$this->assertStringContainsString( 'Presence terminals', $html );
-		$this->assertStringContainsString( 'pair=1', $html, 'Pair terminal in the header' );
+		$this->assertStringNotContainsString( 'pair=1', $html, 'a terminal is paired on the terminal itself, never from here (#2900)' );
+		$this->assertStringNotContainsString( 'Generate pairing code', $html );
 		$this->assertStringContainsString( 'Edit queue', $html );
 		$this->assertStringContainsString( 'Revoke', $html );
 		$this->assertStringContainsString( '>12 · ', $html );

@@ -276,14 +276,13 @@ class AppScreensTest extends TestCase {
 		$this->settings['module_audiences_enabled'] = true;
 		AudienceAppScreens::register( $registry, 1 );
 
-		$this->assertSame( array( 'presence', 'operator-pair', 'operator-terminals', 'operator-qr', 'operator-attendance' ), array_keys( $registry->added ) );
+		$this->assertSame( array( 'presence', 'operator-terminals', 'operator-qr', 'operator-attendance' ), array_keys( $registry->added ), 'a terminal is paired on the terminal itself, so the app has no Pair terminal (#2900)' );
 		$this->assertSame( 'ffc_view_own_audience_bookings', $registry->added['presence']['capability'] );
 		$this->assertSame( 'nav', $registry->added['presence']['place'] );
 		$this->assertSame( 'center', $registry->added['presence']['slot'], 'Presence is raised in the middle of the bar (site-pwa#23)' );
 		$this->assertSame( 'qr', $registry->added['presence']['icon'] );
-		$this->assertArrayNotHasKey( 'slot', $registry->added['operator-pair'], 'only Presence asks for the centre' );
+		$this->assertArrayNotHasKey( 'slot', $registry->added['operator-terminals'], 'only Presence asks for the centre' );
 		$caps = array(
-			'operator-pair'       => 'ffc_app_pair_terminals',
 			'operator-terminals'  => 'ffc_app_pair_terminals',
 			'operator-qr'         => 'ffc_app_checkin_audiences',
 			'operator-attendance' => 'ffc_checkin_audiences',
@@ -295,7 +294,6 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-admin/admin.php?page=ffc-scheduling-bookings', $registry->added['operator-attendance']['url'] );
 		$this->assertArrayNotHasKey( 'render', $registry->added['operator-attendance'] );
 		$this->assertSame( array( AudienceAppScreens::class, 'render_presence' ), $registry->added['presence']['render'] );
-		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_pair' ), $registry->added['operator-pair']['render'] );
 		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_terminals' ), $registry->added['operator-terminals']['render'] );
 		$this->assertSame( array( AudienceAppScreens::class, 'render_operator_qr' ), $registry->added['operator-qr']['render'] );
 
@@ -306,7 +304,7 @@ class AppScreensTest extends TestCase {
 		}
 		$this->assertArrayNotHasKey( 'section', $registry->added['presence'], 'Presence is in the bar, not in a More group' );
 		$this->assertSame( array( AudienceAppScreens::class, 'terminals_badge' ), $registry->added['operator-terminals']['badge'] );
-		$this->assertArrayNotHasKey( 'badge', $registry->added['operator-pair'] );
+		$this->assertArrayNotHasKey( 'badge', $registry->added['operator-qr'] );
 	}
 
 	public function test_the_operator_screens_show_only_on_the_phone_that_holds_the_active_presence(): void {
@@ -567,14 +565,9 @@ class AppScreensTest extends TestCase {
 		return array( $html, $scripts, $localized, $styles );
 	}
 
-	public function test_the_pair_screen_draws_the_event_list_the_label_and_the_code(): void {
-		list( $html, $scripts, $localized, $styles ) = $this->render_operator( 'render_operator_pair' );
+	public function test_the_terminal_list_ends_a_terminal_behind_an_inline_confirmation(): void {
+		list( $html, $scripts, $localized, $styles ) = $this->render_operator( 'render_operator_terminals' );
 
-		$this->assertStringContainsString( 'data-ffc-terminal-operator="pair"', $html );
-		foreach ( array( 'form', 'events', 'events-empty', 'label', 'generate', 'result', 'qr', 'code', 'countdown', 'again' ) as $part ) {
-			$this->assertStringContainsString( 'data-ffc-op-part="' . $part . '"', $html, $part );
-		}
-		$this->assertStringNotContainsString( 'data-ffc-op-part="list"', $html );
 		$this->assertArrayHasKey( 'ffc-terminal-operator', $styles );
 		$this->assertSame( array( 'ffc-presence-app' ), $scripts['ffc-terminal-operator'][1] );
 		$this->assertSame( array( 'ffc-qrcodegen' ), $scripts['ffc-presence-app'][1] );
@@ -583,10 +576,8 @@ class AppScreensTest extends TestCase {
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/terminal/', $config['rest'] );
 		$this->assertSame( 'nonce', $config['nonce'] );
 		$this->assertSame( 10, $config['maxBookings'] );
-	}
-
-	public function test_the_terminal_list_ends_a_terminal_behind_an_inline_confirmation(): void {
-		list( $html ) = $this->render_operator( 'render_operator_terminals' );
+		$this->assertArrayNotHasKey( 'autoEnd', $config, 'no pairing code is made in the app any more (#2900)' );
+		$this->assertStringNotContainsString( 'data-ffc-op-part="generate"', $html );
 
 		$this->assertStringContainsString( 'data-ffc-terminal-operator="terminals"', $html );
 		$this->assertStringContainsString( '<template data-ffc-op-part="row">', $html );

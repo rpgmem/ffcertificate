@@ -39,9 +39,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and no flush is needed. Every response is kept out of search engines
  * (`X-Robots-Tag: noindex`) and out of caches (#2780).
  *
- * It starts on "Waiting for pairing": the operator holds the pairing QR code
- * to the terminal's reader, or types the code. The terminal keeps the token
- * it receives in this browser, and then reads presence codes (#2745).
+ * Unpaired, it rests on "This terminal is not paired" (#2900): the operator
+ * taps the lock, holds their operator QR code to the reader and pairs it
+ * there, by event or by place. The terminal keeps the token it receives in
+ * this browser, and then reads presence codes (#2745).
  *
  * The page builds its own document but loads its sheets and scripts through
  * their registered handles, so the asset guards see them like any other.
@@ -560,20 +561,19 @@ final class AudienceTerminalPage {
 				'strings'  => array(
 					'offlinePairing'  => __( 'This terminal is offline. Pairing it needs a connection; once paired, it reads codes offline.', 'ffcertificate' ),
 					'storage'         => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
-					'pairing'         => __( 'Pairing…', 'ffcertificate' ),
 					'paired'          => __( 'Terminal paired.', 'ffcertificate' ),
 					'failed'          => __( 'The terminal could not reach the site. Check the connection and try again.', 'ffcertificate' ),
 					/* translators: %d: number of events */
 					'events'          => __( 'Events: %d', 'ffcertificate' ),
 					/* translators: %s: date and time */
 					'until'           => __( 'Works until %s', 'ffcertificate' ),
-					'expired'         => __( 'This terminal\'s pairing has ended. Ask an operator for a new pairing code.', 'ffcertificate' ),
-					'revoked'         => __( 'This terminal was revoked. The readings it took before that were sent. Ask an operator for a new pairing code.', 'ffcertificate' ),
+					'expired'         => __( 'This terminal\'s pairing has ended. An operator pairs it again at the lock.', 'ffcertificate' ),
+					'revoked'         => __( 'This terminal was revoked. The readings it took before that were sent. An operator pairs it again at the lock.', 'ffcertificate' ),
 					/* translators: %s: the operator's short name, such as Maria S. */
 					'operator'        => __( 'Unlocked by %s.', 'ffcertificate' ),
 					/* translators: %d: seconds between this terminal's clock and the site's */
 					'clockOff'        => __( 'This terminal\'s clock was %d s off the site\'s. Readings follow the site\'s clock; set the device\'s date and time to automatic.', 'ffcertificate' ),
-					'ended'           => __( 'Terminal ended. Pair it again with a new code from the app.', 'ffcertificate' ),
+					'ended'           => __( 'Terminal ended. An operator pairs it again at the lock.', 'ffcertificate' ),
 					'queued'          => __( 'Saved. It is sent to the site when the connection returns.', 'ffcertificate' ),
 					/* translators: Offline: this person's reading for this event is already waiting to be sent. */
 					'alreadyQueued'   => __( 'Already saved on this terminal.', 'ffcertificate' ),
@@ -590,6 +590,7 @@ final class AudienceTerminalPage {
 					'opensAt'         => __( 'Check-in opens at %s', 'ffcertificate' ),
 					'noEvents'        => __( 'No more events on this terminal.', 'ffcertificate' ),
 					'idleRefused'     => __( 'Terminal without events. An operator must release it first.', 'ffcertificate' ),
+					'unpairedRefused' => __( 'This terminal is not paired. An operator pairs it first, at the lock.', 'ffcertificate' ),
 					'terminalTitle'   => __( 'Check-in terminal', 'ffcertificate' ),
 					'notPaired'       => __( 'Not paired', 'ffcertificate' ),
 					/* translators: %s: time check-in closes */
@@ -624,10 +625,19 @@ final class AudienceTerminalPage {
 					'connCamera'      => __( 'front camera', 'ffcertificate' ),
 					'setup'           => array(
 						/* translators: %s: the operator's short name, such as Maria S. */
-						'operator' => __( 'Set up by %s. Choose the events this terminal checks in.', 'ffcertificate' ),
-						/* translators: 1: events chosen, 2: the most a terminal may hold */
-						'count'    => __( '%1$d of %2$d events chosen', 'ffcertificate' ),
-						'full'     => __( 'Full', 'ffcertificate' ),
+						'operator'       => __( 'Operator: %s', 'ffcertificate' ),
+						/* translators: 1: items chosen, 2: the most a terminal may hold */
+						'count'          => __( '%1$d of %2$d chosen', 'ffcertificate' ),
+						'full'           => __( 'Full', 'ffcertificate' ),
+						'kindEvent'      => __( 'Event', 'ffcertificate' ),
+						'kindForm'       => __( 'Certificate', 'ffcertificate' ),
+						'listEvent'      => __( 'Next 7 days', 'ffcertificate' ),
+						'listPlace'      => __( 'At this place, next 7 days', 'ffcertificate' ),
+						'noneEvent'      => __( 'No event or certificate form in the next 7 days takes the terminal.', 'ffcertificate' ),
+						'nonePlace'      => __( 'Nothing at this place in the next 7 days takes the terminal yet. What is created for it later joins on its own.', 'ffcertificate' ),
+						/* translators: 1: the item it overlaps, 2: the time that item closes */
+						'overlap'        => __( 'Crosses %1$s: it starts when that one closes, at %2$s.', 'ffcertificate' ),
+						'chooseLocation' => __( 'Choose a place.', 'ffcertificate' ),
 					),
 					'queueEdit'       => array(
 						'now'           => __( 'Now', 'ffcertificate' ),

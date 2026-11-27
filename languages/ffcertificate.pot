@@ -35466,9 +35466,6 @@ msgstr ""
 msgid "Presence"
 msgstr ""
 
-msgid "Pair terminal"
-msgstr ""
-
 msgid "My terminals"
 msgstr ""
 
@@ -35762,9 +35759,6 @@ msgstr ""
 msgid "A terminal holds at most %d events."
 msgstr ""
 
-msgid "A terminal is a tablet or computer at the entrance that reads participants' presence codes. It never signs in with anyone's account. An operator who holds ffc_manage_audiences_terminals chooses the events it will serve, up to 10, each ending within the next 7 days, and generates a pairing code. The code reads P-XXXX-XXXX-XXXX, lives five minutes, pairs one terminal once, and the site keeps only a hash of it; it is shown as a QR code to hold up to the terminal's reader, or typed."
-msgstr ""
-
 msgid "An operator QR code, signed by the site and valid for two minutes, unlocks a paired terminal's menu. Anyone who runs check-ins can show one; it pairs nothing."
 msgstr ""
 
@@ -35776,9 +35770,6 @@ msgid "Choose at least one event for the terminal."
 msgstr ""
 
 msgid "Every event must be active and end within the next %d days."
-msgstr ""
-
-msgid "Every pairing code, pairing, refusal, lockout and ended terminal is written to the activity log, never with the code or the token. An operator sees the terminals they paired; an administrator sees all of them."
 msgstr ""
 
 msgid "Manage check-in terminals"
@@ -35803,9 +35794,6 @@ msgid "Terminal Pairing Code Refused"
 msgstr ""
 
 msgid "Terminal Pairing Locked Out"
-msgstr ""
-
-msgid "The paired terminal receives a token of its own, kept on the site only as a hash. It works for those events only, stops two hours after the last of them ends, and can be ended at any time. It is attributed to the operator who generated the code."
 msgstr ""
 
 msgid "The pairing code could not be saved. Try again."
@@ -35856,9 +35844,6 @@ msgstr ""
 msgid "This browser cannot keep the terminal's pairing. Allow this site to store data, or use another browser."
 msgstr ""
 
-msgid "Pairing…"
-msgstr ""
-
 msgid "Terminal paired."
 msgstr ""
 
@@ -35872,9 +35857,6 @@ msgstr ""
 msgid "Works until %s"
 msgstr ""
 
-msgid "This terminal's pairing has ended. Ask an operator for a new pairing code."
-msgstr ""
-
 msgid "The site could not be reached. Check the connection and try again."
 msgstr ""
 
@@ -35882,9 +35864,6 @@ msgid "Tick at least one event."
 msgstr ""
 
 msgid "A terminal serves at most %d events."
-msgstr ""
-
-msgid "Generating the code…"
 msgstr ""
 
 msgid "Terminal limit reached"
@@ -35924,13 +35903,7 @@ msgstr ""
 msgid "The check-in terminal needs JavaScript. Turn it on in the browser and open this page again."
 msgstr ""
 
-msgid "Waiting for pairing"
-msgstr ""
 
-
-
-msgid "Pair"
-msgstr ""
 
 
 
@@ -35943,22 +35916,6 @@ msgid "Events this terminal checks in"
 msgstr ""
 
 msgid "No event in the next 7 days can take a terminal."
-msgstr ""
-
-msgid "Name for this terminal (optional)"
-msgstr ""
-
-msgid "Entrance A"
-msgstr ""
-
-msgid "Generate pairing code"
-msgstr ""
-
-
-msgid "Generate another code"
-msgstr ""
-
-msgid "No terminal is paired. Pair one under Pair terminal."
 msgstr ""
 
 msgid "End terminal"
@@ -35978,9 +35935,6 @@ msgid "%1$s, %2$s–%3$s"
 msgstr ""
 
 msgid "Unlocked by %s."
-msgstr ""
-
-msgid "Terminal ended. Pair it again with a new code from the app."
 msgstr ""
 
 msgid "This code is for an event this terminal does not check in. Choose this event on the phone, or use the terminal at its entrance."
@@ -36013,9 +35967,6 @@ msgstr ""
 msgid "This operator may no longer run check-ins."
 msgstr ""
 
-msgid "This terminal is no longer paired. Ask an operator for a new pairing code."
-msgstr ""
-
 
 
 msgid "Code read"
@@ -36023,9 +35974,6 @@ msgstr ""
 
 
 msgid "The menu locks again after two minutes without use."
-msgstr ""
-
-msgid "The terminal opens at the site's address followed by /terminal/ (on a site without pretty permalinks, the home page with ?ffc_terminal=1 added), outside the theme and with no login, and waits for pairing. The browser can install it as an app of its own, full screen and turning with the tablet, apart from the participants' app: the pairing QR code is what binds it, never an account. Search engines are told not to list either address, and no cache keeps them. In the app, the operator generates the code under More → Pair terminal, ticking the events and naming the terminal; More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires."
 msgstr ""
 
 msgid "Once paired, the terminal waits for presence codes. A keyboard-wedge reader (USB or Bluetooth) types each code into the focused field and presses Enter. The site checks the code with the phone's signature, the site's signature and the revocation list, then checks that the code is for one of the terminal's events, that the event runs today, that its check-in window is open and that the person is on the booking or carries the site's ticket for it. Attendance is recorded with the Terminal method. The window's geofence does not apply, since the terminal stands at the entrance."
@@ -36101,9 +36049,6 @@ msgstr ""
 
 
 
-msgid "A terminal checks in one event at a time: events whose check-in times cross cannot share it."
-msgstr ""
-
 msgid "Change events"
 msgstr ""
 
@@ -36143,9 +36088,6 @@ msgid "Stop the camera"
 msgstr ""
 
 msgid "Allow the device camera"
-msgstr ""
-
-msgid "At most 10 terminals may be active on the site and 3 on one event at a time, unless Scheduling → Settings → Check-in says otherwise; the ffc_terminal_limits filter can still change both. A full site or event refuses before the code is spent, so ending a terminal lets the same code work."
 msgstr ""
 
 
@@ -36344,9 +36286,6 @@ msgstr ""
 msgid "%d present"
 msgstr ""
 
-msgid "A new mistake after this wait means 30 minutes. A correct pairing, or an hour without attempts, resets the count."
-msgstr ""
-
 msgid "Activation expired"
 msgstr ""
 
@@ -36446,14 +36385,7 @@ msgstr ""
 msgid "Operator area"
 msgstr ""
 
-
-msgid "Or type the pairing code"
-msgstr ""
-
 msgid "Phone replaced"
-msgstr ""
-
-msgid "Several wrong codes in a row. Generate a new pairing QR code in the operator app: the reader reads it without typing mistakes."
 msgstr ""
 
 msgid "Show your phone's QR code to the camera"
@@ -36468,19 +36400,10 @@ msgstr ""
 msgid "The certificate is in the app after the event."
 msgstr ""
 
-msgid "The code lasts five minutes and works once. No one signs in on this device."
-msgstr ""
-
 msgid "Ticket expired"
 msgstr ""
 
 msgid "Ticket for someone else"
-msgstr ""
-
-msgid "Too many pairing attempts"
-msgstr ""
-
-msgid "Try again in"
 msgstr ""
 
 msgid "Turn the phone's brightness up"
@@ -36492,13 +36415,7 @@ msgstr ""
 msgid "front camera"
 msgstr ""
 
-msgid "Wrong codes are counted on the site. Three in a row lock that terminal for 15 minutes, and each further one for 30. One network address may send at most 20 wrong codes an hour across all its terminals. A correct pairing, or an hour without attempts, starts the count over. The lock screen shows how long to wait, never the code typed."
-msgstr ""
-
 msgid "The terminal is a full-screen page, always in the dark theme whatever the site's setting, with the event, its place and until when check-in runs at the top, the clock, and how many people are present out of those enrolled. Between events it counts down to the next check-in. Each reading fills the screen for five seconds, in green for attendance recorded, blue for attendance already recorded or saved to send later, and red for a refusal, with a bar showing when the next person may read; it is announced to screen readers. A recorded result shows the person's short name, such as Maria S., and the time; at an open event, someone not enrolled is told their attendance counts without enrolment. A refusal says what to do, such as an old code, another event's code, a window not yet open or already closed, or someone not enrolled, and names nobody; the terminal shows no list. The lock button at the bottom asks for an operator QR code, and goes back to reading on its own after 30 seconds."
-msgstr ""
-
-msgid "The camera reads on the pairing screen (the pairing QR code), the presence screen and the operator unlock, and its viewfinder moves to whichever is in front. The live view is mirrored, like a mirror, so a code is easy to aim; when a code is read, the screen flashes and shows the captured frame the right way round before the result. Some front cameras hand over frames already mirrored: a frame that reads nothing is read again flipped back. On the presence screen the camera rests after a minute without a code, and on screens that read nothing with it, so a tablet left on all day does not heat up; Use the camera brings it back, and a connected reader keeps reading while it rests."
 msgstr ""
 
 msgid "%1$d of %2$d events"
@@ -36540,34 +36457,10 @@ msgstr ""
 msgid "The operator menu has two columns: the actions and the device check on one side, and on the other the events on this terminal, soonest first, with the one checking in now marked Now. An operator who holds ffc_manage_audiences_terminals, or an administrator, may change them there, whoever paired the terminal: Remove takes an event out after a second tap, and Add event lists the events the terminal can take. The rules are those of the app's Change events, a refusal says why on the screen, and the change is written to the activity log in that operator's name. Anyone else who may check people in sees the events without changing them."
 msgstr ""
 
-msgid "%1$d of %2$d events chosen"
-msgstr ""
-
-msgid "A terminal can also be set up on the terminal itself. On Waiting for pairing, an operator who holds ffc_manage_audiences_terminals holds their operator QR code to the reader (or to the camera, where allowed); the terminal lists the events it may take, the same list as the app's Pair terminal, and Fill from one place ticks every event of a place. With the events ticked and an optional name, Pair this terminal pairs it at once. A pairing code is made and spent on the site, so the limits, the activity log and the terminal's attribution to that operator are the app's, but no code is shown. The operator code lasts two minutes: if it expires before the choice is made, hold a fresh one to the reader and the choices stay."
-msgstr ""
-
 msgid "Auditorium entrance"
 msgstr ""
 
-msgid "Check-in windows that cross are refused, naming the event they collide with. No code is shown and no one signs in on this device; the terminal stops on its own after its last event, as the site is set."
-msgstr ""
-
-msgid "Choose the events one by one"
-msgstr ""
-
-msgid "Event queue"
-msgstr ""
-
-msgid "Fill from one place"
-msgstr ""
-
-msgid "No event in the next 7 days takes terminal check-in."
-msgstr ""
-
 msgid "Pair this terminal"
-msgstr ""
-
-msgid "Set up by %s. Choose the events this terminal checks in."
 msgstr ""
 
 msgid "Set up this terminal"
@@ -36707,16 +36600,7 @@ msgstr ""
 msgid "An operator must release this terminal: tap the lock below and hold the operator QR code to the reader."
 msgstr ""
 
-msgid "I have a pairing code"
-msgstr ""
-
-msgid "Type the pairing code the app shows under More → Pair terminal, or hold its QR code to the reader."
-msgstr ""
-
 msgid "Terminal without events. An operator must release it first."
-msgstr ""
-
-msgid "A terminal with no event to check in, unpaired or paired with an empty queue, rests on Terminal without events: a lock, no reading offered, and a participant code read there is refused. The lock in the footer opens the operator area; an operator QR code then opens Set up this terminal on an unpaired terminal and the operator menu on a paired one. On an unpaired terminal the operator area also offers a small I have a pairing code link, which opens the field for the code the app shows under More → Pair terminal; that code read as a QR code pairs directly."
 msgstr ""
 
 msgid "%d h"
@@ -36728,34 +36612,7 @@ msgstr ""
 msgid "By place"
 msgstr ""
 
-msgid "By place: the queue fills with the place's events. Check-in windows that cross are left out."
-msgstr ""
-
-msgid "Choose events"
-msgstr ""
-
-msgid "End by itself after the end"
-msgstr ""
-
-msgid "Events (up to %d, next 7 days)"
-msgstr ""
-
-msgid "Events: %1$d · ends by itself %2$d h after the last one"
-msgstr ""
-
-msgid "Expires in %s · single use"
-msgstr ""
-
-msgid "Hold to the terminal's reader"
-msgstr ""
-
-msgid "Open the terminal page on the device and hold this code to its reader, or type it there."
-msgstr ""
-
 msgid "Unlock a paired terminal"
-msgstr ""
-
-msgid "In the app, Pair terminal switches between Choose events, ticking them one by one, and By place, which ticks the events of one place, soonest first, up to 10. End by itself after the end sets how many hours after the last event the terminal ends (1, 2 or 4; the Check-in settings choose the one marked first), and the code appears beside a summary of what it pairs, with its countdown. My terminals has Change events on each terminal, which the terminal picks up within a minute and which keeps the hours chosen. During a check-in window the terminal shows only the event it checks in now, and whether its organiser has opened check-in; between windows it shows the next event and when its check-in opens."
 msgstr ""
 
 msgid "A screenshot will not do: the code changes every 15 seconds."
@@ -36791,9 +36648,6 @@ msgstr ""
 msgid "Every active terminal on the site, and those that ended in the last %d days. Revoking takes effect the next time the terminal connects."
 msgstr ""
 
-msgid "Expires at %s · single use"
-msgstr ""
-
 msgid "In the queue (not sent)"
 msgstr ""
 
@@ -36801,9 +36655,6 @@ msgid "No terminal is paired on the site."
 msgstr ""
 
 msgid "One event"
-msgstr ""
-
-msgid "Pairing code to hold to the terminal's reader"
 msgstr ""
 
 msgid "Presence terminals"
@@ -36839,9 +36690,6 @@ msgid "%d in the queue"
 msgid_plural "%d in the queue"
 msgstr[0] ""
 msgstr[1] ""
-
-msgid "Scheduling → Terminals (Presence terminals) lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings in the queue. Each row shows the terminal's queue (one event, or how many, with the place when they all share one), the event it checks in now, who paired it and when, when it was last seen (now, minutes ago, or the date), its readings and how many it holds unsent, and its state as a pill: Online, Offline, Ended automatically, or Revoked by whoever ended it. Edit queue changes its events under the same rules as the app, and Revoke stops it after a confirmation on the screen, the next time it connects. Pair terminal, beside the title, pairs one from wp-admin as the app does: tick the events, name the terminal, choose when it ends by itself, and the one-time code appears as a QR code with the time it expires; it is shown once and never kept."
-msgstr ""
 
 msgid "3 wrong codes in a row on the same device: a 15-minute wait."
 msgstr ""
@@ -36973,9 +36821,6 @@ msgstr ""
 msgid "The check-in window was not saved: each time must lie within 12 hours of the event's hours."
 msgstr ""
 
-msgid "Under the terminal path, the tab lists the terminals that hold the event, each with when it was last seen, how many readings it holds unsent and View, which opens Presence terminals; Pair terminal opens the pairing there, beside how many of those allowed per event are in use. In the side column, Attendance now counts who is present out of those expected and splits the day's attendance by path (terminal, projected QR code and by hand); someone recorded by two paths counts once. While a terminal holds readings it has not sent, a warning names it and when it was last seen, since the list may be incomplete until it does."
-msgstr ""
-
 msgid "not used yet"
 msgstr ""
 
@@ -37084,9 +36929,6 @@ msgstr ""
 msgid "The app's Home shows what the plugin knows is next for the person: \"Attendance confirmed at\" an event recorded in the last 7 days, as a line they can dismiss; their next booking in the coming 7 days, with Presence QR and Details; and, under Pending, each post-event form still open, each reregistration they can still submit with its deadline, and a certificate issued in the last 7 days. Each item opens the matching screen, and one the account cannot open is left out."
 msgstr ""
 
-msgid "Link a tablet to your events"
-msgstr ""
-
 msgid "Check-in tablets you paired"
 msgstr ""
 
@@ -37109,9 +36951,6 @@ msgid "The app's More screen opens on the person, with their RF masked and their
 msgstr ""
 
 msgid "This terminal was revoked before this reading, so it was not recorded."
-msgstr ""
-
-msgid "This terminal was revoked. The readings it took before that were sent. Ask an operator for a new pairing code."
 msgstr ""
 
 msgid "Readings it took offline before the revocation are still recorded when it connects; later ones are refused, counted here and written to the activity log."
@@ -37147,9 +36986,6 @@ msgid "QR code of the install page's address"
 msgstr ""
 
 msgid "Copy address"
-msgstr ""
-
-msgid "Once installed, the terminal opens straight on \"Waiting for pairing\"."
 msgstr ""
 
 msgid "Install the check-in terminal"
@@ -37379,9 +37215,6 @@ msgstr ""
 msgid "The terminal was turned off:"
 msgstr ""
 
-msgid "To pair: in the app, More › Pair terminal, then choose this form."
-msgstr ""
-
 msgid "When it can be turned on"
 msgstr ""
 
@@ -37500,4 +37333,112 @@ msgid "A terminal can also be paired to a GPS location of Settings → Geolocati
 msgstr ""
 
 msgid "Terminals paired to the location"
+msgstr ""
+
+msgid "%1$d of %2$d chosen"
+msgstr ""
+
+msgid "A paired terminal with no event to check in rests on Terminal without events: a lock, no reading offered, and a participant code read there is refused, as it is on an unpaired terminal. The lock in the footer opens the operator area; an operator QR code then opens Set up this terminal on an unpaired terminal and the operator menu on a paired one."
+msgstr ""
+
+msgid "A terminal is a tablet or computer at the entrance that reads participants' presence codes. It never signs in with anyone's account, and it is always paired on the terminal itself. Unpaired, it rests on This terminal is not paired, an informational screen with the operator's lock in the footer. An operator who holds ffc_manage_audiences_terminals taps the lock and holds their operator QR code (More → Operator QR in the app) to the reader, or to the camera where allowed; Set up this terminal then pairs it By event, ticking up to 10 events and certificate forms, each open today or later within the next 7 days, or By place, choosing a GPS location of Settings → Geolocation it then follows. A name is optional, and Pair this terminal pairs it at once."
+msgstr ""
+
+msgid "A terminal is paired only with a valid operator QR code; no code is typed on it, so nothing can be guessed there."
+msgstr ""
+
+msgid "At most 10 terminals may be active on the site and 3 on one event at a time, unless Scheduling → Settings → Check-in says otherwise; the ffc_terminal_limits filter can still change both. A full site or event refuses the setup, saying which limit was reached."
+msgstr ""
+
+msgid "At this place, next 7 days"
+msgstr ""
+
+msgid "By event"
+msgstr ""
+
+msgid "Choose a place."
+msgstr ""
+
+msgid "Crosses %1$s: it starts when that one closes, at %2$s."
+msgstr ""
+
+msgid "Each item on the setup screen says whether it is an event or a certificate form, when it runs and where; one whose hours cross an earlier one says it waits for that one to close. A pairing code is still made and spent on the site, so the limits, the activity log and the terminal's attribution to that operator are kept, but no code is ever shown and none can be typed. The operator code lasts two minutes: if it expires before the choice is made, hold a fresh one to the reader and the choices stay. My terminals in the app has Change events on each terminal paired by event, which the terminal picks up within a minute; a terminal paired to a place shows the place it follows instead. During a check-in window the terminal shows only the item it checks in now, and whether its organiser has opened check-in; between windows it shows the next one and when its check-in opens."
+msgstr ""
+
+msgid "Every pairing, refusal and ended terminal is written to the activity log, never with a code or the token. An operator sees the terminals they paired; an administrator sees all of them."
+msgstr ""
+
+msgid "Follows %s"
+msgstr ""
+
+msgid "It does not read presence codes or issue certificates yet. The event team pairs it."
+msgstr ""
+
+msgid "It reads one item at a time; one whose hours cross waits for the earlier one to close."
+msgstr ""
+
+msgid "No GPS location is set in Settings → Geolocation. Pair by event, or add a location there first."
+msgstr ""
+
+msgid "No event or certificate form in the next 7 days takes the terminal."
+msgstr ""
+
+msgid "No terminal is paired. A terminal is paired on the terminal itself: tap its lock and show your Operator QR."
+msgstr ""
+
+msgid "Nothing at this place in the next 7 days takes the terminal yet. What is created for it later joins on its own."
+msgstr ""
+
+msgid "Once installed, the terminal opens straight on \"This terminal is not paired\": tap its lock and show your Operator QR to pair it."
+msgstr ""
+
+msgid "Operator: %s"
+msgstr ""
+
+msgid "Operator: tap the lock"
+msgstr ""
+
+msgid "Pair by"
+msgstr ""
+
+msgid "Scheduling → Terminals (Presence terminals) lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings in the queue. Each row shows the terminal's queue (one event, or how many, with the place when they all share one), the event it checks in now, who paired it and when, when it was last seen (now, minutes ago, or the date), its readings and how many it holds unsent, and its state as a pill: Online, Offline, Ended automatically, or Revoked by whoever ended it. Edit queue changes the events of a terminal paired by event under the same rules as the app; a terminal paired to a place shows Follows and the place instead. Revoke stops a terminal after a confirmation on the screen, the next time it connects. Terminals are paired on the terminal itself, never from this screen."
+msgstr ""
+
+msgid "Terminal ended. An operator pairs it again at the lock."
+msgstr ""
+
+msgid "The GPS locations of Settings → Geolocation. The terminal stays tied to this place: an event or a certificate form created for it later joins on its own when the terminal connects."
+msgstr ""
+
+msgid "The camera reads on the presence screen and the operator unlock, and its viewfinder moves to whichever is in front. The live view is mirrored, like a mirror, so a code is easy to aim; when a code is read, the screen flashes and shows the captured frame the right way round before the result. Some front cameras hand over frames already mirrored: a frame that reads nothing is read again flipped back. On the presence screen the camera rests after a minute without a code, and on screens that read nothing with it, so a tablet left on all day does not heat up; Use the camera brings it back, and a connected reader keeps reading while it rests."
+msgstr ""
+
+msgid "The paired terminal receives a token of its own, kept on the site only as a hash. It works for those events only, stops two hours after the last of them ends, and can be ended at any time. It is attributed to the operator who set it up."
+msgstr ""
+
+msgid "The terminal opens at the site's address followed by /terminal/ (on a site without pretty permalinks, the home page with ?ffc_terminal=1 added), outside the theme and with no login. The browser can install it as an app of its own, full screen and turning with the tablet, apart from the participants' app: the operator's setup is what binds it, never an account. Search engines are told not to list either address, and no cache keeps them. In the app, More → My terminals lists the active terminals with when each last read a code and until when it works, and ends one after a confirmation on the screen; More → Operator QR shows the operator's unlock code, renewed before it expires."
+msgstr ""
+
+msgid "This terminal is no longer paired. An operator pairs it again at the lock."
+msgstr ""
+
+msgid "This terminal is not paired"
+msgstr ""
+
+msgid "This terminal is not paired. An operator pairs it first, at the lock."
+msgstr ""
+
+msgid "This terminal was revoked. The readings it took before that were sent. An operator pairs it again at the lock."
+msgstr ""
+
+msgid "This terminal's pairing has ended. An operator pairs it again at the lock."
+msgstr ""
+
+msgid "Tick the events and certificate forms this terminal reads, up to %d. The queue stays as it was ticked."
+msgstr ""
+
+msgid "To pair: on the terminal, an operator taps the lock, shows the operator QR and chooses this form, or the place it names."
+msgstr ""
+
+msgid "Under the terminal path, the tab lists the terminals that hold the event, each with when it was last seen, how many readings it holds unsent and View, which opens Presence terminals, beside how many of those allowed per event are in use. In the side column, Attendance now counts who is present out of those expected and splits the day's attendance by path (terminal, projected QR code and by hand); someone recorded by two paths counts once. While a terminal holds readings it has not sent, a warning names it and when it was last seen, since the list may be incomplete until it does."
 msgstr ""

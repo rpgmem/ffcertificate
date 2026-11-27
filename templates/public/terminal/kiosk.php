@@ -3,7 +3,7 @@
  * The check-in terminal's page (#2744, #2780).
  *
  * The markup only: `assets/js/ffc-terminal-kiosk.js` shows one screen at a
- * time. It pairs the terminal (#2744), reads presence codes online or into
+ * time. It pairs the terminal at its lock (#2744, #2900), reads presence codes online or into
  * its offline queue (#2745), shows the event it checks in now or next (#2746),
  * reads with the device camera where allowed (#2747), keeps the screen on
  * while it has an event (#2775) and opens the operator menu on an operator
@@ -27,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use FreeFormCertificate\Admin\AdminUI;
+use FreeFormCertificate\Audience\AudienceTerminalPairing;
 use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Core\Icons;
 use FreeFormCertificate\Core\Notice;
@@ -99,95 +101,85 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 		<p class="ffc-terminal-lead"><?php esc_html_e( 'An operator must release this terminal: tap the lock below and hold the operator QR code to the reader.', 'ffcertificate' ); ?></p>
 	</section>
 
-	<section class="ffc-terminal-view" data-ffc-terminal-view="pairing" hidden>
-		<div class="ffc-terminal-camera-slot" data-ffc-terminal-camera-slot="pairing"></div>
-		<div class="ffc-terminal-art" data-ffc-terminal-camera-art aria-hidden="true"><?php echo Icons::svg( 'qr', 96 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
-		<h2><?php esc_html_e( 'Waiting for pairing', 'ffcertificate' ); ?></h2>
-		<p class="ffc-terminal-lead"><?php esc_html_e( 'Type the pairing code the app shows under More → Pair terminal, or hold its QR code to the reader.', 'ffcertificate' ); ?></p>
-		<form class="ffc-terminal-pair" data-ffc-terminal-part="form" novalidate>
-			<div class="ffc-terminal-field">
-				<label for="ffc-terminal-code"><?php esc_html_e( 'Or type the pairing code', 'ffcertificate' ); ?></label>
-				<input id="ffc-terminal-code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="P-XXXX-XXXX-XXXX" required data-ffc-terminal-part="code">
-			</div>
-			<?php
-			Button::render(
-				array(
-					'label'    => __( 'Pair', 'ffcertificate' ),
-					'category' => 'primary',
-					'icon'     => 'link',
-					'type'     => 'submit',
-				)
-			);
-			?>
-		</form>
-		<p class="ffc-terminal-note"><?php esc_html_e( 'The code lasts five minutes and works once. No one signs in on this device.', 'ffcertificate' ); ?></p>
-		<?php
-		Button::render(
-			array(
-				'label'    => __( 'Cancel', 'ffcertificate' ),
-				'category' => 'neutral',
-				'icon'     => 'chevron-left',
-				'attrs'    => array( 'data-ffc-terminal-part' => 'pairing-cancel' ),
-			)
-		);
-		?>
+	<section class="ffc-terminal-view" data-ffc-terminal-view="unpaired" hidden>
+		<div class="ffc-terminal-badge" aria-hidden="true"><?php echo Icons::svg( 'link', 88 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
+		<h2><?php esc_html_e( 'This terminal is not paired', 'ffcertificate' ); ?></h2>
+		<p class="ffc-terminal-lead"><?php esc_html_e( 'It does not read presence codes or issue certificates yet. The event team pairs it.', 'ffcertificate' ); ?></p>
 	</section>
 
 	<section class="ffc-terminal-view ffc-terminal-setup" data-ffc-terminal-view="setup" hidden>
-		<h2 class="ffc-icon-link"><?php esc_html_e( 'Set up this terminal', 'ffcertificate' ); ?></h2>
-		<p class="ffc-terminal-lead" data-ffc-terminal-part="setup-operator"></p>
-		<form class="ffc-terminal-setup-form" data-ffc-terminal-part="setup-form" novalidate>
-			<fieldset>
-				<legend><?php esc_html_e( 'Event queue', 'ffcertificate' ); ?></legend>
-				<div class="ffc-terminal-field">
-					<label for="ffc-terminal-setup-place"><?php esc_html_e( 'Fill from one place', 'ffcertificate' ); ?></label>
-					<select id="ffc-terminal-setup-place" data-ffc-terminal-part="setup-place">
-						<option value=""><?php esc_html_e( 'Choose the events one by one', 'ffcertificate' ); ?></option>
-					</select>
-				</div>
-				<p class="ffc-terminal-note" data-ffc-terminal-part="setup-count"></p>
-				<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="setup-list"></ul>
-				<p class="ffc-terminal-note" data-ffc-terminal-part="setup-none" hidden><?php esc_html_e( 'No event in the next 7 days takes terminal check-in.', 'ffcertificate' ); ?></p>
-			</fieldset>
-			<div class="ffc-terminal-field">
-				<label for="ffc-terminal-setup-label"><?php esc_html_e( 'Terminal name (optional)', 'ffcertificate' ); ?></label>
-				<input id="ffc-terminal-setup-label" type="text" maxlength="60" autocomplete="off" placeholder="<?php esc_attr_e( 'Auditorium entrance', 'ffcertificate' ); ?>" data-ffc-terminal-part="setup-label">
-			</div>
-			<p class="ffc-terminal-error" role="alert" data-ffc-terminal-part="setup-error" hidden></p>
-			<div class="ffc-terminal-actions">
-				<?php
-				Button::render(
-					array(
-						'label'    => __( 'Pair this terminal', 'ffcertificate' ),
-						'category' => 'primary',
-						'icon'     => 'link',
-						'type'     => 'submit',
-						'attrs'    => array( 'data-ffc-terminal-part' => 'setup-submit' ),
-					)
-				);
-				Button::render(
-					array(
-						'label'    => __( 'Cancel', 'ffcertificate' ),
-						'category' => 'neutral',
-						'icon'     => 'chevron-left',
-						'attrs'    => array( 'data-ffc-terminal-part' => 'setup-cancel' ),
-					)
-				);
-				?>
-			</div>
-		</form>
-		<p class="ffc-terminal-note"><?php esc_html_e( 'Check-in windows that cross are refused, naming the event they collide with. No code is shown and no one signs in on this device; the terminal stops on its own after its last event, as the site is set.', 'ffcertificate' ); ?></p>
-	</section>
-
-	<section class="ffc-terminal-view" data-ffc-terminal-view="locked" hidden>
-		<div class="ffc-terminal-badge" aria-hidden="true"><?php echo Icons::svg( 'clock', 88 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Icons::svg() prints the registry's fixed markup. ?></div>
-		<h2><?php esc_html_e( 'Too many pairing attempts', 'ffcertificate' ); ?></h2>
-		<div class="ffc-terminal-count">
-			<p><?php esc_html_e( 'Try again in', 'ffcertificate' ); ?></p>
-			<p class="ffc-terminal-big" aria-live="polite" data-ffc-terminal-part="countdown"></p>
+		<div class="ffc-terminal-setup-head">
+			<h2 class="ffc-icon-link"><?php esc_html_e( 'Set up this terminal', 'ffcertificate' ); ?></h2>
+			<p class="ffc-terminal-note" data-ffc-terminal-part="setup-operator"></p>
 		</div>
-		<p class="ffc-terminal-lead"><?php esc_html_e( 'Several wrong codes in a row. Generate a new pairing QR code in the operator app: the reader reads it without typing mistakes.', 'ffcertificate' ); ?></p>
-		<p class="ffc-terminal-note"><?php esc_html_e( 'A new mistake after this wait means 30 minutes. A correct pairing, or an hour without attempts, resets the count.', 'ffcertificate' ); ?></p>
+		<form class="ffc-terminal-setup-form" data-ffc-terminal-part="setup-form" novalidate>
+			<div class="ffc-terminal-setup-main">
+				<div role="group" aria-label="<?php esc_attr_e( 'Pair by', 'ffcertificate' ); ?>" data-ffc-terminal-part="setup-mode">
+					<?php
+					AdminUI::render_segmented(
+						array(
+							'name'    => 'ffc_terminal_setup_mode',
+							'id'      => 'ffc-terminal-setup-mode',
+							'fluid'   => true,
+							'size'    => 'lg',
+							'options' => array(
+								'event' => __( 'By event', 'ffcertificate' ),
+								'place' => __( 'By place', 'ffcertificate' ),
+							),
+							'value'   => 'place',
+						)
+					);
+					?>
+				</div>
+				<div class="ffc-terminal-setup-by-place" data-ffc-terminal-part="setup-by-place">
+					<div class="ffc-terminal-field">
+						<label for="ffc-terminal-setup-location"><?php esc_html_e( 'Place', 'ffcertificate' ); ?></label>
+						<select id="ffc-terminal-setup-location" data-ffc-terminal-part="setup-location"></select>
+					</div>
+					<p class="ffc-terminal-note"><?php esc_html_e( 'The GPS locations of Settings → Geolocation. The terminal stays tied to this place: an event or a certificate form created for it later joins on its own when the terminal connects.', 'ffcertificate' ); ?></p>
+					<p class="ffc-terminal-note" data-ffc-terminal-part="setup-no-location" hidden><?php esc_html_e( 'No GPS location is set in Settings → Geolocation. Pair by event, or add a location there first.', 'ffcertificate' ); ?></p>
+				</div>
+				<p class="ffc-terminal-note" data-ffc-terminal-part="setup-by-event" hidden>
+					<?php
+					/* translators: %d: the most items one terminal may hold */
+					echo esc_html( sprintf( __( 'Tick the events and certificate forms this terminal reads, up to %d. The queue stays as it was ticked.', 'ffcertificate' ), AudienceTerminalPairing::MAX_BOOKINGS ) );
+					?>
+				</p>
+				<div class="ffc-terminal-field">
+					<label for="ffc-terminal-setup-label"><?php esc_html_e( 'Terminal name (optional)', 'ffcertificate' ); ?></label>
+					<input id="ffc-terminal-setup-label" type="text" maxlength="60" autocomplete="off" placeholder="<?php esc_attr_e( 'Auditorium entrance', 'ffcertificate' ); ?>" data-ffc-terminal-part="setup-label">
+				</div>
+				<p class="ffc-terminal-error" role="alert" data-ffc-terminal-part="setup-error" hidden></p>
+				<div class="ffc-terminal-actions">
+					<?php
+					Button::render(
+						array(
+							'label'    => __( 'Pair this terminal', 'ffcertificate' ),
+							'category' => 'primary',
+							'icon'     => 'link',
+							'type'     => 'submit',
+							'attrs'    => array( 'data-ffc-terminal-part' => 'setup-submit' ),
+						)
+					);
+					Button::render(
+						array(
+							'label'    => __( 'Cancel', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'chevron-left',
+							'attrs'    => array( 'data-ffc-terminal-part' => 'setup-cancel' ),
+						)
+					);
+					?>
+				</div>
+			</div>
+			<section class="ffc-terminal-setup-items" aria-labelledby="ffc-terminal-setup-items-title">
+				<h3 id="ffc-terminal-setup-items-title" data-ffc-terminal-part="setup-list-title"></h3>
+				<p class="ffc-terminal-note" data-ffc-terminal-part="setup-count" hidden></p>
+				<ul class="ffc-terminal-queue-list" data-ffc-terminal-part="setup-list"></ul>
+				<p class="ffc-terminal-note" data-ffc-terminal-part="setup-none" hidden></p>
+				<p class="ffc-terminal-note"><?php esc_html_e( 'It reads one item at a time; one whose hours cross waits for the earlier one to close.', 'ffcertificate' ); ?></p>
+			</section>
+		</form>
 	</section>
 
 	<section class="ffc-terminal-view" data-ffc-terminal-view="ready" hidden>
@@ -278,7 +270,6 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 			)
 		);
 		?>
-		<button type="button" class="ffc-terminal-link" data-ffc-terminal-part="unlock-code" hidden><?php esc_html_e( 'I have a pairing code', 'ffcertificate' ); ?></button>
 	</section>
 
 	<section class="ffc-terminal-view ffc-terminal-menu" data-ffc-terminal-view="menu" hidden>
@@ -387,7 +378,8 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 
 	<footer class="ffc-terminal-foot" data-ffc-terminal-part="foot" hidden>
 		<p class="ffc-terminal-conn" data-ffc-terminal-part="conn"></p>
-		<p class="ffc-terminal-help"><?php esc_html_e( 'No app? Ask the team at the help desk.', 'ffcertificate' ); ?></p>
+		<p class="ffc-terminal-help" data-ffc-terminal-part="help"><?php esc_html_e( 'No app? Ask the team at the help desk.', 'ffcertificate' ); ?></p>
+		<p class="ffc-terminal-help" data-ffc-terminal-part="help-operator" hidden><?php esc_html_e( 'Operator: tap the lock', 'ffcertificate' ); ?></p>
 		<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-lock ffc-terminal-lock" data-ffc-terminal-part="lock" aria-label="<?php esc_attr_e( 'Operator area', 'ffcertificate' ); ?>" title="<?php esc_attr_e( 'Operator area', 'ffcertificate' ); ?>"></button>
 	</footer>
 </main>
