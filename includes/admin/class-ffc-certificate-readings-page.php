@@ -179,6 +179,8 @@ final class CertificateReadingsPage {
 			)
 		);
 		echo '</div></div>';
+		// WordPress moves admin notices below this line, so they never split the head.
+		echo '<hr class="wp-header-end">';
 	}
 
 	/**
@@ -260,7 +262,7 @@ final class CertificateReadingsPage {
 			Readings::AWAITING_DATA => __( 'Awaiting data', 'ffcertificate' ),
 			Readings::REFUSED       => __( 'Refused', 'ffcertificate' ),
 		);
-		echo '<form method="get" class="card ffc-list">';
+		echo '<form method="get" class="ffc-list">';
 		echo '<input type="hidden" name="page" value="' . esc_attr( self::MENU_SLUG ) . '">';
 		echo '<input type="hidden" name="form_id" value="' . esc_attr( (string) $form_id ) . '">';
 		echo '<div class="ffc-list-filters">';
