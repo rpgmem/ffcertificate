@@ -267,8 +267,23 @@ class AudienceTerminalPageTest extends TestCase {
 
 		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="en-US" class="ffc-dark-mode"><head>', $html, 'a terminal is always dark, whatever the site\'s setting (#2780)' );
 		$this->assertStringContainsString( '<body class="ffc-shortcode ffc-terminal-page ffc-terminal-kiosk-page">', $html );
-		$this->assertSame( array( 'ffc-presence-verifier', 'before' ), array_slice( $inline[0], 0, 2 ), 'the error catcher runs before the terminal\'s scripts (#2910)' );
-		$this->assertStringContainsString( 'data-ffc-terminal-part', $inline[0][2] );
+		$before = array_values( array_filter( $inline, static fn ( $entry ) => 'before' === $entry[1] ) );
+		$this->assertCount( 1, $before );
+		$this->assertSame( 'ffc-presence-verifier', $before[0][0], 'the error catcher runs before the terminal\'s scripts (#2910)' );
+		$this->assertStringContainsString( 'data-ffc-terminal-part', $before[0][2] );
+		$code = array();
+		foreach ( $inline as $entry ) {
+			if ( 'after' === $entry[1] ) {
+				$code[ $entry[0] ] = $entry[2];
+			}
+		}
+		$this->assertSame( array( 'ffc-terminal-install', 'ffc-presence-verifier', 'ffc-terminal-kiosk' ), array_keys( $code ), 'every script of the terminal is in the page (#2912)' );
+		foreach ( $code as $handle => $source ) {
+			$this->assertSame( '', $enqueued[ $handle ][0] ?? null, $handle . ' has no address of its own, so no cache can hand back an older copy' );
+			$this->assertStringStartsWith( (string) file_get_contents( FFC_PLUGIN_DIR . 'assets/js/' . $handle . \FreeFormCertificate\Core\AssetHelper::asset_suffix() . '.js' ), $source, $handle . ' is the file itself' );
+			$this->assertStringEndsWith( "\n//# sourceURL=" . $handle . '.js', $source, 'an error names the script it came from' );
+		}
+		$this->assertMatchesRegularExpression( '/["\']setup-location["\']/', $code['ffc-terminal-kiosk'], 'the kiosk printed with the markup it binds to' );
 		$this->assertStringContainsString( 'data-ffc-terminal', $html );
 		$this->assertStringContainsString( '<meta name="robots" content="noindex,nofollow,noarchive">', $html );
 		$this->assertStringContainsString( '<link rel="manifest" href="https://example.com/?ffc_terminal=manifest">', $html );
@@ -293,7 +308,6 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertStringContainsString( 'href="https://example.com/?ffc_terminal=install"', $html, 'it leads to the install page' );
 		$this->assertSame( array( 'ffc-common' ), $enqueued['style:ffc-terminal-kiosk'][1] ?? null );
 		$this->assertSame( array( 'ffc-presence-verifier' ), $enqueued['ffc-terminal-kiosk'][1] ?? null, 'the kiosk checks codes offline with the verifier' );
-		$this->assertStringContainsString( 'assets/js/ffc-presence-verifier', $enqueued['ffc-presence-verifier'][0] ?? '' );
 		$this->assertSame( 'ffcTerminal', $localized['ffc-terminal-kiosk'][0] );
 		$config = $localized['ffc-terminal-kiosk'][1];
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/terminal/', $config['rest'] );
