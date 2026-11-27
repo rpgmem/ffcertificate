@@ -291,9 +291,15 @@ class AudienceTerminalRestController {
 						),
 						'bookings' => array(
 							'type'              => 'array',
-							'required'          => true,
+							'default'           => array(),
 							'items'             => array( 'type' => array( 'integer', 'string' ) ),
 							'sanitize_callback' => array( self::class, 'sanitize_targets' ),
+						),
+						// A GPS location the terminal follows from now on (#2900), instead of chosen events.
+						'location' => array(
+							'type'              => 'string',
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_text_field',
 						),
 					),
 				),
@@ -819,8 +825,10 @@ class AudienceTerminalRestController {
 		}
 		return new \WP_REST_Response(
 			array(
-				'bookings' => self::offered_bookings( time() ),
-				'max'      => AudienceTerminalPairing::MAX_BOOKINGS,
+				'bookings'  => self::offered_bookings( time() ),
+				// The GPS locations and what each holds, for "By place" (#2900).
+				'locations' => AudienceTerminalLocation::locations( time() ),
+				'max'       => AudienceTerminalPairing::MAX_BOOKINGS,
 			),
 			200,
 			array( 'Cache-Control' => 'no-store' )
@@ -846,13 +854,18 @@ class AudienceTerminalRestController {
 			return $operator;
 		}
 		$now    = time();
-		$result = AudienceTerminalPairing::update_bookings( $terminal['id'], self::sanitize_targets( $request->get_param( 'bookings' ) ), $operator['user_id'], true, $now );
+		$place  = $request->get_param( 'location' );
+		$result = is_string( $place ) && '' !== $place
+			? AudienceTerminalPairing::follow_location( $terminal['id'], $place, $operator['user_id'], $now )
+			: AudienceTerminalPairing::update_bookings( $terminal['id'], self::sanitize_targets( $request->get_param( 'bookings' ) ), $operator['user_id'], true, $now );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 		return new \WP_REST_Response(
 			array(
 				'label'         => $result['label'],
+				'location'      => $result['location_id'],
+				'location_name' => self::location_name( $result['location_id'] ),
 				'bookings'      => $result['targets'],
 				'expires_at'    => $result['expires_at'],
 				'expires_label' => DateFormatter::format_datetime( $result['expires_at'] ),

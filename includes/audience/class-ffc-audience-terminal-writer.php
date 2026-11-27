@@ -175,6 +175,33 @@ class AudienceTerminalWriter {
 	}
 
 	/**
+	 * Make an active terminal follow a GPS location from now on (#2900),
+	 * with the queue that location holds.
+	 *
+	 * @param int                    $id          Terminal id.
+	 * @param string                 $location_id GPS location id.
+	 * @param array                  $bookings    Target keys the location holds now.
+	 * @param array<int|string, int> $removed     When each target it no longer holds left.
+	 * @param int                    $expires     Unix time.
+	 * @phpstan-param list<int|string> $bookings
+	 * @return bool Whether an active terminal was changed.
+	 */
+	public static function set_location( int $id, string $location_id, array $bookings, array $removed, int $expires ): bool {
+		$wpdb = self::db();
+		return self::run(
+			$wpdb->prepare(
+				'UPDATE %i SET location_id = %s, bookings = %s, removed = %s, expires_at = %d WHERE id = %d AND revoked_at IS NULL',
+				AudienceTerminalReader::terminals_table(),
+				$location_id,
+				(string) wp_json_encode( $bookings ),
+				(string) wp_json_encode( (object) $removed ),
+				$expires,
+				$id
+			)
+		) > 0;
+	}
+
+	/**
 	 * Note that a terminal was heard from, and how many readings it said it
 	 * holds unsent.
 	 *

@@ -297,6 +297,67 @@ final class AudienceTerminalPairing {
 	}
 
 	/**
+	 * Make a terminal paired by event follow a GPS location instead (#2900),
+	 * from its operator menu, without ending it.
+	 *
+	 * Its queue becomes what the location holds now, and from then on it
+	 * follows the location as a terminal set up By place does. An event that
+	 * leaves keeps the moment it left, so a reading taken offline before then
+	 * still records.
+	 *
+	 * @param int    $id          Terminal id.
+	 * @param string $location_id GPS location id.
+	 * @param int    $by          The operator.
+	 * @param int    $now         Unix time.
+	 * @return TerminalRow|\WP_Error
+	 */
+	public static function follow_location( int $id, string $location_id, int $by, int $now ) {
+		$terminal = AudienceTerminalReader::terminal( $id );
+		if ( null === $terminal || null !== $terminal['revoked_at'] || $terminal['expires_at'] <= $now ) {
+			return new \WP_Error( 'ffc_terminal_missing', __( 'There is no such terminal.', 'ffcertificate' ), array( 'status' => 404 ) );
+		}
+		if ( ! AudienceTerminalLocation::exists( $location_id ) ) {
+			return new \WP_Error( 'ffc_terminal_location', __( 'There is no such location. Choose one of the locations of Settings → Geolocation.', 'ffcertificate' ), array( 'status' => 400 ) );
+		}
+		if ( $location_id === $terminal['location_id'] ) {
+			return $terminal;
+		}
+		$items   = AudienceTerminalLocation::items( $location_id, $now, $terminal['targets'] );
+		$added   = array_values( array_diff( $items, $terminal['targets'] ) );
+		$dropped = array_values( array_diff( $terminal['targets'], $items ) );
+		$removed = $terminal['removed'];
+		foreach ( $dropped as $key ) {
+			$removed[ $key ] = $now;
+		}
+		foreach ( $added as $key ) {
+			unset( $removed[ $key ] );
+		}
+		$expires = AudienceTerminalLocation::expiry( $now );
+		if ( ! AudienceTerminalWriter::set_location( $id, $location_id, $items, $removed, $expires ) ) {
+			return new \WP_Error( 'ffc_terminal_save', __( 'The terminal could not be saved. Try again.', 'ffcertificate' ), array( 'status' => 500 ) );
+		}
+		// The next schedule request follows the location at once.
+		delete_transient( 'ffc_terminal_follow_' . $id );
+		ActivityLog::log(
+			'terminal_events_changed',
+			ActivityLog::LEVEL_INFO,
+			array(
+				'terminal_id' => $id,
+				'location_id' => $location_id,
+				'added'       => $added,
+				'removed'     => $dropped,
+			),
+			$by
+		);
+
+		$terminal['location_id'] = $location_id;
+		$terminal['targets']     = $items;
+		$terminal['removed']     = $removed;
+		$terminal['expires_at']  = $expires;
+		return $terminal;
+	}
+
+	/**
 	 * Whether a terminal held an event at a moment: it holds it now, or it
 	 * left the queue after that moment (#2746).
 	 *
