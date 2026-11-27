@@ -433,7 +433,7 @@ final class AudienceAppScreens {
 					/* translators: 1: active terminals listed, 2: the site's limit, 3: the limit per event */
 					'summaryAll'      => __( 'Active terminals on the site: %1$d. The site allows %2$d at a time, and %3$d per event.', 'ffcertificate' ),
 					/* translators: %s: minutes and seconds left, such as 1:59 */
-					'operatorExpires' => __( 'A new code appears before this one expires in %s.', 'ffcertificate' ),
+					'operatorExpires' => __( 'New code in %s', 'ffcertificate' ),
 				),
 			)
 		);

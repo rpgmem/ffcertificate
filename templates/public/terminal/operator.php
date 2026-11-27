@@ -107,11 +107,19 @@ $ffc_terminal_mode = isset( $ffc_terminal_mode ) && in_array( $ffc_terminal_mode
 			</li>
 		</template>
 	<?php else : ?>
-		<section class="ffc-terminal-operator-card ffc-terminal-operator-unlock" aria-labelledby="ffc-terminal-operator-qr-title">
-			<h2 class="ffc-terminal-operator-heading" id="ffc-terminal-operator-qr-title"><?php esc_html_e( 'Unlock a paired terminal', 'ffcertificate' ); ?></h2>
+		<?php // The Presence screen's stage (#2948): the accent, the code on its white card, the bar and the tips. ?>
+		<section class="ffc-terminal-operator-stage" aria-labelledby="ffc-terminal-operator-qr-title">
+			<h2 class="ffc-terminal-operator-stage-title" id="ffc-terminal-operator-qr-title"><?php esc_html_e( 'Unlock a paired terminal', 'ffcertificate' ); ?></h2>
 			<div class="ffc-terminal-operator-qr" data-ffc-op-part="qr"></div>
-			<p class="ffc-terminal-operator-countdown" data-ffc-op-part="countdown"></p>
-			<p class="description"><?php esc_html_e( 'Hold this code to a terminal\'s reader to unlock its operator menu. It changes every two minutes and works only for you.', 'ffcertificate' ); ?></p>
+			<div class="ffc-terminal-operator-rotation">
+				<progress class="ffc-terminal-operator-progress" max="120" value="120" data-ffc-op-part="progress" aria-hidden="true"></progress>
+				<p class="ffc-terminal-operator-countdown" data-ffc-op-part="countdown"></p>
+			</div>
+			<ul class="ffc-terminal-operator-tips">
+				<li class="ffc-icon-qr"><?php esc_html_e( 'Hold the screen up to a terminal\'s reader to unlock its operator menu.', 'ffcertificate' ); ?></li>
+				<li class="ffc-icon-user"><?php esc_html_e( 'It works only for you.', 'ffcertificate' ); ?></li>
+				<li class="ffc-icon-clock"><?php esc_html_e( 'A screenshot will not do: the code changes every two minutes.', 'ffcertificate' ); ?></li>
+			</ul>
 		</section>
 	<?php endif; ?>
 </div>

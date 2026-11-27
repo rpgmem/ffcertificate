@@ -67,7 +67,7 @@ function screen(mode) {
 					<button type="button" data-ffc-op-item="confirm-end">End</button>
 				</div>
 			</li></template>`,
-		qr: '<div data-ffc-op-part="qr"></div><p data-ffc-op-part="countdown"></p>',
+		qr: '<div data-ffc-op-part="qr"></div><progress data-ffc-op-part="progress"></progress><p data-ffc-op-part="countdown"></p>',
 	};
 	document.body.innerHTML = `<div data-ffc-terminal-operator="${mode}">
 		<p data-ffc-op-part="status"></p><p data-ffc-op-part="error" hidden></p>${parts[mode]}</div>`;
@@ -205,9 +205,12 @@ describe('Operator QR', () => {
 		const el = screen('qr');
 		const e = env({ 'POST operator-code': [200, { code: 'FFO1CODE', expires_at: NOW + 120 }] });
 		await O().start(el, CONFIG, e).ready;
+		expect(part(el, 'progress').getAttribute('max')).toBe('120');
+		expect(part(el, 'progress').getAttribute('value')).toBe('120');
 		e.clock.now = (NOW + 121) * 1000;
 		e.intervals[e.intervals.length - 1]();
 		expect(part(el, 'countdown').textContent).toBe('expired');
+		expect(part(el, 'progress').getAttribute('value')).toBe('0');
 	});
 
 	it('clears the code when the site cannot sign one', async () => {

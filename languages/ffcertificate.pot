@@ -35897,9 +35897,6 @@ msgstr ""
 msgid "Active terminals on the site: %1$d. The site allows %2$d at a time, and %3$d per event."
 msgstr ""
 
-msgid "A new code appears before this one expires in %s."
-msgstr ""
-
 msgid "The check-in terminal needs JavaScript. Turn it on in the browser and open this page again."
 msgstr ""
 
@@ -35925,9 +35922,6 @@ msgid "End this terminal? It stops checking people in at once."
 msgstr ""
 
 msgid "Keep"
-msgstr ""
-
-msgid "Hold this code to a terminal's reader to unlock its operator menu. It changes every two minutes and works only for you."
 msgstr ""
 
 
@@ -37814,4 +37808,17 @@ msgstr ""
 
 #: includes/frontend/class-ffc-form-field-renderer.php
 msgid "From your profile. The certificate carries the full number."
+msgstr ""
+
+msgid "Hold the screen up to a terminal's reader to unlock its operator menu."
+msgstr ""
+
+msgid "It works only for you."
+msgstr ""
+
+msgid "A screenshot will not do: the code changes every two minutes."
+msgstr ""
+
+#. translators: %s: minutes and seconds left, such as 1:59
+msgid "New code in %s"
 msgstr ""
