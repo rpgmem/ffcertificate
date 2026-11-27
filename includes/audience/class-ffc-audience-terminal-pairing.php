@@ -103,16 +103,28 @@ final class AudienceTerminalPairing {
 	 * @param string   $label          What to call the terminal.
 	 * @param int      $now            Unix time.
 	 * @param int|null $auto_end_hours Hours after the last event the terminal ends itself (#2781); null for the Check-in settings.
+	 * @param string   $location_id    A GPS location the terminal follows instead of chosen events (#2900), or ''.
 	 * @phpstan-param array<mixed> $bookings
 	 * @return array{code: string, expires_at: int, bookings: list<int|string>}|\WP_Error
 	 */
-	public static function create_code( int $user_id, array $bookings, string $label, int $now, ?int $auto_end_hours = null ) {
-		$bookings = TerminalTargetKey::clean( $bookings );
-		$invalid  = self::queue_error( $bookings, $now );
-		if ( null !== $invalid ) {
-			return $invalid;
+	public static function create_code( int $user_id, array $bookings, string $label, int $now, ?int $auto_end_hours = null, string $location_id = '' ) {
+		if ( '' !== $location_id ) {
+			// A location's items are taken as they are: one may be empty
+			// today and fill later, and items may overlap, each reading
+			// naming its own (#2900).
+			if ( ! AudienceTerminalLocation::exists( $location_id ) ) {
+				return new \WP_Error( 'ffc_terminal_location', __( 'There is no such location. Choose one of the locations of Settings → Geolocation.', 'ffcertificate' ), array( 'status' => 400 ) );
+			}
+			$bookings = AudienceTerminalLocation::items( $location_id, $now );
+			$limit    = self::site_limit_error( $now );
+		} else {
+			$bookings = TerminalTargetKey::clean( $bookings );
+			$invalid  = self::queue_error( $bookings, $now );
+			if ( null !== $invalid ) {
+				return $invalid;
+			}
+			$limit = self::limit_error( $bookings, $now );
 		}
-		$limit = self::limit_error( $bookings, $now );
 		if ( null !== $limit ) {
 			return $limit;
 		}
@@ -121,14 +133,15 @@ final class AudienceTerminalPairing {
 		$auto_end_hours = self::clean_auto_end( $auto_end_hours );
 		for ( $attempt = 0; $attempt < 5; $attempt++ ) {
 			$code = self::PREFIX . '-' . AuthCodeService::generate_auth_code();
-			$id   = AudienceTerminalWriter::create_pairing( self::code_hash( $code ), $bookings, $label, $user_id, $now, $now + self::CODE_TTL, $auto_end_hours );
+			$id   = AudienceTerminalWriter::create_pairing( self::code_hash( $code ), $bookings, $label, $user_id, $now, $now + self::CODE_TTL, $auto_end_hours, $location_id );
 			if ( $id > 0 ) {
 				ActivityLog::log(
 					'terminal_pairing_created',
 					ActivityLog::LEVEL_INFO,
 					array(
-						'pairing_id' => $id,
-						'bookings'   => $bookings,
+						'pairing_id'  => $id,
+						'bookings'    => $bookings,
+						'location_id' => $location_id,
 					),
 					$user_id
 				);
@@ -170,16 +183,19 @@ final class AudienceTerminalPairing {
 		}
 		// A full site or event refuses before the code is spent, so the
 		// operator can end a terminal and the same code still works.
-		$limit = self::limit_error( $pairing['targets'], $now );
+		$follows = '' !== $pairing['location_id'];
+		$limit   = $follows ? self::site_limit_error( $now ) : self::limit_error( $pairing['targets'], $now );
 		if ( null !== $limit ) {
 			return $limit;
 		}
 		if ( ! AudienceTerminalWriter::spend_pairing( $pairing['id'], $now ) ) {
 			return self::wrong_code( $device_hash, $address, $now );
 		}
-		$expires = self::expiry( $pairing['targets'], $now, $pairing['auto_end_hours'] );
+		// A terminal that follows a location does not end after an event:
+		// its end moves forward each time it follows the location (#2900).
+		$expires = $follows ? AudienceTerminalLocation::expiry( $now ) : self::expiry( $pairing['targets'], $now, $pairing['auto_end_hours'] );
 		$token   = bin2hex( random_bytes( 32 ) );
-		$id      = AudienceTerminalWriter::create_terminal( self::token_hash( $token ), $device_hash, $pairing['label'], $pairing['targets'], $pairing['created_by'], $now, $expires, $pairing['auto_end_hours'] );
+		$id      = AudienceTerminalWriter::create_terminal( self::token_hash( $token ), $device_hash, $pairing['label'], $pairing['targets'], $pairing['created_by'], $now, $expires, $pairing['auto_end_hours'], $pairing['location_id'] );
 		if ( $id <= 0 ) {
 			return new \WP_Error( 'ffc_terminal_save', __( 'The terminal could not be saved. Generate a new code and try again.', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
@@ -231,6 +247,11 @@ final class AudienceTerminalPairing {
 		$terminal = AudienceTerminalReader::terminal( $id );
 		if ( null === $terminal || ( ! $any && $terminal['paired_by'] !== $by ) || null !== $terminal['revoked_at'] || $terminal['expires_at'] <= $now ) {
 			return new \WP_Error( 'ffc_terminal_missing', __( 'There is no such terminal.', 'ffcertificate' ), array( 'status' => 404 ) );
+		}
+		if ( '' !== $terminal['location_id'] ) {
+			// Its queue is the location's (#2900): a change made here would
+			// be undone the next time the terminal follows the location.
+			return new \WP_Error( 'ffc_terminal_follows_location', __( 'This terminal follows a location: its events change with the location. End it and pair it again to choose events.', 'ffcertificate' ), array( 'status' => 409 ) );
 		}
 		$bookings = TerminalTargetKey::clean( $bookings );
 		$invalid  = self::queue_error( $bookings, $now );
@@ -500,12 +521,22 @@ final class AudienceTerminalPairing {
 	 * @return \WP_Error|null
 	 */
 	private static function limit_error( array $bookings, int $now ): ?\WP_Error {
+		return self::site_limit_error( $now ) ?? self::booking_limit_error( $bookings, $now );
+	}
+
+	/**
+	 * The refusal the per-site limit gives, or null when there is room.
+	 *
+	 * @param int $now Unix time.
+	 * @return \WP_Error|null
+	 */
+	private static function site_limit_error( int $now ): ?\WP_Error {
 		$limits = self::limits();
 		if ( count( AudienceTerminalReader::active_terminals( $now ) ) >= $limits['site'] ) {
 			/* translators: %d: maximum number of terminals */
 			return new \WP_Error( 'ffc_terminal_site_limit', sprintf( __( 'This site already has %d active terminals. End one before pairing another.', 'ffcertificate' ), $limits['site'] ), array( 'status' => 409 ) );
 		}
-		return self::booking_limit_error( $bookings, $now );
+		return null;
 	}
 
 	/**

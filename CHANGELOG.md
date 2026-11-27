@@ -54,6 +54,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Terminal readings in the activity log, and a consent with its proof.** The log records each certificate issued at the terminal and each reading left waiting on data; a consent the reading accepts keeps the reading's time and terminal beside the answers, shown on the edit screen (#2891).
 - **An environment names its GPS location.** The environment's edit screen links it to a location of Settings → Geolocation, the side column names the location's environments and forms, and a location an environment uses cannot be deleted (#2900).
 - **Certificate forms at pairing, on by default.** A form takes the terminal unless its switch is turned off, and pairing lists the forms that qualify beside the events, soonest first, only what is open today or later within 7 days (#2900).
+- **A terminal can follow a GPS location.** Paired to a location, it holds the location's events and certificate forms, today or later within 7 days; an item created later joins when it asks for its schedule, and overlapping items show one at a time (#2900).
 
 ### Changed
 

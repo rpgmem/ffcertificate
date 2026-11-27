@@ -37568,3 +37568,15 @@ msgstr "Um consentimento aceito pela leitura guarda, junto às respostas, a hora
 
 msgid "The switch is on by default: a form that never set it takes the terminal whenever it qualifies. Turn it off to keep a form out of every terminal. Pairing a terminal lists these forms beside the events, and only what is open today or later, within the next 7 days, ever shows."
 msgstr "A chave vem ligada por padrão: um formulário que nunca mexeu nela usa o terminal sempre que se qualifica. Desligue-a para manter um formulário fora de todos os terminais. O pareamento de um terminal lista esses formulários junto dos eventos, e só aparece o que está aberto hoje ou depois, dentro dos próximos 7 dias."
+
+msgid "There is no such location. Choose one of the locations of Settings → Geolocation."
+msgstr "Esse local não existe. Escolha um dos locais de Configurações → Geolocalização."
+
+msgid "This terminal follows a location: its events change with the location. End it and pair it again to choose events."
+msgstr "Este terminal segue um local: seus eventos mudam com o local. Encerre-o e pareie de novo para escolher eventos."
+
+msgid "A terminal can also be paired to a GPS location of Settings → Geolocation instead of chosen events. It then holds what the location holds: the events booked in the environments linked to the location and the certificate forms whose geolocation names it, open today or later within the next 7 days, up to 10, soonest first. It follows the location: every time it asks for its schedule, at most once a minute, an item created since joins and one that ended leaves, with no new pairing, and it does not end after an event. Items of one location may overlap: each reading names its own item, and the screen shows one at a time, an item waiting until the earlier one closes. Its events cannot be changed one by one; end it and pair it again to choose events."
+msgstr "Um terminal também pode ser pareado a um local de GPS de Configurações → Geolocalização em vez de eventos escolhidos. Ele passa a ter o que o local tem: os eventos agendados nos ambientes ligados ao local e os formulários de certificado cuja geolocalização o cita, abertos hoje ou depois, dentro dos próximos 7 dias, até 10, os mais próximos primeiro. Ele segue o local: cada vez que pede sua agenda, no máximo uma vez por minuto, um item criado depois entra e um que terminou sai, sem novo pareamento, e ele não se encerra depois de um evento. Itens de um mesmo local podem se sobrepor: cada leitura cita o próprio item, e a tela mostra um de cada vez, com o item seguinte esperando o anterior fechar. Seus eventos não podem ser alterados um a um; encerre-o e pareie de novo para escolher eventos."
+
+msgid "Terminals paired to the location"
+msgstr "Terminais pareados ao local"
