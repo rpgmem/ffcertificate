@@ -492,10 +492,7 @@
                 env.clearInterval(ticket.tick);
             }
             ticket = { code: '', target: null, until: 0, timer: null, tick: null };
-            var held = part('ticket-held');
-            if (held) {
-                held.hidden = true;
-            }
+            part('ticket-held').hidden = true;
         }
 
         function focusTicket() {
@@ -507,9 +504,6 @@
 
         function showTicketHeld() {
             var held = part('ticket-held');
-            if (!held) {
-                return;
-            }
             held.hidden = !ticket.code || 'ready' !== screen;
             if (!held.hidden) {
                 var left = Math.max(0, Math.ceil((ticket.until - env.now()) / 1000));
