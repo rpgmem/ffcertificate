@@ -572,6 +572,12 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( 'Inclusive Education Seminar', $items[0]['title'] );
 		$this->assertSame( array( 'School' ), $items[0]['missing'] );
 		$this->assertStringContainsString( CertificateCompletionLink::code( self::FORM, self::USER ), $items[0]['url'] );
+
+		// Read again: the table keeps one row per form and person, so the
+		// form is listed once, never twice.
+		$this->target()->terminal_read( self::FORM, $this->reading() );
+		$this->assertCount( 1, $this->db->rows );
+		$this->assertCount( 1, CertificateCompletionLink::pending_for_user( self::USER, self::NOW + 3600 ) );
 		$this->assertSame( array(), CertificateCompletionLink::pending_for_user( self::USER, self::NOW + CertificateCompletionLink::TTL + 1 ), 'the link closed' );
 	}
 
