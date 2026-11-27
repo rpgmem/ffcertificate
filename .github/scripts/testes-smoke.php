@@ -117,6 +117,9 @@ require_once __DIR__ . '/ffc-create-statements.php';
 require_once __DIR__ . '/SchemaColumns.php';
 require_once __DIR__ . '/ffc-schema-drift.php';
 
+// Check 7's judgement, kept pure so a unit test drives every branch (#2915).
+require_once __DIR__ . '/ffc-asset-freshness.php';
+
 // ---------------------------------------------------------------- arguments
 
 $plugin_dir = isset( $argv[1] ) ? rtrim( (string) $argv[1], '/' ) : '';
@@ -417,6 +420,58 @@ ffc_smoke_check(
 	array() === $hooks ? 'none scheduled' : implode( ', ', $hooks ),
 	false
 );
+
+// 7. The assets a visitor receives are the files just deployed (#2915). A cache
+//    in front of PHP kept a days-old script under the new `?ver=` (#2912), and
+//    every check above passed, because nothing here read an asset over HTTP.
+//    Each URL is built the way the site prints it: `?ver=FFC_VERSION`, then the
+//    loader filter, which on a `SCRIPT_DEBUG` site appends the file time. The
+//    judgement, and why a failed fetch only warns, is in ffc-asset-freshness.php.
+$asset_suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+$asset_checks = array(
+	'assets/js/ffc-core' . $asset_suffix . '.js'      => 'script_loader_src',
+	'assets/js/ffc-frontend' . $asset_suffix . '.js'  => 'script_loader_src',
+	'assets/css/ffc-common' . $asset_suffix . '.css'  => 'style_loader_src',
+);
+$fetch_args = array(
+	'timeout'     => 5,
+	'redirection' => 2,
+	'user-agent'  => 'Mozilla/5.0 (compatible; ffc-deploy-smoke)',
+);
+foreach ( $asset_checks as $relative => $loader_filter ) {
+	$path = FFC_PLUGIN_DIR . $relative;
+	if ( ! is_readable( $path ) ) {
+		$failed = ! ffc_smoke_check( false, 'asset served fresh', $relative . ': not on disk' ) || $failed;
+		continue;
+	}
+	$url = (string) apply_filters( $loader_filter, add_query_arg( 'ver', FFC_VERSION, FFC_PLUGIN_URL . $relative ), 'ffc-smoke' );
+
+	$public   = wp_remote_get( $url, $fetch_args );
+	$pub_hash = ( ! is_wp_error( $public ) && 200 === (int) wp_remote_retrieve_response_code( $public ) )
+		? hash( 'sha256', (string) wp_remote_retrieve_body( $public ) )
+		: null;
+
+	$deployed = (string) hash_file( 'sha256', $path );
+	$org_hash = null;
+	if ( null !== $pub_hash && ! hash_equals( $deployed, $pub_hash ) ) {
+		$origin_request = ffc_asset_origin_request( $url );
+		if ( null !== $origin_request ) {
+			$origin = wp_remote_get(
+				$origin_request['url'],
+				$fetch_args + array(
+					'headers'   => array( 'Host' => $origin_request['host'] ),
+					'sslverify' => false,
+				)
+			);
+			if ( ! is_wp_error( $origin ) && 200 === (int) wp_remote_retrieve_response_code( $origin ) ) {
+				$org_hash = hash( 'sha256', (string) wp_remote_retrieve_body( $origin ) );
+			}
+		}
+	}
+
+	$verdict = ffc_asset_freshness_verdict( $deployed, $pub_hash, $org_hash );
+	$failed  = ! ffc_smoke_check( $verdict['ok'], 'asset served fresh', $relative . ': ' . $verdict['detail'], $verdict['fatal'] ) || $failed;
+}
 
 $GLOBALS['ffc_smoke_verdict'] = true;
 echo "\n" . ( $failed ? "SMOKE FAILED\n" : "SMOKE PASSED\n" );
