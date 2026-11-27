@@ -507,11 +507,13 @@ final class AudienceTerminalPage {
 	}
 
 	/**
-	 * Writes a script error into the boot note while it is still shown
-	 * (#2910): the message, the file and the line. Plain ES5, so it runs on
-	 * whatever browser the terminal's own script failed on.
+	 * Writes into the boot note, while it is still shown, why the terminal
+	 * did not start (#2910, #2912): a script error with its file and line, a
+	 * script or sheet that did not load, a rejected promise, and, three
+	 * seconds after the page loaded, which of the terminal's globals exist.
+	 * Plain ES5, so it runs on whatever browser the terminal failed on.
 	 */
-	private const BOOT_ERROR_SCRIPT = "window.addEventListener('error',function(e){var n=document.querySelector('[data-ffc-terminal-part=\\\"boot\\\"]');if(!n||n.hidden){return;}var f=String(e.filename||'').split('?')[0].split('/').pop();var d=document.createElement('code');d.className='ffc-terminal-boot-error';d.textContent=String(e.message||'error')+(f?' ('+f+':'+(e.lineno||0)+')':'');n.appendChild(d);});";
+	private const BOOT_ERROR_SCRIPT = '(function(w,d){function note(){var n=d.querySelector(\'[data-ffc-terminal-part="boot"]\');return n&&!n.hidden?n:null;}function add(t){var n=note();if(!n){return;}var c=d.createElement(\'code\');c.className=\'ffc-terminal-boot-error\';c.textContent=t;n.appendChild(c);}function file(u){return String(u||\'\').split(\'?\')[0].split(\'/\').pop();}w.addEventListener(\'error\',function(e){var t=e.target;if(t&&t!==w&&(t.src||t.href)){add(\'not loaded: \'+file(t.src||t.href));return;}add(String(e.message||\'error\')+(e.filename?\' (\'+file(e.filename)+\':\'+(e.lineno||0)+\')\':\'\'));},true);w.addEventListener(\'unhandledrejection\',function(e){add(\'rejected: \'+String(e.reason&&e.reason.message||e.reason));});w.addEventListener(\'load\',function(){w.setTimeout(function(){if(note()){add(\'ffcTerminal \'+(w.ffcTerminal?\'yes\':\'no\')+\' · FFCPresenceVerifier \'+(w.FFCPresenceVerifier?\'yes\':\'no\')+\' · FFCTerminal \'+(w.FFCTerminal?\'yes\':\'no\')+\' · \'+d.querySelectorAll(\'script\').length+\' scripts\');}},3000);});}(window,document));';
 
 	/**
 	 * The install script: the banner on the page, the states on the install
