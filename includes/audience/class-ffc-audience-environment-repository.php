@@ -224,7 +224,7 @@ class AudienceEnvironmentRepository {
 	 * @return array<int, string>
 	 */
 	public static function location_users( $names, $location_id ): array {
-		$names = is_array( $names ) ? array_values( array_map( 'strval', $names ) ) : array();
+		$names = is_array( $names ) ? array_values( array_map( static fn( $name ): string => is_scalar( $name ) ? (string) $name : '', $names ) ) : array();
 		foreach ( self::get_by_location( is_string( $location_id ) ? $location_id : '' ) as $environment ) {
 			$names[] = (string) $environment->name;
 		}
