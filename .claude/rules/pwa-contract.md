@@ -5,6 +5,7 @@ paths:
   - "includes/shortcodes/class-ffc-app-look.php"
   - "includes/core/class-ffc-public-design.php"
   - "includes/frontend/class-ffc-frontend.php"
+  - "includes/frontend/class-ffc-device-check.php"
   - "includes/settings/class-ffc-settings-reader.php"
   - "includes/admin/class-ffc-settings-save-handler.php"
   - "assets/js/ffc-dark-mode.js"
@@ -40,9 +41,10 @@ This plugin offers the app its look through the three filters `AppLook` hooks: P
 
 Inside the app, the theme a person chose on their device (More → Appearance, rpgmem/site-pwa#62) marks `<html>` with `data-site-pwa-scheme` `dark` or `light` before the first paint; `assets/js/ffc-dark-mode.js` treats `dark` as on and `light` as off, whatever this plugin's Dark Mode says (#2883).
 
-Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above. This side reads two names of Site PWA's, each guarded so an older or absent app falls back:
+Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): everything it takes from this side comes through the hooks above. This side reads three names of Site PWA's, each guarded so an older or absent app falls back:
 - `DashboardAppScreens::app_has_preference_sections()` asks whether `SitePwa\App\Frame::preferenceSections()` exists, so the app's Messages and Profile screens hand their notification toggles to Preferences only where Preferences can draw them (#2885).
 - `CertificateCompletionLink::app_screen_url()` calls `SitePwa\App\Routes::url( 'home' )` and appends `s/certificates/`, the screen address `docs/screens.md` documents, so a certificate waiting on profile data is completed on the app's Certificates screen, whether or not a page carries its form (#2936). Without Site PWA the link is the form's page.
+- `DeviceCheck::back_url()` asks `SitePwa\App\Frame::active()` whether the request is an app screen, and drops the device test's "Back to certificate verification" link there, since the frame's own Back returns to Preferences (#2958). Without Site PWA the link stays.
 
 The two plugins update apart, and the integration check reports both.
 
