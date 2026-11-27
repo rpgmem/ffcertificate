@@ -183,7 +183,6 @@
         }
         var text = withClass('span', 'ffc-app-certificate-text');
         text.appendChild(withClass('span', 'ffc-app-certificate-name', item.form_title || ''));
-        text.appendChild(withClass('span', 'ffc-app-certificate-status ffc-app-certificate-status-valid', strings.valid));
         text.appendChild(withClass('span', 'ffc-app-certificate-when', [item.submission_date, item.auth_code ? format(strings.code, item.auth_code) : ''].filter(Boolean).join(' · ')));
         body.appendChild(text);
         if (item.pdf_url) {

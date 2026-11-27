@@ -36530,6 +36530,9 @@ msgstr ""
 msgid "New"
 msgstr ""
 
+msgid "Valid"
+msgstr ""
+
 msgid "Issued on %s"
 msgstr ""
 
@@ -37801,10 +37804,6 @@ msgid "This certificate belongs to another account. Sign in with the account tha
 msgstr ""
 
 msgid "Your attendance is recorded. Fill in what is missing and send the form to receive the certificate."
-msgstr ""
-
-#. translators: %s: the certificate's authentication code
-msgid "Certificate code %s, kept from the reading."
 msgstr ""
 
 msgid "Certificate issued. Opening your certificates…"
