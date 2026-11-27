@@ -56,11 +56,31 @@ final class CertificateReadingsPage {
 	private const SEARCH_LIMIT = 200;
 
 	/**
+	 * The result filter on screen, which the export carries.
+	 *
+	 * @var string
+	 */
+	private string $result = '';
+
+	/**
+	 * The search on screen, which the export carries.
+	 *
+	 * @var string
+	 */
+	private string $search = '';
+
+	/**
 	 * Hook the menu and the assets.
 	 */
 	public function init(): void {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+		// Here, not on `admin_menu`, which never fires on admin-ajax, where the
+		// export runs (CLAUDE.md "CSV export architecture").
+		\FreeFormCertificate\Core\SourceRegistry::register(
+			CertificateReadingsExportSource::TYPE,
+			static fn(): CertificateReadingsExportSource => new CertificateReadingsExportSource()
+		);
 	}
 
 	/**
@@ -84,9 +104,36 @@ final class CertificateReadingsPage {
 	 * @param string $hook Admin page hook.
 	 */
 	public function enqueue( string $hook ): void {
-		if ( false !== strpos( $hook, self::MENU_SLUG ) ) {
-			PiiReveal::enqueue_assets();
+		if ( false === strpos( $hook, self::MENU_SLUG ) ) {
+			return;
 		}
+		PiiReveal::enqueue_assets();
+		// The Export CSV button drives the shared batched export (#2892).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-certificate-readings',
+			FFC_PLUGIN_URL . "assets/js/ffc-certificate-readings{$s}.js",
+			array( 'ffc-batched-export' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-certificate-readings',
+			'ffcCertificateReadings',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( CertificateReadingsExportSource::NONCE ),
+				'strings' => array(
+					'preparing' => __( 'Preparing…', 'ffcertificate' ),
+					/* translators: %1$d processed, %2$d total */
+					'exporting' => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'done'      => __( 'Done!', 'ffcertificate' ),
+					'error'     => __( 'The export failed. Try again.', 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -132,12 +179,15 @@ final class CertificateReadingsPage {
 		$result    = RequestInput::get_get_key( 'result' );
 		$result    = in_array( $result, array( Readings::ISSUED, Readings::AWAITING_DATA, Readings::REFUSED ), true ) ? $result : '';
 		$search    = trim( RequestInput::get_get_string( 's' ) );
-		$people    = '' === $search ? null : self::matching_accounts( $search );
-		$paged     = max( 1, RequestInput::get_get_int( 'paged' ) );
-		$total     = Readings::count_matching( $form_id, $result, $people );
-		$rows      = Readings::page( $form_id, $result, $people, self::PER_PAGE, ( $paged - 1 ) * self::PER_PAGE );
-		$reveal    = PiiAccessPolicy::TIER_MASKED !== PiiAccessPolicy::resolve( self::PII_CAP, null );
-		$nonce     = $reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
+
+		$this->result = $result;
+		$this->search = $search;
+		$people       = '' === $search ? null : self::matching_accounts( $search );
+		$paged        = max( 1, RequestInput::get_get_int( 'paged' ) );
+		$total        = Readings::count_matching( $form_id, $result, $people );
+		$rows         = Readings::page( $form_id, $result, $people, self::PER_PAGE, ( $paged - 1 ) * self::PER_PAGE );
+		$reveal       = PiiAccessPolicy::TIER_MASKED !== PiiAccessPolicy::resolve( self::PII_CAP, null );
+		$nonce        = $reveal ? wp_create_nonce( 'ffc_reveal_pii_nonce' ) : '';
 
 		echo '<div class="wrap ffc-admin-page ffc-page-certificate-readings ffc-boxed">';
 		$this->render_head( $form, count( $terminals ) );
@@ -176,6 +226,19 @@ final class CertificateReadingsPage {
 				'label' => __( 'Back to the form', 'ffcertificate' ),
 				'icon'  => 'chevron-left',
 				'href'  => (string) get_edit_post_link( (int) $form->ID, 'raw' ) . '#ffc-tab-terminal',
+			)
+		);
+		// The export carries the filters on screen (#2892).
+		AdminUI::render_button(
+			array(
+				'label' => __( 'Export CSV', 'ffcertificate' ),
+				'icon'  => 'download',
+				'id'    => 'ffc-readings-export',
+				'attrs' => array(
+					'data-form-id' => (string) $form->ID,
+					'data-result'  => $this->result,
+					'data-search'  => $this->search,
+				),
 			)
 		);
 		echo '</div></div>';
