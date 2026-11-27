@@ -139,6 +139,30 @@ class AudiencePresenceRestController {
 			)
 		);
 
+		// What a terminal made of the code a certificate form showed, so
+		// the app takes the person to the certificate (#2939).
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/reading',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'reading' ),
+				'permission_callback' => array( $this, 'check_app_permission' ),
+				'args'                => array(
+					'form'  => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+					'since' => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+				),
+			)
+		);
+
 		register_rest_route(
 			self::NAMESPACE,
 			'/' . self::REST_BASE . '/revocations',
@@ -271,6 +295,29 @@ class AudiencePresenceRestController {
 				'events'  => AudiencePresenceEvents::for_user( get_current_user_id(), time() ),
 				'pending' => AudiencePresenceEvents::pending( get_current_user_id(), time() ),
 			),
+			200,
+			array( 'Cache-Control' => 'no-store' )
+		);
+	}
+
+	/**
+	 * What a terminal made of the signed-in person's reading of a
+	 * certificate form since a moment (#2939). One row, read by the
+	 * person's own id: the request names only the form.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response
+	 */
+	public function reading( \WP_REST_Request $request ): \WP_REST_Response {
+		$form_id = absint( $request->get_param( 'form' ) );
+		$since   = absint( $request->get_param( 'since' ) );
+		return new \WP_REST_Response(
+			$form_id > 0
+				? \FreeFormCertificate\Frontend\CertificateCompletionLink::reading_outcome( $form_id, get_current_user_id(), $since )
+				: array(
+					'status' => 'none',
+					'url'    => '',
+				),
 			200,
 			array( 'Cache-Control' => 'no-store' )
 		);

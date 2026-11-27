@@ -495,6 +495,22 @@ class AudiencePresenceTest extends TestCase {
 		$this->assertSame( DateFormatter::format_wallclock_date( $day ), AudiencePresenceEnrolment::status( 7, self::NOW + 60 )['current']['since'] );
 	}
 
+	public function test_the_app_asks_what_a_terminal_made_of_its_certificate_code_behind_the_app_permission(): void {
+		$routes = array();
+		Functions\when( 'register_rest_route' )->alias(
+			static function ( $ns, $route, $args ) use ( &$routes ) {
+				$routes[ $route ] = $args;
+				return true;
+			}
+		);
+		$controller = new AudiencePresenceRestController();
+		$controller->register_routes();
+
+		$this->assertArrayHasKey( '/presence/reading', $routes, 'the route the app polls (#2939)' );
+		$this->assertSame( array( $controller, 'check_app_permission' ), $routes['/presence/reading']['permission_callback'] );
+		$this->assertTrue( $routes['/presence/reading']['args']['form']['required'] );
+	}
+
 	public function test_the_app_routes_need_a_login_the_rest_nonce_and_the_participant_capability(): void {
 		$controller = new AudiencePresenceRestController();
 		$nonce      = null;

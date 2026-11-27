@@ -29,6 +29,12 @@
     var DOMAIN_RENEW = 'FFC-PRESENCE-RENEW\u0000';
     var TARGETS = { audience_booking: 1, certificate_form: 2 };
     var RENEW_BEFORE = 5 * 86400;
+    // While a certificate form's code is up, the app asks this often
+    // whether a terminal read it, to take the person on (#2939).
+    var WATCH_EVERY = 3000;
+    // A reading counts from this long before the code went up, for the
+    // seconds between the terminal's answer and the first check.
+    var WATCH_SLACK = 30;
     var DB_NAME = 'ffc-presence';
     var STORE = 'state';
 
@@ -329,6 +335,9 @@
         this.midnight = null;
         this.refreshed = 0;
         this.offset = 0;
+        this.watching = null;
+        this.checking = false;
+        this.navigate = deps.navigate || function (url) { root.location.assign(url); };
     }
 
     /**
@@ -957,6 +966,7 @@
             progress.setAttribute('value', String(left));
         }
         var event = self.current();
+        self.watch(event);
         var attendance = self.part('attendance');
         if (attendance) {
             attendance.textContent = event && event.attendance ? event.attendance : '';
@@ -1000,6 +1010,74 @@
                 holder.setAttribute('aria-label', strings.qrLabel);
             }
             return text;
+        });
+    };
+
+    /**
+     * Ask the site, while a certificate form's code is up, whether a
+     * terminal read it (#2939). Any other item, or none, stops asking.
+     *
+     * @param {Object|null} event The item whose code is on screen.
+     */
+    App.prototype.watch = function (event) {
+        var self = this;
+        var key = event && 'certificate_form' === event.target_type ? itemKey(event) : '';
+        if (self.watching && self.watching.key === key) {
+            return;
+        }
+        self.unwatch();
+        if (!key) {
+            return;
+        }
+        var since = Math.floor(self.clock() / 1000) - WATCH_SLACK;
+        var formId = event.target_id;
+        self.watching = {
+            key: key,
+            timer: root.setInterval(function () { self.check(formId, since, key); }, WATCH_EVERY)
+        };
+    };
+
+    App.prototype.unwatch = function () {
+        if (this.watching) {
+            root.clearInterval(this.watching.timer);
+            this.watching = null;
+        }
+    };
+
+    /**
+     * One question: issued leads to Certificates, awaiting data to the
+     * form to complete; nothing yet, or a refusal the terminal already
+     * explained, keeps the code up. Skipped while the screen is hidden or
+     * an answer is on its way.
+     *
+     * @param {number} formId
+     * @param {number} since Unix time a reading counts from.
+     * @param {string} key The item asked about.
+     * @return {Promise<string|null>} The status that moved the person on, or null.
+     */
+    App.prototype.check = function (formId, since, key) {
+        var self = this;
+        if (self.checking || 'visible' !== root.document.visibilityState) {
+            return Promise.resolve(null);
+        }
+        self.checking = true;
+        var sep = String(self.config.rest).indexOf('?') >= 0 ? '&' : '?';
+        return self.request('GET', 'reading' + sep + 'form=' + encodeURIComponent(String(formId)) + '&since=' + since).then(function (answer) {
+            self.checking = false;
+            if (!self.watching || self.watching.key !== key || !answer || !answer.url) {
+                return null;
+            }
+            if ('issued' !== answer.status && 'awaiting' !== answer.status) {
+                return null;
+            }
+            self.unwatch();
+            self.say('issued' === answer.status ? self.config.strings.goIssued : self.config.strings.goComplete);
+            self.navigate(answer.url);
+            return answer.status;
+        }, function () {
+            // Offline or no answer: ask again on the next turn.
+            self.checking = false;
+            return null;
         });
     };
 

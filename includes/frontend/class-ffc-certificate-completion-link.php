@@ -342,6 +342,49 @@ final class CertificateCompletionLink {
 	}
 
 	/**
+	 * What a terminal made of a person's reading of a form since a moment,
+	 * and where the app takes them (#2939).
+	 *
+	 * The Presence screen asks while it shows the code of a certificate
+	 * form, so the person lands on the certificate the moment the terminal
+	 * answers: the Certificates screen when it was issued, the form to
+	 * complete when it waits on profile data. A refusal keeps them on the
+	 * code, since the terminal says why. A reading from before the moment
+	 * is not this one, and answers `none`.
+	 *
+	 * @param int $form_id Form id.
+	 * @param int $user_id Account id.
+	 * @param int $since   Unix time the code went on screen.
+	 * @return array{status: string, url: string}
+	 */
+	public static function reading_outcome( int $form_id, int $user_id, int $since ): array {
+		$reading = CertificateTerminalReadingRepository::for_person( $form_id, $user_id );
+		if ( null === $reading || $reading['updated_at'] < $since ) {
+			return array(
+				'status' => 'none',
+				'url'    => '',
+			);
+		}
+		switch ( $reading['result'] ) {
+			case CertificateTerminalReadingRepository::ISSUED:
+				return array(
+					'status' => 'issued',
+					'url'    => self::app_screen_url(),
+				);
+			case CertificateTerminalReadingRepository::AWAITING_DATA:
+				return array(
+					'status' => 'awaiting',
+					'url'    => self::link( $form_id, $user_id ),
+				);
+			default:
+				return array(
+					'status' => 'refused',
+					'url'    => '',
+				);
+		}
+	}
+
+	/**
 	 * The certificates a person still has to complete (#2893): each reading
 	 * that recorded attendance but waits on profile data, while its link is
 	 * open, with the fields to fill and the link the e-mail carries. The
