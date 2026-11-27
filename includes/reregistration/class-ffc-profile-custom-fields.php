@@ -234,8 +234,32 @@ final class ProfileCustomFields {
 				return '' === $formatted ? $text : $formatted;
 
 			default:
-				return is_scalar( $value ) ? (string) $value : '';
+				return self::formatted_document( $field, is_scalar( $value ) ? (string) $value : '' );
 		}
+	}
+
+	/**
+	 * A CPF, CIN or RF the way it is written, with its punctuation (#2946);
+	 * any other value, or one that does not fit its shape, as stored.
+	 *
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @param string $text  Stored value.
+	 * @return string
+	 */
+	private static function formatted_document( object $field, string $text ): string {
+		$kind = DocumentFormatter::kind_for_key( (string) $field->field_key, self::mask_for( $field ) );
+		if ( '' === $text || null === $kind ) {
+			return $text;
+		}
+		$digits = preg_replace( '/\D/', '', $text ) ?? '';
+		if ( 11 === strlen( $digits ) && ( DocumentFormatter::MASK_CPF === $kind || DocumentFormatter::MASK_CIN === $kind ) ) {
+			return DocumentFormatter::format_cpf( $digits );
+		}
+		if ( 7 === strlen( $digits ) && DocumentFormatter::MASK_RF === $kind ) {
+			return DocumentFormatter::format_rf( $digits );
+		}
+		return $text;
 	}
 
 	/**

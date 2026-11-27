@@ -40,8 +40,7 @@
 	color: var(--ffc-text);
 }
 
-.ffc-app-agenda-view:focus-visible,
-.ffc-app-agenda-new:focus-visible {
+.ffc-app-agenda-view:focus-visible {
 	outline: 2px solid var(--ffc-border-focus);
 	outline-offset: 2px;
 }
@@ -188,17 +187,6 @@
 	font-size: var(--ffc-font-size-sm);
 	font-weight: 600;
 	text-decoration: none;
-}
-
-.ffc-app-agenda-new {
-	padding: var(--ffc-spacing-sm);
-	border: 2px dashed var(--ffc-border);
-	border-radius: var(--ffc-radius-lg);
-	background: transparent;
-	color: var(--ffc-text-muted);
-	font: inherit;
-	font-weight: 600;
-	cursor: pointer;
 }
 
 .ffc-app-agenda-book-row {

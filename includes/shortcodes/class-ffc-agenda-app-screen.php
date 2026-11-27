@@ -96,7 +96,6 @@ final class AgendaAppScreen {
 					/* translators: %s: when the post-event form closes */
 					'form'       => __( 'Fill in the form · until %s', 'ffcertificate' ),
 					'receipt'    => __( 'Receipt', 'ffcertificate' ),
-					'newOne'     => __( 'New booking', 'ffcertificate' ),
 					'noBook'     => __( 'No calendar is open for booking here. Book from the calendar\'s page on the site.', 'ffcertificate' ),
 					'onTheSpot'  => __( 'Certificate on the spot', 'ffcertificate' ),
 					'issued'     => __( 'Certificate issued', 'ffcertificate' ),

@@ -30,7 +30,6 @@ use FreeFormCertificate\Core\Notice;
 			<ol class="ffc-app-agenda-list" data-ffc-app-part="past-list"></ol>
 		</details>
 		<ol class="ffc-app-agenda-list" data-ffc-app-part="list"></ol>
-		<button type="button" class="ffc-app-agenda-new ffc-icon-plus" data-ffc-app-part="new"><?php esc_html_e( 'New booking', 'ffcertificate' ); ?></button>
 	</div>
 	<div data-ffc-app-panel="book" hidden>
 		<ul class="ffc-app-agenda-book" data-ffc-app-part="book"></ul>

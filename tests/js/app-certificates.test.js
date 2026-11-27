@@ -18,9 +18,6 @@ const STRINGS = {
 	issued: 'Issued %s',
 	code: 'Code %s',
 	open: 'Open PDF',
-	share: 'Share',
-	copied: 'copied',
-	noShare: 'no share',
 	noAccess: 'no access',
 };
 
@@ -56,7 +53,7 @@ describe('app certificates screen', () => {
 	it('features the newest, lists the rest with a chevron, and marks a recent one as new', async () => {
 		const el = markup();
 		const fetch = vi.fn(() => reply(200, { certificates: CERTS }));
-		window.FFCAppCertificates.boot({ fetch, now: () => NOW * 1000, share: null, copy: null });
+		window.FFCAppCertificates.boot({ fetch, now: () => NOW * 1000 });
 		await settle();
 		expect(fetch.mock.calls[0][0]).toBe(window.ffcAppCertificates.rest);
 		expect(fetch.mock.calls[0][1].headers['X-WP-Nonce']).toBe('n');
@@ -77,7 +74,7 @@ describe('app certificates screen', () => {
 
 	it('filters by course or by code, and says when nothing matches', async () => {
 		const el = markup();
-		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: CERTS }), now: () => NOW * 1000, share: null, copy: null });
+		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: CERTS }), now: () => NOW * 1000 });
 		await settle();
 		const search = el.querySelector('[data-ffc-app-part="search"]');
 		search.value = 'b1111';
@@ -94,40 +91,22 @@ describe('app certificates screen', () => {
 		expect(el.querySelector('[data-ffc-app-part="status"]').textContent).toBe('no match');
 	});
 
-	it('shares through the phone, or copies the link, or says it cannot', async () => {
-		let el = markup();
-		const share = vi.fn(() => Promise.resolve());
-		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: CERTS }), now: () => NOW * 1000, share, copy: null });
+	it('offers the PDF and no way to share its address', async () => {
+		const el = markup();
+		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: CERTS }), now: () => NOW * 1000 });
 		await settle();
-		el.querySelector('.ffc-icon-share').click();
-		await settle();
-		expect(share).toHaveBeenCalledWith({ title: 'Inclusive Education', url: 'https://example.org/v/3' });
-
-		el = markup();
-		const copy = vi.fn(() => Promise.resolve());
-		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: CERTS }), now: () => NOW * 1000, share: null, copy });
-		await settle();
-		el.querySelector('.ffc-icon-share').click();
-		await settle();
-		expect(copy).toHaveBeenCalledWith('https://example.org/v/3');
-		expect(el.querySelector('[data-ffc-app-part="status"]').textContent).toBe('copied');
-
-		el = markup();
-		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: CERTS }), now: () => NOW * 1000, share: null, copy: null });
-		await settle();
-		el.querySelector('.ffc-icon-share').click();
-		await settle();
-		expect(el.querySelector('[data-ffc-app-part="status"]').textContent).toBe('no share');
+		expect(el.querySelector('.ffc-app-certificate-card a.ffc-icon-download')).not.toBeNull();
+		expect(el.querySelector('.ffc-icon-share'), 'the certificate travels as the file').toBeNull();
 	});
 
 	it('says when there is nothing, and when the site does not answer', async () => {
 		let el = markup();
-		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: [] }), now: () => NOW * 1000, share: null, copy: null });
+		window.FFCAppCertificates.boot({ fetch: () => reply(200, { certificates: [] }), now: () => NOW * 1000 });
 		await settle();
 		expect(el.querySelector('[data-ffc-app-part="status"]').textContent).toBe('empty');
 
 		el = markup();
-		window.FFCAppCertificates.boot({ fetch: () => reply(500, null), now: () => NOW * 1000, share: null, copy: null });
+		window.FFCAppCertificates.boot({ fetch: () => reply(500, null), now: () => NOW * 1000 });
 		await settle();
 		expect(el.querySelector('[data-ffc-app-part="status"]').textContent).toBe('failed');
 

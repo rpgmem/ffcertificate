@@ -70,6 +70,22 @@ class FormFieldRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'readonly', $open );
 	}
 
+	public function test_a_locked_field_says_where_its_value_came_from_and_counts_nothing(): void {
+		$field  = array(
+			'type'          => 'text',
+			'name'          => 'nome_completo',
+			'default_value' => 'Ana Souza',
+		);
+		$locked = $this->render( $field + array( 'locked' => true ) );
+		$open   = $this->render( $field );
+
+		$this->assertStringContainsString( 'ffc-field-hint-locked ffc-icon-lock', $locked );
+		$this->assertStringContainsString( 'From your registration.', $locked );
+		$this->assertStringNotContainsString( 'ffc-field-counter', $locked, 'nothing is typed, so nothing is counted' );
+		$this->assertStringContainsString( 'ffc-field-counter', $open );
+		$this->assertStringNotContainsString( 'ffc-field-hint-locked', $open );
+	}
+
 	public function test_a_checkbox_renders_one_box_per_option_posting_a_list(): void {
 		$html = $this->render(
 			array(

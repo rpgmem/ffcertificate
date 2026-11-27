@@ -81,6 +81,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A terminal is set up on the terminal itself, and its queue takes any target** (#2890, #2900, #2907). Unpaired, it shows one informational screen; the operator QR, which now counts down to the site clock's 2-minute windows, opens setup By event or By place. The app's Pair terminal, the wp-admin pairing codes and the `POST terminal/pairings` and `POST terminal/pair` routes are gone. Stored queues keep their shape: a booking is still its bare id.
 - The Site PWA integration check covers the certificate form items and the Certificates badge (#2928, #2926).
 - The app's Certificates screen says a certificate's state: a **Valid** badge on the featured certificate, and an **Incomplete** badge beside the code of one waiting on profile data, where the screen used to say the code was kept from the reading (#2942).
+- In the app, a field the form was given (an invitation's name and e-mail, what the profile answers on a completion) reads as locked, with a lock and "From your registration" in place of the counter; the Certificates card loses Share, since a certificate travels as its file; Agenda loses New booking, the Book tab being the one way in; a revealed CPF, CIN or RF on the profile reads with its punctuation (#2946).
 
 ### Security
 

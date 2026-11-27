@@ -49,8 +49,6 @@
         this.config = config;
         this.fetch = deps.fetch;
         this.now = deps.now;
-        this.share = deps.share;
-        this.copy = deps.copy;
         this.items = [];
     }
 
@@ -158,13 +156,9 @@
             open.href = item.pdf_url;
             open.target = '_blank';
             open.rel = 'noopener';
+            // No Share: the certificate travels as the downloaded file,
+            // never as its address (#2946).
             actions.appendChild(open);
-            var share = withClass('button', 'ffc-btn ffc-btn-neutral ffc-icon-share', strings.share);
-            share.type = 'button';
-            share.addEventListener('click', function () {
-                self.shareLink(item);
-            });
-            actions.appendChild(share);
         } else {
             actions.appendChild(withClass('p', 'ffc-app-certificate-note', strings.noAccess));
         }
@@ -192,33 +186,10 @@
         return row;
     };
 
-    Screen.prototype.shareLink = function (item) {
-        var self = this;
-        var strings = self.config.strings;
-        if (self.share) {
-            return Promise.resolve().then(function () {
-                return self.share({ title: item.form_title || '', url: item.pdf_url });
-            }).catch(function () {
-                return null;
-            });
-        }
-        if (self.copy) {
-            return Promise.resolve().then(function () {
-                return self.copy(item.pdf_url);
-            }).then(function () {
-                self.say(strings.copied);
-            }).catch(function () {
-                self.say(strings.noShare);
-            });
-        }
-        self.say(strings.noShare);
-        return Promise.resolve();
-    };
-
     /**
      * Start every Certificates screen on the page.
      *
-     * @param {Object} [deps] Test seams: fetch, now, share, copy.
+     * @param {Object} [deps] Test seams: fetch, now.
      * @return {Screen[]}
      */
     function boot(deps) {
@@ -226,13 +197,10 @@
         if (!config) {
             return [];
         }
-        var nav = root.navigator || {};
         deps = deps || {};
         var options = {
             fetch: deps.fetch || root.fetch.bind(root),
-            now: deps.now || Date.now,
-            share: undefined !== deps.share ? deps.share : (nav.share ? nav.share.bind(nav) : null),
-            copy: undefined !== deps.copy ? deps.copy : (nav.clipboard ? nav.clipboard.writeText.bind(nav.clipboard) : null)
+            now: deps.now || Date.now
         };
         return Array.prototype.map.call(root.document.querySelectorAll('[data-ffc-app-certificates]'), function (node) {
             var screen = new Screen(node, config, options);
