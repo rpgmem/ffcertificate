@@ -37771,3 +37771,103 @@ msgstr "Ver em Certificados"
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Once the terminal has read the QR, the card leads to Certificates: a reading that waits on profile data shows To complete with Complete in Certificates, where the missing data is filled in, and an issued certificate shows View in Certificates. The same reading appears under Pending on Home."
 msgstr "Depois que o terminal lê o QR, o card leva para Certificados: uma leitura que espera dados do perfil mostra Para completar com Completar em Certificados, onde o dado que falta é preenchido, e um certificado emitido mostra Ver em Certificados. A mesma leitura aparece em Pendências no Início."
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "A certificate form can be handed out at an event in two ways, and both work at the same time: the form's page projected for the room, or a terminal at the entrance that reads the QR in each participant's app. A person receives one certificate per form either way."
+msgstr "Um formulário de certificado pode ser entregue em um evento de dois jeitos, e os dois funcionam ao mesmo tempo: a página do formulário projetada para a sala, ou um terminal na entrada que lê o QR no app de cada participante. Por qualquer um dos caminhos, cada pessoa recebe um certificado por formulário."
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "A phone with a browser"
+msgstr "Um celular com navegador"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "A tablet at the entrance reads the presence QR in the participant's app and issues the certificate at once, from the profile: no typing, and the GPS area and password do not apply, since standing at the terminal proves both. An operator sets the terminal up on the terminal itself, By event, ticking the events and certificate forms of the next 7 days, or By place, choosing a GPS location it then follows. It needs the participant's app activated on their phone; a field the profile cannot fill is completed later on the phone."
+msgstr "Um tablet na entrada lê o QR de presença no app do participante e emite o certificado na hora, a partir do perfil: sem digitar nada, e a área de GPS e a senha não se aplicam, porque estar diante do terminal já prova as duas coisas. Um operador configura o terminal no próprio terminal, Por evento, marcando os eventos e formulários de certificado dos próximos 7 dias, ou Por local, escolhendo um local de GPS que ele passa a seguir. É preciso que o participante tenha o app ativado no celular; um campo que o perfil não preenche é completado depois, no celular."
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Certificates at an event"
+msgstr "Certificados em um evento"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Does not work"
+msgstr "Não funciona"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Projected page"
+msgstr "Página projetada"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Publish a page with the form's shortcode and project its QR code, or its address, during the event. Participants open it on their phones and submit the form as on any day. Since anyone who has the address can open it, rely on the form's own checks to keep out people who are not there: set the form's opening and closing to the hours of the event on the Time tab, and turn on the GPS area on the Geolocation tab, around the place of the event. A password or an allow list can be added on the Security tab."
+msgstr "Publique uma página com o shortcode do formulário e projete o QR code dela, ou o endereço, durante o evento. Os participantes abrem no celular e enviam o formulário como em qualquer dia. Como qualquer pessoa com o endereço consegue abrir, conte com as verificações do próprio formulário para barrar quem não está lá: ajuste a abertura e o fechamento do formulário ao horário do evento na aba Horário e ative a área de GPS na aba Geolocalização, em volta do local do evento. Uma senha ou uma lista de permitidos podem ser acrescentadas na aba Segurança."
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Question"
+msgstr "Pergunta"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Readings are kept and sent later, except for a form with a ticket"
+msgstr "As leituras ficam guardadas e são enviadas depois, exceto em um formulário com ingresso"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "See Check-in terminals"
+msgstr "Ver Terminais de check-in"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "See Geolocation"
+msgstr "Ver Geolocalização"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "See Schedule"
+msgstr "Ver Horário"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "See Terminal"
+msgstr "Ver Terminal"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Standing at the terminal"
+msgstr "Estar diante do terminal"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The app, activated on their phone"
+msgstr "O app, ativado no celular"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The event terminal"
+msgstr "O terminal do evento"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The form's hours and GPS area"
+msgstr "O horário e a área de GPS do formulário"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The profile"
+msgstr "O perfil"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The projected form page"
+msgstr "A página do formulário projetada"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The projected page is also the way in for anyone without the app, and the fallback when a terminal that asks for a ticket loses its connection: it pauses and points participants to the page."
+msgstr "A página projetada também é o caminho para quem não tem o app, e a alternativa quando um terminal que pede ingresso perde a conexão: ele pausa e indica a página aos participantes."
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Typed into the form"
+msgstr "Digitados no formulário"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "What keeps out people who are not there"
+msgstr "O que barra quem não está lá"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "What the participant needs"
+msgstr "O que o participante precisa"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Where the data comes from"
+msgstr "De onde vêm os dados"
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Without internet"
+msgstr "Sem internet"
