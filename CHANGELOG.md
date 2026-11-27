@@ -117,6 +117,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [6.45.0] (2026-11-22) — `05300f6`
 - **The app's Agenda shows certificate forms to a person in no audience group** (#2930). It now offers them, and its Presence link, by the Presence screen's own conditions rather than the audience tab; a form open to the end of the day reads 23:59 instead of 00:00.
+- Completing a certificate after a terminal reading no longer asks again for the CPF/RF the profile holds: it shows masked, and it and every field the profile answers are locked and written by the server; only what is missing stays open. With both on record, the RF wins over the CPF (#2944).
 
 ### Added
 

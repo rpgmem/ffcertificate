@@ -397,6 +397,15 @@ class CertificateFormTargetTest extends TestCase {
 		$this->assertSame( self::CPF, CertificateFormTarget::person( self::USER )['cpf_rf'] );
 	}
 
+	public function test_the_rf_wins_over_the_cpf_when_the_profile_holds_both(): void {
+		$this->user_meta[ self::USER ] = array(
+			'ffc_user_cpf' => (string) \FreeFormCertificate\Core\Encryption::encrypt( self::CPF ),
+			'ffc_user_rf'  => (string) \FreeFormCertificate\Core\Encryption::encrypt( \FreeFormCertificate\Tests\Support\Identifiers::RF_A ),
+		);
+
+		$this->assertSame( \FreeFormCertificate\Tests\Support\Identifiers::RF_A, CertificateFormTarget::person( self::USER )['cpf_rf'], 'the RF identifies a member of staff' );
+	}
+
 	public function test_a_required_field_the_profile_cannot_fill_waits_on_data(): void {
 		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'school', 'type' => 'text', 'required' => '1' );
 		$this->meta[ self::FORM ]['_ffc_form_fields'][] = array( 'name' => 'notes', 'type' => 'text' );

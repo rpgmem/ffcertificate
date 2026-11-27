@@ -28,6 +28,17 @@ class FormInviteTest extends TestCase {
 		'email'      => 'Ana@Example.org',
 		'event'      => 'Workshop',
 		'completion' => false,
+		'cpf_rf'     => '',
+	);
+
+	private const COMPLETION = array(
+		'booking_id' => 0,
+		'user_id'    => 7,
+		'name'       => 'ana souza',
+		'email'      => 'Ana@Example.org',
+		'event'      => 'Workshop',
+		'completion' => true,
+		'cpf_rf'     => Identifiers::RF_A,
 	);
 
 	protected function setUp(): void {
@@ -129,6 +140,69 @@ class FormInviteTest extends TestCase {
 		$this->assertNotSame( 'Someone Else', $ctx->submission_data['nome_completo'] );
 		$this->assertSame( 'Good', $ctx->submission_data['rating'], 'The answers are the person\'s own.' );
 		$this->assertSame( 5, $ctx->invite['booking_id'] );
+	}
+
+	public function test_a_completion_link_draws_the_profile_identifier_masked_and_posts_nothing(): void {
+		$filled = FormInvite::fill_fields( self::fields(), self::COMPLETION );
+
+		$this->assertTrue( $filled[2]['profile_held'] );
+		$this->assertStringNotContainsString( Identifiers::RF_A, $filled[2]['default_value'], 'never the clear number on a screen' );
+		$this->assertSame( FormInvite::masked_identifier( Identifiers::RF_A ), $filled[2]['default_value'] );
+
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $text ) {
+			echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		} );
+		$html = ( new \FreeFormCertificate\Frontend\FormFieldRenderer() )->render( $filled[2] + array( 'label' => 'CPF/RF', 'required' => '1' ), 'tel' );
+		$this->assertStringNotContainsString( 'name=', $html, 'the request carries no CPF/RF' );
+		$this->assertStringContainsString( 'readonly', $html );
+		$this->assertStringNotContainsString( 'id="cpf', $html, 'the CPF/RF mask script leaves it alone' );
+	}
+
+	public function test_an_invitation_that_is_not_a_completion_carries_no_identifier(): void {
+		Filters\expectApplied( FormInvite::FILTER )->once()->andReturn( array( 'cpf_rf' => Identifiers::RF_A ) + self::INVITE );
+
+		$this->assertSame( '', FormInvite::resolve( 40, 'code' )['cpf_rf'] );
+	}
+
+	public function test_the_guard_writes_the_profile_identifier_over_a_posted_one(): void {
+		Functions\when( 'FreeFormCertificate\Core\mb_convert_case' )->alias( 'mb_convert_case' );
+		Filters\expectApplied( FormInvite::FILTER )->once()->andReturn( self::COMPLETION );
+		$ctx = $this->context( array( 'ffc_invite' => 'code' ) );
+
+		( new InviteGuard() )->apply( $ctx );
+
+		$this->assertSame( Identifiers::RF_A, $ctx->submission_data['cpf_rf'] );
+		$this->assertSame( Identifiers::RF_A, $ctx->val_cpf );
+	}
+
+	public function test_only_what_the_profile_answers_is_taken_and_what_it_lacks_stays_open(): void {
+		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $k ) ) );
+		$fields = array(
+			array( 'name' => 'school', 'type' => 'select', 'options' => 'North, South', 'profile_source' => 'field:escola' ),
+			array( 'name' => 'unit', 'type' => 'text', 'profile_source' => 'field:unidade' ),
+			array( 'name' => 'notes', 'type' => 'text' ),
+		);
+
+		$picked = FormInvite::pick_profile_values( $fields, array( 'field:escola' => 'South' ) );
+
+		$this->assertSame( array( 'school' => 'South' ), $picked, 'the unit the profile lacks and the plain field stay for the person' );
+		$this->assertSame( array(), FormInvite::profile_values( $fields, self::INVITE ), 'only a completion link takes from the profile' );
+	}
+
+	public function test_a_locked_choice_is_disabled_since_readonly_does_nothing_on_it(): void {
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'selected' )->alias( static fn( $a, $b, $echo = true ) => (string) $a === (string) $b ? ' selected' : '' );
+		$field = array( 'name' => 'school', 'label' => 'School', 'type' => 'select', 'options' => 'North, South', 'default_value' => 'South', 'locked' => true );
+
+		$html = ( new \FreeFormCertificate\Frontend\FormFieldRenderer() )->render( $field, 'select' );
+
+		$this->assertMatchesRegularExpression( '/<select[^>]* disabled>/', $html );
+		unset( $field['locked'] );
+		$this->assertDoesNotMatchRegularExpression( '/<select[^>]* disabled>/', ( new \FreeFormCertificate\Frontend\FormFieldRenderer() )->render( $field, 'select' ) );
 	}
 
 	public function test_the_guard_refuses_a_refused_invitation(): void {

@@ -57,7 +57,35 @@ class InviteGuard {
 			}
 		}
 
+		// A completion link's CPF/RF is the profile's (#2944): the form draws
+		// it masked and posts nothing, and a value the request carries is
+		// replaced like the name and the e-mail.
+		if ( '' !== $invite['cpf_rf'] && self::asks_identifier( $ctx->fields_config ) ) {
+			$ctx->submission_data['cpf_rf'] = $invite['cpf_rf'];
+			$ctx->val_cpf                   = $invite['cpf_rf'];
+		}
+		// The fields the profile answers are drawn locked, and the profile is
+		// what is kept: an edited page cannot change them either.
+		foreach ( FormInvite::profile_values( $ctx->fields_config, $invite ) as $name => $value ) {
+			$ctx->submission_data[ $name ] = $value;
+		}
+
 		$ctx->user_email = \FreeFormCertificate\Core\DataSanitizer::normalize_email( $invite['email'] );
 		$ctx->invite     = $invite;
+	}
+
+	/**
+	 * Whether the form asks for a CPF/RF.
+	 *
+	 * @param array<int, array<string, mixed>> $fields Stored fields.
+	 * @return bool
+	 */
+	private static function asks_identifier( array $fields ): bool {
+		foreach ( $fields as $field ) {
+			if ( 'cpf_rf' === ( $field['name'] ?? '' ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

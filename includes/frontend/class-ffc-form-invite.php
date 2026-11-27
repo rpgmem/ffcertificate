@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\DataSanitizer;
+use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\SubmitterName;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -34,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and a link that works without logging in must not print it. The person
  * types it, and the answer to the filter says whether it is theirs.
  *
- * @phpstan-type Invite array{booking_id: int, user_id: int, name: string, email: string, event: string, completion: bool}
+ * @phpstan-type Invite array{booking_id: int, user_id: int, name: string, email: string, event: string, completion: bool, cpf_rf: string}
  *
  * @since 6.42.0
  */
@@ -103,6 +105,8 @@ final class FormInvite {
 			// A terminal's completion link (#2891): the terminal already
 			// proved the hours, the GPS area and the password.
 			'completion' => ! empty( $answer['completion'] ),
+			// A completion link's CPF/RF, from the profile; '' otherwise.
+			'cpf_rf'     => ! empty( $answer['completion'] ) ? DataSanitizer::normalize_cpf_rf( (string) ( $answer['cpf_rf'] ?? '' ) ) : '',
 		);
 	}
 
@@ -130,6 +134,12 @@ final class FormInvite {
 	 * The form's fields with the invited person's name and e-mail filled in
 	 * and locked.
 	 *
+	 * A completion link (#2944) also carries the CPF/RF the profile holds,
+	 * drawn masked and posted by nobody: {@see Submission\InviteGuard} writes
+	 * the real value. The fields that fill from the profile take what it
+	 * holds, locked as well; only what the profile cannot answer is left
+	 * open.
+	 *
 	 * @param array<int, array<string, mixed>> $fields Stored fields.
 	 * @param array<string, mixed>             $invite Resolved invite.
 	 * @phpstan-param Invite $invite
@@ -143,9 +153,77 @@ final class FormInvite {
 			} elseif ( self::is_email_field( $field ) ) {
 				$fields[ $i ]['default_value'] = $invite['email'];
 				$fields[ $i ]['locked']        = true;
+			} elseif ( 'cpf_rf' === ( $field['name'] ?? '' ) && '' !== $invite['cpf_rf'] ) {
+				$fields[ $i ]['default_value'] = self::masked_identifier( $invite['cpf_rf'] );
+				$fields[ $i ]['profile_held']  = true;
+			}
+		}
+
+		$held = self::profile_values( $fields, $invite );
+		foreach ( $fields as $i => $field ) {
+			$name = (string) ( $field['name'] ?? '' );
+			if ( isset( $held[ $name ] ) ) {
+				$fields[ $i ]['default_value'] = is_array( $held[ $name ] ) ? (string) reset( $held[ $name ] ) : $held[ $name ];
+				$fields[ $i ]['locked']        = true;
 			}
 		}
 
 		return $fields;
+	}
+
+	/**
+	 * What a completion link's form takes from the profile, by field name.
+	 *
+	 * Only the fields set to fill from the profile, and only those the
+	 * profile answers: what it cannot answer stays for the person to fill.
+	 * The form draws these locked and {@see Submission\InviteGuard} writes
+	 * them again, so the profile is what the certificate carries (#2944).
+	 *
+	 * @param array<int, array<string, mixed>> $fields Stored fields.
+	 * @param array<string, mixed>             $invite Resolved invite.
+	 * @phpstan-param Invite $invite
+	 * @return array<string, string|list<string>>
+	 */
+	public static function profile_values( array $fields, array $invite ): array {
+		if ( ! $invite['completion'] ) {
+			return array();
+		}
+		return self::pick_profile_values( $fields, CertificateProfileSource::values( $invite['user_id'], array_values( $fields ) ) );
+	}
+
+	/**
+	 * The fields a profile answers, by name, from what it holds.
+	 *
+	 * @param array<int, array<string, mixed>> $fields  Stored fields.
+	 * @param array<string, string>            $profile Source => value, from {@see CertificateProfileSource::values()}.
+	 * @return array<string, string|list<string>>
+	 */
+	public static function pick_profile_values( array $fields, array $profile ): array {
+		if ( array() === $profile ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $fields as $field ) {
+			$name = (string) ( $field['name'] ?? '' );
+			if ( '' === $name || CertificateProfileSource::CONSENT === CertificateProfileSource::of( $field ) ) {
+				continue;
+			}
+			$value = CertificateProfileSource::value_for( $field, $profile );
+			if ( null !== $value ) {
+				$out[ $name ] = $value;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * A CPF or an RF as the form shows it: masked, by its own shape.
+	 *
+	 * @param string $cpf_rf Digits only.
+	 * @return string
+	 */
+	public static function masked_identifier( string $cpf_rf ): string {
+		$is_rf = 'rf' === DataSanitizer::classify_cpf_rf( $cpf_rf );
+		return DocumentFormatter::mask( $is_rf ? DocumentFormatter::MASK_RF : DocumentFormatter::MASK_CPF, $cpf_rf );
 	}
 }
