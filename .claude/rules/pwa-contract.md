@@ -32,6 +32,7 @@ Site PWA (`rpgmem/site-pwa`, epic #2738) turns the site into an installable app,
 | `site_pwa_identity_sources` | filter, `( array $sources )` | `Shortcodes\AppLook` |
 | `site_pwa_scheme_sources` | filter, `( array $sources )` | `AppLook` |
 | `site_pwa_dark_root_classes` | filter, `( array $classes )` | `AppLook` |
+| `site_pwa_login_username_label` | filter, `( string $label )` | `UserDashboard\IdentifierLogin` (the app's sign-in names CPF and RF, #2960) |
 
 **`$api` is the contract's version, and each consumer refuses one it does not know.** `API_VERSION` on each consumer class names the version it was written for; a register call carrying another one registers nothing. Site PWA raises `$api` only for a change that would break a consumer of the previous one, so a bump there is the signal to adapt here, never a value to mirror blindly. A screen's arguments (`label`, `render` / `url`, `icon`, `place`, `slot`, `section`, `badge`, `capability`, `position`) and the reserved ids are Site PWA's to define: read its `docs/screens.md` (address above) before adding or changing one, and give the screen a capability, because the app checks it everywhere the screen appears.
 

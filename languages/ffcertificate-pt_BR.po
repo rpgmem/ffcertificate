@@ -37943,3 +37943,15 @@ msgstr "Testar este aparelho"
 
 msgid "Inside the app the test is one tap away: Preferences has a Device test section whose Test this device opens it in the app's own frame when Site PWA can draw the verification page. A Mode row says whether the test runs in the installed app or in a browser tab, and a blocked location's help names the app's own settings there, since the app has no address bar."
 msgstr "Dentro do app o teste fica a um toque: Preferências tem a seção Teste do aparelho, cujo botão Testar este aparelho o abre no próprio app quando o Site PWA consegue desenhar a página de verificação. Uma linha Modo diz se o teste roda no app instalado ou numa aba do navegador, e a ajuda de uma localização bloqueada indica as configurações do próprio app nesse caso, já que o app não tem barra de endereço."
+
+msgid "This CPF or RF belongs to more than one account. Ask an administrator."
+msgstr "Este CPF ou RF está em mais de uma conta. Procure um administrador."
+
+msgid "Username, e-mail, CPF or RF"
+msgstr "Usuário, e-mail, CPF ou RF"
+
+msgid "Signing in with a CPF or an RF:"
+msgstr "Entrar com CPF ou RF:"
+
+msgid "the login, on the site and in the Site PWA app, and \"Lost your password?\" accept a CPF or an RF, with or without its mask, where they ask for a username. The account is the one the identifier belongs to in the user profiles or the certificate submissions. When one CPF or RF belongs to more than one account, the password decides which one signs in; if more than one of them takes that password, the login says the CPF or RF belongs to more than one account and asks the person to contact an administrator, and the same happens on \"Lost your password?\". Identity Resolution lists those accounts."
+msgstr "o login, no site e no app do Site PWA, e o \"Perdeu a senha?\" aceitam CPF ou RF, com ou sem máscara, onde pedem o nome de usuário. A conta é aquela a que o identificador pertence nos perfis de usuário ou nas submissões de certificados. Quando um CPF ou RF pertence a mais de uma conta, a senha decide qual delas entra; se mais de uma aceitar essa senha, o login informa que o CPF ou RF está em mais de uma conta e pede para procurar um administrador, e o mesmo acontece no \"Perdeu a senha?\". A Resolução de Identidade lista essas contas."

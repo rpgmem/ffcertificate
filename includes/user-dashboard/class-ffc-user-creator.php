@@ -280,6 +280,44 @@ class UserCreator {
 	}
 
 	/**
+	 * Every user one CPF or RF hash belongs to, across the same stores
+	 * {@see self::find_user_id_by_hashes()} asks, in the same order.
+	 *
+	 * Where that lookup stops at the first match, this one wants them all:
+	 * signing in by CPF or RF (#2960) must know when an identifier is shared
+	 * by two accounts, so the password decides, rather than whichever row a
+	 * store returns first.
+	 *
+	 * @param string $column `cpf_hash` or `rf_hash`.
+	 * @param string $hash   The identifier's hash.
+	 * @return list<int> Distinct user ids, possibly empty.
+	 */
+	public static function user_ids_by_hash( string $column, string $hash ): array {
+		if ( '' === $hash || ! in_array( $column, array( 'cpf_hash', 'rf_hash' ), true ) ) {
+			return array();
+		}
+
+		global $wpdb;
+
+		$ids = array();
+		foreach ( self::identity_sources() as $table ) {
+			$found = $wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT DISTINCT user_id FROM %i WHERE %i = %s AND user_id IS NOT NULL AND user_id > 0 LIMIT 20',
+					$table,
+					$column,
+					$hash
+				)
+			);
+			foreach ( (array) $found as $id ) {
+				$ids[ (int) $id ] = true;
+			}
+		}
+
+		return array_keys( $ids );
+	}
+
+	/**
 	 * Link orphaned records to a user.
 	 *
 	 * Updates any orphaned `ffc_submissions` / `ffc_self_scheduling_appointments`
