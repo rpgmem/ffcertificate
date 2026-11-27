@@ -37631,7 +37631,7 @@ msgstr ""
 msgid "Fill in the missing data"
 msgstr ""
 
-msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and its button opens the form on that screen, filled from the profile, so the form needs no page of its own. Home lists it under Pending, and the e-mail links to the same screen, so a lost e-mail does not lose the certificate. Without the app, the e-mail links to the form's page, when one is published."
+msgid "In the app, the Certificates screen lists it under To complete, with the fields still missing and the date the link closes, and its button opens the form on that screen, filled from the profile, so the form needs no page of its own. Home lists it under Pending, and the e-mail links to the same screen, so a lost e-mail does not lose the certificate. Without the app, the e-mail links to the form's page, when one is published. A person who showed the QR in the app does not need to look for it: once the terminal reads the code, the app opens Certificates when the certificate was issued, or the form to complete when data is missing."
 msgstr ""
 
 msgid "Attendance recorded. The certificate reaches your app when the terminal syncs."
@@ -37805,4 +37805,10 @@ msgstr ""
 
 #. translators: %s: the certificate's authentication code
 msgid "Certificate code %s, kept from the reading."
+msgstr ""
+
+msgid "Certificate issued. Opening your certificates…"
+msgstr ""
+
+msgid "Attendance recorded. Opening the form to finish your certificate…"
 msgstr ""

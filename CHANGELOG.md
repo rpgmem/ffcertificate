@@ -56,6 +56,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Terminals by place** (#2900). An environment names its GPS location of Settings → Geolocation; a terminal paired to a location holds the location's events and certificate forms for the next 7 days and picks up new ones as they appear; setup lists qualifying certificate forms beside the events.
 - **Documentation: certificates at an event** (#2894). A new topic sets the projected form page, with the form's hours and GPS area to keep out people who are not there, beside the event terminal, and links to the terminal topics.
 - **A terminal reading waiting on profile data fixes the certificate's code.** The code is reserved at the reading and shown in the app; the certificate completed later keeps it, with the reading's time as its issue time (#2938).
+- **The app moves on once the terminal reads a certificate form's code.** While the code is up, Presence asks every 3 s; issued opens Certificates, missing data opens the form to complete (#2939).
 
 ### Changed
 

@@ -307,6 +307,10 @@ final class AudienceAppScreens {
 					'next'           => __( 'New code in %d s', 'ffcertificate' ),
 					'expired'        => __( 'This phone\'s activation has expired. Open this screen while online to renew it.', 'ffcertificate' ),
 					'qrLabel'        => __( 'Your presence code. Hold it up to the terminal\'s reader.', 'ffcertificate' ),
+					// Said as the app moves on after the terminal read a
+					// certificate form's code (#2939).
+					'goIssued'       => __( 'Certificate issued. Opening your certificates…', 'ffcertificate' ),
+					'goComplete'     => __( 'Attendance recorded. Opening the form to finish your certificate…', 'ffcertificate' ),
 					'dismiss'        => __( 'Dismiss', 'ffcertificate' ),
 					'fillForm'       => __( 'Fill in the form', 'ffcertificate' ),
 					'recorded'       => __( 'Attendance recorded', 'ffcertificate' ),
