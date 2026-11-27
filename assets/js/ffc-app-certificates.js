@@ -44,6 +44,32 @@
         return node;
     }
 
+    /**
+     * A certificate's address: inside the app when the verification page
+     * opens there (#2950), so it shows without the site's theme. The token
+     * travels in the fragment, which the app's address keeps.
+     *
+     * @param {Object} config Screen config.
+     * @param {string} url    The certificate's link on the site.
+     * @return {{href: string, inApp: boolean}}
+     */
+    function certificateLink(config, url) {
+        var verify = config.verify || {};
+        if (verify.page && verify.app && verify.app !== verify.page && url.indexOf(verify.page) === 0) {
+            return { href: verify.app + url.slice(verify.page.length), inApp: true };
+        }
+        return { href: url, inApp: false };
+    }
+
+    function openLink(node, config, url) {
+        var link = certificateLink(config, url);
+        node.href = link.href;
+        if (!link.inApp) {
+            node.target = '_blank';
+            node.rel = 'noopener';
+        }
+    }
+
     function Screen(node, config, deps) {
         this.node = node;
         this.config = config;
@@ -153,9 +179,7 @@
         var actions = withClass('div', 'ffc-app-certificate-actions');
         if (item.pdf_url) {
             var open = withClass('a', 'ffc-btn ffc-btn-primary ffc-icon-download', strings.open);
-            open.href = item.pdf_url;
-            open.target = '_blank';
-            open.rel = 'noopener';
+            openLink(open, self.config, item.pdf_url);
             // No Share: the certificate travels as the downloaded file,
             // never as its address (#2946).
             actions.appendChild(open);
@@ -171,9 +195,7 @@
         var row = withClass('li', 'ffc-app-certificate-row');
         var body = withClass(item.pdf_url ? 'a' : 'div', 'ffc-app-certificate-link');
         if (item.pdf_url) {
-            body.href = item.pdf_url;
-            body.target = '_blank';
-            body.rel = 'noopener';
+            openLink(body, this.config, item.pdf_url);
         }
         var text = withClass('span', 'ffc-app-certificate-text');
         text.appendChild(withClass('span', 'ffc-app-certificate-name', item.form_title || ''));

@@ -25,7 +25,7 @@ Site PWA (`rpgmem/site-pwa`, epic #2738) turns the site into an installable app,
 | `site_pwa_preference_sections` | filter, `( array $sections, WP_User $user )` | `DashboardAppScreens` |
 | `site_pwa_home` | filter, `( array $home, WP_User $user, int $api )` | `Shortcodes\AppHome` |
 | `site_pwa_lock_required` | filter, `( bool $required, WP_User $user )` | `AudienceAppScreens` |
-| `site_pwa_app_url` | filter, `( string $url )` | `Shortcodes\AgendaAppScreen` |
+| `site_pwa_app_url` | filter, `( string $url )` | `Shortcodes\AgendaAppScreen`, `Frontend\VerificationHandler` (for the app's Certificates screen) |
 | `site_pwa_identity_sources` | filter, `( array $sources )` | `Shortcodes\AppLook` |
 | `site_pwa_scheme_sources` | filter, `( array $sources )` | `AppLook` |
 | `site_pwa_dark_root_classes` | filter, `( array $classes )` | `AppLook` |

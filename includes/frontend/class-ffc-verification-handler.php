@@ -162,6 +162,24 @@ class VerificationHandler {
 	}
 
 	/**
+	 * The verification page's address on the site and inside the app.
+	 *
+	 * The app's Certificates screen opens a certificate at the second (#2950).
+	 * Without Site PWA, or for a page it cannot draw, both are the site's,
+	 * and the certificate keeps opening on the site.
+	 *
+	 * @return array{page: string, app: string}
+	 */
+	public static function page_addresses(): array {
+		$page = \FreeFormCertificate\Generators\MagicLinkHelper::get_verification_page_url();
+		$app  = (string) apply_filters( 'site_pwa_app_url', $page );
+		return array(
+			'page' => $page,
+			'app'  => '' === $app ? $page : $app,
+		);
+	}
+
+	/**
 	 * What the page says about a revoked certificate.
 	 *
 	 * A certificate trashed before the date was recorded is said to be revoked

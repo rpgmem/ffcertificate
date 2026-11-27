@@ -100,6 +100,10 @@ final class CertificatesAppScreen {
 				'rest'    => esc_url_raw( rest_url( 'ffc/v1/user/certificates' ) ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),
 				'newDays' => self::NEW_DAYS,
+				// The verification page, and its address inside the app when
+				// Site PWA can draw it (#2950): a certificate then opens in
+				// the app's frame, without the theme around it.
+				'verify'  => \FreeFormCertificate\Frontend\VerificationHandler::page_addresses(),
 				'strings' => array(
 					'loading'  => __( 'Loading your certificates…', 'ffcertificate' ),
 					'failed'   => __( 'Your certificates could not be loaded. Check the connection and try again.', 'ffcertificate' ),
