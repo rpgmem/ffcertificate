@@ -37693,3 +37693,103 @@ msgstr ""
 #: includes/settings/views/documentation/feature-user-dashboard.php
 msgid "Once the terminal has read the QR, the card leads to Certificates: a reading that waits on profile data shows To complete with Complete in Certificates, where the missing data is filled in, and an issued certificate shows View in Certificates. The same reading appears under Pending on Home."
 msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "A certificate form can be handed out at an event in two ways, and both work at the same time: the form's page projected for the room, or a terminal at the entrance that reads the QR in each participant's app. A person receives one certificate per form either way."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "A phone with a browser"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "A tablet at the entrance reads the presence QR in the participant's app and issues the certificate at once, from the profile: no typing, and the GPS area and password do not apply, since standing at the terminal proves both. An operator sets the terminal up on the terminal itself, By event, ticking the events and certificate forms of the next 7 days, or By place, choosing a GPS location it then follows. It needs the participant's app activated on their phone; a field the profile cannot fill is completed later on the phone."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Certificates at an event"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Does not work"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Projected page"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Publish a page with the form's shortcode and project its QR code, or its address, during the event. Participants open it on their phones and submit the form as on any day. Since anyone who has the address can open it, rely on the form's own checks to keep out people who are not there: set the form's opening and closing to the hours of the event on the Time tab, and turn on the GPS area on the Geolocation tab, around the place of the event. A password or an allow list can be added on the Security tab."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Question"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Readings are kept and sent later, except for a form with a ticket"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "See Check-in terminals"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "See Geolocation"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "See Schedule"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "See Terminal"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Standing at the terminal"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The app, activated on their phone"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The event terminal"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The form's hours and GPS area"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The profile"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The projected form page"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "The projected page is also the way in for anyone without the app, and the fallback when a terminal that asks for a ticket loses its connection: it pauses and points participants to the page."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Typed into the form"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "What keeps out people who are not there"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "What the participant needs"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Where the data comes from"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-at-events.php
+msgid "Without internet"
+msgstr ""

@@ -116,6 +116,12 @@ $ffc_doc_tree = array(
 						'file'   => 'forms-email.php',
 					),
 					array(
+						'anchor' => 'forms-at-events',
+						'icon'   => 'ffc-icon-award',
+						'title'  => __( 'Certificates at an event', 'ffcertificate' ),
+						'file'   => 'forms-at-events.php',
+					),
+					array(
 						'anchor' => 'forms-terminal',
 						'icon'   => 'ffc-icon-qr',
 						'title'  => __( 'Terminal', 'ffcertificate' ),
