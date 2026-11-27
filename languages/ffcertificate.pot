@@ -37464,3 +37464,6 @@ msgstr ""
 
 msgid "Starting the terminal… If this message stays, the terminal could not start: close it and open it again, and tell the event team if it happens again."
 msgstr ""
+
+msgid "A terminal that does not start shows \"Starting the terminal…\" under its header and keeps it there, with what stopped it below: a script error with its file and line, a file that did not load, which of the terminal's parts are present, the browser and its version, and the time. A photo of that note is what the team sends when a terminal will not start."
+msgstr ""
