@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The terminal readings of certificate forms.
  *
  * @phpstan-type ReadingRow array{id: int, form_id: int, user_id: int|null, terminal_id: int, read_at: int, result: string, reason: string, missing: list<string>, submission_id: int|null, updated_at: int}
+ * @phpstan-type ReadingPageRow array{id: int, form_id: int, user_id: int|null, terminal_id: int, read_at: int, result: string, reason: string, missing: list<string>, submission_id: int|null, updated_at: int, auth_code: string}
  */
 final class CertificateTerminalReadingRepository {
 
@@ -98,6 +99,105 @@ final class CertificateTerminalReadingRepository {
 			}
 		}
 		return $counts;
+	}
+
+	/**
+	 * One reading by its row id, or null.
+	 *
+	 * @param int $id Row id.
+	 * @return ReadingRow|null
+	 */
+	public static function get( int $id ): ?array {
+		global $wpdb;
+
+		$row = $id > 0 ? $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', CertificateTerminalActivator::table(), $id ),
+			ARRAY_A
+		) : null;
+		return is_array( $row ) ? self::shape( $row ) : null;
+	}
+
+	/**
+	 * One page of a form's readings, latest first, each with the validation
+	 * code of the certificate it issued (#2892).
+	 *
+	 * @param int            $form_id  Form id.
+	 * @param string         $result   One of the result constants, or '' for every result.
+	 * @param list<int>|null $user_ids Only these accounts, or null for everyone.
+	 * @param int            $limit    Rows per page.
+	 * @param int            $offset   Rows to skip.
+	 * @return list<ReadingPageRow>
+	 */
+	public static function page( int $form_id, string $result, ?array $user_ids, int $limit, int $offset ): array {
+		global $wpdb;
+
+		if ( array() === $user_ids ) {
+			return array();
+		}
+		$where = self::where( $form_id, $result, $user_ids );
+		$sql   = 'SELECT r.*, s.auth_code FROM %i r LEFT JOIN %i s ON s.id = r.submission_id WHERE ' . $where['sql'] . ' ORDER BY r.read_at DESC, r.id DESC LIMIT %d OFFSET %d';
+		$args  = array_merge(
+			array( CertificateTerminalActivator::table(), \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table() ),
+			$where['args'],
+			array( max( 1, $limit ), max( 0, $offset ) )
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $sql holds only placeholders and literal column names (where()); $args carries one value per placeholder.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
+		$page = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( is_array( $row ) ) {
+				$page[] = self::shape( $row ) + array( 'auth_code' => \FreeFormCertificate\Core\ArrayValue::string( $row, 'auth_code' ) );
+			}
+		}
+		return $page;
+	}
+
+	/**
+	 * How many readings {@see self::page()} pages through.
+	 *
+	 * @param int            $form_id  Form id.
+	 * @param string         $result   One of the result constants, or ''.
+	 * @param list<int>|null $user_ids Only these accounts, or null for everyone.
+	 * @return int
+	 */
+	public static function count_matching( int $form_id, string $result, ?array $user_ids ): int {
+		global $wpdb;
+
+		if ( array() === $user_ids ) {
+			return 0;
+		}
+		$where = self::where( $form_id, $result, $user_ids );
+		$sql   = 'SELECT COUNT(*) FROM %i r WHERE ' . $where['sql'];
+		$args  = array_merge( array( CertificateTerminalActivator::table() ), $where['args'] );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $sql holds only placeholders and literal column names (where()); $args carries one value per placeholder.
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
+	}
+
+	/**
+	 * The filter shared by {@see self::page()} and {@see self::count_matching()}.
+	 *
+	 * @param int            $form_id  Form id.
+	 * @param string         $result   One of the result constants, or ''.
+	 * @param list<int>|null $user_ids Only these accounts, or null; never empty.
+	 * @return array{sql: string, args: list<int|string>}
+	 */
+	private static function where( int $form_id, string $result, ?array $user_ids ): array {
+		$sql  = 'r.form_id = %d';
+		$args = array( $form_id );
+		if ( isset( self::RANK[ $result ] ) ) {
+			$sql   .= ' AND r.result = %s';
+			$args[] = $result;
+		}
+		if ( null !== $user_ids ) {
+			$sql .= ' AND r.user_id IN (' . implode( ', ', array_fill( 0, count( $user_ids ), '%d' ) ) . ')';
+			foreach ( $user_ids as $user_id ) {
+				$args[] = $user_id;
+			}
+		}
+		return array(
+			'sql'  => $sql,
+			'args' => $args,
+		);
 	}
 
 	/**

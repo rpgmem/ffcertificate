@@ -55,6 +55,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **An environment names its GPS location.** The environment's edit screen links it to a location of Settings → Geolocation, the side column names the location's environments and forms, and a location an environment uses cannot be deleted (#2900).
 - **Certificate forms at pairing, on by default.** A form takes the terminal unless its switch is turned off, and pairing lists the forms that qualify beside the events, soonest first, only what is open today or later within 7 days (#2900).
 - **A terminal can follow a GPS location.** Paired to a location, it holds the location's events and certificate forms, today or later within 7 days; an item created later joins when it asks for its schedule, and overlapping items show one at a time (#2900).
+- **A certificate form's terminal readings.** View readings, in the form's Terminal tab, lists what the terminals read: counts, offline terminals holding readings, a search by person and a result filter, with the RF masked behind the audited Reveal. The new `ffc_checkin_certificates` capability gates it (#2892).
 
 ### Changed
 

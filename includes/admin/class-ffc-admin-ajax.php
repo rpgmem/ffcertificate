@@ -130,6 +130,12 @@ class AdminAjax {
 				'pii_cap'      => \FreeFormCertificate\Admin\CertificateSignersPage::PII_CAP,
 				'audit_action' => 'certificate_signer_pii_revealed',
 			),
+			// A reader's RF on a certificate form's terminal readings (#2892).
+			\FreeFormCertificate\Admin\CertificateReadingsPage::REVEAL_TYPE => array(
+				'surface_cap'  => \FreeFormCertificate\Admin\CertificateReadingsPage::CAP,
+				'pii_cap'      => \FreeFormCertificate\Admin\CertificateReadingsPage::PII_CAP,
+				'audit_action' => 'certificate_reading_pii_revealed',
+			),
 			// A blocked address on the Rate Limit tab (#2109).
 			self::REVEAL_RATE_LIMIT_LOG => array(
 				'surface_cap'  => 'ffc_view_settings',
@@ -168,7 +174,7 @@ class AdminAjax {
 		if ( self::REVEAL_RATE_LIMIT_LOG === $type ) {
 			return 'ip' === $field;
 		}
-		if ( \FreeFormCertificate\Admin\CertificateSignersPage::REVEAL_TYPE === $type ) {
+		if ( \FreeFormCertificate\Admin\CertificateSignersPage::REVEAL_TYPE === $type || \FreeFormCertificate\Admin\CertificateReadingsPage::REVEAL_TYPE === $type ) {
 			return 'rf' === $field;
 		}
 		if ( 'submission' === $type ) {
@@ -248,6 +254,16 @@ class AdminAjax {
 			return null === $signer ? null : array(
 				'user_id' => $signer['user_id'] > 0 ? $signer['user_id'] : null,
 				'rf'      => \FreeFormCertificate\Core\CertificateSigners::rf( $signer ),
+			);
+		}
+		if ( \FreeFormCertificate\Admin\CertificateReadingsPage::REVEAL_TYPE === $type ) {
+			// A person a terminal read for a certificate form: the RF of their
+			// profile, whose owner is that person.
+			$reading = \FreeFormCertificate\Frontend\CertificateTerminalReadingRepository::get( $id );
+			$user_id = null !== $reading ? (int) $reading['user_id'] : 0;
+			return $user_id <= 0 ? null : array(
+				'user_id' => $user_id,
+				'rf'      => \FreeFormCertificate\Core\CertificateSigners::user_rf( $user_id ),
 			);
 		}
 		if ( self::REVEAL_RATE_LIMIT_LOG === $type ) {

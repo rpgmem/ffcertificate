@@ -1256,6 +1256,36 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Source-to-target map for the certificate check-in cap (#2892): the
+	 * caps of the tiers that hold it, Certificates - Submissions Operator
+	 * and Certificates - Forms Manager.
+	 *
+	 * @since 6.52.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function checkin_certificates_cap_grant_map(): array {
+		return array(
+			'ffc_edit_certificates' => array( 'ffc_checkin_certificates' ),
+			'ffc_manage_forms'      => array( 'ffc_checkin_certificates' ),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_checkin_certificates` onto every user
+	 * and role already holding `ffc_edit_certificates` or `ffc_manage_forms`,
+	 * so whoever runs certificate forms today sees their terminal readings.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_checkin_certificates_cap_v1` option.
+	 *
+	 * @since 6.52.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_checkin_certificates_cap_grant(): array {
+		return self::seed_caps( self::checkin_certificates_cap_grant_map() );
+	}
+
+	/**
 	 * Source-to-target map for the check-in terminals cap (#2744).
 	 *
 	 * @since 6.50.0
@@ -1358,6 +1388,7 @@ class CapabilityMigrator {
 			self::forms_api_submit_cap_grant_map(),
 			self::presence_cap_grant_map(),
 			self::terminals_cap_grant_map(),
+			self::checkin_certificates_cap_grant_map(),
 		);
 		foreach ( $multiple as $map ) {
 			foreach ( $map as $source => $targets ) {

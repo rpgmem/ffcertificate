@@ -104,6 +104,8 @@ class Admin {
 		$this->certificates_dashboard->init();
 		// Certificates → Signers (#2582).
 		( new CertificateSignersPage() )->init();
+		// A certificate form's terminal readings (#2892).
+		( new CertificateReadingsPage() )->init();
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 

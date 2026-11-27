@@ -407,6 +407,7 @@ $ffcertificate_options = array(
 	'ffc_migration_self_scheduling_tables_completed',
 	'ffc_presence_cap_v1',
 	'ffc_terminals_cap_v1',
+	'ffc_checkin_certificates_cap_v1',
 	'ffc_rbac_caps_renamed_v1',
 	'ffc_rbac_roles_renamed_v1',
 	'ffc_reasons_caps_wired_v1',

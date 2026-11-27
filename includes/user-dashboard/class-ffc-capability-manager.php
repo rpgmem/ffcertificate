@@ -295,6 +295,13 @@ class CapabilityManager {
 		// staff beside it, which is more than running a check-in in person,
 		// so it is not on the Operator tier.
 		'ffc_manage_audiences_terminals',
+		// Certificate check-in (#2892): the readings a terminal took for a
+		// certificate form, and their export. `checkin` is the flow verb the
+		// audience check-in uses. It sits on Certificates - Submissions
+		// Operator and above and on Certificates - Forms Manager; the one-shot
+		// `migrate_checkin_certificates_cap_grant()` seeds it onto the
+		// current holders of those tiers' own caps.
+		'ffc_checkin_certificates',
 
 		// Granular "export" tier (GAP G). Each `ffc_export_<domain>` cap gates
 		// the bulk CSV data-extraction path of its domain *strictly* — the
@@ -861,7 +868,7 @@ class CapabilityManager {
 	 */
 	public static function module_roles_definition(): array {
 		$certificates_viewer   = array( 'ffc_view_certificates' );
-		$certificates_operator = array_merge( $certificates_viewer, array( 'ffc_edit_certificates', 'ffc_grade_certificates' ) );
+		$certificates_operator = array_merge( $certificates_viewer, array( 'ffc_edit_certificates', 'ffc_grade_certificates', 'ffc_checkin_certificates' ) );
 		$certificates_manager  = array_merge( $certificates_operator, array( 'ffc_manage_certificates', 'ffc_export_certificates', 'ffc_import_certificates', 'ffc_delete_certificates', 'ffc_view_certificates_pii' ) );
 
 		$bookings_viewer   = array( 'ffc_view_appointments' );
@@ -953,7 +960,7 @@ class CapabilityManager {
 			),
 			'ffc_forms_manager'            => array(
 				'label' => __( 'FFC Certificates - Forms - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_forms', 'ffc_manage_forms' ),
+				'caps'  => array( 'ffc_view_forms', 'ffc_manage_forms', 'ffc_checkin_certificates' ),
 			),
 
 			// ── Personal Calendars - Bookings ────────────────────────────
