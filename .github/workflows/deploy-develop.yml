@@ -259,13 +259,13 @@ jobs:
           # 4 must not disagree with them about what a column is; a copy in
           # .github/scripts/ would be a second copy of exactly that (#1241
           # measured what one costs). It lands in a scratch dir, never in the
-          # plugin directory, like the other three.
+          # plugin directory, like the others.
           REMOTE_DIR="/tmp/ffc-smoke-${GITHUB_RUN_ID}"
           $SSH_CMD "${SSH_USER}@${SSH_HOST}" "mkdir -p ${REMOTE_DIR}"
           scp -i ~/.ssh/deploy_key -P "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
             .github/scripts/testes-smoke.php .github/scripts/ffc-uninstall-manifest.php \
             .github/scripts/ffc-create-statements.php .github/scripts/ffc-schema-drift.php \
-            tests/Support/SchemaColumns.php \
+            .github/scripts/ffc-asset-freshness.php tests/Support/SchemaColumns.php \
             "${SSH_USER}@${SSH_HOST}:${REMOTE_DIR}/"
 
           set +e
