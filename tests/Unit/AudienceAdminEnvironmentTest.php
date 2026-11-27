@@ -159,6 +159,11 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $q ) {
 				$this->reads[] = array( $q['sql'], $q['args'] );
+				// The terminals that follow a location, for its side card
+				// (#2900): none unless a test stores some.
+				if ( false !== strpos( $q['sql'], 'revoked_at IS NULL AND expires_at' ) ) {
+					return array();
+				}
 				if ( 1 === preg_match( '/^SELECT \* FROM %i\s*(?:WHERE (.+?))?\s*ORDER BY /', $q['sql'], $m ) ) {
 					return $this->select( $q['args'], $m[1] ?? '' );
 				}
@@ -695,6 +700,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertStringContainsString( '<option value="loc_a"  selected>EMEF Paulo Freire</option>', $output );
 		$this->assertStringContainsString( '<option value="loc_b" >Library</option>', $output );
 		$this->assertMatchesRegularExpression( '/<h2 class="ffc-icon-map-pin">EMEF Paulo Freire<\/h2>.*Room 3/s', $output, 'the side card lists the location\'s environments' );
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Terminals paired to the location</dt>', $output );
 	}
 
 	/**
