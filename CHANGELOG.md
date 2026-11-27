@@ -78,6 +78,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Terminal queue takes any attendance target.** A terminal's queue, schedule, overlap rule and reading now go through the attendance target the key names, so a certificate form can join audience bookings on one terminal. Stored queues keep their shape: a booking is still its bare id. No behaviour change for bookings. (#2890)
 - **A terminal is paired at the terminal, by event or by place.** Unpaired, it shows one informational screen with the operator's lock; the operator QR opens setup, By event or By place. The app's Pair terminal, the wp-admin pairing codes and the `POST terminal/pairings` and `POST terminal/pair` routes are gone; a terminal that follows a place names it in its operator menu, with no queue edit, and an event terminal turns to follow a place from Add event, By place; Terminals shows what the place holds (#2900).
 - **The operator QR counts down to the site clock's 2-minute windows.** Opened at 10:30:30 it shows 1:30, reopening keeps the count, and under 30 s left it shows the next window's code (#2907).
+- **The testes deploy purges the host's caches.** After the files land, the deploy flushes the object cache and purges LiteSpeed, so a visitor with no account gets the new scripts; a failed purge only warns (#2915).
 
 ### Security
 

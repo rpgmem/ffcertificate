@@ -186,6 +186,37 @@ jobs:
             attempt=$((attempt + 1))
           done
 
+      # The host's caches are purged once the new files are in place (#2915).
+      # A cache on the testes host kept serving a days-old script under the new
+      # `?ver=` to visitors with no account (#2912), so a merge did not reach
+      # them. `wp litespeed-purge all` empties the server's page and asset
+      # cache, `wp cache flush` the object cache. The CDN in front of the host
+      # has no command here; its development mode keeps it out of the way. A
+      # purge that fails only warns: the deploy itself succeeded.
+      - name: Purge the host's caches
+        env:
+          SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
+          SSH_USER: ${{ secrets.TESTES_SSH_USER }}
+          SSH_PORT: ${{ secrets.TESTES_SSH_PORT }}
+          REMOTE_PATH: ${{ secrets.TESTES_REMOTE_PATH }}
+        run: |
+          PORT="${SSH_PORT:-22}"
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30"
+          # REMOTE_PATH ends in /wp-content/plugins/ffcertificate (checked before
+          # the rsync), so three levels up is the WordPress root.
+          WP_ROOT=$(dirname "$(dirname "$(dirname "${REMOTE_PATH%/}")")")
+
+          set +e
+          timeout 120 $SSH_CMD "${SSH_USER}@${SSH_HOST}" \
+            "cd '${WP_ROOT}' && wp cache flush && wp litespeed-purge all"
+          STATUS=$?
+          set -e
+
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::warning::purging the host's caches failed (exit ${STATUS}); a visitor with no account may still get older scripts until the cache is purged in hPanel."
+          fi
+          exit 0
+
       # Post-deploy alarm, not a gate — this workflow runs on push to `develop`,
       # so the merge already happened. Its job is to answer the two questions
       # only the real host can: did the deploy actually land, and does the
