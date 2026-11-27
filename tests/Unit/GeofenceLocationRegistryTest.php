@@ -466,6 +466,29 @@ class GeofenceLocationRegistryTest extends TestCase {
 		$this->assertTrue( GeofenceLocationRegistry::delete_unused( 'loc_c' ) );
 	}
 
+	public function test_a_location_an_environment_names_is_not_deleted(): void {
+		Functions\when( 'get_posts' )->justReturn( array() );
+		Functions\when( '__' )->returnArg();
+		\Brain\Monkey\Filters\expectApplied( 'ffcertificate_geofence_location_users' )
+			->once()
+			->with( array(), 'loc_c' )
+			->andReturn( array( 'Room 3', 'Auditorium' ) );
+		$written = false;
+		Functions\when( 'update_option' )->alias(
+			static function () use ( &$written ) {
+				$written = true;
+				return true;
+			}
+		);
+
+		$result = GeofenceLocationRegistry::delete_unused( 'loc_c' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_location_in_use', $result->get_error_code() );
+		$this->assertStringContainsString( 'Room 3, Auditorium', $result->get_error_message() );
+		$this->assertFalse( $written, 'nothing is deleted' );
+	}
+
 	public function test_small_areas_are_named(): void {
 		Functions\when( 'get_option' )->justReturn(
 			array(

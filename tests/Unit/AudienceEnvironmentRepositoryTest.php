@@ -144,6 +144,31 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 		$this->assertStringContainsString('schedule_id = %d', $captured_sql);
 	}
 
+	public function test_the_environments_of_a_gps_location_are_read_by_its_id(): void {
+		$captured = array();
+		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured) {
+			$captured = func_get_args();
+			return (string) $captured[0];
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array( 'id' => '4', 'name' => 'Room 3' ),
+			(object) array( 'id' => '5', 'name' => 'Auditorium' ),
+		));
+
+		$names = AudienceEnvironmentRepository::location_users( array( 'Earlier' ), 'loc_a' );
+
+		$this->assertStringContainsString('location_id = %s', $captured[0]);
+		$this->assertContains('loc_a', $captured[1]);
+		$this->assertSame( array( 'Earlier', 'Room 3', 'Auditorium' ), $names, 'what the filter already held is kept' );
+	}
+
+	public function test_no_location_reads_no_environment(): void {
+		$this->wpdb->shouldNotReceive('get_results');
+
+		$this->assertSame( array(), AudienceEnvironmentRepository::get_by_location( '' ) );
+		$this->assertSame( array(), AudienceEnvironmentRepository::location_users( null, 42 ) );
+	}
+
 	public function test_get_all_filters_by_status(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
@@ -356,6 +381,20 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 		]);
 
 		$this->assertSame(42, $result);
+	}
+
+	public function test_create_stores_the_gps_location(): void {
+		$this->wpdb->insert_id = 7;
+		$this->wpdb->shouldReceive('insert')
+			->once()
+			->with(
+				'wp_ffc_audience_environments',
+				Mockery::on(static fn( $data ) => 'loc_a' === $data['location_id']),
+				Mockery::on(static fn( $format ) => 7 === count( $format ))
+			)
+			->andReturn(1);
+
+		$this->assertSame(7, AudienceEnvironmentRepository::create(['name' => 'Room 3', 'schedule_id' => 1, 'location_id' => 'loc_a']));
 	}
 
 	public function test_create_returns_false_on_failure(): void {

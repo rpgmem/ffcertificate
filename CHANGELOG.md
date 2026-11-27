@@ -52,6 +52,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Complete a certificate the terminal could not issue.** When the profile lacks a required field, the participant gets a personal e-mail link that opens the form in the app (or on its page without Site PWA) for seven days, past its hours and without the GPS area or password the terminal already proved; the certificate it issues spends the link. (#2891)
 - **Terminal tab in the form editor.** Turns the terminal on for a one-day form without a quiz (it refuses, with the reason, otherwise), shows the Time tab's hours, chooses who may receive, names each required field with no profile source, and adds a side box with reading hours, paired terminals and certificates issued. (#2892)
 - **Terminal readings in the activity log, and a consent with its proof.** The log records each certificate issued at the terminal and each reading left waiting on data; a consent the reading accepts keeps the reading's time and terminal beside the answers, shown on the edit screen (#2891).
+- **An environment names its GPS location.** The environment's edit screen links it to a location of Settings → Geolocation, the side column names the location's environments and forms, and a location an environment uses cannot be deleted (#2900).
 
 ### Changed
 

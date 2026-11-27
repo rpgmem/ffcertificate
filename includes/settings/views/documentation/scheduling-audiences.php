@@ -32,6 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Schedules & environments', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A schedule is a bookable calendar; inside it, each environment is a space (room/resource) with its own weekly working hours (default 08:00–18:00, per-day closable) and color. A schedule controls visibility, how far ahead bookings are allowed, per-user booking permissions, and the notification settings below.', 'ffcertificate' ); ?> <?php esc_html_e( 'A new calendar starts public.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'An environment can be linked to a GPS location of Settings → Geolocation, on its edit screen. One location can have several environments. The side column then names the location, its environments and how many certificate forms use it, and the location cannot be deleted while an environment is linked to it.', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'The editors', 'ffcertificate' ); ?></h4>

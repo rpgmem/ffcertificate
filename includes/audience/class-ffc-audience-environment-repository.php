@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for audience environment records.
  *
- * @phpstan-type EnvironmentRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, name: string, color?: string, description: string|null, working_hours: string|null, status: string, created_at: string, updated_at: string}
+ * @phpstan-type EnvironmentRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, name: string, color?: string, description: string|null, working_hours: string|null, status: string, location_id?: string, created_at: string, updated_at: string}
  * @phpstan-type HolidayRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, holiday_date: string, description: string|null, kind?: string, created_by: numeric-string, created_at: string}
  */
 class AudienceEnvironmentRepository {
@@ -86,6 +86,7 @@ class AudienceEnvironmentRepository {
 		$defaults = array(
 			'schedule_id' => null,
 			'status'      => null,
+			'location_id' => null,
 			'orderby'     => 'name',
 			'order'       => 'ASC',
 			'limit'       => 0,
@@ -104,6 +105,11 @@ class AudienceEnvironmentRepository {
 		if ( $args['status'] ) {
 			$where[]  = 'status = %s';
 			$values[] = $args['status'];
+		}
+
+		if ( is_string( $args['location_id'] ) && '' !== $args['location_id'] ) {
+			$where[]  = 'location_id = %s';
+			$values[] = $args['location_id'];
 		}
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
@@ -197,6 +203,35 @@ class AudienceEnvironmentRepository {
 	}
 
 	/**
+	 * The environments linked to a GPS location (#2900), any status.
+	 *
+	 * @param string $location_id GPS location id.
+	 * @return list<EnvironmentRow>
+	 */
+	public static function get_by_location( string $location_id ): array {
+		if ( '' === $location_id ) {
+			return array();
+		}
+		return self::get_all( array( 'location_id' => $location_id ) );
+	}
+
+	/**
+	 * The environments that name a GPS location, for the registry's in-use
+	 * check (filter `ffcertificate_geofence_location_users`).
+	 *
+	 * @param mixed $names       Names already collected.
+	 * @param mixed $location_id GPS location id.
+	 * @return array<int, string>
+	 */
+	public static function location_users( $names, $location_id ): array {
+		$names = is_array( $names ) ? array_values( array_map( static fn( $name ): string => is_scalar( $name ) ? (string) $name : '', $names ) ) : array();
+		foreach ( self::get_by_location( is_string( $location_id ) ? $location_id : '' ) as $environment ) {
+			$names[] = (string) $environment->name;
+		}
+		return $names;
+	}
+
+	/**
 	 * Create an environment
 	 *
 	 * @param array<string, mixed> $data Environment data.
@@ -213,6 +248,7 @@ class AudienceEnvironmentRepository {
 			'description'   => null,
 			'working_hours' => null,
 			'status'        => 'active',
+			'location_id'   => '',
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
@@ -231,8 +267,9 @@ class AudienceEnvironmentRepository {
 				'description'   => $data['description'],
 				'working_hours' => $working_hours,
 				'status'        => $data['status'],
+				'location_id'   => $data['location_id'],
 			),
-			array( '%d', '%s', '%s', '%s', '%s', '%s' )
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 
 		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
@@ -274,6 +311,7 @@ class AudienceEnvironmentRepository {
 			'description'   => '%s',
 			'working_hours' => '%s',
 			'status'        => '%s',
+			'location_id'   => '%s',
 		);
 
 		foreach ( $data as $key => $value ) {
