@@ -96,6 +96,7 @@ final class DashboardAppScreens {
 	 */
 	public static function device_check_section(): string {
 		AssetHelper::enqueue_common_style();
+		AssetHelper::enqueue_dark_mode();
 		$url = \FreeFormCertificate\Frontend\DeviceCheck::url( \FreeFormCertificate\Frontend\VerificationHandler::page_addresses()['app'] );
 		return '<div class="ffc-shortcode ffc-app-device-check">'
 			. '<p>' . esc_html__( 'Check whether this phone can read your location, download a certificate and pass the form protections, with how to fix what fails.', 'ffcertificate' ) . '</p>'
