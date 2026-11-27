@@ -173,7 +173,7 @@ final class FormEditorTerminalMetabox {
 			<dt class="ffc-facts__label"><?php esc_html_e( 'Issued by the terminal', 'ffcertificate' ); ?></dt>
 			<dd class="ffc-facts__value"><?php echo esc_html( number_format_i18n( $issued ) ); ?></dd>
 		</dl>
-		<p class="description"><?php esc_html_e( 'To pair: in the app, More › Pair terminal, then choose this form.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'To pair: on the terminal, an operator taps the lock, shows the operator QR and chooses this form, or the place it names.', 'ffcertificate' ); ?></p>
 		<?php
 	}
 }

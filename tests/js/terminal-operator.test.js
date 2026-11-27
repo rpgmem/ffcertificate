@@ -44,33 +44,12 @@ const CONFIG = {
 		summary: '%1$d of %2$d, %3$d per event',
 		summaryAll: 'all %1$d of %2$d, %3$d per event',
 		operatorExpires: 'new in %s',
+		follows: 'follows %s',
 	},
 };
 
 function screen(mode) {
 	const parts = {
-		pair: `
-			<form data-ffc-op-part="form">
-				<div data-ffc-op-part="queue-mode" hidden>
-					<label><input type="radio" name="ffc_terminal_queue" value="pick" checked>pick</label>
-					<label><input type="radio" name="ffc_terminal_queue" value="place">place</label>
-					<p data-ffc-op-part="by-place" hidden><select data-ffc-op-part="place"></select></p>
-				</div>
-				<div data-ffc-op-part="events"></div>
-				<p data-ffc-op-part="events-empty" hidden></p>
-				<label><input type="radio" name="ffc_terminal_auto_end" value="1">1</label>
-				<label><input type="radio" name="ffc_terminal_auto_end" value="2" checked>2</label>
-				<label><input type="radio" name="ffc_terminal_auto_end" value="4">4</label>
-				<input data-ffc-op-part="label">
-				<button type="submit" data-ffc-op-part="generate">Generate</button>
-			</form>
-			<section data-ffc-op-part="result" hidden>
-				<div data-ffc-op-part="qr"></div>
-				<p data-ffc-op-part="code"></p>
-				<p data-ffc-op-part="countdown"></p>
-				<p data-ffc-op-part="summary"></p>
-				<button type="button" data-ffc-op-part="again">Again</button>
-			</section>`,
 		terminals: `
 			<p data-ffc-op-part="summary"></p>
 			<ul data-ffc-op-part="list"></ul>
@@ -138,93 +117,6 @@ describe('helpers', () => {
 		expect(O().fill('%2$d then %1$s', ['a', 2])).toBe('2 then a');
 		expect(O().fill('%s', [])).toBe('');
 		expect(O().clock(125)).toBe('2:05');
-	});
-});
-
-describe('Pair terminal', () => {
-	const BOOKINGS = [200, { bookings: [
-		{ id: 11, description: 'Workshop', place: 'Room 1', when: 'Jan 15, 09:00–17:00', terminals: 1, full: false },
-		{ id: 12, description: 'Full one', place: '', when: 'Jan 16', terminals: 3, full: true },
-		{ id: 13, description: 'Third', place: '', when: 'Jan 17', terminals: 0, full: false },
-	], max: 10 }];
-	let el;
-	beforeEach(() => { el = screen('pair'); });
-
-	it('lists the events and leaves a full one unchecked and disabled', async () => {
-		const e = env({ 'GET bookings': BOOKINGS });
-		await O().start(el, CONFIG, e).ready;
-
-		const boxes = part(el, 'events').querySelectorAll('input');
-		expect(boxes).toHaveLength(3);
-		expect(boxes[1].disabled).toBe(true);
-		expect(part(el, 'events').textContent).toContain('Jan 15, 09:00–17:00 · Room 1 · held 1');
-		expect(part(el, 'events').textContent).toContain('full');
-		expect(e.calls[0][2].headers['X-WP-Nonce']).toBe('nonce');
-		expect(e.calls[0][2].credentials).toBe('same-origin');
-	});
-
-	it('asks the site itself for the events, never a cached answer', async () => {
-		const e = env({ 'GET bookings': BOOKINGS });
-		await O().start(el, CONFIG, e).ready;
-		expect(e.calls[0][2].cache).toBe('no-store');
-		expect(e.calls.raw[0]).toBe(CONFIG.rest + 'bookings?_ffc=' + NOW * 1000);
-		expect(O().fresh('https://x/a?b=1', 'GET', 5)).toBe('https://x/a?b=1&_ffc=5');
-		expect(O().fresh('https://x/a', 'POST', 5)).toBe('https://x/a');
-	});
-
-	it('asks for an event, and for no more than the limit', async () => {
-		const e = env({ 'GET bookings': BOOKINGS });
-		const controls = O().start(el, CONFIG, e);
-		await controls.ready;
-		await controls.generate();
-		expect(part(el, 'error').textContent).toBe('pick');
-
-		const boxes = part(el, 'events').querySelectorAll('input');
-		boxes[0].checked = true;
-		boxes[1].checked = true;
-		boxes[2].checked = true;
-		await controls.generate();
-		expect(part(el, 'error').textContent).toBe('at most 2');
-		expect(e.calls.filter((c) => c[1] === 'pairings')).toHaveLength(0);
-	});
-
-	it('generates a code and shows it as a QR with its countdown', async () => {
-		const e = env({
-			'GET bookings': BOOKINGS,
-			'POST pairings': [201, { code: 'P-AB12-CD34-EF56', expires_at: NOW + 300, bookings: [11] }],
-		});
-		const controls = O().start(el, CONFIG, e);
-		await controls.ready;
-		part(el, 'events').querySelector('input').checked = true;
-		part(el, 'label').value = 'Entrance A';
-		await controls.generate();
-
-		expect(JSON.parse(e.calls[1][2].body)).toEqual({ bookings: [11], label: 'Entrance A', auto_end: 2 });
-		expect(part(el, 'form').hidden).toBe(true);
-		expect(part(el, 'result').hidden).toBe(false);
-		expect(part(el, 'code').textContent).toBe('P-AB12-CD34-EF56');
-		expect(part(el, 'qr').querySelector('svg').getAttribute('data-text')).toBe('P-AB12-CD34-EF56');
-		expect(part(el, 'qr').querySelector('svg').getAttribute('aria-label')).toBe('qr');
-		expect(part(el, 'countdown').textContent).toBe('expires 5:00');
-
-		await controls.again();
-		expect(part(el, 'form').hidden).toBe(false);
-		expect(part(el, 'code').textContent).toBe('');
-	});
-
-	it('shows the site\'s refusal', async () => {
-		const e = env({ 'GET bookings': BOOKINGS, 'POST pairings': [409, { message: 'This event already has 3 terminals.' }] });
-		const controls = O().start(el, CONFIG, e);
-		await controls.ready;
-		part(el, 'events').querySelector('input').checked = true;
-		await controls.generate();
-		expect(part(el, 'error').textContent).toBe('This event already has 3 terminals.');
-		expect(part(el, 'result').hidden).toBe(true);
-	});
-
-	it('says when no event can take a terminal', async () => {
-		await O().start(el, CONFIG, env({ 'GET bookings': [200, { bookings: [] }] })).ready;
-		expect(part(el, 'events-empty').hidden).toBe(false);
 	});
 });
 
@@ -318,18 +210,14 @@ describe('Operator QR', () => {
 });
 
 describe('failures and the page boot', () => {
-	it('says why the event list or the terminal list could not load', async () => {
-		let el = screen('pair');
-		await O().start(el, CONFIG, env({ 'GET bookings': [500, { message: 'database down' }] })).ready;
-		expect(part(el, 'error').textContent).toBe('database down');
-
-		el = screen('terminals');
+	it('says why the terminal list could not load', async () => {
+		const el = screen('terminals');
 		await O().start(el, CONFIG, env({ 'GET terminals': [403, {}] })).ready;
 		expect(part(el, 'error').textContent).toBe('failed');
 	});
 
 	it('treats an unreachable site and an unreadable answer alike', async () => {
-		let el = screen('pair');
+		let el = screen('terminals');
 		const offline = env({});
 		await O().start(el, CONFIG, offline).ready;
 		expect(part(el, 'error').textContent).toBe('failed');
@@ -339,27 +227,6 @@ describe('failures and the page boot', () => {
 		garbled.fetch = () => Promise.resolve({ ok: false, status: 502, json: () => Promise.reject(new Error('not json')) });
 		await O().start(el, CONFIG, garbled).ready;
 		expect(part(el, 'error').textContent).toBe('failed');
-	});
-
-	it('says when a pairing code expires', async () => {
-		const el = screen('pair');
-		const e = env({
-			'GET bookings': [200, { bookings: [{ id: 11, description: 'Workshop', when: 'today', terminals: 0, full: false }] }],
-			'POST pairings': [201, { code: 'P-AB12-CD34-EF56', expires_at: NOW + 300 }],
-		});
-		await O().start(el, CONFIG, e).ready;
-		part(el, 'events').querySelector('input').checked = true;
-		part(el, 'form').dispatchEvent(new window.Event('submit', { cancelable: true }));
-		await settle();
-		expect(part(el, 'countdown').textContent).toBe('expires 5:00');
-
-		e.clock.now = (NOW + 301) * 1000;
-		e.intervals[e.intervals.length - 1]();
-		expect(part(el, 'countdown').textContent).toBe('expired');
-
-		part(el, 'again').click();
-		await settle();
-		expect(part(el, 'result').hidden).toBe(true);
 	});
 
 	it('boots every screen on the page from the localized config', async () => {
@@ -391,64 +258,6 @@ describe('Event queue', () => {
 	], max: 10 }];
 	const ticked = (list) => Array.from(list.querySelectorAll('input:checked')).map((b) => Number(b.value));
 
-	const choose = (el, name, value) => {
-		const radio = el.querySelector(`input[name="${name}"][value="${value}"]`);
-		radio.checked = true;
-		radio.dispatchEvent(new window.Event('change'));
-	};
-
-	it('fills the queue by place only once By place is chosen, soonest first, up to the limit', async () => {
-		const el = screen('pair');
-		const controls = O().start(el, CONFIG, env({ 'GET bookings': EVENTS }));
-		await controls.ready;
-		const select = part(el, 'place');
-		expect(part(el, 'queue-mode').hidden).toBe(false);
-		expect(part(el, 'by-place').hidden).toBe(true);
-		expect(Array.from(select.options).map((o) => o.textContent)).toEqual(['Hall', 'Room 2']);
-		expect(ticked(part(el, 'events'))).toEqual([]);
-
-		choose(el, 'ffc_terminal_queue', 'place');
-		expect(part(el, 'by-place').hidden).toBe(false);
-		expect(ticked(part(el, 'events'))).toEqual([11, 14]);
-
-		select.value = '8';
-		select.dispatchEvent(new window.Event('change'));
-		expect(ticked(part(el, 'events'))).toEqual([13]);
-
-		choose(el, 'ffc_terminal_queue', 'pick');
-		expect(part(el, 'by-place').hidden).toBe(true);
-		expect(ticked(part(el, 'events'))).toEqual([13]);
-		expect(controls.fillByPlace(part(el, 'events'), '')).toBe(0);
-	});
-
-	it('hides the queue mode when no event has a place', async () => {
-		const el = screen('pair');
-		await O().start(el, CONFIG, env({ 'GET bookings': [200, { bookings: [{ id: 16, description: 'Nowhere', place_id: 0 }] }] })).ready;
-		expect(part(el, 'queue-mode').hidden).toBe(true);
-	});
-
-	it('sends the hours chosen to end by itself and sums the pairing up beside the code', async () => {
-		const el = screen('pair');
-		const sent = [];
-		const controls = O().start(el, CONFIG, env({
-			'GET bookings': EVENTS,
-			'POST pairings': (options) => {
-				sent.push(JSON.parse(options.body));
-				return [201, { code: 'P-AB12-CD34-EF56', expires_at: NOW + 272 }];
-			},
-		}));
-		await controls.ready;
-		part(el, 'events').querySelector('input[value="11"]').checked = true;
-		choose(el, 'ffc_terminal_auto_end', '4');
-		await controls.generate();
-		expect(sent[0]).toEqual({ bookings: [11], label: '', auto_end: 4 });
-		expect(part(el, 'summary').textContent).toBe('1 events, 4 h');
-		expect(part(el, 'countdown').textContent).toBe('expires 4:32');
-
-		await controls.again();
-		expect(part(el, 'summary').textContent).toBe('');
-	});
-
 	it('changes the events of a terminal, keeping one it holds even when full', async () => {
 		const el = screen('terminals');
 		const sent = [];
@@ -479,6 +288,35 @@ describe('Event queue', () => {
 		expect(get('until').textContent).toBe('until Jan 16');
 		expect(get('editor').hidden).toBe(true);
 		expect(part(el, 'status').textContent).toBe('changed');
+	});
+
+	it('keeps a certificate form\'s key whole when it saves the events (#2890)', async () => {
+		const el = screen('terminals');
+		const sent = [];
+		const e = env({
+			'GET terminals': [200, { terminals: [{ id: 4, label: 'A', bookings: [11], expires_label: 'x' }], limits: {} }],
+			'GET bookings': [200, { bookings: [{ id: 11, description: 'Talk' }, { id: 'certificate_form:12', description: 'Seminar' }] }],
+			'PUT terminals/4': (options) => { sent.push(JSON.parse(options.body)); return [200, { id: 4, bookings: [11, 'certificate_form:12'] }]; },
+		});
+		await O().start(el, CONFIG, e).ready;
+		const item = part(el, 'list').querySelector('li');
+		const get = (n) => item.querySelector('[data-ffc-op-item="' + n + '"]');
+		get('edit').click();
+		await settle();
+		get('choices').querySelectorAll('input')[1].checked = true;
+		get('save').click();
+		await settle();
+		expect(sent).toEqual([{ bookings: [11, 'certificate_form:12'] }]);
+	});
+
+	it('names the place a terminal follows and offers no event change for it (#2900)', async () => {
+		const el = screen('terminals');
+		await O().start(el, CONFIG, env({
+			'GET terminals': [200, { terminals: [{ id: 5, label: 'Gate', bookings: [11], location: 'EMEF Paulo Freire', expires_label: 'x' }], limits: {} }],
+		})).ready;
+		const item = part(el, 'list').querySelector('li');
+		expect(item.querySelector('[data-ffc-op-item="events"]').textContent).toBe('follows EMEF Paulo Freire');
+		expect(item.querySelector('[data-ffc-op-item="edit"]').hidden).toBe(true);
 	});
 
 	it('refuses an empty or oversized choice and shows the site\'s refusal', async () => {

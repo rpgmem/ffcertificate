@@ -3,7 +3,7 @@
  * The check-in terminal's page (#2744, #2780).
  *
  * The markup only: `assets/js/ffc-terminal-kiosk.js` shows one screen at a
- * time. It pairs the terminal (#2744), reads presence codes online or into
+ * time. It pairs the terminal at its lock (#2744, #2900), reads presence codes online or into
  * its offline queue (#2745), shows the event it checks in now or next (#2746),
  * reads with the device camera where allowed (#2747), keeps the screen on
  * while it has an event (#2775) and opens the operator menu on an operator

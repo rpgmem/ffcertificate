@@ -830,16 +830,8 @@ class AudienceAdminAttendance {
 		}
 
 		echo '<p class="ffc-checkin-terminal-actions">';
-		AdminUI::render_button(
-			array(
-				'label'    => __( 'Pair terminal', 'ffcertificate' ),
-				'category' => 'create',
-				'icon'     => 'plus',
-				'href'     => add_query_arg( 'pair', '1', $list_url ),
-			)
-		);
 		/* translators: 1: terminals holding the event, 2: terminals allowed per event */
-		echo ' <span class="ffc-checkin-terminal-count">' . esc_html( sprintf( __( '%1$d of %2$d allowed in this event', 'ffcertificate' ), count( $terminals ), $limit ) ) . '</span></p>';
+		echo '<span class="ffc-checkin-terminal-count">' . esc_html( sprintf( __( '%1$d of %2$d allowed in this event', 'ffcertificate' ), count( $terminals ), $limit ) ) . '</span></p>';
 	}
 
 	/**

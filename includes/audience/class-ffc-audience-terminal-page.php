@@ -39,9 +39,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and no flush is needed. Every response is kept out of search engines
  * (`X-Robots-Tag: noindex`) and out of caches (#2780).
  *
- * It starts on "Waiting for pairing": the operator holds the pairing QR code
- * to the terminal's reader, or types the code. The terminal keeps the token
- * it receives in this browser, and then reads presence codes (#2745).
+ * Unpaired, it rests on "This terminal is not paired" (#2900): the operator
+ * taps the lock, holds their operator QR code to the reader and pairs it
+ * there, by event or by place. The terminal keeps the token it receives in
+ * this browser, and then reads presence codes (#2745).
  *
  * The page builds its own document but loads its sheets and scripts through
  * their registered handles, so the asset guards see them like any other.
