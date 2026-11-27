@@ -447,13 +447,21 @@ class AudienceAdminTerminals {
 			echo '<th scope="col">' . esc_html( $heading ) . '</th>';
 		}
 		echo '</tr></thead><tbody>';
+		$held = array();
 		foreach ( $terminals as $terminal ) {
 			$state  = self::state( $terminal, $now );
 			$active = in_array( $state, array( self::STATE_ONLINE, self::STATE_OFFLINE ), true );
+			$queue  = $terminal['targets'];
+			if ( $active && '' !== $terminal['location_id'] ) {
+				// What the place holds now (#2900), not what the terminal
+				// last took from it: it follows the place when it connects.
+				$held[ $terminal['location_id'] ] ??= AudienceTerminalLocation::items( $terminal['location_id'], $now, $terminal['targets'] );
+				$queue                              = $held[ $terminal['location_id'] ];
+			}
 			echo '<tr>';
 			/* translators: %d: terminal number */
 			echo '<td>' . esc_html( '' !== $terminal['label'] ? $terminal['label'] : sprintf( __( 'Terminal %d', 'ffcertificate' ), $terminal['id'] ) ) . '</td>';
-			echo '<td>' . esc_html( self::queue_label( $terminal['targets'], $terminal['location_id'] ) );
+			echo '<td>' . esc_html( self::queue_label( $queue, $terminal['location_id'] ) );
 			// A terminal paired to a place follows it; its queue is not edited (#2900).
 			if ( $active && '' === $terminal['location_id'] ) {
 				echo '<br><a href="' . esc_url( $this->url( array( 'edit' => $terminal['id'] ) ) ) . '">' . esc_html__( 'Edit queue', 'ffcertificate' ) . '</a>';
@@ -498,8 +506,8 @@ class AudienceAdminTerminals {
 	 * event", or "3 events", with the place when every event is at the same
 	 * one.
 	 *
-	 * A terminal paired to a GPS location says which, since its queue
-	 * follows the location (#2900).
+	 * A terminal paired to a GPS location says which, and how much the
+	 * location holds now, since its queue follows the location (#2900).
 	 *
 	 * @param array  $bookings    Target keys ({@see \FreeFormCertificate\Core\TerminalTargetKey}).
 	 * @param string $location_id GPS location the terminal follows, or ''.
@@ -507,9 +515,12 @@ class AudienceAdminTerminals {
 	 * @return string
 	 */
 	public static function queue_label( array $bookings, string $location_id = '' ): string {
+		$count = count( $bookings );
+		/* translators: %d: number of events */
+		$label = 1 === $count ? __( 'One event', 'ffcertificate' ) : sprintf( _n( '%d event', '%d events', $count, 'ffcertificate' ), $count );
 		if ( '' !== $location_id ) {
-			/* translators: %s: GPS location name */
-			return sprintf( __( 'Follows %s', 'ffcertificate' ), AudienceTerminalRestController::location_name( $location_id ) );
+			/* translators: 1: GPS location name, 2: what it holds now, such as "3 events" */
+			return sprintf( __( 'Follows %1$s · %2$s', 'ffcertificate' ), AudienceTerminalRestController::location_name( $location_id ), $label );
 		}
 		$places = array();
 		foreach ( $bookings as $key ) {
@@ -518,9 +529,6 @@ class AudienceAdminTerminals {
 			$places[] = null === $booking ? '' : trim( (string) ( $booking->environment_name ?? '' ) );
 		}
 		$places = array_values( array_unique( $places ) );
-		$count  = count( $bookings );
-		/* translators: %d: number of events */
-		$label = 1 === $count ? __( 'One event', 'ffcertificate' ) : sprintf( _n( '%d event', '%d events', $count, 'ffcertificate' ), $count );
 		return $count > 1 && 1 === count( $places ) && '' !== $places[0] ? $label . ' · ' . $places[0] : $label;
 	}
 

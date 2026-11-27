@@ -37398,7 +37398,7 @@ msgstr ""
 msgid "Pair by"
 msgstr ""
 
-msgid "Scheduling → Terminals (Presence terminals) lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings in the queue. Each row shows the terminal's queue (one event, or how many, with the place when they all share one), the event it checks in now, who paired it and when, when it was last seen (now, minutes ago, or the date), its readings and how many it holds unsent, and its state as a pill: Online, Offline, Ended automatically, or Revoked by whoever ended it. Edit queue changes the events of a terminal paired by event under the same rules as the app; a terminal paired to a place shows Follows and the place instead. Revoke stops a terminal after a confirmation on the screen, the next time it connects. Terminals are paired on the terminal itself, never from this screen."
+msgid "Scheduling → Terminals (Presence terminals) lists the active terminals, and those that ended in the last 7 days, for whoever holds ffc_manage_audiences_terminals: an operator sees the terminals they paired, an administrator all of them. Cards count the terminals online (seen in the last two minutes) and offline, today's terminal readings and the readings in the queue. Each row shows the terminal's queue (one event, or how many, with the place when they all share one), the event it checks in now, who paired it and when, when it was last seen (now, minutes ago, or the date), its readings and how many it holds unsent, and its state as a pill: Online, Offline, Ended automatically, or Revoked by whoever ended it. Edit queue changes the events of a terminal paired by event under the same rules as the app; a terminal paired to a place shows Follows, the place and how many items the place holds now instead. Revoke stops a terminal after a confirmation on the screen, the next time it connects. Terminals are paired on the terminal itself, never from this screen."
 msgstr ""
 
 msgid "Terminal ended. An operator pairs it again at the lock."
@@ -37443,5 +37443,21 @@ msgstr ""
 msgid "Follows %s: what is created for this place joins on its own, and what ends leaves."
 msgstr ""
 
-msgid "The operator menu has two columns: the actions and the device check on one side, and on the other the events on this terminal, soonest first, with the one checking in now marked Now. An operator who holds ffc_manage_audiences_terminals, or an administrator, may change them there, whoever paired the terminal: Remove takes an event out after a second tap, and Add event lists the events the terminal can take. The rules are those of the app's Change events, a refusal says why on the screen, and the change is written to the activity log in that operator's name. Anyone else who may check people in sees the events without changing them. A terminal paired to a place shows the place it follows instead, with no Remove or Add event, since its events are the place's."
+msgid "The operator menu has two columns: the actions and the device check on one side, and on the other the events on this terminal, soonest first, with the one checking in now marked Now. An operator who holds ffc_manage_audiences_terminals, or an administrator, may change them there, whoever paired the terminal: Remove takes an event out after a second tap, and Add event offers By event, the events the terminal can take, or By place, a GPS location and what it holds: Follow this place makes the terminal follow that place from then on, without ending it. The rules are those of the app's Change events, a refusal says why on the screen, and the change is written to the activity log in that operator's name. Anyone else who may check people in sees the events without changing them. A terminal paired to a place shows the place it follows instead, with no Remove or Add event, since its events are the place's."
+msgstr ""
+
+msgid "Add by"
+msgstr ""
+
+msgid "Follow this place"
+msgstr ""
+
+#. translators: 1: GPS location name, 2: what it holds now, such as "3 events"
+msgid "Follows %1$s · %2$s"
+msgstr ""
+
+msgid "No GPS location is set in Settings → Geolocation."
+msgstr ""
+
+msgid "The terminal stops holding the events ticked for it and follows this place from now on: what is created for the place joins on its own, and what ends leaves."
 msgstr ""

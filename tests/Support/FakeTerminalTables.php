@@ -260,6 +260,17 @@ final class FakeTerminalTables extends \wpdb {
 			$this->terminals[ (int) $args[4] ]['expires_at'] = (int) $args[3];
 			return 1;
 		}
+		if ( 0 === strpos( $query, 'UPDATE %i SET location_id = %s, bookings = %s, removed = %s, expires_at = %d WHERE id = %d AND revoked_at IS NULL' ) ) {
+			$row = $this->terminals[ (int) $args[5] ] ?? null;
+			if ( null === $row || null !== $row['revoked_at'] ) {
+				return 0;
+			}
+			$this->terminals[ (int) $args[5] ]['location_id'] = $args[1];
+			$this->terminals[ (int) $args[5] ]['bookings']    = $args[2];
+			$this->terminals[ (int) $args[5] ]['removed']     = $args[3];
+			$this->terminals[ (int) $args[5] ]['expires_at']  = (int) $args[4];
+			return 1;
+		}
 		if ( 0 === strpos( $query, 'UPDATE %i SET last_seen_at = %d, queued = %d WHERE id = %d' ) ) {
 			$this->terminals[ (int) $args[3] ]['last_seen_at'] = (int) $args[1];
 			$this->terminals[ (int) $args[3] ]['queued']       = (int) $args[2];

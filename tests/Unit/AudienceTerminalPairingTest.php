@@ -530,6 +530,34 @@ class AudienceTerminalPairingTest extends TestCase {
 		$this->assertSame( 'ffc_terminal_follows_location', $refused->get_error_code(), 'its queue is the location\'s' );
 	}
 
+	public function test_a_terminal_paired_by_event_turns_to_follow_a_location_without_ending(): void {
+		$this->locate();
+		$this->listed( 41, 5 );
+		$this->listed( 42, 6 );
+		$paired = $this->paired( array( 42 ), self::DEVICE );
+		$id     = $paired['terminal_id'];
+
+		$this->assertSame( 'ffc_terminal_location', AudienceTerminalPairing::follow_location( $id, 'loc_gone', self::OPERATOR, self::NOW + 10 )->get_error_code() );
+		$this->assertSame( 'ffc_terminal_missing', AudienceTerminalPairing::follow_location( 404, 'loc_a', self::OPERATOR, self::NOW + 10 )->get_error_code() );
+
+		$followed = AudienceTerminalPairing::follow_location( $id, 'loc_a', self::OPERATOR, self::NOW + 10 );
+		$this->assertIsArray( $followed );
+		$this->assertSame( 'loc_a', $followed['location_id'] );
+		$this->assertSame( array( 41 ), $followed['targets'], 'what the location holds' );
+		$this->assertSame( self::NOW + 10, $followed['removed'][42], 'the event it left keeps the moment it left' );
+		$this->assertSame( AudienceTerminalLocation::expiry( self::NOW + 10 ), $followed['expires_at'], 'it no longer ends after its events' );
+
+		$stored = AudienceTerminalReader::terminal( $id );
+		$this->assertSame( 'loc_a', $stored['location_id'] );
+		$this->assertSame( array( 41 ), $stored['targets'] );
+		$this->assertTrue( AudienceTerminalPairing::held_at( $stored, 42, self::NOW + 5 ), 'a reading taken before the change still records' );
+		$this->assertSame( $followed, AudienceTerminalPairing::follow_location( $id, 'loc_a', self::OPERATOR, self::NOW + 20 ), 'the same place again changes nothing' );
+
+		// From now on it follows the place.
+		$this->listed( 43, 5 );
+		$this->assertSame( array( 41, 43 ), AudienceTerminalLocation::follow( $stored, self::NOW + 30 )['targets'], 'it follows at once, with no wait for the minute' );
+	}
+
 	public function test_a_location_that_does_not_exist_is_refused(): void {
 		$this->locate();
 		$code = AudienceTerminalPairing::create_code( self::OPERATOR, array(), '', self::NOW, null, 'loc_gone' );
@@ -1018,6 +1046,12 @@ class AudienceTerminalPairingTest extends TestCase {
 		$params['bookings'] = array();
 		$this->assertSame( 'ffc_terminal_no_bookings', $controller->update_self( $request )->get_error_code(), 'the rules of a pairing still hold' );
 
+		$params['location'] = 'loc_gone';
+		$this->assertSame( 'ffc_terminal_location', $controller->update_self( $request )->get_error_code(), 'a place instead of events goes to follow_location' );
+		$this->assertSame( array( 41, 42 ), AudienceTerminalReader::terminal( $paired['terminal_id'] )['targets'] );
+		$this->assertArrayHasKey( 'locations', $controller->self_events( $request )->get_data(), 'Add event offers the places too' );
+		$params['location'] = '';
+
 		$params['code'] = 'FFO1NOTACODE';
 		$this->assertSame( 403, $controller->self_events( $request )->get_error_data()['status'] );
 
@@ -1173,6 +1207,7 @@ class AudienceTerminalPairingTest extends TestCase {
 
 	public function test_the_admin_list_names_the_place_a_terminal_follows_and_offers_no_queue_edit(): void {
 		$this->locate();
+		$this->listed( 41, 5 );
 		$paired = $this->paired( array( 11 ), self::DEVICE );
 		$this->tables->terminals[ $paired['terminal_id'] ]['location_id'] = 'loc_a';
 		$this->tables->terminals[ $paired['terminal_id'] ]['expires_at']  = time() + HOUR_IN_SECONDS;
@@ -1194,7 +1229,7 @@ class AudienceTerminalPairingTest extends TestCase {
 		$screen->render_page();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Follows EMEF Paulo Freire', $html );
+		$this->assertStringContainsString( 'Follows EMEF Paulo Freire · One event', $html, 'with what the place holds now, not the event it was paired with' );
 		$this->assertStringNotContainsString( 'Edit queue', $html, 'its queue is the place\'s' );
 		$this->assertSame( 'EMEF Paulo Freire', AudienceTerminalRestController::present( AudienceTerminalReader::terminal( $paired['terminal_id'] ) )['location'] );
 	}
