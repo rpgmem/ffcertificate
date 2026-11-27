@@ -119,6 +119,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The terminal keeps its footer on screen, and says when it could not start.** The install banner no longer pushes the footer, with the operator's lock, below the screen; a terminal whose script fails to start shows a note instead of a blank screen, with what stopped it: a script error, a file that did not load or a missing configuration (#2910, #2912). Its scripts are printed in the page, so a cache can no longer hand a tablet an older script than the page it binds to (#2912, #2918).
 
 ## [6.45.0] (2026-11-22) — `05300f6`
+- **The app's Agenda shows certificate forms to a person in no audience group** (#2930). It now offers them, and its Presence link, by the Presence screen's own conditions rather than the audience tab; a form open to the end of the day reads 23:59 instead of 00:00.
 
 ### Added
 

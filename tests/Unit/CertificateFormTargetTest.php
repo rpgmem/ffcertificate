@@ -261,6 +261,9 @@ class CertificateFormTargetTest extends TestCase {
 		$again = \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW );
 		$this->assertSame( array( array( 'date' => '2027-01-15', 'time' => '09:30' ) ), $again[0]['recorded'], 'issued: the app shows the line, not a code' );
 
+		$this->meta[ self::FORM ]['_ffc_geofence_config']['time_end'] = '23:59';
+		$this->assertSame( '09:00–23:59', \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW )[0]['time'], 'open to the end of the day reads 23:59, not the midnight it closes at' );
+
 		$this->meta[ self::FORM ]['_ffc_form_config'][ CertificateFormTarget::CONFIG_KEY ]['who'] = CertificateFormTarget::WHO_ALLOWLIST;
 		$this->assertSame( array(), \FreeFormCertificate\Audience\AudiencePresenceEvents::certificate_forms( self::USER, self::NOW ), 'off the allow list: not listed' );
 	}
