@@ -46,7 +46,8 @@ Site PWA reads no class of this plugin by name (rpgmem/site-pwa#49, #2877): ever
 - the `$api` each consumer here speaks against the one Site PWA sends;
 - the screens registered for an administrator, with none refused, More's "My details" opening the Profile screen, the Certificates screen carrying its badge of new certificates, and the Notifications section in Preferences, with the date-message toggles while Date Messages is on;
 - both look sources under `ffc` and the dark root class;
-- with `--write`, Public Design and Dark Mode read back through `Identity::current()` and `Scheme::current()`, with the options restored afterwards.
+- with `--write`, Public Design and Dark Mode read back through `Identity::current()` and `Scheme::current()`, with the options restored afterwards;
+- with `--write`, a certificate form open today joining the administrator's Presence list once, with its ticket and consent text, and a reading that waits on profile data reaching Site PWA's Home as a pending item, the form and the reading removed afterwards.
 
 The one script runs in three places:
 
