@@ -962,6 +962,42 @@ class AppScreensTest extends TestCase {
 		}
 	}
 
+	// The app's Reregistration lists a person's own few campaigns, so it
+	// draws no date or search filter (#2966).
+	public function test_reregistration_draws_no_filter_bar_in_the_app(): void {
+		$this->assertSame( array( DashboardAppScreens::class, 'render_without_filters' ), DashboardAppScreens::definitions()['reregistration']['render'] ?? null );
+
+		$inline = array();
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'wp_add_inline_script' )->alias(
+			static function ( $handle, $data, $position = 'after' ) use ( &$inline ) {
+				$inline[] = array( $handle, $data, $position );
+				return true;
+			}
+		);
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $text ) { echo $text; } );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'wp_login_url' )->justReturn( 'https://example.com/login' );
+		Functions\when( 'wp_lostpassword_url' )->justReturn( 'https://example.com/lost' );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/dashboard' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		foreach ( array( 'wp_enqueue_style', 'wp_enqueue_script', 'wp_register_style', 'wp_register_script', 'wp_localize_script' ) as $fn ) {
+			Functions\when( $fn )->justReturn( true );
+		}
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'wp_script_is' )->justReturn( false );
+		Functions\when( 'wp_kses_post' )->returnArg();
+
+		DashboardAppScreens::render_without_filters( array( 'reregistrations' ) );
+
+		$this->assertSame( array( array( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.listFilters = false);', 'after' ) ), $inline );
+	}
+
 	public function test_the_app_has_preference_sections_only_where_its_frame_draws_them(): void {
 		$with    = new class() {
 			public static function preferenceSections(): array {

@@ -90,6 +90,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - The terminal no longer starts the camera before saying why: until the browser allows it, it waits for Use the camera. A refused camera or location shows where to allow it again for the platform, in a browser tab or in the installed app (#2954).
 - The device test is reachable from the app's Preferences and opens inside the app; it gains a Mode row (installed app or browser tab), and a blocked location's help names the app's own settings there (#2956).
 - Inside the app, the device test no longer ends with a link back to the verification page; the app's own Back returns to Preferences (#2958).
+- The app's Reregistration screen no longer draws the date and search filter above a person's few campaigns; the site's dashboard keeps it (#2966).
 
 ### Security
 

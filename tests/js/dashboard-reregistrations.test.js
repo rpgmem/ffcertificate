@@ -158,6 +158,16 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations code.ffc-auth-code')[0].textContent).toBe('ABC123');
 	});
 
+	it('draws no filter bar where the screen turns it off (the app, #2966)', () => {
+		window.ffcDashboard.listFilters = false;
+		panel().render([makeRereg({ title: 'Alpha campaign' })], 1);
+		expect(document.querySelector('#ffc-tabpanel-reregistrations .ffc-filter-bar')).toBeNull();
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations table tbody tr').length).toBe(1);
+		panel().render([], 1);
+		expect(document.querySelector('#ffc-tabpanel-reregistrations .ffc-filter-bar')).toBeNull();
+		delete window.ffcDashboard.listFilters;
+	});
+
 	it('filters by search query (title / status_label / auth_code substring)', () => {
 		const items = [
 			makeRereg({ title: 'Alpha campaign', auth_code: 'AAA', reregistration_id: 1 }),
