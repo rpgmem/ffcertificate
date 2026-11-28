@@ -3756,7 +3756,7 @@ select.ffc-cep-locked {
    reference and the hints under the fields. */
 .ffc-profile-completion-email {
 	display: grid;
-	gap: 2px;
+	gap: var(--ffc-spacing-3xs);
 }
 
 .ffc-profile-completion-email span:last-child,
