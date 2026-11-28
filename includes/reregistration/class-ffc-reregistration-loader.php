@@ -65,6 +65,9 @@ class ReregistrationLoader {
 
 		ReregistrationFrontend::init();
 
+		// The details the app asks for before anything else (#2962).
+		ProfileCompletion::init();
+
 		if ( class_exists( ReregistrationStandardFieldsSeeder::class ) ) {
 			ReregistrationStandardFieldsSeeder::register();
 		}

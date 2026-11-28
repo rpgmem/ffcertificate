@@ -37955,3 +37955,49 @@ msgstr "Entrar com CPF ou RF:"
 
 msgid "the login, on the site and in the Site PWA app, and \"Lost your password?\" accept a CPF or an RF, with or without its mask, where they ask for a username. The account is the one the identifier belongs to in the user profiles or the certificate submissions. When one CPF or RF belongs to more than one account, the password decides which one signs in; if more than one of them takes that password, the login says the CPF or RF belongs to more than one account and asks the person to contact an administrator, and the same happens on \"Lost your password?\". Identity Resolution lists those accounts."
 msgstr "o login, no site e no app do Site PWA, e o \"Perdeu a senha?\" aceitam CPF ou RF, com ou sem máscara, onde pedem o nome de usuário. A conta é aquela a que o identificador pertence nos perfis de usuário ou nas submissões de certificados. Quando um CPF ou RF pertence a mais de uma conta, a senha decide qual delas entra; se mais de uma aceitar essa senha, o login informa que o CPF ou RF está em mais de uma conta e pede para procurar um administrador, e o mesmo acontece no \"Perdeu a senha?\". A Resolução de Identidade lista essas contas."
+
+msgid "Complete your details"
+msgstr "Complete seus dados"
+
+#, php-format
+msgid "Fill in %s."
+msgstr "Preencha %s."
+
+msgid "Fill in your CPF, your RF or both. Once saved, only an administrator can change them."
+msgstr "Preencha seu CPF, seu RF ou os dois. Depois de salvos, só um administrador pode alterá-los."
+
+msgid "Save and continue"
+msgstr "Salvar e continuar"
+
+msgid "The e-mail of your account. To change it, ask an administrator."
+msgstr "O e-mail da sua conta. Para alterá-lo, procure um administrador."
+
+msgid "These details identify you on your certificates and records. You fill them in once."
+msgstr "Estes dados identificam você nos seus certificados e registros. Você os preenche uma única vez."
+
+msgid "This CPF is already on another account. Ask an administrator."
+msgstr "Este CPF já está em outra conta. Procure um administrador."
+
+msgid "This CPF is not valid."
+msgstr "Este CPF não é válido."
+
+msgid "This RF is already on another account. Ask an administrator."
+msgstr "Este RF já está em outra conta. Procure um administrador."
+
+msgid "This RF is not valid."
+msgstr "Este RF não é válido."
+
+msgid "Type your CPF or your RF."
+msgstr "Digite seu CPF ou seu RF."
+
+msgid "Type your full name, first and last."
+msgstr "Digite seu nome completo, com nome e sobrenome."
+
+msgid "Your details are complete."
+msgstr "Seus dados estão completos."
+
+msgid "Details asked for in the app:"
+msgstr "Dados pedidos no app:"
+
+msgid "with the Site PWA plugin, a person whose full name, CPF or RF, or unit of assignment is missing fills them in on a \"Complete your details\" screen before any other app screen opens. A name equal to the login counts as missing, and a CPF or an RF is enough. The values are the ones the reregistration keeps, so a reregistration or an import completes them too, and no campaign has to be open. A CPF or RF is written only while the account has neither, and refused when it belongs to another account; after that only an administrator changes it. The e-mail is shown masked, for reference. FFC Administrators are never asked."
+msgstr "com o plugin Site PWA, quem não tem nome completo, CPF ou RF, ou unidade de lotação preenche esses dados na tela \"Complete seus dados\" antes de abrir qualquer outra tela do app. Um nome igual ao login conta como ausente, e um CPF ou um RF basta. Os valores são os que o recadastramento guarda, então um recadastramento ou uma importação também os completa, e nenhuma campanha precisa estar aberta. O CPF ou RF só é gravado enquanto a conta não tem nenhum dos dois, e é recusado quando pertence a outra conta; depois disso, só um administrador o altera. O e-mail aparece mascarado, para consulta. Administradores do FFC nunca são solicitados."

@@ -3751,3 +3751,16 @@ select.ffc-cep-locked {
     }
 }
 
+
+/* The app screen that asks for missing details (#2962): the e-mail shown for
+   reference and the hints under the fields. */
+.ffc-profile-completion-email {
+	display: grid;
+	gap: 2px;
+}
+
+.ffc-profile-completion-email span:last-child,
+.ffc-profile-completion-hint {
+	color: var(--ffc-text-muted);
+	font-size: 0.875em;
+}
