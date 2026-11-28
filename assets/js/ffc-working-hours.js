@@ -34,6 +34,15 @@
         DAYS = window.ffcWorkingHours.days;
     }
 
+    /** Escape a value for an HTML attribute. */
+    function attr(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
     function buildRow(day, entry1, exit1, entry2, exit2) {
         var opts = '';
         for (var i = 0; i < DAYS.length; i++) {
@@ -41,13 +50,24 @@
             opts += '<option value="' + DAYS[i].value + '"' + sel + '>' + DAYS[i].label + '</option>';
         }
 
+        // Each cell names itself, for the stacked layout on a phone and for
+        // a screen reader, which has no column header to read there (#2964).
+        var named = function (key) {
+            var text = attr(strings[key]);
+            return { cell: '<td data-label="' + text + '">', control: ' aria-label="' + text + '"' };
+        };
+        var time = function (key, value, required) {
+            var n = named(key);
+            return n.cell + '<input type="time" class="ffc-wh-' + key + '"' + n.control + ' value="' + attr(value) + '"' + (required ? ' required' : '') + '></td>';
+        };
+        var dayCell = named('day');
         return '<tr>' +
-            '<td><select class="ffc-wh-day">' + opts + '</select></td>' +
-            '<td><input type="time" class="ffc-wh-entry1" value="' + (entry1 || '08:00') + '" required></td>' +
-            '<td><input type="time" class="ffc-wh-exit1" value="' + (exit1 || '') + '"></td>' +
-            '<td><input type="time" class="ffc-wh-entry2" value="' + (entry2 || '') + '"></td>' +
-            '<td><input type="time" class="ffc-wh-exit2" value="' + (exit2 || '17:00') + '" required></td>' +
-            '<td>' + FFC.buttonHtml({ label: strings.removeDay, category: 'danger', icon: 'cross', iconOnly: true, className: 'ffc-wh-remove' }) + '</td>' +
+            dayCell.cell + '<select class="ffc-wh-day"' + dayCell.control + '>' + opts + '</select></td>' +
+            time('entry1', entry1 || '08:00', true) +
+            time('exit1', exit1 || '', false) +
+            time('entry2', entry2 || '', false) +
+            time('exit2', exit2 || '17:00', true) +
+            '<td class="ffc-wh-actions">' + FFC.buttonHtml({ label: strings.removeDay, category: 'danger', icon: 'cross', iconOnly: true, className: 'ffc-wh-remove' }) + '</td>' +
             '</tr>';
     }
 
@@ -134,7 +154,10 @@
     }
 
     var strings = $.extend({
+        day:        'Day',
         entry1:     'Entry 1',
+        exit1:      'Exit 1',
+        entry2:     'Entry 2',
         exit2:      'Exit 2',
         incomplete: 'This row has a time but is missing: %s. Fill it in, or clear the row to remove the day.',
         removeDay:  'Remove day'

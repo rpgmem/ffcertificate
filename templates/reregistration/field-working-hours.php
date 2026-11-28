@@ -21,8 +21,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<input type="hidden" id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $field_name ); ?>" value="<?php echo esc_attr( $wh_json ? $wh_json : '' ); ?>">
 		<div class="ffc-working-hours" data-target="<?php echo esc_attr( $field_id ); ?>">
 			<?php
-			// The table keeps its columns on a phone and scrolls sideways in
-			// this region, which a keyboard can scroll too (#2242).
+			// Where the table fits, it keeps its columns; where it does not,
+			// each day stacks as a card with its labels (#2964), and the
+			// region still scrolls sideways as a fallback (#2242).
 			?>
 			<div class="ffc-wh-scroll" role="region" tabindex="0" aria-label="<?php esc_attr_e( 'Work Hours', 'ffcertificate' ); ?>">
 			<table class="ffc-wh-table">
@@ -39,18 +40,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tbody>
 					<?php foreach ( $wh_data as $wh_entry ) : ?>
 					<tr>
-						<td>
-							<select class="ffc-wh-day">
+						<td data-label="<?php esc_attr_e( 'Day', 'ffcertificate' ); ?>">
+							<select class="ffc-wh-day" aria-label="<?php esc_attr_e( 'Day', 'ffcertificate' ); ?>">
 								<?php foreach ( $days_labels as $d_num => $d_name ) : ?>
 									<option value="<?php echo esc_attr( (string) $d_num ); ?>" <?php selected( $wh_entry['day'] ?? 0, $d_num ); ?>><?php echo esc_html( $d_name ); ?></option>
 								<?php endforeach; ?>
 							</select>
 						</td>
-						<td><input type="time" class="ffc-wh-entry1" value="<?php echo esc_attr( $wh_entry['entry1'] ?? '' ); ?>" required></td>
-						<td><input type="time" class="ffc-wh-exit1"  value="<?php echo esc_attr( $wh_entry['exit1'] ?? '' ); ?>"></td>
-						<td><input type="time" class="ffc-wh-entry2" value="<?php echo esc_attr( $wh_entry['entry2'] ?? '' ); ?>"></td>
-						<td><input type="time" class="ffc-wh-exit2"  value="<?php echo esc_attr( $wh_entry['exit2'] ?? '' ); ?>" required></td>
-						<td>
+						<td data-label="<?php esc_attr_e( 'Entry 1', 'ffcertificate' ); ?>"><input type="time" class="ffc-wh-entry1" aria-label="<?php esc_attr_e( 'Entry 1', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $wh_entry['entry1'] ?? '' ); ?>" required></td>
+						<td data-label="<?php esc_attr_e( 'Exit 1', 'ffcertificate' ); ?>"><input type="time" class="ffc-wh-exit1" aria-label="<?php esc_attr_e( 'Exit 1', 'ffcertificate' ); ?>"  value="<?php echo esc_attr( $wh_entry['exit1'] ?? '' ); ?>"></td>
+						<td data-label="<?php esc_attr_e( 'Entry 2', 'ffcertificate' ); ?>"><input type="time" class="ffc-wh-entry2" aria-label="<?php esc_attr_e( 'Entry 2', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $wh_entry['entry2'] ?? '' ); ?>"></td>
+						<td data-label="<?php esc_attr_e( 'Exit 2', 'ffcertificate' ); ?>"><input type="time" class="ffc-wh-exit2" aria-label="<?php esc_attr_e( 'Exit 2', 'ffcertificate' ); ?>"  value="<?php echo esc_attr( $wh_entry['exit2'] ?? '' ); ?>" required></td>
+						<td class="ffc-wh-actions">
 							<?php
 							\FreeFormCertificate\Core\Button::render(
 								array(

@@ -151,6 +151,12 @@ class DashboardAssetManager {
 				// #1879 — the accessible name of a row's remove button.
 				'strings' => array(
 					'removeDay' => __( 'Remove day', 'ffcertificate' ),
+					// #2964 — each cell's own label, for the stacked layout.
+					'day'       => __( 'Day', 'ffcertificate' ),
+					'entry1'    => __( 'Entry 1', 'ffcertificate' ),
+					'exit1'     => __( 'Exit 1', 'ffcertificate' ),
+					'entry2'    => __( 'Entry 2', 'ffcertificate' ),
+					'exit2'     => __( 'Exit 2', 'ffcertificate' ),
 				),
 				'days'    => array(
 					array(

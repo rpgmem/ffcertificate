@@ -116,6 +116,10 @@ class AdminUserCustomFields {
 				'strings' => array(
 					'entry1'     => __( 'Entry 1', 'ffcertificate' ),
 					'exit2'      => __( 'Exit 2', 'ffcertificate' ),
+					// #2964 — each cell's own label, for the stacked layout.
+					'day'        => __( 'Day', 'ffcertificate' ),
+					'exit1'      => __( 'Exit 1', 'ffcertificate' ),
+					'entry2'     => __( 'Entry 2', 'ffcertificate' ),
 					/* translators: %s: comma-separated list of missing time labels. */
 					'incomplete' => __( 'This row has a time but is missing: %s. Fill it in, or clear the row to remove the day.', 'ffcertificate' ),
 					// #1879 — the accessible name of a row's remove button.

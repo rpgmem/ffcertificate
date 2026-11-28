@@ -328,6 +328,43 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringNotContainsString( self::defaultNotice(), $html );
 	}
 
+	// A token in the acknowledgment shows the value the form holds, escaped,
+	// so the reader never sees a raw {{key}} (#2964).
+	public function test_acknowledgment_tokens_show_the_form_values(): void {
+		$this->useFields( array(
+			$this->makeField( array(
+				'id'          => 2,
+				'field_key'   => 'unidade_exercicio',
+				'field_label' => 'Unit',
+				'field_type'  => 'text',
+			) ),
+			$this->makeField( array(
+				'id'            => 1,
+				'field_key'     => 'acknowledgment',
+				'field_label'   => 'Acknowledgment',
+				'field_type'    => 'acknowledgment',
+				'field_group'   => 'acknowledgment',
+				'field_options' => json_encode( array( 'html' => '<p>Unit {{unidade_exercicio}} and {{not_a_field}}</p>' ) ),
+			) ),
+		) );
+
+		$rereg = (object) array(
+			'id'       => 1,
+			'title'    => 'Recadastramento 2025',
+			'end_date' => '2025-12-31 23:59:59',
+		);
+		$submission = (object) array( 'data' => json_encode( array( 'fields' => array( 'unidade_exercicio' => 'School <b>A</b>' ) ) ) );
+
+		// setUp passes esc_html through; here the escaping is what is measured.
+		Functions\when( 'esc_html' )->alias( static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES ) );
+
+		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
+
+		$this->assertStringContainsString( '<span class="ffc-rereg-token" data-ffc-token="unidade_exercicio">School &lt;b&gt;A&lt;/b&gt;</span>', $html );
+		$this->assertStringContainsString( '{{not_a_field}}', $html, 'an unknown token stays as written' );
+		$this->assertStringNotContainsString( '{{unidade_exercicio}}', $html );
+	}
+
 	// ==================================================================
 	// render() — with saved draft data
 	// ==================================================================

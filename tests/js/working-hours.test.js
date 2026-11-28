@@ -71,6 +71,17 @@ describe('ffc-working-hours — add row', () => {
 		});
 	});
 
+	it('names every cell and control of a new row, for the stacked layout (#2964)', () => {
+		mountWithRows([]);
+		window.$('.ffc-wh-add').trigger('click');
+
+		const cells = window.$('.ffc-wh-table tbody tr td').toArray();
+		expect(cells.slice(0, 5).map((td) => td.getAttribute('data-label'))).toEqual(['Day', 'Entry 1', 'Exit 1', 'Entry 2', 'Exit 2']);
+		expect(cells[5].className).toBe('ffc-wh-actions');
+		expect(cells[0].querySelector('select').getAttribute('aria-label')).toBe('Day');
+		expect(cells[3].querySelector('input').getAttribute('aria-label')).toBe('Entry 2');
+	});
+
 	it('uses the translated DAYS list when window.ffcWorkingHours.days is set', () => {
 		// Reload the IIFE with custom labels to confirm the localised path
 		// runs. We accept that the prior IIFE's delegated handler is still
