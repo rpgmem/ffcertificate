@@ -40,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type TerminalRow from AudienceTerminalReader
  * @phpstan-import-type TerminalWindow from \FreeFormCertificate\Core\TerminalTargetInterface
  * @phpstan-type PlannedWindow array{target: int|string, date: string, opens: int, closes: int}
- * @phpstan-type PlanEntry array{target: int|string, booking_id: int|string, title: string, place: string, date: string, opens: int, closes: int, opens_label: string, opens_time: string, closes_label: string, hours: string, open: bool, present: int, enrolled: int, ticket: bool}
+ * @phpstan-type PlanEntry array{target: int|string, booking_id: int|string, title: string, place: string, date: string, opens: int, closes: int, opens_label: string, opens_time: string, closes_label: string, hours: string, open: bool, present: int, enrolled: int, ticket: bool, join: bool}
  */
 final class AudienceTerminalSchedule {
 
@@ -183,6 +183,9 @@ final class AudienceTerminalSchedule {
 					// Whether a reading needs a ticket code, which the
 					// terminal asks for before the QR (#2893).
 					'ticket'       => ! empty( $entry['ticket'] ),
+					// Whether the terminal offers its on-site sign-up code
+					// while this entry is open (#2968).
+					'join'         => $found['target']->terminal_accepts_join( $found['id'] ),
 				);
 			}
 		}

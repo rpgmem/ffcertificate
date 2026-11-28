@@ -59,6 +59,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The app moves on once the terminal reads a certificate form's code.** While the code is up, Presence asks every 3 s; issued opens Certificates, missing data opens the form to complete (#2939).
 - **Sign in and reset the password with a CPF or an RF** (#2960). The login, on the site and in the Site PWA app, and "Lost your password?" take a CPF or RF where they ask for a username. When an identifier belongs to several accounts the password decides; if more than one accepts it, the screen asks the person to contact an administrator.
 - **The app asks for missing identification details first** (#2962). A person without a full name, a CPF or RF, or a unit of assignment fills them in on a required app screen, stored where the reregistration keeps them. A CPF or RF is written only while empty and never when another account holds it; FFC Administrators are exempt.
+- **The terminal offers an on-site sign-up code to a person without the app.** "I don't have the app" shows a QR the terminal signs with its own key, offline, rotating every 30 s; the site checks it against the key the terminal registered when it paired. The phone page that follows it lands next (#2968).
 
 ### Changed
 

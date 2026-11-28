@@ -57,7 +57,8 @@ class AudienceTerminalPageTest extends TestCase {
 
 		AudienceTerminalPage::init();
 
-		$this->assertSame( array( 'p', AudienceTerminalPage::QUERY_VAR ), AudienceTerminalPage::query_vars( array( 'p' ) ) );
+		// The on-site sign-up code a phone opens rides its own variable (#2968).
+		$this->assertSame( array( 'p', AudienceTerminalPage::QUERY_VAR, \FreeFormCertificate\Audience\AudienceTerminalJoinCode::QUERY_VAR ), AudienceTerminalPage::query_vars( array( 'p' ) ) );
 		$this->assertSame( 'not-an-array', AudienceTerminalPage::query_vars( 'not-an-array' ) );
 	}
 
@@ -230,6 +231,28 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertSame( array( 'style:ffc-terminal-kiosk', 'script:ffc-terminal-install' ), $printed );
 	}
 
+	// What a phone sees when it opens a terminal's sign-up code (#2968): in
+	// the install page's look, why a code is refused, and no pairing data.
+	public function test_a_refused_sign_up_code_says_why_in_the_terminals_look(): void {
+		$this->pretty();
+		Functions\when( 'get_language_attributes' )->justReturn( 'lang="pt-BR"' );
+		Functions\when( 'get_bloginfo' )->justReturn( 'Example' );
+		Functions\when( 'get_site_icon_url' )->justReturn( '' );
+		Functions\when( 'wp_style_is' )->justReturn( false );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_print_styles' )->justReturn( null );
+		Functions\when( 'esc_url' )->returnArg();
+
+		$html = AudienceTerminalPage::join_document( 'not a code!', 1800000000 );
+
+		$this->assertStringStartsWith( '<!DOCTYPE html><html lang="pt-BR" class="ffc-dark-mode"><head>', $html );
+		$this->assertStringContainsString( '<meta name="robots" content="noindex,nofollow,noarchive">', $html );
+		$this->assertStringContainsString( 'data-ffc-terminal-join="refused"', $html );
+		$this->assertStringContainsString( 'This is not a sign-up code. Read the code on the terminal again.', $html );
+		$this->assertStringContainsString( 'role="alert"', $html );
+		$this->assertStringNotContainsString( 'ffcTerminal', $html, 'no pairing data on the phone' );
+	}
+
 	public function test_the_document_prints_the_page_and_its_registered_assets(): void {
 		$printed   = array();
 		$localized = array();
@@ -283,11 +306,13 @@ class AudienceTerminalPageTest extends TestCase {
 				$code[ $entry[0] ] = $entry[2];
 			}
 		}
-		$this->assertSame( array( 'ffc-terminal-install', 'ffc-presence-verifier', 'ffc-terminal-kiosk' ), array_keys( $code ), 'every script of the terminal is in the page (#2912)' );
+		$this->assertSame( array( 'ffc-terminal-install', 'ffc-presence-verifier', 'ffc-terminal-qrcodegen', 'ffc-terminal-join', 'ffc-terminal-kiosk' ), array_keys( $code ), 'every script of the terminal is in the page (#2912), the sign-up code\'s too (#2968)' );
 		foreach ( $code as $handle => $source ) {
 			$this->assertFalse( $registered[ $handle ][0] ?? null, $handle . ' is registered with no address of its own, so no cache can hand back an older copy' );
 			$this->assertArrayHasKey( $handle, $enqueued, $handle . ' is enqueued after it is registered: an enqueue with an empty source registers nothing and prints nothing (#2918)' );
-			$this->assertStringStartsWith( (string) file_get_contents( FFC_PLUGIN_DIR . 'assets/js/' . $handle . \FreeFormCertificate\Core\AssetHelper::asset_suffix() . '.js' ), $source, $handle . ' is the file itself' );
+			// The QR encoder is the vendored bundle, read from its versioned file.
+			$file = 'ffc-terminal-qrcodegen' === $handle ? 'libs/js/qrcodegen-' . FFC_QRCODEGEN_VERSION . '.js' : 'assets/js/' . $handle . \FreeFormCertificate\Core\AssetHelper::asset_suffix() . '.js';
+			$this->assertStringStartsWith( (string) file_get_contents( FFC_PLUGIN_DIR . $file ), $source, $handle . ' is the file itself' );
 			$this->assertStringEndsWith( "\n//# sourceURL=" . $handle . '.js', $source, 'an error names the script it came from' );
 		}
 		$this->assertMatchesRegularExpression( '/["\']setup-location["\']/', $code['ffc-terminal-kiosk'], 'the kiosk printed with the markup it binds to' );
@@ -314,7 +339,7 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/<aside class="ffc-terminal-install-banner" data-ffc-terminal-install-banner[^>]*hidden>/', $html, 'the install banner starts hidden; the script shows it in a browser tab only (#2813)' );
 		$this->assertStringContainsString( 'href="https://example.com/?ffc_terminal=install"', $html, 'it leads to the install page' );
 		$this->assertSame( array( 'ffc-common' ), $enqueued['style:ffc-terminal-kiosk'][1] ?? null );
-		$this->assertSame( array( 'ffc-presence-verifier' ), $enqueued['ffc-terminal-kiosk'][1] ?? null, 'the kiosk checks codes offline with the verifier' );
+		$this->assertSame( array( 'ffc-presence-verifier', 'ffc-terminal-join', 'ffc-terminal-qrcodegen' ), $enqueued['ffc-terminal-kiosk'][1] ?? null, 'the kiosk checks codes offline with the verifier, and signs and draws its sign-up code offline (#2968)' );
 		$this->assertSame( 'ffcTerminal', $localized['ffc-terminal-kiosk'][0] );
 		$config = $localized['ffc-terminal-kiosk'][1];
 		$this->assertSame( 'https://example.com/wp-json/ffc/v1/terminal/', $config['rest'] );
@@ -322,12 +347,15 @@ class AudienceTerminalPageTest extends TestCase {
 		$this->assertArrayNotHasKey( 'nonce', $config, 'a terminal has no account to carry a nonce for' );
 		$this->assertFalse( $config['camera'], 'the camera is off until an administrator allows it' );
 		$this->assertSame( '', $config['worker'], 'the query form registers no worker, which would claim the whole site (#2783)' );
+		$this->assertSame( 'https://example.com/', $config['joinBase'], 'a sign-up code opens the site (#2968)' );
+		$this->assertStringContainsString( 'data-ffc-terminal-view="join"', $html );
+		$this->assertMatchesRegularExpression( '/data-ffc-terminal-part="join-open"[^>]*hidden|hidden[^>]*data-ffc-terminal-part="join-open"/', $html, 'the sign-up button waits for an event that takes it' );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="offline"', $html );
 		$this->assertSame( array( 'ready', 'reading', 'insecure', 'unsupported', 'ask', 'denied', 'how', 'failed', 'asleep' ), array_keys( $config['strings']['camera'] ) );
 		$this->assertSame( array( 'Ios', 'Android', 'Desktop', 'IosApp', 'AndroidApp' ), array_keys( $config['strings']['camera']['how'] ), 'a refused camera says where to allow it, in a tab or in the installed app (#2954)' );
 		$this->assertStringContainsString( 'data-ffc-terminal-part="camera-start"', $html );
 		$this->assertMatchesRegularExpression( '/<video[^>]*playsinline[^>]*muted/', $html, 'the viewfinder plays inline and silent' );
-		$this->assertSame( array( 'offlinePairing', 'storage', 'paired', 'failed', 'events', 'until', 'expired', 'revoked', 'operator', 'clockOff', 'ended', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'idleRefused', 'unpairedRefused', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'setup', 'queueEdit', 'ticketHeld', 'ticketEmpty', 'queuedCertificate', 'pausedLead', 'pausedMenu', 'ticketFirst', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'offlinePairing', 'storage', 'paired', 'failed', 'events', 'until', 'expired', 'revoked', 'operator', 'clockOff', 'ended', 'joinLeft', 'queued', 'alreadyQueued', 'queue', 'sent', 'nowChecking', 'nextEvent', 'openUntil', 'notOpen', 'opensAt', 'noEvents', 'idleRefused', 'unpairedRefused', 'terminalTitle', 'notPaired', 'checkinUntil', 'present', 'presentOnly', 'opensIn', 'readyTitle', 'readyLead', 'cameraTitle', 'cameraLead', 'recordedTitle', 'alreadyTitle', 'queuedTitle', 'refusedTitle', 'recordedDetail', 'openBadge', 'openDetail', 'help', 'nextPerson', 'unlockWait', 'connIdle', 'connQueue', 'connOffline', 'connCamera', 'setup', 'queueEdit', 'ticketHeld', 'ticketEmpty', 'queuedCertificate', 'pausedLead', 'pausedMenu', 'ticketFirst', 'titles', 'wakeUnsupported', 'wakeRefused', 'check', 'camera', 'offline' ), array_keys( $config['strings'] ) );
 	}
 
 	public function test_the_camera_follows_its_option(): void {

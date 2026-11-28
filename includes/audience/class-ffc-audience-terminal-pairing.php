@@ -16,6 +16,7 @@ namespace FreeFormCertificate\Audience;
 use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\AttendanceTargetRegistry;
 use FreeFormCertificate\Core\AuthCodeService;
+use FreeFormCertificate\Core\EcdsaP256;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\TerminalTargetKey;
 
@@ -162,9 +163,10 @@ final class AudienceTerminalPairing {
 	 * @param string $device_id The id the terminal generated for itself.
 	 * @param string $address   Keyed fingerprint of the caller's address.
 	 * @param int    $now       Unix time.
-	 * @return array{token: string, terminal_id: int, label: string, bookings: list<int|string>, expires_at: int}|\WP_Error
+	 * @param string $join_key  Base64url of the public key the terminal signs its sign-up codes with (#2968), or ''.
+	 * @return array{token: string, terminal_id: int, label: string, bookings: list<int|string>, expires_at: int, join_key: string}|\WP_Error
 	 */
-	public static function pair( string $code, string $device_id, string $address, int $now ) {
+	public static function pair( string $code, string $device_id, string $address, int $now, string $join_key = '' ) {
 		$device_id = self::clean_device( $device_id );
 		if ( '' === $device_id ) {
 			return new \WP_Error( 'ffc_terminal_device', __( 'This terminal sent no device id. Reload the page and try again.', 'ffcertificate' ), array( 'status' => 400 ) );
@@ -201,6 +203,9 @@ final class AudienceTerminalPairing {
 		}
 		AudienceTerminalWriter::link_pairing( $pairing['id'], $id );
 		AudienceTerminalLockout::succeed( $device_hash );
+		// A key that does not register here is sent again by the terminal
+		// through its own channel; the pairing itself stands.
+		$registered = '' === $join_key ? '' : self::register_join_key( $id, $join_key, $now );
 
 		ActivityLog::log(
 			'terminal_paired',
@@ -219,7 +224,44 @@ final class AudienceTerminalPairing {
 			'label'       => $pairing['label'],
 			'bookings'    => $pairing['targets'],
 			'expires_at'  => $expires,
+			'join_key'    => is_string( $registered ) ? $registered : '',
 		);
+	}
+
+	/**
+	 * Register the public key a terminal signs its on-site sign-up codes
+	 * with (#2968). The terminal makes the key pair in its browser and keeps
+	 * the secret half there; a terminal whose browser lost it sends a new
+	 * key, which replaces the old one.
+	 *
+	 * @param int    $terminal_id Terminal id.
+	 * @param string $key         Base64url of the raw P-256 point.
+	 * @param int    $now         Unix time.
+	 * @return string|\WP_Error The key's fingerprint ({@see self::join_key_id()}).
+	 */
+	public static function register_join_key( int $terminal_id, string $key, int $now ) {
+		$raw = AudienceTerminalJoinCode::decode( $key );
+		if ( null === $raw || '' === $raw || ! EcdsaP256::valid_public( $raw ) ) {
+			return new \WP_Error( 'ffc_terminal_join_key', __( 'This is not a key the site can use. Reload the terminal and try again.', 'ffcertificate' ), array( 'status' => 400 ) );
+		}
+		$key = AudienceTerminalJoinCode::encode( $raw );
+		if ( ! AudienceTerminalWriter::set_join_key( $terminal_id, $key, $now ) ) {
+			return new \WP_Error( 'ffc_terminal_save', __( 'The terminal could not be saved. Try again.', 'ffcertificate' ), array( 'status' => 500 ) );
+		}
+		return self::join_key_id( $key );
+	}
+
+	/**
+	 * A short fingerprint of a registered key, for the terminal to tell
+	 * whether the key it holds is the one the site checks: the first 16 hex
+	 * digits of the SHA-256 of the raw point; '' for no key.
+	 *
+	 * @param string $key Base64url of the raw point, or ''.
+	 * @return string
+	 */
+	public static function join_key_id( string $key ): string {
+		$raw = AudienceTerminalJoinCode::decode( $key );
+		return null === $raw || '' === $raw ? '' : substr( hash( 'sha256', $raw ), 0, 16 );
 	}
 
 	/**

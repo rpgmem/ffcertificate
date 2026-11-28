@@ -81,6 +81,15 @@ interface TerminalTargetInterface extends AttendanceTargetInterface {
 	public function terminal_entry( int $target_id, array $window, int $now ): array;
 
 	/**
+	 * Whether a person without an account may sign up for the target from
+	 * the terminal's sign-up code (#2968).
+	 *
+	 * @param int $target_id Id within the type.
+	 * @return bool
+	 */
+	public function terminal_accepts_join( int $target_id ): bool;
+
+	/**
 	 * What one verified reading means for the target, recorded or refused.
 	 *
 	 * The caller has already verified the code and that the terminal holds

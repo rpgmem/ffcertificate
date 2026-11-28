@@ -110,6 +110,18 @@ final class AudienceAttendanceTarget implements TerminalTargetInterface {
 	}
 
 	/**
+	 * Whether a person without an account may sign up from the terminal
+	 * (#2968). Every target accepts until the switch that governs it lands
+	 * with the sign-up page.
+	 *
+	 * @param int $target_id Id within the type.
+	 * @return bool
+	 */
+	public function terminal_accepts_join( int $target_id ): bool {
+		return $target_id > 0;
+	}
+
+	/**
 	 * A booking whose Check-in tab turned the terminal path off is refused.
 	 *
 	 * @param int $target_id Booking id.

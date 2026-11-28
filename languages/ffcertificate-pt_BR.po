@@ -38005,3 +38005,93 @@ msgstr "com o plugin Site PWA, quem não tem nome completo, CPF ou RF, ou unidad
 #: includes/settings/views/documentation/feature-reregistration.php
 msgid "In the acknowledgment text, a field key between double braces, such as {{unidade_exercicio}}, shows what the member has in that field and follows it as they edit; a key the form does not have stays as written."
 msgstr "No texto do termo de ciência, a chave de um campo entre chaves duplas, como {{unidade_exercicio}}, mostra o que o membro tem nesse campo e acompanha a edição; uma chave que o formulário não tem fica como está escrita."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Already have an account? Open the app and show your presence QR code."
+msgstr "Já tem conta? Abra o app e mostre o seu QR de presença."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Check-in for this event is not open now. Ask the event operator."
+msgstr "O check-in deste evento não está aberto agora. Procure o operador do evento."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Done: your presence is recorded."
+msgstr "Pronto: sua presença fica registrada."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Fill in your name, e-mail and CPF, and create a password."
+msgstr "Preencha nome, e-mail e CPF e crie uma senha."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "I don't have the app"
+msgstr "Não tenho o app"
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Point the camera at the code beside this text."
+msgstr "Aponte a câmera para o código ao lado deste texto."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Read this code with your phone's camera"
+msgstr "Leia este código com a câmera do seu celular"
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Sign up at the event"
+msgstr "Cadastro no evento"
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Sign-up QR code"
+msgstr "QR de cadastro"
+
+#. translators: %s: time left, such as 0:48
+#, php-format
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "The code changes every 30 s. Back to reading in %s."
+msgstr "O código muda a cada 30 s. Volta à leitura em %s."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "The code is valid. Signing up on this page is not available yet: ask the event operator."
+msgstr "O código é válido. O cadastro por esta página ainda não está disponível: procure o operador do evento."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "The terminal that showed this code was ended. Ask the event operator."
+msgstr "O totem que mostrou este código foi encerrado. Procure o operador do evento."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "The terminal's code changes every few seconds and works only at the event, while check-in is open."
+msgstr "O código do totem muda a cada poucos segundos e só vale no evento, enquanto o check-in está aberto."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code cannot be used"
+msgstr "Este código não pode ser usado"
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code comes from a terminal the site does not know. Read the code on the terminal again."
+msgstr "Este código vem de um totem que o site não conhece. Leia o código do totem de novo."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code expired. Read the code on the terminal again."
+msgstr "Este código venceu. Leia o código do totem de novo."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code is dated in the future. Read the code on the terminal again."
+msgstr "Este código está com data no futuro. Leia o código do totem de novo."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code is for an event the terminal does not serve."
+msgstr "Este código é de um evento que o totem não atende."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code was not made by the terminal it names."
+msgstr "Este código não foi gerado pelo totem que ele indica."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This event does not take sign-up on site. Ask the event operator."
+msgstr "Este evento não aceita cadastro no local. Procure o operador do evento."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This is not a key the site can use. Reload the terminal and try again."
+msgstr "Esta não é uma chave que o site possa usar. Recarregue o totem e tente de novo."
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This is not a sign-up code. Read the code on the terminal again."
+msgstr "Este não é um código de cadastro. Leia o código do totem de novo."

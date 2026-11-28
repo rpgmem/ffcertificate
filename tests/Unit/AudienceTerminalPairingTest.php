@@ -917,6 +917,9 @@ class AudienceTerminalPairingTest extends TestCase {
 			public function terminal_title( int $target_id ): string {
 				return 'Form ' . $target_id;
 			}
+			public function terminal_accepts_join( int $target_id ): bool {
+				return false;
+			}
 			public function terminal_entry( int $target_id, array $window, int $now ): array {
 				return array(
 					'title'    => 'Form ' . $target_id,

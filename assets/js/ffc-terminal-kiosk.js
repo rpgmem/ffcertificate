@@ -61,6 +61,8 @@
     // The screens whose code the camera reads, each with its own place for
     // the viewfinder (#2786).
     var CAMERA_SCREENS = ['ready', 'unlock'];
+    // The sign-up code screen goes back to reading after this long (#2968).
+    var JOIN_MS = 60000;
 
     /**
      * A storage that may refuse: a private window or blocked site data.
@@ -455,6 +457,7 @@
             part('events').textContent = String(strings.events || '%d').replace('%d', String((state.bookings || []).length));
             part('until').textContent = String(strings.until || '%s').replace('%s', state.expires_label || '');
             show(view, 'paused' === view ? 'warning' : '');
+            refreshJoin();
             updateQueue();
             if ('ticket' === view) {
                 focusTicket();
@@ -1048,6 +1051,7 @@
             state.location_name = body.location_name || '';
             state.bookings = body.bookings || [];
             state.schedule = body.schedule || [];
+            state.join_key = body.join_key || '';
             if (body.expires_at) {
                 state.expires_at = body.expires_at;
                 state.expires_label = body.expires_label || '';
@@ -1062,7 +1066,136 @@
             } else {
                 followPlan();
             }
+            syncJoinKey(state);
+            refreshJoin();
             return state;
+        }
+
+        // The on-site sign-up code (#2968) -----------------------------------
+        //
+        // The terminal signs a code with its own key, which it made once and
+        // whose public half the site holds; the screen shows it to a person
+        // without the app, whose phone opens the site with it. The key works
+        // offline: only the phone needs a connection.
+
+        var joinApi = env.join || null;
+        var joinKey = null;
+        var joinId = '';
+        var joinTimers = { draw: null, close: null };
+        var joinUntil = 0;
+
+        function loadJoinKey() {
+            if (joinKey) {
+                return Promise.resolve(joinKey);
+            }
+            if (!joinApi || !env.subtle || !env.indexedDB) {
+                return Promise.resolve(null);
+            }
+            return joinApi.key(env.indexedDB, env.subtle).then(function (made) {
+                return joinApi.fingerprint(env.subtle, made.raw).then(function (id) {
+                    joinKey = made;
+                    joinId = id;
+                    return made;
+                });
+            }).catch(function () {
+                return null;
+            });
+        }
+
+        // A terminal paired before it had a key, or whose browser lost it,
+        // sends the one it holds when the site's differs.
+        function syncJoinKey(state) {
+            return loadJoinKey().then(function (made) {
+                refreshJoin();
+                if (!made || !state || state.join_key === joinId || !online()) {
+                    return false;
+                }
+                return terminalRequest('POST', 'self/join-key', { key: joinApi.b64url(made.raw) }).then(function (result) {
+                    var kept = current();
+                    if (!result || 200 !== result.status || !kept) {
+                        return false;
+                    }
+                    kept.join_key = result.body.join_key || '';
+                    store.set(STATE_KEY, JSON.stringify(kept));
+                    refreshJoin();
+                    return true;
+                });
+            });
+        }
+
+        function joinOffered(entry) {
+            var state = current();
+            return !!(entry && entry.open && entry.join && joinKey && joinId && state && state.join_key === joinId);
+        }
+
+        function refreshJoin() {
+            var state = current();
+            var entry = state ? plan(state).current : null;
+            var button = part('join-open');
+            if (button) {
+                button.hidden = !('ready' === screen && joinOffered(entry));
+            }
+        }
+
+        function stopJoin() {
+            if (joinTimers.draw) {
+                env.clearInterval(joinTimers.draw);
+            }
+            if (joinTimers.close) {
+                env.clearTimeout(joinTimers.close);
+            }
+            joinTimers = { draw: null, close: null };
+            if (part('join-qr')) {
+                part('join-qr').innerHTML = '';
+            }
+        }
+
+        function joinLeft() {
+            var left = Math.max(0, Math.ceil((joinUntil - env.now()) / 1000));
+            part('join-left').textContent = fill(strings.joinLeft, [duration(left)]);
+        }
+
+        function drawJoin() {
+            var state = current();
+            var entry = state ? plan(state).current : null;
+            if ('join' !== screen || !joinOffered(entry)) {
+                closeJoin();
+                return Promise.resolve(false);
+            }
+            return joinApi.code(env.subtle, joinKey.privateKey, state.terminal_id, heldKey(entry), now()).then(function (text) {
+                if (!text || 'join' !== screen) {
+                    return false;
+                }
+                part('join-qr').innerHTML = joinApi.qrSvg(env.qrcodegen, joinApi.url(config.joinBase || '', text));
+                joinLeft();
+                return true;
+            });
+        }
+
+        function openJoin() {
+            var state = current();
+            if (!state || !joinOffered(plan(state).current)) {
+                refreshJoin();
+                return Promise.resolve(false);
+            }
+            stopJoin();
+            show('join');
+            joinUntil = env.now() + JOIN_MS;
+            joinTimers.draw = env.setInterval(drawJoin, joinApi.ROTATION * 1000);
+            joinTimers.close = env.setTimeout(closeJoin, JOIN_MS);
+            return drawJoin();
+        }
+
+        function closeJoin() {
+            stopJoin();
+            if ('join' === screen) {
+                rest();
+            }
+        }
+
+        if (part('join-open')) {
+            part('join-open').addEventListener('click', openJoin);
+            part('join-close').addEventListener('click', closeJoin);
         }
 
         // The queue card in the operator menu (#2780): the terminal's events
@@ -1469,7 +1602,8 @@
                 bookings: body.bookings || [],
                 expires_at: body.expires_at,
                 expires_label: body.expires_label || '',
-                keys: body.keys || {}
+                keys: body.keys || {},
+                join_key: body.join_key || ''
             };
             if (!store.set(STATE_KEY, JSON.stringify(state))) {
                 say('');
@@ -1681,7 +1815,14 @@
             }
             setupError('');
             part('setup-submit').disabled = true;
-            return publicRequest('setup', body).then(function (result) {
+            // The key the terminal signs its sign-up codes with (#2968): a
+            // browser that cannot make one pairs all the same.
+            return loadJoinKey().then(function (made) {
+                if (made) {
+                    body.join_key = joinApi.b64url(made.raw);
+                }
+                return publicRequest('setup', body);
+            }).then(function (result) {
                 part('setup-submit').disabled = false;
                 if (201 === result.status && result.body.token) {
                     setupCode = '';
@@ -2107,6 +2248,9 @@
             if ('between' === screen) {
                 followPlan();
             }
+            if ('join' === screen) {
+                joinLeft();
+            }
         }, 1000);
         // The schedule follows a change made in the app or the admin, and
         // the event shown follows the clock between two answers.
@@ -2241,6 +2385,9 @@
                 clearTimeout: root.clearTimeout.bind(root),
                 subtle: root.crypto && root.crypto.subtle,
                 verifier: root.FFCPresenceVerifier,
+                join: root.FFCTerminalJoin,
+                qrcodegen: root.qrcodegen,
+                indexedDB: (function () { try { return root.indexedDB; } catch (e) { return null; } })(),
                 online: function () { return false !== root.navigator.onLine; },
                 secure: !!root.isSecureContext,
                 BarcodeDetector: root.BarcodeDetector,
