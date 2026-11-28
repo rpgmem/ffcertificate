@@ -144,6 +144,27 @@
         initSubmit($container);
         initCancel($container);
         initImportPrevious($container);
+        initAcknowledgmentTokens($container);
+    }
+
+    /* ─── Acknowledgment tokens ────────────────────────── */
+
+    /**
+     * Keep each {{field_key}} the acknowledgment shows in step with the
+     * field it names, so the notice reads what the person typed (#2964).
+     */
+    function initAcknowledgmentTokens($container) {
+        $container.on('input change', '[name^="fields["]', function () {
+            var match = /^fields\[([a-z0-9_]+)\]$/.exec(this.name || '');
+            if (!match) {
+                return;
+            }
+            var text = this.value;
+            if ('SELECT' === this.tagName && this.selectedIndex >= 0 && '' !== this.value) {
+                text = this.options[this.selectedIndex].text;
+            }
+            $container.find('[data-ffc-token="' + match[1] + '"]').text(text);
+        });
     }
 
     /* ─── Import the previous cycle ────────────────────── */

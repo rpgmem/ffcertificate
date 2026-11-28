@@ -59,6 +59,10 @@
 /* ── Fieldsets ────────────────────────────────── */
 
 .ffc-rereg-fieldset {
+    /* A fieldset does not shrink below its content by default, so the
+       working-hours grid pushed the section, and the whole form, past a
+       phone's width (#2964), the same as on the profile (#2852). */
+    min-width: 0;
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     padding: var(--ffc-spacing-2xl);
@@ -152,6 +156,7 @@
 
 .ffc-working-hours {
     margin-top: var(--ffc-spacing-sm);
+    container-type: inline-size;
 }
 
 /* On a phone the table keeps its six columns and scrolls sideways (#2242).
@@ -207,6 +212,60 @@
 
 .ffc-wh-add {
     margin-top: var(--ffc-spacing-sm);
+}
+
+/* Where the six columns do not fit, each day becomes a card (#2964): the
+   day and its remove button on top, then the two shifts side by side, each
+   time under its own label. The column headers leave the screen, and every
+   control carries its name for a screen reader. The query reads the field's
+   own width, so the grid stacks in a narrow column on a computer too. */
+@container (max-width: 34rem) {
+    .ffc-wh-table,
+    .ffc-wh-table tbody {
+        display: block;
+        min-width: 0;
+    }
+
+    .ffc-wh-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .ffc-wh-table tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+        padding: var(--ffc-spacing-sm) 0;
+        border-bottom: 1px solid var(--ffc-border-light);
+    }
+
+    .ffc-wh-table td {
+        display: block;
+        padding: 0;
+    }
+
+    .ffc-wh-table td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: var(--ffc-spacing-3xs);
+        font-size: var(--ffc-font-size-xs);
+        color: var(--ffc-text-secondary);
+    }
+
+    .ffc-wh-table td.ffc-wh-actions {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: end;
+        justify-self: end;
+    }
+
+    .ffc-wh-table .ffc-wh-message-row td {
+        grid-column: 1 / -1;
+    }
 }
 
 /* ── Acknowledgement term ────────────────────── */

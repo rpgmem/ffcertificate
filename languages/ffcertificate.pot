@@ -37923,3 +37923,7 @@ msgstr ""
 
 msgid "with the Site PWA plugin, a person whose full name, CPF or RF, or unit of assignment is missing fills them in on a \"Complete your details\" screen before any other app screen opens. A name equal to the login counts as missing, and a CPF or an RF is enough. The values are the ones the reregistration keeps, so a reregistration or an import completes them too, and no campaign has to be open. A CPF or RF is written only while the account has neither, and refused when it belongs to another account; after that only an administrator changes it. The e-mail is shown masked, for reference. FFC Administrators are never asked."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "In the acknowledgment text, a field key between double braces, such as {{unidade_exercicio}}, shows what the member has in that field and follows it as they edit; a key the form does not have stays as written."
+msgstr ""

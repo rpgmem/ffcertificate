@@ -22,6 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<fieldset class="ffc-rereg-fieldset">
 			<legend><?php echo esc_html( sprintf( '%d. %s', $index, __( 'Acknowledgment', 'ffcertificate' ) ) ); ?></legend>
 			<div class="ffc-rereg-termo-text">
-				<?php echo wp_kses_post( ReregistrationFieldOptions::get_default_acknowledgment_html() ); ?>
+				<?php echo \FreeFormCertificate\Reregistration\ReregistrationFormRenderer::acknowledgment_html( ReregistrationFieldOptions::get_default_acknowledgment_html() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- acknowledgment_html() runs wp_kses_post() and escapes every value it adds. ?>
 			</div>
 		</fieldset>

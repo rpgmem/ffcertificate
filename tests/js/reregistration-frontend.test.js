@@ -1365,3 +1365,43 @@ describe('rereg retract', () => {
 		expect(window.$('.ffc-rereg-retract').prop('disabled')).toBe(false);
 	});
 });
+
+// ----------------------------------------------------------------------
+// Acknowledgment tokens (#2964)
+// ----------------------------------------------------------------------
+
+describe('rereg acknowledgment tokens', () => {
+	async function mountWithForm(formHtml) {
+		document.body.innerHTML = `
+			<div id="ffc-user-dashboard"></div>
+			<button class="ffc-rereg-open-form" data-reregistration-id="11">Open</button>
+		`;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { html: formHtml } } }));
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+	}
+
+	it('keeps a token in step with the field it names, as text', async () => {
+		await mountWithForm(`<form id="ffc-rereg-form">
+			<input name="fields[unidade_exercicio]" value="DRE MP">
+			<select name="fields[sindicato]"><option value="">Select</option><option value="s1">SINESP</option></select>
+			<div class="ffc-rereg-termo-text">Em exercício na <span data-ffc-token="unidade_exercicio">DRE MP</span>, <span data-ffc-token="sindicato"></span></div>
+		</form>`);
+
+		const unit = document.querySelector('[name="fields[unidade_exercicio]"]');
+		unit.value = 'EMEF <b>Exemplo</b>';
+		window.$(unit).trigger('input');
+		const token = document.querySelector('[data-ffc-token="unidade_exercicio"]');
+		expect(token.textContent).toBe('EMEF <b>Exemplo</b>');
+		expect(token.querySelector('b')).toBeNull();
+
+		const union = document.querySelector('[name="fields[sindicato]"]');
+		union.value = 's1';
+		window.$(union).trigger('change');
+		expect(document.querySelector('[data-ffc-token="sindicato"]').textContent).toBe('SINESP');
+
+		union.value = '';
+		window.$(union).trigger('change');
+		expect(document.querySelector('[data-ffc-token="sindicato"]').textContent).toBe('');
+	});
+});

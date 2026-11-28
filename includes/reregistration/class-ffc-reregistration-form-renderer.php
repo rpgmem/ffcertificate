@@ -67,6 +67,14 @@ class ReregistrationFormRenderer {
 	private static array $locked_keys = array();
 
 	/**
+	 * The values of the form being rendered, by field key, which the
+	 * acknowledgment's `{{field_key}}` tokens show (#2964).
+	 *
+	 * @var array<string, mixed>
+	 */
+	private static array $token_values = array();
+
+	/**
 	 * Render the reregistration form HTML.
 	 *
 	 * @param object $rereg      Reregistration object.
@@ -124,6 +132,7 @@ class ReregistrationFormRenderer {
 				self::$locked_keys[ (string) $field->field_key ] = true;
 			}
 		}
+		self::$token_values = $values;
 
 		$end_ts   = strtotime( $rereg->end_date );
 		$end_date = \FreeFormCertificate\Core\DateFormatter::format_date( false === $end_ts ? null : $end_ts );
@@ -291,7 +300,7 @@ class ReregistrationFormRenderer {
 			$html    = isset( $options['html'] ) && '' !== $options['html']
 				? (string) $options['html']
 				: ReregistrationFieldOptions::get_default_acknowledgment_html();
-			echo '<div class="ffc-rereg-termo-text">' . wp_kses_post( $html ) . '</div>';
+			echo '<div class="ffc-rereg-termo-text">' . self::acknowledgment_html( $html ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- acknowledgment_html() runs wp_kses_post() and escapes every value it adds.
 			return;
 		}
 
@@ -480,6 +489,30 @@ class ReregistrationFormRenderer {
 			6 => __( 'Saturday', 'ffcertificate' ),
 		);
 		include FFC_PLUGIN_DIR . 'templates/reregistration/field-working-hours.php';
+	}
+
+	/**
+	 * The acknowledgment's HTML with each `{{field_key}}` token of the form
+	 * showing the person's value (#2964), as the record will print it. The
+	 * value sits in a span the form script keeps in step while the person
+	 * types; a token no field of the form answers is left as written.
+	 *
+	 * @param string $html The acknowledgment, as an administrator wrote it.
+	 * @return string Sanitized HTML.
+	 */
+	public static function acknowledgment_html( string $html ): string {
+		$values = self::$token_values;
+		return (string) preg_replace_callback(
+			'/\{\{([a-z0-9_]+)\}\}/',
+			static function ( array $match ) use ( $values ): string {
+				if ( ! array_key_exists( $match[1], $values ) ) {
+					return $match[0];
+				}
+				$value = $values[ $match[1] ];
+				return '<span class="ffc-rereg-token" data-ffc-token="' . esc_attr( $match[1] ) . '">' . esc_html( is_scalar( $value ) ? (string) $value : '' ) . '</span>';
+			},
+			wp_kses_post( $html )
+		);
 	}
 
 	/**
