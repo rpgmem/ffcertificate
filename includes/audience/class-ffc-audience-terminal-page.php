@@ -84,6 +84,7 @@ final class AudienceTerminalPage {
 		'assets/css/ffc-terminal-kiosk.css',
 		'assets/js/ffc-terminal-kiosk.js',
 		'assets/js/ffc-presence-verifier.js',
+		'assets/js/ffc-terminal-join.js',
 		'assets/js/ffc-terminal-sw.js',
 		'assets/js/ffc-terminal-install.js',
 		'templates/public/terminal/kiosk.php',
@@ -142,6 +143,8 @@ final class AudienceTerminalPage {
 	public static function query_vars( $vars ) {
 		if ( is_array( $vars ) ) {
 			$vars[] = self::QUERY_VAR;
+			// The on-site sign-up code a phone opens (#2968).
+			$vars[] = AudienceTerminalJoinCode::QUERY_VAR;
 		}
 		return $vars;
 	}
@@ -249,6 +252,13 @@ final class AudienceTerminalPage {
 	 * @return void
 	 */
 	public static function maybe_render(): void {
+		$join = get_query_var( AudienceTerminalJoinCode::QUERY_VAR );
+		$join = is_scalar( $join ) ? (string) $join : '';
+		if ( '' !== $join && SettingsReader::module_enabled( 'audiences' ) ) {
+			self::send_headers( 'text/html; charset=utf-8' );
+			echo self::join_document( $join, time() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- join_document() escapes every value it prints.
+			exit;
+		}
 		$value = get_query_var( self::QUERY_VAR );
 		$value = is_scalar( $value ) ? (string) $value : '';
 		if ( '' === $value ) {
@@ -492,6 +502,35 @@ final class AudienceTerminalPage {
 	}
 
 	/**
+	 * What a phone sees when it opens a terminal's on-site sign-up code
+	 * (#2968), in the install page's look: the event the code is for, or why
+	 * the code was refused.
+	 *
+	 * @param string $code The code, as the query argument carried it.
+	 * @param int    $now  Unix time.
+	 * @return string
+	 */
+	public static function join_document( string $code, int $now ): string {
+		AssetHelper::enqueue_common_style();
+		AssetHelper::enqueue_dark_mode();
+		self::enqueue_sheet();
+
+		$ffc_join_result = AudienceTerminalJoinCode::verify( $code, $now );
+		ob_start();
+		echo '<!DOCTYPE html><html ' . get_language_attributes() . self::root_class() . '><head>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_language_attributes() returns a safe attribute string; root_class() returns one literal.
+		echo '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+		echo '<meta name="robots" content="noindex,nofollow,noarchive">';
+		echo '<title>' . esc_html__( 'Sign up at the event', 'ffcertificate' ) . ' — ' . esc_html( get_bloginfo( 'name' ) ) . '</title>';
+		wp_print_styles( array( 'ffc-terminal-kiosk' ) );
+		echo '</head><body class="ffc-shortcode ffc-terminal-page">';
+		$ffc_terminal_logo = (string) get_site_icon_url( 192 );
+		$ffc_terminal_logo = '' !== $ffc_terminal_logo ? $ffc_terminal_logo : self::bundled_icon_url( 192 );
+		include FFC_PLUGIN_DIR . 'templates/public/terminal/join.php';
+		echo '</body></html>';
+		return (string) ob_get_clean();
+	}
+
+	/**
 	 * The terminal's stylesheet, shared by the page and the install page.
 	 *
 	 * @return void
@@ -541,18 +580,19 @@ final class AudienceTerminalPage {
 	 *
 	 * @param string   $handle Handle, which is also the file's name under `assets/js/`.
 	 * @param string[] $deps   Handles printed first.
+	 * @param string   $path   The file relative to the plugin, for one not named by its handle (a vendored bundle), or ''.
 	 * @phpstan-param non-empty-string $handle
 	 * @phpstan-param array<non-empty-string> $deps
 	 * @return void
 	 */
-	private static function enqueue_page_script( string $handle, array $deps ): void {
+	private static function enqueue_page_script( string $handle, array $deps, string $path = '' ): void {
 		// Registered with no source (`false`), then enqueued: WordPress
 		// registers a handle only when it has a source or is registered
 		// explicitly, so enqueueing with an empty source prints nothing at all
 		// (#2918).
 		wp_register_script( $handle, false, $deps, FFC_VERSION, true );
 		wp_enqueue_script( $handle );
-		$file = FFC_PLUGIN_DIR . 'assets/js/' . $handle . AssetHelper::asset_suffix() . '.js';
+		$file = FFC_PLUGIN_DIR . ( '' !== $path ? $path : 'assets/js/' . $handle . AssetHelper::asset_suffix() . '.js' );
 		$code = is_readable( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A file of the plugin's own, read from disk.
 		if ( '' === $code ) {
 			return;
@@ -581,7 +621,11 @@ final class AudienceTerminalPage {
 		// or start is written into the boot note, so a terminal that cannot
 		// start says why on its own screen, where the team can photograph it.
 		wp_add_inline_script( 'ffc-presence-verifier', self::BOOT_ERROR_SCRIPT, 'before' );
-		self::enqueue_page_script( 'ffc-terminal-kiosk', array( 'ffc-presence-verifier' ) );
+		// The on-site sign-up code (#2968): the terminal signs it and draws
+		// its QR offline, so both scripts are in the page.
+		self::enqueue_page_script( 'ffc-terminal-qrcodegen', array(), 'libs/js/qrcodegen-' . FFC_QRCODEGEN_VERSION . '.js' );
+		self::enqueue_page_script( 'ffc-terminal-join', array() );
+		self::enqueue_page_script( 'ffc-terminal-kiosk', array( 'ffc-presence-verifier', 'ffc-terminal-join', 'ffc-terminal-qrcodegen' ) );
 		wp_localize_script(
 			'ffc-terminal-kiosk',
 			'ffcTerminal',
@@ -590,6 +634,8 @@ final class AudienceTerminalPage {
 				'presence' => esc_url_raw( rest_url( AudiencePresenceRestController::NAMESPACE . '/' . AudiencePresenceRestController::REST_BASE . '/' ) ),
 				'camera'   => self::camera_allowed(),
 				'worker'   => self::worker_url(),
+				// The address a sign-up code opens on a phone (#2968).
+				'joinBase' => esc_url_raw( home_url( '/' ) ),
 				'strings'  => array(
 					'offlinePairing'    => __( 'This terminal is offline. Pairing it needs a connection; once paired, it reads codes offline.', 'ffcertificate' ),
 					'storage'           => __( 'This browser cannot keep the terminal\'s pairing. Allow this site to store data, or use another browser.', 'ffcertificate' ),
@@ -606,6 +652,8 @@ final class AudienceTerminalPage {
 					/* translators: %d: seconds between this terminal's clock and the site's */
 					'clockOff'          => __( 'This terminal\'s clock was %d s off the site\'s. Readings follow the site\'s clock; set the device\'s date and time to automatic.', 'ffcertificate' ),
 					'ended'             => __( 'Terminal ended. An operator pairs it again at the lock.', 'ffcertificate' ),
+					/* translators: %s: time left, such as 0:48 */
+					'joinLeft'          => __( 'The code changes every 30 s. Back to reading in %s.', 'ffcertificate' ),
 					'queued'            => __( 'Saved. It is sent to the site when the connection returns.', 'ffcertificate' ),
 					/* translators: Offline: this person's reading for this event is already waiting to be sent. */
 					'alreadyQueued'     => __( 'Already saved on this terminal.', 'ffcertificate' ),

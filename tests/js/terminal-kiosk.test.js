@@ -9,12 +9,15 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { loadScript } from './helpers.js';
+import { memoryIndexedDB } from './memory-indexeddb.js';
 
 const NOW = 1800000000;
 const TOKEN = 'a'.repeat(64);
 
 beforeAll(() => {
 	loadScript('assets/js/ffc-presence-verifier.js');
+	loadScript('libs/js/qrcodegen-1.8.0.js');
+	loadScript('assets/js/ffc-terminal-join.js');
 	loadScript('assets/js/ffc-terminal-kiosk.js');
 });
 
@@ -38,6 +41,7 @@ const CONFIG = {
 		operator: 'by %s',
 		clockOff: 'clock off %d s',
 		ended: 'ended',
+		joinLeft: 'back in %s',
 		queued: 'Saved.',
 		alreadyQueued: 'Already saved.',
 		queue: 'waiting %d',
@@ -165,7 +169,13 @@ function markup() {
 						<button type="button" data-ffc-terminal-part="camera-start">Use camera</button>
 						<button type="button" data-ffc-terminal-part="camera-stop" hidden>Stop</button>
 					</div>
+					<button type="button" data-ffc-terminal-part="join-open" hidden>No app</button>
 				</div>
+			</section>
+			<section data-ffc-terminal-view="join" hidden>
+				<div data-ffc-terminal-part="join-qr"></div>
+				<p data-ffc-terminal-part="join-left"></p>
+				<button type="button" data-ffc-terminal-part="join-close">Back</button>
 			</section>
 			<section data-ffc-terminal-view="ticket" hidden>
 				<form data-ffc-terminal-part="ticket-form">
@@ -2241,5 +2251,87 @@ describe('certificate forms offline (#2893)', () => {
 		await controls.read('FFP1ABC');
 		expect(lines('result-refused')[0]).toBe('Ticket needs the connection');
 		expect(e.storage.data.has('ffcTerminalQueue')).toBe(false);
+	});
+});
+
+describe('on-site sign-up code (#2968)', () => {
+	let el;
+	const ENTRY = { target: 'certificate_form:12', booking_id: 'certificate_form:12', title: 'Workshop', place: 'Hall', opens: NOW - 600, closes: NOW + 1200, closes_label: '10:20', open: true, join: true };
+	const node = (name) => el.querySelector('[data-ffc-terminal-part="' + name + '"]');
+
+	function joinEnv(state, routes = {}) {
+		el = markup();
+		const calls = [];
+		const e = env({
+			storage: memoryStorage({ ffcTerminal: JSON.stringify({ token: TOKEN, terminal_id: 7, label: 'Gate', bookings: ['certificate_form:12'], expires_at: NOW + 86400, expires_label: 'later', schedule: [ENTRY], ...state }) }),
+			online: () => true,
+			subtle: webcrypto.subtle,
+			indexedDB: memoryIndexedDB(),
+			join: window.FFCTerminalJoin,
+			qrcodegen: window.qrcodegen,
+			fetch: (url, options) => {
+				const path = url.replace(CONFIG.rest, '');
+				calls.push([options.method, path, options.body ? JSON.parse(options.body) : null]);
+				const answer = routes[options.method + ' ' + path];
+				return answer ? respond(answer[0], typeof answer[1] === 'function' ? answer[1](options) : answer[1])() : Promise.reject(new Error('offline'));
+			},
+		});
+		T().start(el, { ...CONFIG, joinBase: 'https://example.com/' }, e);
+		return { e, calls };
+	}
+
+	async function registeredKey() {
+		// The key the terminal makes is what the site registers: answer
+		// with its fingerprint.
+		let id = '';
+		const run = joinEnv({}, {
+			'GET self': [200, () => ({ label: 'Gate', bookings: ['certificate_form:12'], schedule: [ENTRY], expires_at: NOW + 86400, expires_label: 'later', join_key: id })],
+			'POST self/join-key': [200, (options) => {
+				const key = JSON.parse(options.body).key;
+				const raw = new Uint8Array(Buffer.from(key.replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
+				return webcrypto.subtle.digest('SHA-256', raw).then((d) => {
+					id = Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+					return { join_key: id };
+				});
+			}],
+		});
+		return run;
+	}
+
+	it('registers its key when the site holds another, then offers the code', async () => {
+		const { calls } = await registeredKey();
+		expect(node('join-open').hidden).toBe(true);
+		await settle();
+		const posted = calls.find((c) => 'POST' === c[0] && 'self/join-key' === c[1]);
+		expect(posted).toBeTruthy();
+		expect(posted[2].key).toMatch(/^[A-Za-z0-9_-]{87}$/);
+		await settle();
+		expect(node('join-open').hidden).toBe(false);
+	});
+
+	it('shows a signed code the phone opens, and goes back to reading', async () => {
+		const { e } = await registeredKey();
+		await settle();
+		await settle();
+		node('join-open').click();
+		await settle();
+		expect(visible(el)).toEqual(['join']);
+		expect(node('join-qr').innerHTML).toContain('<svg');
+		expect(node('join-left').textContent).toBe('back in 1:00');
+		const close = e.timeouts.find((t) => 60000 === t[1]);
+		expect(close).toBeTruthy();
+		close[0]();
+		expect(visible(el)).toEqual(['ready']);
+		expect(node('join-qr').innerHTML).toBe('');
+	});
+
+	it('offers no code for an event that does not take sign-up, or one not open', async () => {
+		const run = joinEnv({ schedule: [{ ...ENTRY, join: false }] }, { 'GET self': [200, { label: 'Gate', bookings: ['certificate_form:12'], schedule: [{ ...ENTRY, join: false }], expires_at: NOW + 86400, expires_label: 'later', join_key: 'whatever' }], 'POST self/join-key': [200, { join_key: 'other' }] });
+		await settle();
+		expect(node('join-open').hidden).toBe(true);
+		expect(run.calls.some((c) => 'self/join-key' === c[1])).toBe(true);
+		node('join-open').click();
+		await settle();
+		expect(visible(el)).toEqual(['ready']);
 	});
 });

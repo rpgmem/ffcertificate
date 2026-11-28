@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '25';
+	public const SCHEMA_REVISION = '26';
 
 	/**
 	 * Option holding the revision last applied.
@@ -635,6 +635,8 @@ class AudienceActivator {
             auto_end_hours smallint(5) unsigned DEFAULT NULL,
             refused_after_revocation int(10) unsigned NOT NULL DEFAULT 0,
             location_id varchar(64) NOT NULL DEFAULT '',
+            join_public_key varchar(100) NOT NULL DEFAULT '',
+            join_key_at bigint(20) unsigned DEFAULT NULL,
             revoked_at bigint(20) unsigned DEFAULT NULL,
             revoked_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
@@ -1224,8 +1226,12 @@ class AudienceActivator {
 			}
 		}
 		self::add_column_if_missing( $table_name, 'location_id', "varchar(64) NOT NULL DEFAULT ''", 'refused_after_revocation' );
+		// The public key the terminal signs its on-site sign-up codes with
+		// (#2968), base64url of the raw P-256 point, and when it was set.
+		self::add_column_if_missing( $table_name, 'join_public_key', "varchar(100) NOT NULL DEFAULT ''", 'location_id' );
+		self::add_column_if_missing( $table_name, 'join_key_at', 'bigint(20) unsigned DEFAULT NULL', 'join_public_key' );
 
-		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings', 'auto_end_hours', 'refused_after_revocation', 'location_id' ) );
+		return self::has_columns( $table_name, array( 'removed', 'queued', 'readings', 'auto_end_hours', 'refused_after_revocation', 'location_id', 'join_public_key', 'join_key_at' ) );
 	}
 
 	/**

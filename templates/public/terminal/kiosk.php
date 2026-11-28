@@ -248,7 +248,52 @@ $ffc_terminal_site        = (string) get_bloginfo( 'name' );
 						?>
 					</div>
 				</div>
+				<?php
+				// The on-site sign-up for a person without the app (#2968):
+				// shown while the event checking in takes it.
+				Button::render(
+					array(
+						'label'    => __( 'I don\'t have the app', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'phone',
+						'attrs'    => array(
+							'data-ffc-terminal-part' => 'join-open',
+							'hidden'                 => true,
+						),
+					)
+				);
+				?>
 			</div>
+		</div>
+	</section>
+
+	<section class="ffc-terminal-view" data-ffc-terminal-view="join" hidden>
+		<div class="ffc-terminal-join">
+			<div class="ffc-terminal-join-text">
+				<h2><?php esc_html_e( 'Read this code with your phone\'s camera', 'ffcertificate' ); ?></h2>
+				<ol class="ffc-terminal-join-steps">
+					<li><?php esc_html_e( 'Point the camera at the code beside this text.', 'ffcertificate' ); ?></li>
+					<li><?php esc_html_e( 'Fill in your name, e-mail and CPF, and create a password.', 'ffcertificate' ); ?></li>
+					<li><?php esc_html_e( 'Done: your presence is recorded.', 'ffcertificate' ); ?></li>
+				</ol>
+				<p class="ffc-terminal-note"><?php esc_html_e( 'Already have an account? Open the app and show your presence QR code.', 'ffcertificate' ); ?></p>
+			</div>
+			<div class="ffc-terminal-join-code">
+				<div class="ffc-terminal-join-qr" data-ffc-terminal-part="join-qr" role="img" aria-label="<?php esc_attr_e( 'Sign-up QR code', 'ffcertificate' ); ?>"></div>
+				<p class="ffc-terminal-note" data-ffc-terminal-part="join-left" aria-live="off"></p>
+			</div>
+		</div>
+		<div class="ffc-terminal-actions">
+			<?php
+			Button::render(
+				array(
+					'label'    => __( 'Back to reading', 'ffcertificate' ),
+					'category' => 'neutral',
+					'icon'     => 'chevron-left',
+					'attrs'    => array( 'data-ffc-terminal-part' => 'join-close' ),
+				)
+			);
+			?>
 		</div>
 	</section>
 

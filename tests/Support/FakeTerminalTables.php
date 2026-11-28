@@ -276,6 +276,15 @@ final class FakeTerminalTables extends \wpdb {
 			$this->terminals[ (int) $args[3] ]['queued']       = (int) $args[2];
 			return 1;
 		}
+		if ( 0 === strpos( $query, 'UPDATE %i SET join_public_key = %s, join_key_at = %d WHERE id = %d AND revoked_at IS NULL' ) ) {
+			$row = $this->terminals[ (int) $args[3] ] ?? null;
+			if ( null === $row || null !== $row['revoked_at'] ) {
+				return 0;
+			}
+			$this->terminals[ (int) $args[3] ]['join_public_key'] = $args[1];
+			$this->terminals[ (int) $args[3] ]['join_key_at']     = (int) $args[2];
+			return 1;
+		}
 		if ( 0 === strpos( $query, 'UPDATE %i SET readings = readings + 1 WHERE id = %d' ) ) {
 			if ( ! isset( $this->terminals[ (int) $args[1] ] ) ) {
 				return 0;

@@ -460,6 +460,18 @@ final class CertificateFormTarget implements TerminalTargetInterface {
 	}
 
 	/**
+	 * Whether a person without an account may sign up from the terminal
+	 * (#2968). Every target accepts until the switch that governs it lands
+	 * with the sign-up page.
+	 *
+	 * @param int $target_id Id within the type.
+	 * @return bool
+	 */
+	public function terminal_accepts_join( int $target_id ): bool {
+		return $target_id > 0;
+	}
+
+	/**
 	 * Why the form may not join a terminal's queue.
 	 *
 	 * @param int $target_id Form id.

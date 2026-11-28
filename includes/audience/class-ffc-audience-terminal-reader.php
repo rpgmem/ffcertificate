@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read operations for terminals and the pairing codes that create them.
  *
- * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, targets: list<int|string>, removed: array<int|string, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, auto_end_hours: int|null, refused_after_revocation: int, location_id: string, revoked_at: int|null, revoked_by: int|null}
+ * @phpstan-type TerminalRow array{id: int, token_hash: string, device_hash: string, label: string, targets: list<int|string>, removed: array<int|string, int>, paired_by: int|null, paired_at: int, expires_at: int, last_seen_at: int|null, queued: int, readings: int, auto_end_hours: int|null, refused_after_revocation: int, location_id: string, join_public_key: string, join_key_at: int|null, revoked_at: int|null, revoked_by: int|null}
  * @phpstan-type PairingRow array{id: int, code_hash: string, targets: list<int|string>, label: string, created_by: int|null, created_at: int, expires_at: int, used_at: int|null, terminal_id: int|null, auto_end_hours: int|null, location_id: string}
  *
  * @since 6.50.0
@@ -212,6 +212,9 @@ class AudienceTerminalReader {
 			'auto_end_hours'           => self::nullable_int( $row, 'auto_end_hours' ),
 			'refused_after_revocation' => ArrayValue::int( $row, 'refused_after_revocation' ),
 			'location_id'              => ArrayValue::string( $row, 'location_id' ),
+			// Base64url of the raw P-256 point its sign-up codes are signed with (#2968).
+			'join_public_key'          => ArrayValue::string( $row, 'join_public_key' ),
+			'join_key_at'              => self::nullable_int( $row, 'join_key_at' ),
 			'revoked_at'               => self::nullable_int( $row, 'revoked_at' ),
 			'revoked_by'               => self::nullable_int( $row, 'revoked_by' ),
 		);

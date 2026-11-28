@@ -218,6 +218,23 @@ class AudienceTerminalWriter {
 	}
 
 	/**
+	 * Set the public key a terminal signs its on-site sign-up codes with
+	 * (#2968). A terminal whose browser lost its key sends a new one, which
+	 * replaces the old.
+	 *
+	 * @param int    $id  Terminal id.
+	 * @param string $key Base64url of the raw P-256 point.
+	 * @param int    $now Unix time.
+	 * @return bool
+	 */
+	public static function set_join_key( int $id, string $key, int $now ): bool {
+		$wpdb = self::db();
+		return self::run(
+			$wpdb->prepare( 'UPDATE %i SET join_public_key = %s, join_key_at = %d WHERE id = %d AND revoked_at IS NULL', AudienceTerminalReader::terminals_table(), $key, $now, $id )
+		) > 0;
+	}
+
+	/**
 	 * Count one attendance a terminal recorded (#2748).
 	 *
 	 * @param int $id Terminal id.

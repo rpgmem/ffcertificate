@@ -122,6 +122,12 @@ class AudienceTerminalRestController {
 						'required'          => false,
 						'sanitize_callback' => 'sanitize_text_field',
 					),
+					// The public key the terminal signs its sign-up codes with (#2968).
+					'join_key' => array(
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => array( AudiencePresenceRestController::class, 'sanitize_b64' ),
+					),
 					'auto_end' => array(
 						'type'     => 'integer',
 						'required' => false,
@@ -308,6 +314,23 @@ class AudienceTerminalRestController {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/' . self::REST_BASE . '/self/join-key',
+			array(
+				'methods'             => \WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'self_join_key' ),
+				'permission_callback' => array( $this, 'check_terminal_permission' ),
+				'args'                => array(
+					'key' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => array( AudiencePresenceRestController::class, 'sanitize_b64' ),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/' . self::REST_BASE . '/self/events',
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
@@ -384,7 +407,7 @@ class AudienceTerminalRestController {
 	 *
 	 * @param array $result What {@see AudienceTerminalPairing::pair()} returned.
 	 * @param int   $now    Unix time.
-	 * @phpstan-param array{token: string, terminal_id: int, label: string, bookings: list<int|string>, expires_at: int} $result
+	 * @phpstan-param array{token: string, terminal_id: int, label: string, bookings: list<int|string>, expires_at: int, join_key: string} $result
 	 * @return \WP_REST_Response
 	 */
 	private static function paired_response( array $result, int $now ): \WP_REST_Response {
@@ -442,7 +465,8 @@ class AudienceTerminalRestController {
 		if ( is_wp_error( $code ) ) {
 			return $code;
 		}
-		$result = AudienceTerminalPairing::pair( $code['code'], is_string( $device ) ? $device : '', IpAddress::fingerprint( ClientIpResolver::resolve() ), $now );
+		$join   = $request->get_param( 'join_key' );
+		$result = AudienceTerminalPairing::pair( $code['code'], is_string( $device ) ? $device : '', IpAddress::fingerprint( ClientIpResolver::resolve() ), $now, is_string( $join ) ? $join : '' );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
@@ -673,10 +697,34 @@ class AudienceTerminalRestController {
 				'expires_label' => DateFormatter::format_datetime( $terminal['expires_at'] ),
 				'now'           => $now,
 				'schedule'      => AudienceTerminalSchedule::plan( $terminal, $now ),
+				// The fingerprint of the key the site checks its sign-up codes
+				// against (#2968): a terminal holding another sends its own.
+				'join_key'      => AudienceTerminalPairing::join_key_id( $terminal['join_public_key'] ),
 			),
 			200,
 			array( 'Cache-Control' => 'no-store' )
 		);
+	}
+
+	/**
+	 * Register the key the terminal signs its on-site sign-up codes with
+	 * (#2968), for a terminal paired before it made one or whose browser
+	 * lost it.
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function self_join_key( \WP_REST_Request $request ) {
+		$terminal = self::terminal_of( $request );
+		if ( null === $terminal ) {
+			return self::not_paired();
+		}
+		$key = $request->get_param( 'key' );
+		$id  = AudienceTerminalPairing::register_join_key( $terminal['id'], is_string( $key ) ? $key : '', time() );
+		if ( is_wp_error( $id ) ) {
+			return $id;
+		}
+		return new \WP_REST_Response( array( 'join_key' => $id ), 200, array( 'Cache-Control' => 'no-store' ) );
 	}
 
 	/**

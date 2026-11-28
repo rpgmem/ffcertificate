@@ -37927,3 +37927,93 @@ msgstr ""
 #: includes/settings/views/documentation/feature-reregistration.php
 msgid "In the acknowledgment text, a field key between double braces, such as {{unidade_exercicio}}, shows what the member has in that field and follows it as they edit; a key the form does not have stays as written."
 msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Already have an account? Open the app and show your presence QR code."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Check-in for this event is not open now. Ask the event operator."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Done: your presence is recorded."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Fill in your name, e-mail and CPF, and create a password."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "I don't have the app"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Point the camera at the code beside this text."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Read this code with your phone's camera"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Sign up at the event"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "Sign-up QR code"
+msgstr ""
+
+#. translators: %s: time left, such as 0:48
+#, php-format
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "The code changes every 30 s. Back to reading in %s."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "The code is valid. Signing up on this page is not available yet: ask the event operator."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "The terminal that showed this code was ended. Ask the event operator."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "The terminal's code changes every few seconds and works only at the event, while check-in is open."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code cannot be used"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code comes from a terminal the site does not know. Read the code on the terminal again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code expired. Read the code on the terminal again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code is dated in the future. Read the code on the terminal again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code is for an event the terminal does not serve."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This code was not made by the terminal it names."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This event does not take sign-up on site. Ask the event operator."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This is not a key the site can use. Reload the terminal and try again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-terminal-join-code.php
+msgid "This is not a sign-up code. Read the code on the terminal again."
+msgstr ""
