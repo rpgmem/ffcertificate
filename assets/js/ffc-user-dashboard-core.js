@@ -127,7 +127,10 @@
             return (stored && [10, 25, 50].indexOf(stored) !== -1) ? stored : DEFAULT_PAGE_SIZE;
         },
 
+        // A screen that lists only a few items turns the bar off with
+        // `ffcDashboard.listFilters = false` (the app's Reregistration, #2966).
         buildFilterBar: function (tabName) {
+            if (ffcDashboard.listFilters === false) return '';
             var s = ffcDashboard.strings;
             var html = '<div class="ffc-filter-bar" data-tab="' + tabName + '">';
             html += '<label>' + (s.filterFrom || 'From:') + ' <input type="date" class="ffc-filter-from" /></label>';

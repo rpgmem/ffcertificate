@@ -324,6 +324,8 @@ final class DashboardAppScreens {
 				'tabs'     => array( 'reregistrations' ),
 				'subtitle' => __( 'Keep your registration up to date', 'ffcertificate' ),
 				'badge'    => array( self::class, 'reregistration_badge' ),
+				// A person has a handful of campaigns; no filter bar (#2966).
+				'render'   => array( self::class, 'render_without_filters' ),
 			),
 			'recruitment'        => array(
 				'label'    => __( 'Recruitment', 'ffcertificate' ),
@@ -356,6 +358,20 @@ final class DashboardAppScreens {
 		if ( self::app_has_preference_sections() ) {
 			wp_add_inline_script( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.notificationPreferences = false);', 'after' );
 		}
+		return $html;
+	}
+
+	/**
+	 * The app's Reregistration screen: its dashboard tab without the date
+	 * and search filter, which a list of a person's own few campaigns does
+	 * not need on a phone (#2966).
+	 *
+	 * @param array<int, string> $tabs The tabs this person sees.
+	 * @return string
+	 */
+	public static function render_without_filters( array $tabs ): string {
+		$html = DashboardShortcode::render( array( 'tabs' => implode( ',', $tabs ) ) );
+		wp_add_inline_script( 'ffc-dashboard', 'window.ffcDashboard && (window.ffcDashboard.listFilters = false);', 'after' );
 		return $html;
 	}
 
