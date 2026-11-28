@@ -3762,5 +3762,5 @@ select.ffc-cep-locked {
 .ffc-profile-completion-email span:last-child,
 .ffc-profile-completion-hint {
 	color: var(--ffc-text-muted);
-	font-size: 0.875em;
+	font-size: var(--ffc-font-size-sm);
 }
