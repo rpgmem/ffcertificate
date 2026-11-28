@@ -97,7 +97,7 @@
         for (var i = 0; i < bytes.length; i++) {
             text += String.fromCharCode(bytes[i]);
         }
-        return root.btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        return root.btoa(text).split('+').join('-').split('/').join('_').replace(/=+$/, '');
     }
 
     /**
