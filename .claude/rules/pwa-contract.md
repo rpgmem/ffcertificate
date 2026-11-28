@@ -21,7 +21,7 @@ Site PWA (`rpgmem/site-pwa`, epic #2738) turns the site into an installable app,
 
 | Hook | Kind | Consumer here |
 | --- | --- | --- |
-| `site_pwa_register_screens` | action, `( $screens, int $api )` | `Shortcodes\DashboardAppScreens`, `Audience\AudienceAppScreens` |
+| `site_pwa_register_screens` | action, `( $screens, int $api )` | `Shortcodes\DashboardAppScreens`, `Audience\AudienceAppScreens`, `Reregistration\ProfileCompletion` (the `required` screen that asks for missing details, #2962) |
 | `site_pwa_profile_line` | filter, `( string $line, WP_User $user )` | `DashboardAppScreens` |
 | `site_pwa_details_screen` | filter, `( string $id, WP_User $user )` | `DashboardAppScreens` |
 | `site_pwa_preference_sections` | filter, `( array $sections, WP_User $user )` | `DashboardAppScreens` |
